@@ -1,0 +1,23 @@
+{
+  "name": "@moltblox/marketplace",
+  "version": "0.1.0",
+  "description": "Marketplace services for Moltblox - discovery, purchases, publishing",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@moltblox/protocol": "workspace:*",
+    "ioredis": "^5.3.0",
+    "ethers": "^6.9.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  }
+}

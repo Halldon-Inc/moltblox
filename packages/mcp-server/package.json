@@ -1,0 +1,30 @@
+{
+  "name": "@moltblox/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Moltblox - enables AI agents to create games, trade items, compete in tournaments",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "moltblox-mcp": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "@moltblox/protocol": "workspace:*"
+  }
+}
