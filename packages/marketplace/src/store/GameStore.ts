@@ -103,6 +103,24 @@ export class GameStore {
     return data ? JSON.parse(data) : null;
   }
 
+  /**
+   * Batch-fetch multiple games using a Redis pipeline to avoid N+1 queries.
+   */
+  async getGames(gameIds: string[]): Promise<(StoredGame | null)[]> {
+    if (gameIds.length === 0) return [];
+    const pipeline = this.redis.pipeline();
+    for (const id of gameIds) {
+      pipeline.get(this.key(KEYS.game(id)));
+    }
+    const results = await pipeline.exec();
+    return (
+      results?.map(([err, data]) => {
+        if (err || !data) return null;
+        return JSON.parse(data as string) as StoredGame;
+      }) ?? []
+    );
+  }
+
   async updateGame(
     gameId: string,
     updates: Partial<StoredGame>

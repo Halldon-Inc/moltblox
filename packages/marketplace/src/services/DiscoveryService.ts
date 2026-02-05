@@ -128,12 +128,14 @@ export class DiscoveryService {
         gameIds = await this.store.getTrendingGames(this.maxPageSize);
     }
 
-    // Load games and apply filters
+    // Batch-fetch all games in a single pipeline call
+    const allGames = await this.store.getGames(gameIds);
+
+    // Apply filters
     const games: GameListing[] = [];
     let total = 0;
 
-    for (const gameId of gameIds) {
-      const game = await this.store.getGame(gameId);
+    for (const game of allGames) {
       if (!game || game.status !== 'active') continue;
 
       // Apply filters
@@ -178,10 +180,10 @@ export class DiscoveryService {
     const normalizedQuery = searchQuery.toLowerCase().trim();
     const allGameIds = await this.store.getAllGameIds(1000, 0);
 
+    const allGames = await this.store.getGames(allGameIds);
     const matches: { game: StoredGame; score: number }[] = [];
 
-    for (const gameId of allGameIds) {
-      const game = await this.store.getGame(gameId);
+    for (const game of allGames) {
       if (!game || game.status !== 'active') continue;
 
       // Apply filters
@@ -224,16 +226,11 @@ export class DiscoveryService {
    */
   async getCreatorGames(creatorId: string): Promise<GameListing[]> {
     const gameIds = await this.store.getGamesByCreator(creatorId);
-    const games: GameListing[] = [];
+    const allGames = await this.store.getGames(gameIds);
 
-    for (const gameId of gameIds) {
-      const game = await this.store.getGame(gameId);
-      if (game && game.status === 'active') {
-        games.push(this.gameToListing(game));
-      }
-    }
-
-    return games;
+    return allGames
+      .filter((game): game is StoredGame => game !== null && game.status === 'active')
+      .map((game) => this.gameToListing(game));
   }
 
   /**
@@ -246,12 +243,15 @@ export class DiscoveryService {
     // Get games in same category
     const categoryGames = await this.store.getGamesByCategory(game.category);
 
+    // Batch-fetch all category games
+    const allCategoryGames = await this.store.getGames(categoryGames);
     const related: { game: StoredGame; score: number }[] = [];
 
-    for (const relatedId of categoryGames) {
+    for (let i = 0; i < categoryGames.length; i++) {
+      const relatedId = categoryGames[i];
       if (relatedId === gameId) continue;
 
-      const relatedGame = await this.store.getGame(relatedId);
+      const relatedGame = allCategoryGames[i];
       if (!relatedGame || relatedGame.status !== 'active') continue;
 
       // Score by tag overlap and rating
@@ -315,15 +315,16 @@ export class DiscoveryService {
    */
   async refreshTrendingScores(): Promise<void> {
     const gameIds = await this.store.getAllGameIds(1000, 0);
+    const allGames = await this.store.getGames(gameIds);
 
-    for (const gameId of gameIds) {
-      const game = await this.store.getGame(gameId);
+    for (let i = 0; i < gameIds.length; i++) {
+      const game = allGames[i];
       if (!game || game.status !== 'active') continue;
 
-      const stats = await this.store.getGameStats(gameId);
+      const stats = await this.store.getGameStats(gameIds[i]);
       const score = this.calculateTrendingScore(game, stats);
 
-      await this.store.updateTrendingScore(gameId, score);
+      await this.store.updateTrendingScore(gameIds[i], score);
     }
   }
 
@@ -353,12 +354,13 @@ export class DiscoveryService {
   private async getTopRatedGames(): Promise<string[]> {
     // In production, this would use a sorted set
     const allIds = await this.store.getAllGameIds(1000, 0);
+    const allGames = await this.store.getGames(allIds);
     const games: { id: string; rating: number }[] = [];
 
-    for (const id of allIds) {
-      const game = await this.store.getGame(id);
+    for (let i = 0; i < allIds.length; i++) {
+      const game = allGames[i];
       if (game && game.status === 'active') {
-        games.push({ id, rating: game.averageRating });
+        games.push({ id: allIds[i], rating: game.averageRating });
       }
     }
 
@@ -381,12 +383,13 @@ export class DiscoveryService {
 
   private async getHighestEarningGames(): Promise<string[]> {
     const allIds = await this.store.getAllGameIds(1000, 0);
+    const allGames = await this.store.getGames(allIds);
     const games: { id: string; revenue: number }[] = [];
 
-    for (const id of allIds) {
-      const game = await this.store.getGame(id);
+    for (let i = 0; i < allIds.length; i++) {
+      const game = allGames[i];
       if (game) {
-        games.push({ id, revenue: parseFloat(game.totalRevenue) || 0 });
+        games.push({ id: allIds[i], revenue: parseFloat(game.totalRevenue) || 0 });
       }
     }
 
