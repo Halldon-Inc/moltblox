@@ -38,6 +38,19 @@ const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
 const CHAT_MAX_LENGTH = 500;
 
+// Rate limiting
+const RATE_LIMIT_WINDOW = 10_000; // 10 seconds
+const RATE_LIMIT_MAX_MESSAGES = 30; // max messages per window
+const RATE_LIMIT_MAX_WARNINGS = 3; // warnings before disconnect
+
+interface RateLimitState {
+  messageCount: number;
+  windowStart: number;
+  warnings: number;
+}
+
+const rateLimitMap = new Map<string, RateLimitState>();
+
 const VALID_MESSAGE_TYPES = new Set([
   'authenticate',
   'join_queue',
@@ -61,6 +74,48 @@ const AUTH_REQUIRED_TYPES = new Set([
   'stop_spectating',
   'chat',
 ]);
+
+/**
+ * Check if a client has exceeded the message rate limit.
+ * Returns true if the message should be allowed, false if rate-limited.
+ */
+function checkRateLimit(clientId: string, ws: WebSocket): boolean {
+  const now = Date.now();
+  let state = rateLimitMap.get(clientId);
+
+  if (!state) {
+    state = { messageCount: 0, windowStart: now, warnings: 0 };
+    rateLimitMap.set(clientId, state);
+  }
+
+  // Reset window if expired
+  if (now - state.windowStart >= RATE_LIMIT_WINDOW) {
+    state.messageCount = 0;
+    state.windowStart = now;
+  }
+
+  state.messageCount++;
+
+  if (state.messageCount > RATE_LIMIT_MAX_MESSAGES) {
+    state.warnings++;
+    if (state.warnings >= RATE_LIMIT_MAX_WARNINGS) {
+      sendTo(ws, {
+        type: 'error',
+        payload: { message: 'Rate limit exceeded repeatedly. Disconnecting.' },
+      });
+      return false; // Caller should disconnect
+    }
+    sendTo(ws, {
+      type: 'error',
+      payload: {
+        message: `Rate limit exceeded (${RATE_LIMIT_MAX_MESSAGES} messages per ${RATE_LIMIT_WINDOW / 1000}s). Warning ${state.warnings}/${RATE_LIMIT_MAX_WARNINGS}.`,
+      },
+    });
+    return true; // Allow this one but warn
+  }
+
+  return true;
+}
 
 function escapeHtml(str: string): string {
   return str
@@ -105,6 +160,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
           console.error('[WS] Error handling timeout disconnect:', err),
         );
         clients.delete(clientId);
+        rateLimitMap.delete(clientId);
         continue;
       }
       if (client.ws.readyState === WebSocket.OPEN) {
@@ -141,6 +197,19 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
 
     // Handle incoming messages
     ws.on('message', (data: Buffer) => {
+      // Per-client rate limiting
+      const allowed = checkRateLimit(clientId, ws);
+      if (!allowed) {
+        console.log(`[WS] Client ${clientId} disconnected for exceeding rate limit`);
+        ws.terminate();
+        handleDisconnect(client, clients).catch((err) =>
+          console.error('[WS] Error handling rate-limit disconnect:', err),
+        );
+        clients.delete(clientId);
+        rateLimitMap.delete(clientId);
+        return;
+      }
+
       try {
         const message: WSMessage = JSON.parse(data.toString());
         handleMessage(client, message, clients).catch((err) =>
@@ -161,6 +230,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
         console.error('[WS] Error handling disconnect:', err),
       );
       clients.delete(clientId);
+      rateLimitMap.delete(clientId);
     });
 
     // Handle errors
@@ -168,6 +238,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       console.error(`[WS] Client error ${clientId}:`, err.message);
       handleDisconnect(client, clients).catch(() => {});
       clients.delete(clientId);
+      rateLimitMap.delete(clientId);
     });
   });
 

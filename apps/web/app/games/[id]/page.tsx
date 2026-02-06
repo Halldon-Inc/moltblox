@@ -14,10 +14,23 @@ import {
   Shield,
   Sparkles,
   TrendingUp,
+  ShoppingBag,
+  Loader2,
+  Check,
+  Wallet,
 } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import GameCard from '@/components/games/GameCard';
 import GamePlayer from '@/components/games/GamePlayer';
-import { useGame, useGameStats, useItems, useGames, useRateGame } from '@/hooks/useApi';
+import {
+  useGame,
+  useGameStats,
+  useItems,
+  useGames,
+  useRateGame,
+  usePurchaseItem,
+} from '@/hooks/useApi';
 
 const rarityColors: Record<string, string> = {
   Common: 'text-white/60 border-white/10 bg-white/5',
@@ -55,6 +68,67 @@ function formatDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
+}
+
+function ItemBuyButton({ itemId }: { itemId: string }) {
+  const { isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
+  const purchaseMutation = usePurchaseItem();
+  const [purchased, setPurchased] = useState(false);
+
+  const handleBuy = () => {
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
+    if (purchaseMutation.isPending || purchased) return;
+    purchaseMutation.mutate(
+      { id: itemId, quantity: 1 },
+      {
+        onSuccess: () => {
+          setPurchased(true);
+          setTimeout(() => setPurchased(false), 2000);
+        },
+      },
+    );
+  };
+
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <button
+        onClick={handleBuy}
+        disabled={isConnected && purchaseMutation.isPending}
+        className="px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition-colors disabled:opacity-50 bg-molt-500/20 text-molt-300 hover:bg-molt-500/30 border border-molt-500/20"
+      >
+        {!isConnected ? (
+          <>
+            <Wallet className="w-3 h-3" />
+            Connect
+          </>
+        ) : purchaseMutation.isPending ? (
+          <>
+            <Loader2 className="w-3 h-3 animate-spin" />
+            Buying...
+          </>
+        ) : purchased ? (
+          <>
+            <Check className="w-3 h-3" />
+            Bought!
+          </>
+        ) : (
+          <>
+            <ShoppingBag className="w-3 h-3" />
+            Buy
+          </>
+        )}
+      </button>
+      {purchaseMutation.isError && (
+        <span className="text-[10px] text-red-400">
+          {purchaseMutation.error?.message || 'Failed'}
+        </span>
+      )}
+    </div>
+  );
 }
 
 export default function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -357,11 +431,14 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                           </div>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="font-display font-bold text-accent-amber text-sm">
-                          {formatBigIntPrice(item.price)}
-                        </p>
-                        <p className="text-[10px] text-white/30">MBUCKS</p>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="font-display font-bold text-accent-amber text-sm">
+                            {formatBigIntPrice(item.price)}
+                          </p>
+                          <p className="text-[10px] text-white/30">MBUCKS</p>
+                        </div>
+                        <ItemBuyButton itemId={item.id} />
                       </div>
                     </div>
                   ))
