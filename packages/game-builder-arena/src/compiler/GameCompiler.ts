@@ -77,7 +77,10 @@ const FORBIDDEN_PATTERNS = [
   { pattern: /new\s+Date\s*\(/g, message: 'new Date() is forbidden - use provided tick' },
 
   // Random (must use deterministic version)
-  { pattern: /Math\.random\s*\(\s*\)/g, message: 'Math.random() is forbidden - use provided random' },
+  {
+    pattern: /Math\.random\s*\(\s*\)/g,
+    message: 'Math.random() is forbidden - use provided random',
+  },
 
   // Global mutations
   { pattern: /globalThis\s*\[/g, message: 'Global mutation is forbidden' },
@@ -195,10 +198,7 @@ export class GameCompiler {
 
     // Check for required properties
     for (const prop of REQUIRED_INTERFACE.properties) {
-      const propPattern = new RegExp(
-        `(readonly\\s+)?${prop.name}\\s*(:|=)`,
-        'g'
-      );
+      const propPattern = new RegExp(`(readonly\\s+)?${prop.name}\\s*(:|=)`, 'g');
       if (!propPattern.test(code)) {
         issues.push({
           severity: 'error',
@@ -209,10 +209,7 @@ export class GameCompiler {
 
     // Check for required methods
     for (const method of REQUIRED_INTERFACE.methods) {
-      const methodPattern = new RegExp(
-        `${method.name}\\s*\\(`,
-        'g'
-      );
+      const methodPattern = new RegExp(`${method.name}\\s*\\(`, 'g');
       if (!methodPattern.test(code)) {
         issues.push({
           severity: 'error',
@@ -273,9 +270,7 @@ export class GameCompiler {
     if (!analysis.safe) {
       return {
         success: false,
-        errors: analysis.issues
-          .filter((i) => i.severity === 'error')
-          .map((i) => i.message),
+        errors: analysis.issues.filter((i) => i.severity === 'error').map((i) => i.message),
       };
     }
 
@@ -337,7 +332,8 @@ export class GameCompiler {
       // getState
       0x08, 0x67, 0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x00, 0x00,
       // getStateForPlayer
-      0x11, 0x67, 0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x50, 0x6c, 0x61, 0x79, 0x65, 0x72, 0x00, 0x00,
+      0x11, 0x67, 0x65, 0x74, 0x53, 0x74, 0x61, 0x74, 0x65, 0x46, 0x6f, 0x72, 0x50, 0x6c, 0x61,
+      0x79, 0x65, 0x72, 0x00, 0x00,
       // applyAction
       0x0b, 0x61, 0x70, 0x70, 0x6c, 0x79, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x00, 0x00,
       // tick

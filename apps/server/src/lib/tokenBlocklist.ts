@@ -1,10 +1,17 @@
-// In-memory JWT blocklist (resets on restart -- use Redis in production)
-const blocklist = new Set<string>();
+/**
+ * JWT token blocklist backed by Redis.
+ * Blocked tokens expire after 7 days (matching JWT TTL).
+ */
+import redis from './redis.js';
 
-export function blockToken(jti: string): void {
-  blocklist.add(jti);
+const KEY_PREFIX = 'blocklist:';
+const TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
+
+export async function blockToken(jti: string): Promise<void> {
+  await redis.set(`${KEY_PREFIX}${jti}`, '1', 'EX', TTL_SECONDS);
 }
 
-export function isTokenBlocked(jti: string): boolean {
-  return blocklist.has(jti);
+export async function isTokenBlocked(jti: string): Promise<boolean> {
+  const result = await redis.exists(`${KEY_PREFIX}${jti}`);
+  return result === 1;
 }

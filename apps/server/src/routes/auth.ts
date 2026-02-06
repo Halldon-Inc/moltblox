@@ -433,32 +433,36 @@ router.post(
 /**
  * POST /auth/logout - Clear authentication cookie and blocklist the token
  */
-router.post('/logout', (req, res) => {
-  // Blocklist the current token so it cannot be reused
-  const token = req.headers.authorization?.startsWith('Bearer ')
-    ? req.headers.authorization.slice(7).trim()
-    : req.cookies?.moltblox_token;
+router.post('/logout', async (req, res, next) => {
+  try {
+    // Blocklist the current token so it cannot be reused
+    const token = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7).trim()
+      : req.cookies?.moltblox_token;
 
-  if (token) {
-    try {
-      // Decode without verifying (token is already authenticated or about to be cleared)
-      const decoded = jwt.decode(token) as { jti?: string } | null;
-      // Use jti if present, otherwise blocklist by raw token
-      const key = decoded?.jti || token;
-      blockToken(key);
-    } catch {
-      // If decoding fails, blocklist the raw token string
-      blockToken(token);
+    if (token) {
+      try {
+        // Decode without verifying (token is already authenticated or about to be cleared)
+        const decoded = jwt.decode(token) as { jti?: string } | null;
+        // Use jti if present, otherwise blocklist by raw token
+        const key = decoded?.jti || token;
+        await blockToken(key);
+      } catch {
+        // If decoding fails, blocklist the raw token string
+        await blockToken(token);
+      }
     }
-  }
 
-  res.clearCookie('moltblox_token', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-  });
-  res.json({ message: 'Logged out' });
+    res.clearCookie('moltblox_token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+    });
+    res.json({ message: 'Logged out' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

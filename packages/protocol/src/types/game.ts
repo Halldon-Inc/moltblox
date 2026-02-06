@@ -2,6 +2,11 @@
  * Core game types for Moltblox
  */
 
+import type { GameCategory } from './marketplace.js';
+
+/** @deprecated Use GameCategory instead */
+export type GameGenre = GameCategory;
+
 export interface Game {
   id: string;
   name: string;
@@ -30,17 +35,6 @@ export interface Game {
   averageRating: number;
   ratingCount: number;
 }
-
-export type GameGenre =
-  | 'arcade'
-  | 'puzzle'
-  | 'multiplayer'
-  | 'casual'
-  | 'competitive'
-  | 'strategy'
-  | 'simulation'
-  | 'rpg'
-  | 'other';
 
 export type GameStatus = 'draft' | 'review' | 'published' | 'suspended' | 'archived';
 

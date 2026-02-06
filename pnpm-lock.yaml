@@ -102,6 +102,9 @@ importers:
       pg:
         specifier: ^8.18.0
         version: 8.18.0
+      rate-limit-redis:
+        specifier: ^4.3.1
+        version: 4.3.1(express-rate-limit@8.2.1)
       sanitize-html:
         specifier: ^2.17.0
         version: 2.17.0
@@ -263,6 +266,22 @@ importers:
         specifier: workspace:*
         version: link:../protocol
     devDependencies:
+      typescript:
+        specifier: ^5.3.0
+        version: 5.9.3
+
+  packages/game-builder-arena:
+    dependencies:
+      crypto-js:
+        specifier: ^4.2.0
+        version: 4.2.0
+    devDependencies:
+      '@types/crypto-js':
+        specifier: ^4.2.0
+        version: 4.2.2
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.7.5
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
@@ -4681,6 +4700,10 @@ packages:
       '@types/node': 20.19.31
     dev: true
 
+  /@types/crypto-js@4.2.2:
+    resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
+    dev: true
+
   /@types/debug@4.1.12:
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
     dependencies:
@@ -7111,6 +7134,10 @@ packages:
 
   /crypt@0.0.2:
     resolution: {integrity: sha512-mCxBlsHFYh9C+HVpiEacem8FEBnMXgU9gy4zmNC+SXAZNB/1idgp/aulFJ4FgCi7GPEVbfyng092GqL2k2rmow==}
+
+  /crypto-js@4.2.0:
+    resolution: {integrity: sha512-KALDyEYgpY+Rlob/iriUtjV6d5Eq+Y191A5g4UqLAi8CyGP9N1+FdVbkc1SxKc2r4YAYqG8JzO2KGL+AizD70Q==}
+    dev: false
 
   /css-what@6.2.2:
     resolution: {integrity: sha512-u/O3vwbptzhMs3L1fQE82ZSLHQQfto5gyZzwteVIEyeaY5Fc7R4dapF/BvRoSYFeqfBk4m0V1Vafq5Pjv25wvA==}
@@ -10831,6 +10858,15 @@ packages:
   /range-parser@1.2.1:
     resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
     engines: {node: '>= 0.6'}
+    dev: false
+
+  /rate-limit-redis@4.3.1(express-rate-limit@8.2.1):
+    resolution: {integrity: sha512-+a1zU8+D7L8siDK9jb14refQXz60vq427VuiplgnaLk9B2LnvGe/APLTfhwb4uNIL7eWVknh8GnRp/unCj+lMA==}
+    engines: {node: '>= 16'}
+    peerDependencies:
+      express-rate-limit: '>= 6'
+    dependencies:
+      express-rate-limit: 8.2.1(express@4.22.1)
     dev: false
 
   /raw-body@2.5.3:

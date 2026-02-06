@@ -43,6 +43,8 @@ ENV NODE_ENV=production
 COPY --from=build /app/apps/server/dist ./dist
 COPY --from=build /app/apps/server/node_modules ./node_modules
 COPY --from=build /app/apps/server/prisma ./prisma
+COPY --from=build /app/apps/server/prisma.config.ts ./prisma.config.ts
+COPY --from=build /app/apps/server/package.json ./package.json
 
 # Copy protocol dist (needed at runtime as workspace dependency)
 COPY --from=build /app/packages/protocol/dist /app/packages/protocol/dist
@@ -53,4 +55,5 @@ COPY --from=build /app/node_modules /app/node_modules
 
 EXPOSE 3001
 
-CMD ["node", "dist/index.js"]
+# Run migrations then start the server
+CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]

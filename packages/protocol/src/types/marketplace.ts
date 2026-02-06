@@ -10,6 +10,9 @@
 export type GameCategory =
   | 'arcade'
   | 'puzzle'
+  | 'multiplayer'
+  | 'casual'
+  | 'competitive'
   | 'strategy'
   | 'action'
   | 'rpg'

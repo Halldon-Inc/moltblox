@@ -1,0 +1,23 @@
+{
+  "name": "@moltblox/game-builder-arena",
+  "version": "0.1.0",
+  "description": "WASM sandbox and game compilation for Moltblox",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.0",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.3.0"
+  }
+}

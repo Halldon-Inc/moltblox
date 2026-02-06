@@ -784,11 +784,14 @@ describe("TournamentManager", function () {
             player3.address
           );
 
+        // Total pool = PRIZE_POOL + 4 entry fees (creator-sponsored includes fees)
+        const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+
         // Default distribution: 50/25/15/10
-        const firstPrize = (PRIZE_POOL * 50n) / 100n;
-        const secondPrize = (PRIZE_POOL * 25n) / 100n;
-        const thirdPrize = (PRIZE_POOL * 15n) / 100n;
-        const participationPool = PRIZE_POOL - firstPrize - secondPrize - thirdPrize;
+        const firstPrize = (totalPool * 50n) / 100n;
+        const secondPrize = (totalPool * 25n) / 100n;
+        const thirdPrize = (totalPool * 15n) / 100n;
+        const participationPool = totalPool - firstPrize - secondPrize - thirdPrize;
 
         // Only player4 is a non-winner (1 non-winner)
         const participationReward = participationPool / 1n;
@@ -848,9 +851,10 @@ describe("TournamentManager", function () {
         const { manager, sponsor, player1, player2, player3 } =
           await loadFixture(deployWithActiveTournamentFixture);
 
-        const firstPrize = (PRIZE_POOL * 50n) / 100n;
-        const secondPrize = (PRIZE_POOL * 25n) / 100n;
-        const thirdPrize = (PRIZE_POOL * 15n) / 100n;
+        const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+        const firstPrize = (totalPool * 50n) / 100n;
+        const secondPrize = (totalPool * 25n) / 100n;
+        const thirdPrize = (totalPool * 15n) / 100n;
 
         const tx = manager
           .connect(sponsor)
@@ -901,11 +905,12 @@ describe("TournamentManager", function () {
         const { manager, sponsor, player1, player2, player3, player4 } =
           await loadFixture(deployWithActiveTournamentFixture);
 
-        const firstPrize = (PRIZE_POOL * 50n) / 100n;
-        const secondPrize = (PRIZE_POOL * 25n) / 100n;
-        const thirdPrize = (PRIZE_POOL * 15n) / 100n;
+        const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+        const firstPrize = (totalPool * 50n) / 100n;
+        const secondPrize = (totalPool * 25n) / 100n;
+        const thirdPrize = (totalPool * 15n) / 100n;
         const participationPool =
-          PRIZE_POOL - firstPrize - secondPrize - thirdPrize;
+          totalPool - firstPrize - secondPrize - thirdPrize;
         const participationReward = participationPool / 1n; // 1 non-winner
 
         await expect(
@@ -1375,6 +1380,449 @@ describe("TournamentManager", function () {
       expect(dist.second).to.equal(25);
       expect(dist.third).to.equal(15);
       expect(dist.participation).to.equal(10);
+    });
+  });
+
+  // ================================================================
+  // 2-Player Tournament Completion
+  // ================================================================
+  describe("2-Player Tournament Completion", function () {
+    async function deployWith2PlayerTournamentFixture() {
+      const fixture = await loadFixture(deployTournamentFixture);
+      const { manager, sponsor, player1, player2 } = fixture;
+
+      const ts = await getTimestamps();
+
+      await manager.connect(sponsor).createCreatorTournament(
+        "tourney-2p",
+        "game-001",
+        PRIZE_POOL,
+        ENTRY_FEE,
+        2,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("tourney-2p");
+      await manager.connect(player2).register("tourney-2p");
+
+      await time.increaseTo(ts.startTime);
+      await manager.connect(sponsor).startTournament("tourney-2p");
+
+      return { ...fixture, timestamps: ts };
+    }
+
+    it("Should complete a 2-player tournament with 70/30 split", async function () {
+      const { token, manager, sponsor, player1, player2 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+      const p2BalBefore = await token.balanceOf(player2.address);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-2p",
+          player1.address,
+          player2.address,
+          ethers.ZeroAddress
+        );
+
+      // Total pool = PRIZE_POOL + 2 entry fees for non-community
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 2n;
+      const firstPrize = (totalPool * 70n) / 100n;
+      const secondPrize = totalPool - firstPrize;
+
+      expect(await token.balanceOf(player1.address)).to.equal(
+        p1BalBefore + firstPrize
+      );
+      expect(await token.balanceOf(player2.address)).to.equal(
+        p2BalBefore + secondPrize
+      );
+    });
+
+    it("Should set tournament status to Completed for 2-player", async function () {
+      const { manager, sponsor, player1, player2 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-2p",
+          player1.address,
+          player2.address,
+          ethers.ZeroAddress
+        );
+
+      const t = await manager.getTournament("tourney-2p");
+      expect(t.status).to.equal(TournamentStatus.Completed);
+    });
+
+    it("Should store 2 winners for 2-player tournament", async function () {
+      const { manager, sponsor, player1, player2 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-2p",
+          player1.address,
+          player2.address,
+          ethers.ZeroAddress
+        );
+
+      const winners = await manager.getWinners("tourney-2p");
+      expect(winners.length).to.equal(2);
+      expect(winners[0]).to.equal(player1.address);
+      expect(winners[1]).to.equal(player2.address);
+    });
+
+    it("Should revert 2-player tournament if third is not address(0)", async function () {
+      const { manager, sponsor, player1, player2 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      await expect(
+        manager
+          .connect(sponsor)
+          .completeTournament(
+            "tourney-2p",
+            player1.address,
+            player2.address,
+            player1.address
+          )
+      ).to.be.revertedWith("Use address(0) for 3rd in 2-player tournament");
+    });
+
+    it("Should revert 2-player tournament with duplicate winners", async function () {
+      const { manager, sponsor, player1 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      await expect(
+        manager
+          .connect(sponsor)
+          .completeTournament(
+            "tourney-2p",
+            player1.address,
+            player1.address,
+            ethers.ZeroAddress
+          )
+      ).to.be.revertedWith("Duplicate winner");
+    });
+
+    it("Should emit PrizeDistributed events for 2-player tournament", async function () {
+      const { manager, sponsor, player1, player2 } =
+        await loadFixture(deployWith2PlayerTournamentFixture);
+
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 2n;
+      const firstPrize = (totalPool * 70n) / 100n;
+      const secondPrize = totalPool - firstPrize;
+
+      const tx = manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-2p",
+          player1.address,
+          player2.address,
+          ethers.ZeroAddress
+        );
+
+      await expect(tx)
+        .to.emit(manager, "PrizeDistributed")
+        .withArgs("tourney-2p", player1.address, 1, firstPrize);
+
+      await expect(tx)
+        .to.emit(manager, "PrizeDistributed")
+        .withArgs("tourney-2p", player2.address, 2, secondPrize);
+    });
+  });
+
+  // ================================================================
+  // 3-Player Tournament Completion
+  // ================================================================
+  describe("3-Player Tournament Completion", function () {
+    async function deployWith3PlayerTournamentFixture() {
+      const fixture = await loadFixture(deployTournamentFixture);
+      const { manager, sponsor, player1, player2, player3 } = fixture;
+
+      const ts = await getTimestamps();
+
+      await manager.connect(sponsor).createCreatorTournament(
+        "tourney-3p",
+        "game-001",
+        PRIZE_POOL,
+        ENTRY_FEE,
+        3,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("tourney-3p");
+      await manager.connect(player2).register("tourney-3p");
+      await manager.connect(player3).register("tourney-3p");
+
+      await time.increaseTo(ts.startTime);
+      await manager.connect(sponsor).startTournament("tourney-3p");
+
+      return { ...fixture, timestamps: ts };
+    }
+
+    it("Should complete a 3-player tournament with adjusted distribution", async function () {
+      const { token, manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWith3PlayerTournamentFixture);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+      const p2BalBefore = await token.balanceOf(player2.address);
+      const p3BalBefore = await token.balanceOf(player3.address);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-3p",
+          player1.address,
+          player2.address,
+          player3.address
+        );
+
+      // Total pool includes entry fees for non-community
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 3n;
+      // Default distribution: 50/25/15/10 → for 3 players: no participation pool
+      // first = totalPool * 50 / 90, second = totalPool * 25 / 90, third = remainder
+      const firstPrize = (totalPool * 50n) / 90n;
+      const secondPrize = (totalPool * 25n) / 90n;
+      const thirdPrize = totalPool - firstPrize - secondPrize;
+
+      expect(await token.balanceOf(player1.address)).to.equal(
+        p1BalBefore + firstPrize
+      );
+      expect(await token.balanceOf(player2.address)).to.equal(
+        p2BalBefore + secondPrize
+      );
+      expect(await token.balanceOf(player3.address)).to.equal(
+        p3BalBefore + thirdPrize
+      );
+    });
+
+    it("Should set tournament status to Completed for 3-player", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWith3PlayerTournamentFixture);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-3p",
+          player1.address,
+          player2.address,
+          player3.address
+        );
+
+      const t = await manager.getTournament("tourney-3p");
+      expect(t.status).to.equal(TournamentStatus.Completed);
+    });
+
+    it("Should store 3 winners for 3-player tournament", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWith3PlayerTournamentFixture);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-3p",
+          player1.address,
+          player2.address,
+          player3.address
+        );
+
+      const winners = await manager.getWinners("tourney-3p");
+      expect(winners.length).to.equal(3);
+    });
+  });
+
+  // ================================================================
+  // Max Participants Cap
+  // ================================================================
+  describe("Max Participants Cap", function () {
+    it("Should have MAX_PARTICIPANTS_CAP of 256", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+      expect(await manager.MAX_PARTICIPANTS_CAP()).to.equal(256);
+    });
+
+    it("Should revert when maxParticipants exceeds cap", async function () {
+      const { manager, sponsor } = await loadFixture(deployTournamentFixture);
+      const ts = await getTimestamps();
+
+      await expect(
+        manager.connect(sponsor).createCreatorTournament(
+          "tourney-big",
+          "game-001",
+          PRIZE_POOL,
+          ENTRY_FEE,
+          257,
+          ts.registrationStart,
+          ts.registrationEnd,
+          ts.startTime
+        )
+      ).to.be.revertedWith("Exceeds max participants cap");
+    });
+
+    it("Should allow maxParticipants at exactly 256", async function () {
+      const { manager, sponsor } = await loadFixture(deployTournamentFixture);
+      const ts = await getTimestamps();
+
+      await manager.connect(sponsor).createCreatorTournament(
+        "tourney-256",
+        "game-001",
+        PRIZE_POOL,
+        ENTRY_FEE,
+        256,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      const t = await manager.getTournament("tourney-256");
+      expect(t.maxParticipants).to.equal(256);
+    });
+  });
+
+  // ================================================================
+  // Entry Fee Distribution for Non-Community Tournaments
+  // ================================================================
+  describe("Entry Fee Distribution", function () {
+    it("Should include entry fees in prize pool for creator-sponsored tournaments", async function () {
+      const { token, manager, sponsor, player1, player2, player3, player4 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "tourney-001",
+          player1.address,
+          player2.address,
+          player3.address
+        );
+
+      // Total pool should include the 4 entry fees
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+      const firstPrize = (totalPool * 50n) / 100n;
+
+      // Player1 gets first prize + possibly dust
+      const p1BalAfter = await token.balanceOf(player1.address);
+      expect(p1BalAfter).to.be.gte(p1BalBefore + firstPrize);
+    });
+
+    it("Should NOT double-count entry fees for community tournaments", async function () {
+      const { token, manager, sponsor, player1, player2, player3, player4 } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      const initialPool = ethers.parseEther("500");
+
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-fees",
+        "game-001",
+        initialPool,
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("community-fees");
+      await manager.connect(player2).register("community-fees");
+      await manager.connect(player3).register("community-fees");
+      await manager.connect(player4).register("community-fees");
+
+      await time.increaseTo(ts.startTime);
+      await manager.connect(sponsor).startTournament("community-fees");
+
+      const managerAddr = await manager.getAddress();
+      const contractBalance = await token.balanceOf(managerAddr);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+      const p2BalBefore = await token.balanceOf(player2.address);
+      const p3BalBefore = await token.balanceOf(player3.address);
+      const p4BalBefore = await token.balanceOf(player4.address);
+
+      await manager
+        .connect(sponsor)
+        .completeTournament(
+          "community-fees",
+          player1.address,
+          player2.address,
+          player3.address
+        );
+
+      // For community tournaments, entry fees are already added to prizePool during registration
+      // So totalPool = initialPool + 4 * ENTRY_FEE (already in prizePool, not doubled)
+      const totalPool = initialPool + ENTRY_FEE * 4n;
+      const firstPrize = (totalPool * 50n) / 100n;
+      const secondPrize = (totalPool * 25n) / 100n;
+      const thirdPrize = (totalPool * 15n) / 100n;
+      const participationPool = totalPool - firstPrize - secondPrize - thirdPrize;
+      const participationReward = participationPool / 1n;
+
+      const p1BalAfter = await token.balanceOf(player1.address);
+      expect(p1BalAfter).to.be.gte(p1BalBefore + firstPrize);
+      expect(await token.balanceOf(player2.address)).to.equal(
+        p2BalBefore + secondPrize
+      );
+      expect(await token.balanceOf(player3.address)).to.equal(
+        p3BalBefore + thirdPrize
+      );
+      expect(await token.balanceOf(player4.address)).to.equal(
+        p4BalBefore + participationReward
+      );
+    });
+
+    it("Should distribute total pool correctly for platform tournament with entry fees", async function () {
+      const { token, manager, owner, treasury, player1, player2, player3, player4 } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+
+      await manager.createPlatformTournament(
+        "platform-fees",
+        "game-001",
+        PRIZE_POOL,
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("platform-fees");
+      await manager.connect(player2).register("platform-fees");
+      await manager.connect(player3).register("platform-fees");
+      await manager.connect(player4).register("platform-fees");
+
+      await time.increaseTo(ts.startTime);
+      await manager.startTournament("platform-fees");
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+
+      await manager.completeTournament(
+        "platform-fees",
+        player1.address,
+        player2.address,
+        player3.address
+      );
+
+      // Total pool = PRIZE_POOL + 4 * ENTRY_FEE
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+      const firstPrize = (totalPool * 50n) / 100n;
+
+      const p1BalAfter = await token.balanceOf(player1.address);
+      expect(p1BalAfter).to.be.gte(p1BalBefore + firstPrize);
     });
   });
 });

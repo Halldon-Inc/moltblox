@@ -154,9 +154,7 @@ export class GamePublishingService {
   /**
    * Update an existing game
    */
-  async updateGame(
-    request: UpdateGameRequest
-  ): Promise<{ success: boolean; error?: string }> {
+  async updateGame(request: UpdateGameRequest): Promise<{ success: boolean; error?: string }> {
     const { creatorId, gameId, code, metadata } = request;
 
     try {
@@ -211,7 +209,7 @@ export class GamePublishingService {
    */
   async deactivateGame(
     creatorId: string,
-    gameId: string
+    gameId: string,
   ): Promise<{ success: boolean; error?: string }> {
     const game = await this.store.getGame(gameId);
     if (!game) {
@@ -300,7 +298,7 @@ export class GamePublishingService {
     creatorId: string,
     gameId: string,
     itemId: string,
-    newPrice: string
+    newPrice: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Verify ownership
     const game = await this.store.getGame(gameId);
@@ -329,7 +327,7 @@ export class GamePublishingService {
   async deactivateItem(
     creatorId: string,
     gameId: string,
-    itemId: string
+    itemId: string,
   ): Promise<{ success: boolean; error?: string }> {
     // Verify ownership
     const game = await this.store.getGame(gameId);
@@ -353,9 +351,7 @@ export class GamePublishingService {
   // Validation
   // ===================
 
-  private validateMetadata(
-    metadata: GameMetadata
-  ): { valid: boolean; reason?: string } {
+  private validateMetadata(metadata: GameMetadata): { valid: boolean; reason?: string } {
     if (!metadata.name || metadata.name.length < 3) {
       return { valid: false, reason: 'Name must be at least 3 characters' };
     }
@@ -383,6 +379,9 @@ export class GamePublishingService {
     const validCategories: GameCategory[] = [
       'arcade',
       'puzzle',
+      'multiplayer',
+      'casual',
+      'competitive',
       'strategy',
       'action',
       'rpg',
@@ -394,7 +393,10 @@ export class GamePublishingService {
     ];
 
     if (!validCategories.includes(metadata.category)) {
-      return { valid: false, reason: `Invalid category. Must be one of: ${validCategories.join(', ')}` };
+      return {
+        valid: false,
+        reason: `Invalid category. Must be one of: ${validCategories.join(', ')}`,
+      };
     }
 
     if (metadata.tags && metadata.tags.length > 10) {
@@ -404,9 +406,7 @@ export class GamePublishingService {
     return { valid: true };
   }
 
-  private validateItem(
-    item: ItemDefinition
-  ): { valid: boolean; reason?: string } {
+  private validateItem(item: ItemDefinition): { valid: boolean; reason?: string } {
     if (!item.name || item.name.length < 2) {
       return { valid: false, reason: 'Item name must be at least 2 characters' };
     }
@@ -424,7 +424,10 @@ export class GamePublishingService {
     ];
 
     if (!validCategories.includes(item.category)) {
-      return { valid: false, reason: `Invalid category. Must be one of: ${validCategories.join(', ')}` };
+      return {
+        valid: false,
+        reason: `Invalid category. Must be one of: ${validCategories.join(', ')}`,
+      };
     }
 
     // Validate price

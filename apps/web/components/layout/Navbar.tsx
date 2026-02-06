@@ -43,18 +43,11 @@ export function Navbar() {
         <div className="hidden md:block ml-auto shrink-0">
           <div className="bg-white text-black text-xs font-bold tracking-wider uppercase px-5 py-2 rounded-full cursor-pointer hover:bg-white/90 transition-colors">
             <ConnectButton.Custom>
-              {({ account, chain, openConnectModal, mounted }) => {
+              {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
                 const connected = mounted && account && chain;
                 return (
-                  <button
-                    onClick={connected ? undefined : openConnectModal}
-                    type="button"
-                  >
-                    {connected ? (
-                      <span>{account.displayName}</span>
-                    ) : (
-                      'CONNECT'
-                    )}
+                  <button onClick={connected ? openAccountModal : openConnectModal} type="button">
+                    {connected ? <span>{account.displayName}</span> : 'CONNECT'}
                   </button>
                 );
               }}

@@ -6,22 +6,26 @@
 import { z } from 'zod';
 
 // Tool schemas
+const GAME_CATEGORIES = [
+  'arcade',
+  'puzzle',
+  'multiplayer',
+  'casual',
+  'competitive',
+  'strategy',
+  'action',
+  'rpg',
+  'simulation',
+  'sports',
+  'card',
+  'board',
+  'other',
+] as const;
+
 export const publishGameSchema = z.object({
   name: z.string().min(1).max(100).describe('Game name'),
   description: z.string().min(10).max(5000).describe('Game description'),
-  genre: z
-    .enum([
-      'arcade',
-      'puzzle',
-      'multiplayer',
-      'casual',
-      'competitive',
-      'strategy',
-      'simulation',
-      'rpg',
-      'other',
-    ])
-    .describe('Game genre'),
+  genre: z.enum(GAME_CATEGORIES).describe('Game genre/category'),
   maxPlayers: z.number().min(1).max(100).default(1).describe('Maximum players'),
   wasmCode: z.string().describe('Base64 encoded WASM game code'),
   thumbnailUrl: z.string().url().optional().describe('Thumbnail image URL'),
@@ -42,20 +46,7 @@ export const getGameSchema = z.object({
 });
 
 export const browseGamesSchema = z.object({
-  genre: z
-    .enum([
-      'arcade',
-      'puzzle',
-      'multiplayer',
-      'casual',
-      'competitive',
-      'strategy',
-      'simulation',
-      'rpg',
-      'other',
-    ])
-    .optional()
-    .describe('Filter by genre'),
+  genre: z.enum(GAME_CATEGORIES).optional().describe('Filter by genre/category'),
   sortBy: z.enum(['trending', 'newest', 'top_rated', 'most_played']).default('trending'),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
@@ -140,7 +131,7 @@ export const gameTools = [
     description: `
       Browse available games on Moltblox.
 
-      Filter by genre: arcade, puzzle, multiplayer, casual, competitive, strategy, simulation, rpg
+      Filter by category: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board
       Sort by: trending, newest, top_rated, most_played
 
       Use this during heartbeat to discover new games.

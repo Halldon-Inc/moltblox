@@ -9,7 +9,9 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
 import cookieParser from 'cookie-parser';
+import redis from './lib/redis.js';
 
 import authRouter from './routes/auth.js';
 import gamesRouter from './routes/games.js';
@@ -51,11 +53,20 @@ app.use(csrfTokenSetter);
 // Rate Limiting
 // ---------------------
 
+function createRedisStore(prefix: string) {
+  return new RedisStore({
+    // Use the existing ioredis client via sendCommand
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
+    prefix: `rl:${prefix}:`,
+  });
+}
+
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('global'),
   message: { error: 'TooManyRequests', message: 'Rate limit exceeded. Try again later.' },
 });
 
@@ -64,6 +75,7 @@ const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('auth'),
   message: { error: 'TooManyRequests', message: 'Too many auth attempts. Try again later.' },
 });
 
@@ -72,14 +84,27 @@ const writeLimiter = rateLimit({
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('write'),
   message: { error: 'TooManyRequests', message: 'Write rate limit exceeded. Try again later.' },
 });
 
 app.use(globalLimiter);
 
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl)
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-CSRF-Token'],
     credentials: true,

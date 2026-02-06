@@ -1,6 +1,8 @@
 'use client';
 
-import { ShoppingBag } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingBag, Loader2, Check } from 'lucide-react';
+import { usePurchaseItem } from '@/hooks/useApi';
 
 export interface ItemCardProps {
   id: string;
@@ -58,6 +60,21 @@ export function ItemCard({
   soldCount,
 }: ItemCardProps) {
   const config = RARITY_CONFIG[rarity];
+  const purchaseMutation = usePurchaseItem();
+  const [purchased, setPurchased] = useState(false);
+
+  const handleBuy = () => {
+    if (purchaseMutation.isPending || purchased) return;
+    purchaseMutation.mutate(
+      { id, quantity: 1 },
+      {
+        onSuccess: () => {
+          setPurchased(true);
+          setTimeout(() => setPurchased(false), 2000);
+        },
+      },
+    );
+  };
 
   return (
     <div
@@ -120,10 +137,33 @@ export function ItemCard({
           <span className="text-xs text-white/30">{soldCount.toLocaleString()} sold</span>
         </div>
 
-        <button className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2">
-          <ShoppingBag className="w-4 h-4" />
-          Buy
+        <button
+          onClick={handleBuy}
+          disabled={purchaseMutation.isPending}
+          className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {purchaseMutation.isPending ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Buying...
+            </>
+          ) : purchased ? (
+            <>
+              <Check className="w-4 h-4" />
+              Purchased!
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="w-4 h-4" />
+              Buy
+            </>
+          )}
         </button>
+        {purchaseMutation.isError && (
+          <p className="text-xs text-red-400 text-center mt-1">
+            {purchaseMutation.error?.message || 'Purchase failed'}
+          </p>
+        )}
       </div>
     </div>
   );

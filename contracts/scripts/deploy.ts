@@ -16,8 +16,8 @@ async function main() {
   console.log(`  Balance:  ${ethers.formatEther(balance)} ETH`);
   console.log("=".repeat(55));
 
-  // Initial MBUCKS supply: 1 billion tokens (with 18 decimals)
-  const initialSupply = ethers.parseEther("1000000000");
+  // Initial MBUCKS supply: 100 million tokens for treasury (rest mintable via minter role)
+  const initialSupply = ethers.parseEther("100000000");
 
   // 1. Deploy Moltbucks Token
   console.log("\n1. Deploying Moltbucks...");
@@ -47,11 +47,8 @@ async function main() {
   const tournamentManagerAddress = await tournamentManager.getAddress();
   console.log("   TournamentManager deployed to:", tournamentManagerAddress);
 
-  // 5. Grant minter role to TournamentManager
-  console.log("\n5. Setting up permissions...");
-  const tx = await moltbucks.addMinter(tournamentManagerAddress);
-  await tx.wait();
-  console.log("   TournamentManager added as minter");
+  // 5. TournamentManager only does safeTransfer (no minting needed)
+  console.log("\n5. TournamentManager uses safeTransfer, no minter role needed.");
 
   // Summary
   console.log("\n" + "=".repeat(55));
@@ -76,7 +73,8 @@ async function main() {
     contracts: {
       Moltbucks: {
         address: moltbucksAddress,
-        initialSupply: "1000000000",
+        initialSupply: "100000000",
+        maxSupply: "1000000000",
       },
       GameMarketplace: {
         address: gameMarketplaceAddress,

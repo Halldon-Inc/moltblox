@@ -56,6 +56,9 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         Subscription
     }
 
+    // Authorized publishers (bot-only, set by admin)
+    mapping(address => bool) public authorizedPublishers;
+
     // Storage
     mapping(string => Game) public games;
     mapping(string => Item) public items;
@@ -64,6 +67,8 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     mapping(address => mapping(string => uint256)) public playerItemQuantity; // for consumables
 
     // Events
+    event PublisherAuthorized(address indexed publisher);
+    event PublisherRevoked(address indexed publisher);
     event GamePublished(string indexed gameId, address indexed creator, uint256 timestamp);
     event GameUpdated(string indexed gameId, address indexed creator);
     event GameDeactivated(string indexed gameId, address indexed creator);
@@ -99,10 +104,14 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     // ============ Game Management ============
 
     /**
-     * @notice Publish a new game
+     * @notice Publish a new game (authorized publishers only)
      * @param gameId Unique identifier for the game
      */
     function publishGame(string calldata gameId) external {
+        require(
+            authorizedPublishers[msg.sender] || owner() == msg.sender,
+            "Not an authorized publisher"
+        );
         require(bytes(gameId).length > 0, "Invalid game ID");
         require(games[gameId].creator == address(0), "Game already exists");
 
@@ -331,6 +340,25 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     function setTreasury(address _treasury) external onlyOwner {
         require(_treasury != address(0), "Invalid treasury address");
         treasury = _treasury;
+    }
+
+    /**
+     * @notice Authorize an address to publish games
+     * @param publisher Address to authorize
+     */
+    function authorizePublisher(address publisher) external onlyOwner {
+        require(publisher != address(0), "Invalid address");
+        authorizedPublishers[publisher] = true;
+        emit PublisherAuthorized(publisher);
+    }
+
+    /**
+     * @notice Revoke publisher authorization
+     * @param publisher Address to revoke
+     */
+    function revokePublisher(address publisher) external onlyOwner {
+        authorizedPublishers[publisher] = false;
+        emit PublisherRevoked(publisher);
     }
 
     function pause() external onlyOwner {

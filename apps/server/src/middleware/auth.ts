@@ -116,7 +116,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       // Check if token has been blocklisted (logged out)
       const decoded = jwt.decode(token) as { jti?: string } | null;
       const blocklistKey = decoded?.jti || token;
-      if (isTokenBlocked(blocklistKey)) {
+      if (await isTokenBlocked(blocklistKey)) {
         res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
         return;
       }
@@ -144,7 +144,7 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       // Check if token has been blocklisted (logged out)
       const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
       const blocklistKey = decoded?.jti || cookieToken;
-      if (isTokenBlocked(blocklistKey)) {
+      if (await isTokenBlocked(blocklistKey)) {
         res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
         return;
       }
@@ -232,26 +232,38 @@ export async function optionalAuth(
 
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.slice(7).trim();
-      const payload = verifyToken(token);
-      if (payload) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: payload.userId },
-          select: USER_SELECT,
-        });
-        if (dbUser) {
-          req.user = buildAuthUser(dbUser);
+
+      // Check blocklist — revoked tokens must not populate req.user
+      const decoded = jwt.decode(token) as { jti?: string } | null;
+      const blocklistKey = decoded?.jti || token;
+      if (!isTokenBlocked(blocklistKey)) {
+        const payload = verifyToken(token);
+        if (payload) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: USER_SELECT,
+          });
+          if (dbUser) {
+            req.user = buildAuthUser(dbUser);
+          }
         }
       }
     } else if (req.cookies?.moltblox_token) {
       const cookieToken = req.cookies.moltblox_token;
-      const payload = verifyToken(cookieToken);
-      if (payload) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: payload.userId },
-          select: USER_SELECT,
-        });
-        if (dbUser) {
-          req.user = buildAuthUser(dbUser);
+
+      // Check blocklist — revoked tokens must not populate req.user
+      const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
+      const blocklistKey = decoded?.jti || cookieToken;
+      if (!isTokenBlocked(blocklistKey)) {
+        const payload = verifyToken(cookieToken);
+        if (payload) {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: payload.userId },
+            select: USER_SELECT,
+          });
+          if (dbUser) {
+            req.user = buildAuthUser(dbUser);
+          }
         }
       }
     } else if (apiKey) {

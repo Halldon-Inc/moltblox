@@ -105,9 +105,15 @@ export class MarketplaceManager {
     });
 
     // Initialize purchase service
+    if (!this.provider) {
+      throw new Error(
+        'MarketplaceManager requires rpcUrl for purchase functionality. ' +
+          'Provide rpcUrl in MarketplaceConfig to enable purchases.',
+      );
+    }
     this.purchases = new PurchaseService({
       store: this.store,
-      provider: this.provider!,
+      provider: this.provider,
       marketplaceAddress: config.marketplaceAddress || '',
       moltTokenAddress: config.moltTokenAddress || '',
     });

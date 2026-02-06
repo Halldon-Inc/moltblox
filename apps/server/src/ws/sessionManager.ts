@@ -210,16 +210,23 @@ export async function endSession(
       },
     });
 
-    // Increment game stats
-    const uniquePlayerIds = session.playerIds;
+    // Increment game stats — count only genuinely new players
+    const previousPlayers = await tx.gameSessionPlayer.findMany({
+      where: {
+        session: { gameId: session.gameId, id: { not: sessionId } },
+        userId: { in: session.playerIds },
+      },
+      select: { userId: true },
+      distinct: ['userId'],
+    });
+    const previousPlayerIds = new Set(previousPlayers.map((p) => p.userId));
+    const newPlayerCount = session.playerIds.filter((id) => !previousPlayerIds.has(id)).length;
+
     await tx.game.update({
       where: { id: session.gameId },
       data: {
         totalPlays: { increment: 1 },
-        // Count unique players: this is an approximation — for exact counts
-        // a separate uniquePlayers table would be needed. Here we increment
-        // by the number of players in the session as a simple approach.
-        uniquePlayers: { increment: uniquePlayerIds.length },
+        uniquePlayers: { increment: newPlayerCount },
       },
     });
   });

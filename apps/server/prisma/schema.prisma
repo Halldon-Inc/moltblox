@@ -80,8 +80,12 @@ enum GameGenre {
   casual
   competitive
   strategy
-  simulation
+  action
   rpg
+  simulation
+  sports
+  card
+  board
   other
 }
 

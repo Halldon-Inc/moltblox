@@ -61,21 +61,21 @@ const DEFAULT_MEMORY_LAYOUT: OpenBORMemoryLayout = {
   p1HealthOffset: 0x1000,
   p1XOffset: 0x1004,
   p1YOffset: 0x1008,
-  p1StateOffset: 0x100C,
+  p1StateOffset: 0x100c,
   p1FacingOffset: 0x1010,
   p1GroundedOffset: 0x1014,
 
   p2HealthOffset: 0x1100,
   p2XOffset: 0x1104,
   p2YOffset: 0x1108,
-  p2StateOffset: 0x110C,
+  p2StateOffset: 0x110c,
   p2FacingOffset: 0x1110,
   p2GroundedOffset: 0x1114,
 
   roundNumberOffset: 0x2000,
   roundsP1Offset: 0x2004,
   roundsP2Offset: 0x2008,
-  timeRemainingOffset: 0x200C,
+  timeRemainingOffset: 0x200c,
   matchPhaseOffset: 0x2010,
 
   p1InputOffset: 0x3000,
@@ -212,23 +212,24 @@ export class OpenBORBridge {
       return this.getDefaultFighterState(playerId);
     }
 
-    const offsets = playerId === 1
-      ? {
-          health: this.memoryLayout.p1HealthOffset,
-          x: this.memoryLayout.p1XOffset,
-          y: this.memoryLayout.p1YOffset,
-          state: this.memoryLayout.p1StateOffset,
-          facing: this.memoryLayout.p1FacingOffset,
-          grounded: this.memoryLayout.p1GroundedOffset,
-        }
-      : {
-          health: this.memoryLayout.p2HealthOffset,
-          x: this.memoryLayout.p2XOffset,
-          y: this.memoryLayout.p2YOffset,
-          state: this.memoryLayout.p2StateOffset,
-          facing: this.memoryLayout.p2FacingOffset,
-          grounded: this.memoryLayout.p2GroundedOffset,
-        };
+    const offsets =
+      playerId === 1
+        ? {
+            health: this.memoryLayout.p1HealthOffset,
+            x: this.memoryLayout.p1XOffset,
+            y: this.memoryLayout.p1YOffset,
+            state: this.memoryLayout.p1StateOffset,
+            facing: this.memoryLayout.p1FacingOffset,
+            grounded: this.memoryLayout.p1GroundedOffset,
+          }
+        : {
+            health: this.memoryLayout.p2HealthOffset,
+            x: this.memoryLayout.p2XOffset,
+            y: this.memoryLayout.p2YOffset,
+            state: this.memoryLayout.p2StateOffset,
+            facing: this.memoryLayout.p2FacingOffset,
+            grounded: this.memoryLayout.p2GroundedOffset,
+          };
 
     const stateCode = this.memoryView.getInt32(offsets.state, true);
     const state = STATE_MAP[stateCode] || 'idle';
@@ -296,9 +297,7 @@ export class OpenBORBridge {
     // Determine winner if match ended
     let winner: string | null = null;
     if (phase === 'match_end') {
-      winner = roundsP1 >= this.gameConfig.roundsToWin
-        ? this.player1BotId
-        : this.player2BotId;
+      winner = roundsP1 >= this.gameConfig.roundsToWin ? this.player1BotId : this.player2BotId;
     }
 
     return {
@@ -327,9 +326,7 @@ export class OpenBORBridge {
     const self = isPlayer1 ? state.player1 : state.player2;
     const opponent = isPlayer1 ? state.player2 : state.player1;
 
-    const distance = Math.sqrt(
-      Math.pow(opponent.x - self.x, 2) + Math.pow(opponent.y - self.y, 2)
-    );
+    const distance = Math.sqrt(Math.pow(opponent.x - self.x, 2) + Math.pow(opponent.y - self.y, 2));
     const horizontalDistance = Math.abs(opponent.x - self.x);
     const verticalDistance = Math.abs(opponent.y - self.y);
 
@@ -398,9 +395,8 @@ export class OpenBORBridge {
       return;
     }
 
-    const offset = playerId === 1
-      ? this.memoryLayout.p1InputOffset
-      : this.memoryLayout.p2InputOffset;
+    const offset =
+      playerId === 1 ? this.memoryLayout.p1InputOffset : this.memoryLayout.p2InputOffset;
 
     // Pack input into bitfield
     let inputBits = 0;
@@ -440,7 +436,9 @@ export class OpenBORBridge {
 
     // Call OpenBOR start function if available
     if (this.wasmInstance) {
-      const startFn = this.wasmInstance.exports.startMatch as Function | undefined;
+      const startFn = this.wasmInstance.exports.startMatch as
+        | ((...args: unknown[]) => unknown)
+        | undefined;
       startFn?.();
     }
   }
@@ -451,7 +449,9 @@ export class OpenBORBridge {
   pauseMatch(): void {
     this.isRunning = false;
     if (this.wasmInstance) {
-      const pauseFn = this.wasmInstance.exports.pauseMatch as Function | undefined;
+      const pauseFn = this.wasmInstance.exports.pauseMatch as
+        | ((...args: unknown[]) => unknown)
+        | undefined;
       pauseFn?.();
     }
   }
@@ -462,7 +462,9 @@ export class OpenBORBridge {
   resumeMatch(): void {
     this.isRunning = true;
     if (this.wasmInstance) {
-      const resumeFn = this.wasmInstance.exports.resumeMatch as Function | undefined;
+      const resumeFn = this.wasmInstance.exports.resumeMatch as
+        | ((...args: unknown[]) => unknown)
+        | undefined;
       resumeFn?.();
     }
   }
@@ -473,7 +475,9 @@ export class OpenBORBridge {
   resetMatch(): void {
     this.frameNumber = 0;
     if (this.wasmInstance) {
-      const resetFn = this.wasmInstance.exports.resetMatch as Function | undefined;
+      const resetFn = this.wasmInstance.exports.resetMatch as
+        | ((...args: unknown[]) => unknown)
+        | undefined;
       resetFn?.();
     }
   }
@@ -488,7 +492,9 @@ export class OpenBORBridge {
 
     // Call OpenBOR tick function
     if (this.wasmInstance) {
-      const tickFn = this.wasmInstance.exports.tick as Function | undefined;
+      const tickFn = this.wasmInstance.exports.tick as
+        | ((...args: unknown[]) => unknown)
+        | undefined;
       tickFn?.();
     }
 
@@ -501,9 +507,7 @@ export class OpenBORBridge {
 
     // Check for round/match end
     if (state.phase === 'round_end' || state.phase === 'ko') {
-      const roundWinner = state.roundsP1 > (state.roundsP1 - 1)
-        ? this.player1BotId
-        : this.player2BotId;
+      const roundWinner = state.roundsP1 > state.roundsP2 ? this.player1BotId : this.player2BotId;
       this.config.onRoundEnd?.(state.roundNumber, roundWinner);
     }
 

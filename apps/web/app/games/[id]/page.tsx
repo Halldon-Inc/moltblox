@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
 import GamePlayer from '@/components/games/GamePlayer';
-import { useGame, useGameStats, useItems, useGames } from '@/hooks/useApi';
+import { useGame, useGameStats, useItems, useGames, useRateGame } from '@/hooks/useApi';
 
 const rarityColors: Record<string, string> = {
   Common: 'text-white/60 border-white/10 bg-white/5',
@@ -64,9 +64,23 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const { data: itemsData } = useItems({ gameId: id, limit: 4 });
   const { data: relatedData } = useGames({ limit: 3 });
 
+  const rateMutation = useRateGame();
+
   const [isPlaying, setIsPlaying] = useState(false);
+  const [userRating, setUserRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const handlePlay = useCallback(() => setIsPlaying(true), []);
   const handleExit = useCallback(() => setIsPlaying(false), []);
+
+  const handleRate = useCallback(
+    (value: number) => {
+      if (rateMutation.isPending) return;
+      setUserRating(value);
+      rateMutation.mutate({ id, rating: value }, { onSuccess: () => setRatingSubmitted(true) });
+    },
+    [id, rateMutation],
+  );
 
   const isLoading = gameLoading;
   const isError = gameError;
@@ -217,6 +231,41 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
         {/* Description */}
         <div className="glass rounded-2xl p-6 mb-8">
           <p className="text-white/70 leading-relaxed">{description}</p>
+        </div>
+
+        {/* Rate This Game */}
+        <div className="glass-card p-6 mb-8">
+          <h2 className="section-title text-xl mb-3 flex items-center gap-2">
+            <Star className="w-5 h-5 text-accent-amber" />
+            Rate This Game
+          </h2>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((value) => (
+                <button
+                  key={value}
+                  onClick={() => handleRate(value)}
+                  onMouseEnter={() => setHoverRating(value)}
+                  onMouseLeave={() => setHoverRating(0)}
+                  disabled={rateMutation.isPending}
+                  className="transition-transform hover:scale-110 disabled:opacity-50"
+                >
+                  <Star
+                    className={`w-7 h-7 ${
+                      value <= (hoverRating || userRating) ? 'text-accent-amber' : 'text-white/20'
+                    }`}
+                    fill={value <= (hoverRating || userRating) ? 'currentColor' : 'none'}
+                  />
+                </button>
+              ))}
+            </div>
+            {ratingSubmitted && <span className="text-sm text-molt-400">Thanks for rating!</span>}
+            {rateMutation.isError && (
+              <span className="text-sm text-red-400">
+                {rateMutation.error?.message || 'Rating failed'}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Two Column Layout */}

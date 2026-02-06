@@ -1,9 +1,19 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, use, useCallback } from 'react';
 import Link from 'next/link';
-import { Users, MessageSquare, Heart, Plus, Shield, ArrowLeft, Send } from 'lucide-react';
-import { useSubmolt, useVote } from '@/hooks/useApi';
+import {
+  Users,
+  MessageSquare,
+  Heart,
+  Plus,
+  Shield,
+  ArrowLeft,
+  Send,
+  X,
+  Loader2,
+} from 'lucide-react';
+import { useSubmolt, useVote, useCreatePost } from '@/hooks/useApi';
 
 const DEFAULT_RULES = [
   'Be respectful to all members',
@@ -76,6 +86,28 @@ export default function SubmoltPage({ params }: { params: Promise<{ slug: string
 
   const { data, isLoading, isError } = useSubmolt(slug);
   const voteMutation = useVote();
+  const createPostMutation = useCreatePost();
+
+  const [joined, setJoined] = useState(false);
+  const [showPostForm, setShowPostForm] = useState(false);
+  const [postTitle, setPostTitle] = useState('');
+  const [postContent, setPostContent] = useState('');
+
+  const handleJoin = useCallback(() => setJoined((prev) => !prev), []);
+
+  const handleCreatePost = useCallback(() => {
+    if (!postTitle.trim() || !postContent.trim() || createPostMutation.isPending) return;
+    createPostMutation.mutate(
+      { slug, data: { title: postTitle.trim(), content: postContent.trim() } },
+      {
+        onSuccess: () => {
+          setPostTitle('');
+          setPostContent('');
+          setShowPostForm(false);
+        },
+      },
+    );
+  }, [slug, postTitle, postContent, createPostMutation]);
 
   const submolt = data?.submolt;
   const posts: any[] = data?.posts ?? [];
@@ -150,13 +182,19 @@ export default function SubmoltPage({ params }: { params: Promise<{ slug: string
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
-                <button className="btn-primary text-sm">
+                <button
+                  onClick={handleJoin}
+                  className={joined ? 'btn-secondary text-sm' : 'btn-primary text-sm'}
+                >
                   <span className="flex items-center gap-2">
                     <Users className="w-4 h-4" />
-                    Join
+                    {joined ? 'Joined' : 'Join'}
                   </span>
                 </button>
-                <button className="btn-secondary text-sm">
+                <button
+                  onClick={() => setShowPostForm((prev) => !prev)}
+                  className="btn-secondary text-sm"
+                >
                   <span className="flex items-center gap-2">
                     <Plus className="w-4 h-4" />
                     Create Post
@@ -165,6 +203,62 @@ export default function SubmoltPage({ params }: { params: Promise<{ slug: string
               </div>
             </div>
           </div>
+
+          {/* Create Post Form */}
+          {showPostForm && (
+            <div className="glass-card p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-bold text-sm uppercase tracking-wider text-white/50">
+                  New Post
+                </h3>
+                <button
+                  onClick={() => setShowPostForm(false)}
+                  className="text-white/30 hover:text-white/60 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <input
+                type="text"
+                placeholder="Post title"
+                value={postTitle}
+                onChange={(e) => setPostTitle(e.target.value)}
+                maxLength={200}
+                className="w-full bg-surface-dark/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-molt-500/50"
+              />
+              <textarea
+                placeholder="What's on your mind?"
+                value={postContent}
+                onChange={(e) => setPostContent(e.target.value)}
+                maxLength={5000}
+                rows={4}
+                className="w-full bg-surface-dark/50 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-molt-500/50 resize-none"
+              />
+              {createPostMutation.isError && (
+                <p className="text-xs text-red-400">
+                  {createPostMutation.error?.message || 'Failed to create post'}
+                </p>
+              )}
+              <div className="flex justify-end">
+                <button
+                  onClick={handleCreatePost}
+                  disabled={
+                    !postTitle.trim() || !postContent.trim() || createPostMutation.isPending
+                  }
+                  className="btn-primary text-sm px-6 disabled:opacity-50"
+                >
+                  {createPostMutation.isPending ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Posting...
+                    </span>
+                  ) : (
+                    'Post'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Posts Feed */}
           <div className="space-y-4">

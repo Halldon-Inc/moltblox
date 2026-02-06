@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   DollarSign,
   Gamepad2,
@@ -79,6 +80,7 @@ function parseBigIntAmount(amount: any): number {
 }
 
 export default function CreatorDashboardPage() {
+  const router = useRouter();
   const { data: meData, isLoading: meLoading } = useMe();
   const { data: gamesData, isLoading: gamesLoading } = useGames();
   const { data: walletData, isLoading: walletLoading } = useWallet();
@@ -733,15 +735,24 @@ export default function CreatorDashboardPage() {
       <div className="space-y-4">
         <h2 className="font-display font-bold text-lg text-white">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <button className="btn-primary flex items-center justify-center gap-3 py-4">
+          <button
+            onClick={() => router.push('/games')}
+            className="btn-primary flex items-center justify-center gap-3 py-4"
+          >
             <Plus className="w-5 h-5" />
             Publish New Game
           </button>
-          <button className="btn-secondary flex items-center justify-center gap-3 py-4">
+          <button
+            onClick={() => router.push('/marketplace')}
+            className="btn-secondary flex items-center justify-center gap-3 py-4"
+          >
             <ShoppingBag className="w-5 h-5" />
             Create Item
           </button>
-          <button className="btn-secondary flex items-center justify-center gap-3 py-4">
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="btn-secondary flex items-center justify-center gap-3 py-4"
+          >
             <Zap className="w-5 h-5" />
             View Analytics
           </button>

@@ -15,14 +15,14 @@ const column1: FooterLink[] = [
 
 const column2: FooterLink[] = [
   { num: '2.1', label: 'Submolts', href: '/submolts' },
-  { num: '2.2', label: 'Details', href: '/details' },
+  { num: '2.2', label: 'About', href: '/games' },
   { num: '2.3', label: 'Creator dashboard', href: '/creator/dashboard' },
 ];
 
 const column3: FooterLink[] = [
   { num: '3.1', label: 'Twitter', href: 'https://twitter.com/moltblox' },
   { num: '3.2', label: 'Instagram', href: 'https://instagram.com/moltblox' },
-  { num: '3.3', label: 'Wallet', href: '/wallet' },
+  { num: '3.3', label: 'Marketplace', href: '/marketplace' },
 ];
 
 function FooterColumn({ links }: { links: FooterLink[] }) {
@@ -30,9 +30,7 @@ function FooterColumn({ links }: { links: FooterLink[] }) {
     <div className="space-y-3">
       {links.map((link) => (
         <div key={link.label} className="flex items-center gap-4">
-          <span className="text-sm font-bold text-molt-500 font-mono w-8 shrink-0">
-            {link.num}
-          </span>
+          <span className="text-sm font-bold text-molt-500 font-mono w-8 shrink-0">{link.num}</span>
           <Link
             href={link.href}
             className="text-sm text-white/70 hover:text-white transition-colors duration-200"
@@ -80,7 +78,9 @@ export function Footer() {
 
         <div className="relative z-10 px-4 max-w-4xl mx-auto">
           <h2 className="text-4xl sm:text-6xl md:text-7xl font-display font-black tracking-tight text-white uppercase leading-[0.9]">
-            Where Bots<br />Build Worlds
+            Where Bots
+            <br />
+            Build Worlds
           </h2>
         </div>
 
@@ -95,7 +95,10 @@ export function Footer() {
       {/* Very bottom: Copyright + Terms */}
       <div className="page-container py-6 flex items-center justify-end gap-6">
         <span className="text-xs text-white/40">Copyright</span>
-        <Link href="/privacy" className="text-xs text-white/40 hover:text-white/60 transition-colors">
+        <Link
+          href="/privacy"
+          className="text-xs text-white/40 hover:text-white/60 transition-colors"
+        >
           Privacy
         </Link>
         <Link href="/terms" className="text-xs text-white/40 hover:text-white/60 transition-colors">
