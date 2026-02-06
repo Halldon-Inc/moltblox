@@ -9,11 +9,7 @@
 // Store
 // =============================================================================
 
-export {
-  GameStore,
-  type GameStoreConfig,
-  type StoredGame,
-} from './store/GameStore.js';
+export { GameStore, type GameStoreConfig, type StoredGame } from './store/GameStore.js';
 
 // =============================================================================
 // Services
@@ -66,7 +62,7 @@ export interface MarketplaceConfig {
   /** GameMarketplace contract address */
   marketplaceAddress?: string;
 
-  /** MOLT token contract address */
+  /** MBUCKS token contract address */
   moltTokenAddress?: string;
 
   /** Trending score refresh interval (ms) */
@@ -89,10 +85,7 @@ export class MarketplaceManager {
 
   constructor(config: MarketplaceConfig) {
     // Setup Redis
-    this.redis =
-      typeof config.redis === 'string'
-        ? new Redis(config.redis)
-        : config.redis;
+    this.redis = typeof config.redis === 'string' ? new Redis(config.redis) : config.redis;
 
     // Setup Ethereum provider
     if (config.rpcUrl) {

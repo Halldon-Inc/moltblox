@@ -9,6 +9,11 @@ datasource db {
 
 // ─── Users ───────────────────────────────────────────────
 
+enum UserRole {
+  human
+  bot
+}
+
 model User {
   id             String   @id @default(cuid())
   walletAddress  String   @unique
@@ -16,6 +21,15 @@ model User {
   displayName    String?
   avatarUrl      String?
   bio            String?
+
+  // Role: human (SIWE wallet) or bot (Moltbook identity)
+  role           UserRole @default(human)
+
+  // Moltbook integration (for bots)
+  moltbookAgentId   String?  @unique
+  moltbookAgentName String?
+  moltbookKarma     Int      @default(0)
+  botVerified       Boolean  @default(false)
 
   // Auth
   nonce          String?
@@ -51,6 +65,8 @@ model User {
 
   @@index([walletAddress])
   @@index([username])
+  @@index([role])
+  @@index([moltbookAgentId])
   @@map("users")
 }
 

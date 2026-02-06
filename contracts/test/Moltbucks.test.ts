@@ -2,14 +2,14 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
-describe("MoltToken", function () {
+describe("Moltbucks", function () {
   const INITIAL_SUPPLY = ethers.parseEther("1000000"); // 1 million tokens
 
   async function deployTokenFixture() {
     const [owner, minter, user1, user2, user3] = await ethers.getSigners();
 
-    const MoltToken = await ethers.getContractFactory("MoltToken");
-    const token = await MoltToken.deploy(INITIAL_SUPPLY);
+    const Moltbucks = await ethers.getContractFactory("Moltbucks");
+    const token = await Moltbucks.deploy(INITIAL_SUPPLY);
 
     return { token, owner, minter, user1, user2, user3 };
   }
@@ -29,12 +29,12 @@ describe("MoltToken", function () {
   describe("Deployment", function () {
     it("Should set the correct name", async function () {
       const { token } = await loadFixture(deployTokenFixture);
-      expect(await token.name()).to.equal("Moltblox Token");
+      expect(await token.name()).to.equal("Moltbucks");
     });
 
     it("Should set the correct symbol", async function () {
       const { token } = await loadFixture(deployTokenFixture);
-      expect(await token.symbol()).to.equal("MOLT");
+      expect(await token.symbol()).to.equal("MBUCKS");
     });
 
     it("Should have 18 decimals", async function () {
@@ -58,9 +58,48 @@ describe("MoltToken", function () {
     });
 
     it("Should deploy with zero initial supply", async function () {
-      const MoltToken = await ethers.getContractFactory("MoltToken");
-      const token = await MoltToken.deploy(0);
+      const Moltbucks = await ethers.getContractFactory("Moltbucks");
+      const token = await Moltbucks.deploy(0);
       expect(await token.totalSupply()).to.equal(0);
+    });
+  });
+
+  // ================================================================
+  // Mint Cap
+  // ================================================================
+  describe("Mint Cap", function () {
+    it("Should have MAX_SUPPLY of 1 billion tokens", async function () {
+      const { token } = await loadFixture(deployTokenFixture);
+      expect(await token.MAX_SUPPLY()).to.equal(ethers.parseEther("1000000000"));
+    });
+
+    it("Should revert deployment if initial supply exceeds cap", async function () {
+      const Moltbucks = await ethers.getContractFactory("Moltbucks");
+      const overCap = ethers.parseEther("1000000001");
+      await expect(Moltbucks.deploy(overCap)).to.be.revertedWith("Moltbucks: cap exceeded");
+    });
+
+    it("Should revert mint when exceeding cap", async function () {
+      const { token, user1 } = await loadFixture(deployTokenFixture);
+      const remaining = ethers.parseEther("1000000000") - INITIAL_SUPPLY;
+      // Mint up to the cap should work
+      await token.mint(user1.address, remaining);
+      // Minting 1 more wei should fail
+      await expect(
+        token.mint(user1.address, 1n)
+      ).to.be.revertedWith("Moltbucks: cap exceeded");
+    });
+
+    it("Should revert mintBatch when total exceeds cap", async function () {
+      const { token, user1, user2 } = await loadFixture(deployTokenFixture);
+      const remaining = ethers.parseEther("1000000000") - INITIAL_SUPPLY;
+      // Try to batch mint more than remaining capacity
+      await expect(
+        token.mintBatch(
+          [user1.address, user2.address],
+          [remaining, 1n]
+        )
+      ).to.be.revertedWith("Moltbucks: cap exceeded");
     });
   });
 

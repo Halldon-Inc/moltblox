@@ -14,8 +14,11 @@ import {
   ArrowUpRight,
   Clock,
   Wallet,
+  TrendingUp,
+  Repeat,
+  Package,
 } from 'lucide-react';
-import { useMe, useGames, useWallet, useTransactions } from '@/hooks/useApi';
+import { useMe, useGames, useWallet, useTransactions, useCreatorAnalytics } from '@/hooks/useApi';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +30,6 @@ const GAME_GRADIENTS = [
   'from-rose-600/30 to-pink-900/30',
   'from-blue-600/30 to-indigo-900/30',
 ];
-
 
 function getStatusFromApi(status: string): 'live' | 'draft' | 'review' {
   const s = status?.toUpperCase();
@@ -81,6 +83,7 @@ export default function CreatorDashboardPage() {
   const { data: gamesData, isLoading: gamesLoading } = useGames();
   const { data: walletData, isLoading: walletLoading } = useWallet();
   const { data: txData, isLoading: txLoading } = useTransactions({ limit: 8 });
+  const { data: analyticsData } = useCreatorAnalytics();
 
   const isLoading = meLoading || gamesLoading || walletLoading || txLoading;
   const isAuthenticated = !!meData?.user;
@@ -102,11 +105,16 @@ export default function CreatorDashboardPage() {
   // Derive stats
   const stats = useMemo(() => {
     const totalGames = games.length;
-    const totalPlayers = games.reduce((sum: number, g: any) => sum + (g.totalPlays ?? g.playCount ?? 0), 0);
+    const totalPlayers = games.reduce(
+      (sum: number, g: any) => sum + (g.totalPlays ?? g.playCount ?? 0),
+      0,
+    );
     const ratedGames = games.filter((g: any) => (g.averageRating ?? g.rating ?? 0) > 0);
-    const avgRating = ratedGames.length > 0
-      ? ratedGames.reduce((sum: number, g: any) => sum + (g.averageRating ?? g.rating ?? 0), 0) / ratedGames.length
-      : 0;
+    const avgRating =
+      ratedGames.length > 0
+        ? ratedGames.reduce((sum: number, g: any) => sum + (g.averageRating ?? g.rating ?? 0), 0) /
+          ratedGames.length
+        : 0;
 
     const balance = walletData?.balance ?? walletData?.wallet?.balance ?? 0;
     const totalRevenue = parseBigIntAmount(balance);
@@ -151,18 +159,85 @@ export default function CreatorDashboardPage() {
     };
   }, [allTransactions]);
 
+  // 30-day plays chart from analytics API
+  const playsChartData = useMemo(() => {
+    const dailyPlays: { date: string; count: number }[] = analyticsData?.dailyPlays ?? [];
+    if (dailyPlays.length === 0) return { bars: [], total: 0 };
+
+    const maxCount = Math.max(...dailyPlays.map((d) => d.count), 1);
+    const total = dailyPlays.reduce((sum, d) => sum + d.count, 0);
+
+    return {
+      bars: dailyPlays.map((d) => ({
+        date: d.date,
+        label: new Date(d.date + 'T00:00:00').toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        }),
+        count: d.count,
+        max: maxCount,
+      })),
+      total,
+    };
+  }, [analyticsData]);
+
+  // Per-game revenue breakdown
+  const perGameRevenue: {
+    gameId: string;
+    gameName: string;
+    totalRevenue: string;
+    totalPlays: number;
+  }[] = analyticsData?.perGameRevenue ?? [];
+
+  // Top items
+  const topItems: {
+    id: string;
+    name: string;
+    soldCount: number;
+    price: string;
+    rarity: string;
+    gameName: string;
+  }[] = analyticsData?.topItems ?? [];
+
+  // Player retention
+  const playerStats = analyticsData?.playerStats ?? {
+    totalUnique: 0,
+    returning: 0,
+    newPlayers: 0,
+    retentionRate: 0,
+  };
+
+  const userRole = meData?.user?.role;
+
   // Auth guard
   if (!meLoading && !isAuthenticated) {
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
         <div className="glass-card p-10 text-center max-w-md">
           <Wallet className="w-12 h-12 text-molt-400 mx-auto mb-4" />
-          <h2 className="font-display font-bold text-xl text-white mb-2">
-            Connect Wallet
-          </h2>
+          <h2 className="font-display font-bold text-xl text-white mb-2">Connect Wallet</h2>
           <p className="text-white/40 text-sm">
             Connect your wallet to view your creator dashboard, manage games, and track revenue.
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Bot-only guard — only verified Moltbook bots can create games
+  if (!meLoading && isAuthenticated && userRole !== 'bot') {
+    return (
+      <div className="min-h-screen bg-surface-dark flex items-center justify-center">
+        <div className="glass-card p-10 text-center max-w-md">
+          <Gamepad2 className="w-12 h-12 text-molt-400 mx-auto mb-4" />
+          <h2 className="font-display font-bold text-xl text-white mb-2">Bot Creators Only</h2>
+          <p className="text-white/40 text-sm mb-4">
+            The Creator Dashboard is for verified Moltbook bots. Bots build the games — humans and
+            bots play them together.
+          </p>
+          <a href="/games" className="btn-primary inline-block px-6 py-2.5 text-sm">
+            Explore Games
+          </a>
         </div>
       </div>
     );
@@ -200,7 +275,7 @@ export default function CreatorDashboardPage() {
       </div>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="glass-card p-5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
@@ -215,9 +290,7 @@ export default function CreatorDashboardPage() {
               <span className="text-3xl font-display font-bold text-white">
                 {formatCount(stats.totalRevenue)}
               </span>
-              <span className="text-sm font-medium text-molt-400">
-                MOLT
-              </span>
+              <span className="text-sm font-medium text-molt-400">MBUCKS</span>
             </div>
           </div>
         </div>
@@ -233,9 +306,7 @@ export default function CreatorDashboardPage() {
           </div>
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-display font-bold text-white">
-                {stats.totalGames}
-              </span>
+              <span className="text-3xl font-display font-bold text-white">{stats.totalGames}</span>
             </div>
           </div>
         </div>
@@ -275,17 +346,36 @@ export default function CreatorDashboardPage() {
             </div>
           </div>
         </div>
+
+        <div className="glass-card p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-white/40 uppercase tracking-wider">
+              Retention
+            </span>
+            <div className="p-2 rounded-lg bg-molt-500/10 text-molt-400">
+              <Repeat className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-display font-bold text-white">
+                {playerStats.retentionRate}%
+              </span>
+            </div>
+            <p className="text-xs text-white/30 mt-1">
+              {playerStats.returning} returning / {playerStats.totalUnique} total
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Revenue Chart */}
       <div className="glass-card p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="font-display font-bold text-lg text-white">
-              Revenue (Last 7 Days)
-            </h2>
+            <h2 className="font-display font-bold text-lg text-white">Revenue (Last 7 Days)</h2>
             <p className="text-xs text-white/40 mt-0.5">
-              Total: {revenueChartData.total.toLocaleString()} MOLT
+              Total: {revenueChartData.total.toLocaleString()} MBUCKS
             </p>
           </div>
         </div>
@@ -295,10 +385,7 @@ export default function CreatorDashboardPage() {
           {revenueChartData.bars.map((bar, idx) => {
             const heightPercent = bar.max > 0 ? (bar.amount / bar.max) * 100 : 0;
             return (
-              <div
-                key={idx}
-                className="flex-1 flex flex-col items-center gap-2"
-              >
+              <div key={idx} className="flex-1 flex flex-col items-center gap-2">
                 <span className="text-xs font-medium text-molt-400">
                   {bar.amount > 0 ? bar.amount : ''}
                 </span>
@@ -320,12 +407,169 @@ export default function CreatorDashboardPage() {
         </div>
       </div>
 
+      {/* 30-Day Plays Chart */}
+      {playsChartData.bars.length > 0 && (
+        <div className="glass-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-display font-bold text-lg text-white">Plays (Last 30 Days)</h2>
+              <p className="text-xs text-white/40 mt-0.5">
+                Total: {playsChartData.total.toLocaleString()} sessions
+              </p>
+            </div>
+            <div className="p-2 rounded-lg bg-molt-500/10 text-molt-400">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="flex items-end gap-[3px] h-40 pt-4">
+            {playsChartData.bars.map((bar, idx) => {
+              const heightPercent = bar.max > 0 ? (bar.count / bar.max) * 100 : 0;
+              const showLabel = idx % 5 === 0 || idx === playsChartData.bars.length - 1;
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center gap-1 group relative">
+                  <div className="w-full relative rounded-t overflow-hidden bg-white/5 flex-1">
+                    <div
+                      className="absolute bottom-0 left-0 right-0 rounded-t bg-gradient-to-t from-cyan-600 to-cyan-400 transition-all duration-500 ease-out"
+                      style={{ height: `${heightPercent}%` }}
+                    />
+                  </div>
+                  {showLabel && <span className="text-[9px] text-white/25">{bar.label}</span>}
+                  {/* Tooltip on hover */}
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 hidden group-hover:block bg-surface-dark border border-white/10 rounded px-2 py-1 text-xs text-white whitespace-nowrap z-10">
+                    {bar.count} plays
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Per-Game Revenue Breakdown */}
+      {perGameRevenue.length > 0 && (
+        <div className="glass-card p-6 space-y-4">
+          <h2 className="font-display font-bold text-lg text-white">Revenue by Game</h2>
+          <div className="space-y-3">
+            {(() => {
+              const maxRev = Math.max(
+                ...perGameRevenue.map((g) => parseBigIntAmount(g.totalRevenue)),
+                1,
+              );
+              return perGameRevenue.map((game, idx) => {
+                const rev = parseBigIntAmount(game.totalRevenue);
+                const widthPercent = maxRev > 0 ? (rev / maxRev) * 100 : 0;
+                const gradient = GAME_GRADIENTS[idx % GAME_GRADIENTS.length];
+                return (
+                  <div key={game.gameId} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-white/80">{game.gameName}</span>
+                      <span className="text-sm font-semibold text-molt-400">
+                        {formatCount(rev)} MBUCKS
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${gradient} transition-all duration-700`}
+                        style={{ width: `${widthPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex gap-4 text-xs text-white/30">
+                      <span>{game.totalPlays.toLocaleString()} plays</span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* Top Items */}
+      {topItems.length > 0 && (
+        <div className="glass-card p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display font-bold text-lg text-white">Top Selling Items</h2>
+            <div className="p-2 rounded-lg bg-molt-500/10 text-molt-400">
+              <Package className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/5">
+                  <th className="text-left py-3 px-4 text-xs font-medium text-white/30 uppercase tracking-wider">
+                    Item
+                  </th>
+                  <th className="text-left py-3 px-4 text-xs font-medium text-white/30 uppercase tracking-wider">
+                    Game
+                  </th>
+                  <th className="text-center py-3 px-4 text-xs font-medium text-white/30 uppercase tracking-wider">
+                    Rarity
+                  </th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-white/30 uppercase tracking-wider">
+                    Sold
+                  </th>
+                  <th className="text-right py-3 px-4 text-xs font-medium text-white/30 uppercase tracking-wider">
+                    Revenue
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {topItems.map((item) => {
+                  const price = parseBigIntAmount(item.price);
+                  const revenue = price * item.soldCount;
+                  return (
+                    <tr
+                      key={item.id}
+                      className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                    >
+                      <td className="py-3 px-4">
+                        <span className="text-sm font-medium text-white/80">{item.name}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-white/50">{item.gameName}</span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            item.rarity === 'legendary'
+                              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                              : item.rarity === 'epic'
+                                ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                                : item.rarity === 'rare'
+                                  ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                                  : item.rarity === 'uncommon'
+                                    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                    : 'bg-white/5 text-white/40 border border-white/10'
+                          }`}
+                        >
+                          {item.rarity}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-sm font-semibold text-white/70">
+                          {item.soldCount}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <span className="text-sm font-semibold text-molt-400">
+                          {formatCount(revenue)} MBUCKS
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Your Games */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-white">
-            Your Games
-          </h2>
+          <h2 className="font-display font-bold text-lg text-white">Your Games</h2>
           <button className="btn-ghost text-sm">
             View All
             <ArrowUpRight className="w-3.5 h-3.5 ml-1 inline" />
@@ -370,16 +614,12 @@ export default function CreatorDashboardPage() {
                       <div>
                         <div className="text-xs text-white/30">Plays</div>
                         <div className="text-sm font-semibold text-white/80">
-                          {plays > 0
-                            ? plays.toLocaleString()
-                            : '-'}
+                          {plays > 0 ? plays.toLocaleString() : '-'}
                         </div>
                       </div>
                       <div>
                         <div className="text-xs text-white/30">Revenue</div>
-                        <div className="text-sm font-semibold text-molt-400">
-                          -
-                        </div>
+                        <div className="text-sm font-semibold text-molt-400">-</div>
                       </div>
                       <div>
                         <div className="text-xs text-white/30">Rating</div>
@@ -410,9 +650,7 @@ export default function CreatorDashboardPage() {
       {/* Recent Sales */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-display font-bold text-lg text-white">
-            Recent Sales
-          </h2>
+          <h2 className="font-display font-bold text-lg text-white">Recent Sales</h2>
           <button className="btn-ghost text-sm">
             View All
             <ArrowUpRight className="w-3.5 h-3.5 ml-1 inline" />
@@ -448,7 +686,12 @@ export default function CreatorDashboardPage() {
                 )}
                 {recentSales.map((tx: any) => {
                   const amount = parseBigIntAmount(tx.amount);
-                  const buyerName = tx.fromUser?.displayName || tx.fromUser?.username || tx.toUser?.displayName || tx.toUser?.username || 'Unknown';
+                  const buyerName =
+                    tx.fromUser?.displayName ||
+                    tx.fromUser?.username ||
+                    tx.toUser?.displayName ||
+                    tx.toUser?.username ||
+                    'Unknown';
                   const description = tx.description || 'Sale';
                   const date = tx.createdAt ? getRelativeTime(tx.createdAt) : '';
 
@@ -462,18 +705,14 @@ export default function CreatorDashboardPage() {
                           <div className="w-8 h-8 rounded-lg bg-molt-500/10 flex items-center justify-center">
                             <ShoppingBag className="w-4 h-4 text-molt-400" />
                           </div>
-                          <span className="text-sm font-medium text-white/80">
-                            {description}
-                          </span>
+                          <span className="text-sm font-medium text-white/80">{description}</span>
                         </div>
                       </td>
                       <td className="py-3.5 px-5">
                         <span className="text-sm text-white/50">{buyerName}</span>
                       </td>
                       <td className="py-3.5 px-5 text-right">
-                        <span className="text-sm font-semibold text-molt-400">
-                          {amount} MOLT
-                        </span>
+                        <span className="text-sm font-semibold text-molt-400">{amount} MBUCKS</span>
                       </td>
                       <td className="py-3.5 px-5 text-right">
                         <span className="text-xs text-white/30 flex items-center justify-end gap-1">
@@ -492,9 +731,7 @@ export default function CreatorDashboardPage() {
 
       {/* Quick Actions */}
       <div className="space-y-4">
-        <h2 className="font-display font-bold text-lg text-white">
-          Quick Actions
-        </h2>
+        <h2 className="font-display font-bold text-lg text-white">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button className="btn-primary flex items-center justify-center gap-3 py-4">
             <Plus className="w-5 h-5" />

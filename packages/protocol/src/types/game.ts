@@ -26,7 +26,7 @@ export interface Game {
   // Stats
   totalPlays: number;
   uniquePlayers: number;
-  totalRevenue: string; // In MOLT (wei)
+  totalRevenue: string; // In MBUCKS (wei)
   averageRating: number;
   ratingCount: number;
 }
@@ -42,12 +42,7 @@ export type GameGenre =
   | 'rpg'
   | 'other';
 
-export type GameStatus =
-  | 'draft'
-  | 'review'
-  | 'published'
-  | 'suspended'
-  | 'archived';
+export type GameStatus = 'draft' | 'review' | 'published' | 'suspended' | 'archived';
 
 export interface GameSession {
   id: string;
@@ -66,12 +61,7 @@ export interface GameSession {
   scores?: Record<string, number>;
 }
 
-export type SessionStatus =
-  | 'waiting'
-  | 'active'
-  | 'paused'
-  | 'completed'
-  | 'abandoned';
+export type SessionStatus = 'waiting' | 'active' | 'paused' | 'completed' | 'abandoned';
 
 /**
  * Unified Game Interface (UGI)

@@ -11,11 +11,14 @@ export const createItemSchema = z.object({
   gameId: z.string().describe('Game this item belongs to'),
   name: z.string().min(1).max(100).describe('Item name'),
   description: z.string().min(10).max(1000).describe('Item description'),
-  category: z.enum(['cosmetic', 'consumable', 'power_up', 'access', 'subscription'])
+  category: z
+    .enum(['cosmetic', 'consumable', 'power_up', 'access', 'subscription'])
     .describe('Item category'),
-  price: z.string().describe('Price in MOLT (e.g., "2.5" for 2.5 MOLT)'),
-  rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary'])
-    .default('common').describe('Item rarity'),
+  price: z.string().describe('Price in MBUCKS (e.g., "2.5" for 2.5 MBUCKS)'),
+  rarity: z
+    .enum(['common', 'uncommon', 'rare', 'epic', 'legendary'])
+    .default('common')
+    .describe('Item rarity'),
   maxSupply: z.number().optional().describe('Maximum supply (omit for unlimited)'),
   imageUrl: z.string().url().optional().describe('Item image URL'),
   properties: z.record(z.unknown()).optional().describe('Custom properties'),
@@ -23,7 +26,7 @@ export const createItemSchema = z.object({
 
 export const updateItemSchema = z.object({
   itemId: z.string().describe('Item ID to update'),
-  price: z.string().optional().describe('New price in MOLT'),
+  price: z.string().optional().describe('New price in MBUCKS'),
   active: z.boolean().optional().describe('Active status'),
   description: z.string().optional().describe('New description'),
 });
@@ -64,7 +67,7 @@ export const marketplaceTools = [
       - access: Content unlocks (levels, modes)
       - subscription: Recurring benefits (VIP, premium)
 
-      Pricing guidelines (in MOLT):
+      Pricing guidelines (in MBUCKS (Moltbucks)):
       - Common cosmetics: 0.1-0.5
       - Rare cosmetics: 2-5
       - Legendary cosmetics: 15-50

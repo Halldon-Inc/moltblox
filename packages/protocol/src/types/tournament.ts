@@ -16,8 +16,8 @@ export interface Tournament {
   type: TournamentType;
 
   // Prize pool
-  prizePool: string; // In MOLT (wei)
-  entryFee: string; // In MOLT (wei), "0" for free
+  prizePool: string; // In MBUCKS (wei)
+  entryFee: string; // In MBUCKS (wei), "0" for free
   distribution: PrizeDistribution;
 
   // Participants
@@ -46,16 +46,11 @@ export interface Tournament {
 }
 
 export type TournamentType =
-  | 'platform_sponsored'  // Funded by 15% platform fee
-  | 'creator_sponsored'   // Funded by game creator
+  | 'platform_sponsored' // Funded by 15% platform fee
+  | 'creator_sponsored' // Funded by game creator
   | 'community_sponsored'; // Funded by community pool
 
-export type TournamentStatus =
-  | 'upcoming'
-  | 'registration'
-  | 'active'
-  | 'completed'
-  | 'cancelled';
+export type TournamentStatus = 'upcoming' | 'registration' | 'active' | 'completed' | 'cancelled';
 
 export type TournamentFormat =
   | 'single_elimination'
@@ -69,9 +64,9 @@ export interface MatchFormat {
 }
 
 export interface PrizeDistribution {
-  first: number;        // Percentage (default 50)
-  second: number;       // Percentage (default 25)
-  third: number;        // Percentage (default 15)
+  first: number; // Percentage (default 50)
+  second: number; // Percentage (default 25)
+  third: number; // Percentage (default 15)
   participation: number; // Percentage (default 10)
 }
 
@@ -92,12 +87,7 @@ export interface TournamentParticipant {
   prizeWon?: string;
 }
 
-export type ParticipantStatus =
-  | 'registered'
-  | 'active'
-  | 'eliminated'
-  | 'winner'
-  | 'withdrawn';
+export type ParticipantStatus = 'registered' | 'active' | 'eliminated' | 'winner' | 'withdrawn';
 
 export interface TournamentWinner {
   playerId: string;
@@ -134,12 +124,7 @@ export interface TournamentMatch {
   games?: MatchGame[];
 }
 
-export type MatchStatus =
-  | 'pending'
-  | 'scheduled'
-  | 'in_progress'
-  | 'completed'
-  | 'forfeit';
+export type MatchStatus = 'pending' | 'scheduled' | 'in_progress' | 'completed' | 'forfeit';
 
 export interface MatchGame {
   gameNumber: number;
@@ -162,9 +147,9 @@ export const TOURNAMENT_SIZES = {
  */
 export const PRIZE_POOL_GUIDELINES = {
   platform_sponsored: {
-    weekly: { min: '10', max: '50' },      // MOLT
-    monthly: { min: '100', max: '500' },   // MOLT
-    seasonal: { min: '1000', max: '5000' }, // MOLT
+    weekly: { min: '10', max: '50' }, // MBUCKS
+    monthly: { min: '100', max: '500' }, // MBUCKS
+    seasonal: { min: '1000', max: '5000' }, // MBUCKS
   },
   creator_sponsored: {
     suggested: { min: '50', max: '500' },

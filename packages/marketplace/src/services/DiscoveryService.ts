@@ -5,12 +5,7 @@
  * Balanced formula: revenue + engagement + recency + ratings
  */
 
-import type {
-  PublishedGame,
-  GameListing,
-  GameQuery,
-  GameCategory,
-} from '@moltblox/protocol';
+import type { PublishedGame, GameListing, GameQuery, GameCategory } from '@moltblox/protocol';
 import { GameStore, StoredGame } from '../store/GameStore';
 
 // =============================================================================
@@ -31,10 +26,10 @@ export interface DiscoveryConfig {
 }
 
 export interface TrendingWeights {
-  revenue: number;      // Weight for total MOLT earned
-  engagement: number;   // Weight for play time and return rate
-  recency: number;      // Weight for time since publish
-  ratings: number;      // Weight for average rating * count
+  revenue: number; // Weight for total MBUCKS earned
+  engagement: number; // Weight for play time and return rate
+  recency: number; // Weight for time since publish
+  ratings: number; // Weight for average rating * count
 }
 
 export interface SearchFilters {
@@ -61,8 +56,8 @@ export interface DiscoveryResult {
 
 const DEFAULT_WEIGHTS: TrendingWeights = {
   revenue: 0.25,
-  engagement: 0.30,
-  recency: 0.20,
+  engagement: 0.3,
+  recency: 0.2,
   ratings: 0.25,
 };
 
@@ -175,7 +170,7 @@ export class DiscoveryService {
     searchQuery: string,
     filters?: SearchFilters,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<DiscoveryResult> {
     const normalizedQuery = searchQuery.toLowerCase().trim();
     const allGameIds = await this.store.getAllGameIds(1000, 0);
@@ -255,9 +250,7 @@ export class DiscoveryService {
       if (!relatedGame || relatedGame.status !== 'active') continue;
 
       // Score by tag overlap and rating
-      const tagOverlap = game.tags.filter((t) =>
-        relatedGame.tags.includes(t)
-      ).length;
+      const tagOverlap = game.tags.filter((t) => relatedGame.tags.includes(t)).length;
       const score = tagOverlap * 10 + relatedGame.averageRating;
 
       related.push({ game: relatedGame, score });
@@ -298,8 +291,7 @@ export class DiscoveryService {
     const recencyScore = Math.max(0, 100 - (ageHours / 720) * 100);
 
     // Rating score
-    const ratingScore =
-      game.averageRating * Math.log10(game.totalRatings + 1) * 10;
+    const ratingScore = game.averageRating * Math.log10(game.totalRatings + 1) * 10;
 
     // Weighted sum
     return (
@@ -397,10 +389,7 @@ export class DiscoveryService {
     return games.map((g) => g.id);
   }
 
-  private calculateSearchRelevance(
-    game: StoredGame,
-    query: string
-  ): number {
+  private calculateSearchRelevance(game: StoredGame, query: string): number {
     let score = 0;
 
     // Exact name match
@@ -418,9 +407,7 @@ export class DiscoveryService {
     }
 
     // Tag match
-    const matchingTags = game.tags.filter((t) =>
-      t.toLowerCase().includes(query)
-    );
+    const matchingTags = game.tags.filter((t) => t.toLowerCase().includes(query));
     score += matchingTags.length * 15;
 
     // Creator match

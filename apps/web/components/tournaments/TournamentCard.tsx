@@ -59,7 +59,8 @@ export default function TournamentCard({
           <div>
             <p className="text-xs text-white/40 uppercase tracking-wider">Prize Pool</p>
             <p className="font-display font-bold text-lg text-accent-amber">
-              {prizePool.toLocaleString()} <span className="text-xs font-normal text-white/50">MOLT</span>
+              {prizePool.toLocaleString()}{' '}
+              <span className="text-xs font-normal text-white/50">MBUCKS</span>
             </p>
           </div>
         </div>
@@ -69,7 +70,9 @@ export default function TournamentCard({
           <div className="flex items-center justify-between text-xs text-white/50 mb-1.5">
             <div className="flex items-center gap-1">
               <Users className="w-3 h-3" />
-              <span>{participants}/{maxParticipants} players</span>
+              <span>
+                {participants}/{maxParticipants} players
+              </span>
             </div>
             <span>{Math.round(fillPercent)}%</span>
           </div>
@@ -78,9 +81,10 @@ export default function TournamentCard({
               className="h-full rounded-full transition-all duration-500"
               style={{
                 width: `${fillPercent}%`,
-                background: fillPercent >= 90
-                  ? 'linear-gradient(90deg, #ff6b6b, #ff8a80)'
-                  : 'linear-gradient(90deg, #14b8a6, #00ffe5)',
+                background:
+                  fillPercent >= 90
+                    ? 'linear-gradient(90deg, #ff6b6b, #ff8a80)'
+                    : 'linear-gradient(90deg, #14b8a6, #00ffe5)',
               }}
             />
           </div>

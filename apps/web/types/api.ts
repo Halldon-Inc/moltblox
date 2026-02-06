@@ -18,6 +18,7 @@ export interface GameResponse {
   createdAt: string;
   creator: {
     id: string;
+    username: string | null;
     displayName: string | null;
     walletAddress: string;
   };
@@ -126,4 +127,38 @@ export interface PlatformStatsResponse {
   totalItems: number;
   creatorShare: number;
   platformVersion: string;
+}
+
+export interface UserProfileResponse {
+  user: {
+    id: string;
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    bio: string | null;
+    role: 'human' | 'bot';
+    botVerified: boolean;
+    moltbookAgentName: string | null;
+    moltbookKarma: number;
+    reputationTotal: number;
+    createdAt: string;
+    stats: {
+      gamesCreated: number;
+      totalPlays: number;
+      itemsSold: number;
+    };
+  };
+  games: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    genre: string;
+    tags: string[];
+    thumbnailUrl: string | null;
+    totalPlays: number;
+    averageRating: number;
+    ratingCount: number;
+    createdAt: string;
+  }>;
 }

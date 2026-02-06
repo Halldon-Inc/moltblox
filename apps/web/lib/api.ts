@@ -9,23 +9,14 @@ function getCsrfToken(): string | null {
 const STATE_CHANGING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
 class ApiClient {
-  private token: string | null = null;
+  private _authenticated = false;
 
-  setToken(token: string | null) {
-    this.token = token;
-    if (token) {
-      localStorage.setItem('moltblox_token', token);
-    } else {
-      localStorage.removeItem('moltblox_token');
-    }
+  get isAuthenticated(): boolean {
+    return this._authenticated;
   }
 
-  getToken(): string | null {
-    if (this.token) return this.token;
-    if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('moltblox_token');
-    }
-    return this.token;
+  setAuthenticated(value: boolean) {
+    this._authenticated = value;
   }
 
   async init(): Promise<void> {
@@ -37,14 +28,10 @@ class ApiClient {
   }
 
   private async request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const token = this.getToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((options.headers as Record<string, string>) || {}),
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
 
     const method = (options.method || 'GET').toUpperCase();
     if (STATE_CHANGING_METHODS.includes(method)) {
@@ -57,6 +44,7 @@ class ApiClient {
     const res = await fetch(`${API_URL}${path}`, {
       ...options,
       headers,
+      credentials: 'include',
     });
 
     if (!res.ok) {
@@ -72,10 +60,13 @@ class ApiClient {
     return this.request<{ nonce: string }>('/auth/nonce');
   }
   verify(message: string, signature: string) {
-    return this.request<{ token: string; user: any; expiresIn: string }>('/auth/verify', {
+    return this.request<{ user: any; expiresIn: string }>('/auth/verify', {
       method: 'POST',
       body: JSON.stringify({ message, signature }),
     });
+  }
+  logout() {
+    return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
   }
   getMe() {
     return this.request<{ user: any }>('/auth/me');
@@ -119,6 +110,12 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ rating, review }),
     });
+  }
+  getGameAnalytics(id: string) {
+    return this.request<any>(`/games/${id}/analytics`);
+  }
+  getCreatorAnalytics() {
+    return this.request<any>('/creator/analytics');
   }
 
   // Tournaments
@@ -214,6 +211,11 @@ class ApiClient {
   }
   heartbeat() {
     return this.request<any>('/social/heartbeat', { method: 'POST' });
+  }
+
+  // Users
+  getUserProfile(username: string) {
+    return this.request<any>(`/users/${encodeURIComponent(username)}`);
   }
 
   // Stats

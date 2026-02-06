@@ -15,8 +15,8 @@ import "@openzeppelin/contracts/utils/Pausable.sol";
 contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     using SafeERC20 for IERC20;
 
-    // MOLT token
-    IERC20 public immutable moltToken;
+    // MBUCKS token
+    IERC20 public immutable moltbucks;
 
     // Platform treasury (source of platform-sponsored prizes)
     address public treasury;
@@ -115,10 +115,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     event TournamentCancelled(string indexed tournamentId, string reason);
     event RefundIssued(string indexed tournamentId, address indexed participant, uint256 amount);
 
-    constructor(address _moltToken, address _treasury) Ownable(msg.sender) {
-        require(_moltToken != address(0), "Invalid token address");
+    constructor(address _moltbucks, address _treasury) Ownable(msg.sender) {
+        require(_moltbucks != address(0), "Invalid token address");
         require(_treasury != address(0), "Invalid treasury address");
-        moltToken = IERC20(_moltToken);
+        moltbucks = IERC20(_moltbucks);
         treasury = _treasury;
     }
 
@@ -128,7 +128,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
      * @notice Create a platform-sponsored tournament (admin only)
      * @param tournamentId Unique identifier
      * @param gameId The game being played
-     * @param prizePool Total prize pool in MOLT
+     * @param prizePool Total prize pool in MBUCKS
      * @param entryFee Entry fee (0 for free)
      * @param maxParticipants Maximum participants
      * @param registrationStart When registration opens
@@ -159,14 +159,14 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         );
 
         // Transfer prize pool from treasury
-        moltToken.safeTransferFrom(treasury, address(this), prizePool);
+        moltbucks.safeTransferFrom(treasury, address(this), prizePool);
     }
 
     /**
      * @notice Create a creator-sponsored tournament
      * @param tournamentId Unique identifier
      * @param gameId The game being played (must be creator's game)
-     * @param prizePool Total prize pool in MOLT (funded by creator)
+     * @param prizePool Total prize pool in MBUCKS (funded by creator)
      * @param entryFee Entry fee (0 for free)
      * @param maxParticipants Maximum participants
      * @param registrationStart When registration opens
@@ -197,7 +197,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         );
 
         // Transfer prize pool from creator
-        moltToken.safeTransferFrom(msg.sender, address(this), prizePool);
+        moltbucks.safeTransferFrom(msg.sender, address(this), prizePool);
     }
 
     /**
@@ -236,7 +236,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
         // Transfer initial prize pool from creator
         if (prizePool > 0) {
-            moltToken.safeTransferFrom(msg.sender, address(this), prizePool);
+            moltbucks.safeTransferFrom(msg.sender, address(this), prizePool);
         }
     }
 
@@ -340,7 +340,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
         // Collect entry fee if applicable
         if (t.entryFee > 0) {
-            moltToken.safeTransferFrom(msg.sender, address(this), t.entryFee);
+            moltbucks.safeTransferFrom(msg.sender, address(this), t.entryFee);
             participantEntryFees[tournamentId] += t.entryFee;
 
             // For community tournaments, entry fees add to prize pool
@@ -399,6 +399,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(t.status == TournamentStatus.Active, "Not active");
         require(!t.prizesDistributed, "Already distributed");
 
+        // Verify winners are unique
+        require(first != second && first != third && second != third, "Duplicate winner");
+
         // Verify winners are participants
         require(isParticipant[tournamentId][first], "1st not participant");
         require(isParticipant[tournamentId][second], "2nd not participant");
@@ -418,13 +421,13 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         uint256 participationPool = totalPool - firstPrize - secondPrize - thirdPrize;
 
         // AUTO-PAYOUT: Send prizes directly to winner wallets
-        moltToken.safeTransfer(first, firstPrize);
+        moltbucks.safeTransfer(first, firstPrize);
         emit PrizeDistributed(tournamentId, first, 1, firstPrize);
 
-        moltToken.safeTransfer(second, secondPrize);
+        moltbucks.safeTransfer(second, secondPrize);
         emit PrizeDistributed(tournamentId, second, 2, secondPrize);
 
-        moltToken.safeTransfer(third, thirdPrize);
+        moltbucks.safeTransfer(third, thirdPrize);
         emit PrizeDistributed(tournamentId, third, 3, thirdPrize);
 
         // Distribute participation rewards to non-winners
@@ -435,7 +438,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             for (uint256 i = 0; i < t.participants.length; i++) {
                 address participant = t.participants[i];
                 if (participant != first && participant != second && participant != third) {
-                    moltToken.safeTransfer(participant, participationReward);
+                    moltbucks.safeTransfer(participant, participationReward);
                     emit ParticipationRewardDistributed(tournamentId, participant, participationReward);
                 }
             }
@@ -443,7 +446,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             // Send any remaining dust to the first winner
             uint256 remaining = participationPool - (participationReward * nonWinnerCount);
             if (remaining > 0) {
-                moltToken.safeTransfer(first, remaining);
+                moltbucks.safeTransfer(first, remaining);
             }
         }
 
@@ -474,7 +477,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         if (t.entryFee > 0) {
             for (uint256 i = 0; i < t.participants.length; i++) {
                 address participant = t.participants[i];
-                moltToken.safeTransfer(participant, t.entryFee);
+                moltbucks.safeTransfer(participant, t.entryFee);
                 emit RefundIssued(tournamentId, participant, t.entryFee);
             }
         }
@@ -485,10 +488,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
                 // Only return the original prize pool, not accumulated entry fees
                 uint256 originalPrizePool = t.prizePool - participantEntryFees[tournamentId];
                 if (originalPrizePool > 0) {
-                    moltToken.safeTransfer(t.sponsor, originalPrizePool);
+                    moltbucks.safeTransfer(t.sponsor, originalPrizePool);
                 }
             } else {
-                moltToken.safeTransfer(t.sponsor, t.prizePool);
+                moltbucks.safeTransfer(t.sponsor, t.prizePool);
             }
         }
 
@@ -558,14 +561,14 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Add to prize pool (for community sponsorship)
      * @param tournamentId The tournament to sponsor
-     * @param amount Amount of MOLT to add
+     * @param amount Amount of MBUCKS to add
      */
     function addToPrizePool(string calldata tournamentId, uint256 amount) external whenNotPaused {
         Tournament storage t = tournaments[tournamentId];
         require(t.status == TournamentStatus.Registration, "Cannot add to pool");
         require(amount > 0, "Amount must be positive");
 
-        moltToken.safeTransferFrom(msg.sender, address(this), amount);
+        moltbucks.safeTransferFrom(msg.sender, address(this), amount);
         t.prizePool += amount;
     }
 }

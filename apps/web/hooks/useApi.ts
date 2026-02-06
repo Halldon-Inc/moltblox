@@ -10,13 +10,19 @@ export function useMe() {
     queryKey: ['me'],
     queryFn: () => api.getMe(),
     retry: false,
-    enabled: !!api.getToken(),
+    enabled: !!api.isAuthenticated,
   });
 }
 
 // ── Game Hooks ──
 
-export function useGames(params?: { genre?: string; sort?: string; search?: string; limit?: number; offset?: number }) {
+export function useGames(params?: {
+  genre?: string;
+  sort?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}) {
   return useQuery({
     queryKey: ['games', params],
     queryFn: () => api.getGames(params),
@@ -42,7 +48,8 @@ export function useGameStats(id: string) {
 export function useCreateGame() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: { name: string; description: string; genre?: string; tags?: string[] }) => api.createGame(data),
+    mutationFn: (data: { name: string; description: string; genre?: string; tags?: string[] }) =>
+      api.createGame(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['games'] }),
   });
 }
@@ -59,9 +66,32 @@ export function useRateGame() {
   });
 }
 
+// ── Analytics Hooks ──
+
+export function useGameAnalytics(id: string) {
+  return useQuery({
+    queryKey: ['game-analytics', id],
+    queryFn: () => api.getGameAnalytics(id),
+    enabled: !!id,
+  });
+}
+
+export function useCreatorAnalytics() {
+  return useQuery({
+    queryKey: ['creator-analytics'],
+    queryFn: () => api.getCreatorAnalytics(),
+    enabled: !!api.isAuthenticated,
+  });
+}
+
 // ── Tournament Hooks ──
 
-export function useTournaments(params?: { status?: string; format?: string; limit?: number; offset?: number }) {
+export function useTournaments(params?: {
+  status?: string;
+  format?: string;
+  limit?: number;
+  offset?: number;
+}) {
   return useQuery({
     queryKey: ['tournaments', params],
     queryFn: () => api.getTournaments(params),
@@ -97,7 +127,13 @@ export function useRegisterForTournament() {
 
 // ── Marketplace Hooks ──
 
-export function useItems(params?: { category?: string; gameId?: string; rarity?: string; limit?: number; offset?: number }) {
+export function useItems(params?: {
+  category?: string;
+  gameId?: string;
+  rarity?: string;
+  limit?: number;
+  offset?: number;
+}) {
   return useQuery({
     queryKey: ['items', params],
     queryFn: () => api.getItems(params),
@@ -115,7 +151,8 @@ export function useItem(id: string) {
 export function usePurchaseItem() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, quantity }: { id: string; quantity?: number }) => api.purchaseItem(id, quantity),
+    mutationFn: ({ id, quantity }: { id: string; quantity?: number }) =>
+      api.purchaseItem(id, quantity),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['items'] });
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
@@ -128,7 +165,7 @@ export function useInventory() {
   return useQuery({
     queryKey: ['inventory'],
     queryFn: () => api.getInventory(),
-    enabled: !!api.getToken(),
+    enabled: !!api.isAuthenticated,
   });
 }
 
@@ -160,8 +197,13 @@ export function usePost(slug: string, postId: string) {
 export function useCreatePost() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ slug, data }: { slug: string; data: { title: string; content: string; type?: string } }) =>
-      api.createPost(slug, data),
+    mutationFn: ({
+      slug,
+      data,
+    }: {
+      slug: string;
+      data: { title: string; content: string; type?: string };
+    }) => api.createPost(slug, data),
     onSuccess: (_, { slug }) => {
       queryClient.invalidateQueries({ queryKey: ['submolt', slug] });
     },
@@ -171,8 +213,15 @@ export function useCreatePost() {
 export function useAddComment() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ slug, postId, data }: { slug: string; postId: string; data: { content: string; parentId?: string } }) =>
-      api.addComment(slug, postId, data),
+    mutationFn: ({
+      slug,
+      postId,
+      data,
+    }: {
+      slug: string;
+      postId: string;
+      data: { content: string; parentId?: string };
+    }) => api.addComment(slug, postId, data),
     onSuccess: (_, { slug, postId }) => {
       queryClient.invalidateQueries({ queryKey: ['post', slug, postId] });
     },
@@ -196,6 +245,16 @@ export function useHeartbeat() {
   });
 }
 
+// ── User Profile Hooks ──
+
+export function useUserProfile(username: string) {
+  return useQuery({
+    queryKey: ['user-profile', username],
+    queryFn: () => api.getUserProfile(username),
+    enabled: !!username,
+  });
+}
+
 // ── Platform Stats ──
 
 export function usePlatformStats() {
@@ -212,7 +271,7 @@ export function useWallet() {
   return useQuery({
     queryKey: ['wallet'],
     queryFn: () => api.getWallet(),
-    enabled: !!api.getToken(),
+    enabled: !!api.isAuthenticated,
   });
 }
 
@@ -220,7 +279,7 @@ export function useTransactions(params?: { limit?: number; offset?: number }) {
   return useQuery({
     queryKey: ['transactions', params],
     queryFn: () => api.getTransactions(params),
-    enabled: !!api.getToken(),
+    enabled: !!api.isAuthenticated,
   });
 }
 

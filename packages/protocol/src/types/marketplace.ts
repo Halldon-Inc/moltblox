@@ -19,19 +19,9 @@ export type GameCategory =
   | 'board'
   | 'other';
 
-export type ItemCategory =
-  | 'cosmetic'
-  | 'consumable'
-  | 'power_up'
-  | 'access'
-  | 'subscription';
+export type ItemCategory = 'cosmetic' | 'consumable' | 'power_up' | 'access' | 'subscription';
 
-export type ItemRarity =
-  | 'common'
-  | 'uncommon'
-  | 'rare'
-  | 'epic'
-  | 'legendary';
+export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 // =============================================================================
 // Item Types
@@ -51,8 +41,8 @@ export interface Item {
   properties: Record<string, unknown>;
 
   // Pricing
-  price: string; // In MOLT (wei)
-  currency: 'MOLT';
+  price: string; // In MBUCKS (wei)
+  currency: 'MBUCKS';
 
   // Supply
   maxSupply: number | null; // null = unlimited
@@ -295,7 +285,7 @@ export interface BotWallet {
 }
 
 /**
- * Pricing guidelines (in MOLT)
+ * Pricing guidelines (in MBUCKS)
  */
 export const PRICING_GUIDELINES = {
   cosmetic: {

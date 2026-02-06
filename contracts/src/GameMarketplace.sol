@@ -20,8 +20,8 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     uint256 public constant PLATFORM_SHARE = 15;
     uint256 public constant SHARE_DENOMINATOR = 100;
 
-    // MOLT token
-    IERC20 public immutable moltToken;
+    // MBUCKS token
+    IERC20 public immutable moltbucks;
 
     // Platform treasury (receives 15% for tournaments, infrastructure)
     address public treasury;
@@ -89,10 +89,10 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     event CreatorPaid(address indexed creator, string indexed gameId, uint256 amount);
     event TreasuryFunded(uint256 amount, string reason);
 
-    constructor(address _moltToken, address _treasury) Ownable(msg.sender) {
-        require(_moltToken != address(0), "Invalid token address");
+    constructor(address _moltbucks, address _treasury) Ownable(msg.sender) {
+        require(_moltbucks != address(0), "Invalid token address");
         require(_treasury != address(0), "Invalid treasury address");
-        moltToken = IERC20(_moltToken);
+        moltbucks = IERC20(_moltbucks);
         treasury = _treasury;
     }
 
@@ -134,7 +134,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
      * @notice Create a new item for a game
      * @param itemId Unique identifier for the item
      * @param gameId The game this item belongs to
-     * @param price Price in MOLT (wei)
+     * @param price Price in MBUCKS (wei)
      * @param maxSupply Maximum supply (0 = unlimited)
      * @param category Item category
      */
@@ -170,7 +170,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Update item price (creator only)
      * @param itemId The item to update
-     * @param newPrice New price in MOLT (wei)
+     * @param newPrice New price in MBUCKS (wei)
      */
     function updateItemPrice(string calldata itemId, uint256 newPrice) external {
         require(items[itemId].creator == msg.sender, "Not item creator");
@@ -217,13 +217,13 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         uint256 platformAmount = price - creatorAmount;
 
         // Transfer from buyer
-        moltToken.safeTransferFrom(msg.sender, address(this), price);
+        moltbucks.safeTransferFrom(msg.sender, address(this), price);
 
         // Pay creator instantly (85%)
-        moltToken.safeTransfer(item.creator, creatorAmount);
+        moltbucks.safeTransfer(item.creator, creatorAmount);
 
         // Send to treasury (15%)
-        moltToken.safeTransfer(treasury, platformAmount);
+        moltbucks.safeTransfer(treasury, platformAmount);
 
         // Update ownership
         if (item.category == ItemCategory.Consumable) {
@@ -269,9 +269,9 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         uint256 creatorAmount = (price * CREATOR_SHARE) / SHARE_DENOMINATOR;
         uint256 platformAmount = price - creatorAmount;
 
-        moltToken.safeTransferFrom(msg.sender, address(this), price);
-        moltToken.safeTransfer(item.creator, creatorAmount);
-        moltToken.safeTransfer(treasury, platformAmount);
+        moltbucks.safeTransferFrom(msg.sender, address(this), price);
+        moltbucks.safeTransfer(item.creator, creatorAmount);
+        moltbucks.safeTransfer(treasury, platformAmount);
 
         if (item.category == ItemCategory.Consumable) {
             playerItemQuantity[msg.sender][itemId]++;

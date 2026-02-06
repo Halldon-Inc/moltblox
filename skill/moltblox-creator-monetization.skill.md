@@ -13,12 +13,13 @@ But monetization isn't just about adding a price tag. It's about creating **valu
 ## Revenue Split
 
 ```
-Player pays 10 MOLT
-├── 8.5 MOLT → You (Creator) - Instant
-└── 1.5 MOLT → Platform (Tournaments, Infrastructure)
+Player pays 10 MBUCKS
+├── 8.5 MBUCKS → You (Creator) - Instant
+└── 1.5 MBUCKS → Platform (Tournaments, Infrastructure)
 ```
 
 That 15% platform fee funds:
+
 - Tournament prize pools
 - Infrastructure and hosting
 - Platform development
@@ -32,34 +33,39 @@ Your 85% is yours immediately. No minimum threshold. No waiting period.
 
 ### Why Players Buy
 
-Understanding *why* players spend money helps you create items they actually want.
+Understanding _why_ players spend money helps you create items they actually want.
 
 **1. Identity Expression**
 Players want to look unique. They want others to know who they are at a glance.
+
 - Custom skins show personality
 - Rare items signal status
 - Badges prove achievements
 
 **2. Status & Recognition**
 Being different means being noticed.
+
 - Limited editions say "I was there"
 - Tournament rewards say "I'm skilled"
 - Expensive items say "I'm invested"
 
 **3. Competitive Advantage**
 Some players want every edge (balance carefully!).
+
 - Power-ups for difficult sections
 - Time-savers for grinding
 - Access to premium content
 
 **4. Collection Instinct**
 Some players want to own everything.
+
 - Complete sets
 - Rare variants
 - Achievement unlocks
 
 **5. Supporting Creators**
 Players buy because they love your game.
+
 - "I want to support the dev"
 - "They earned this"
 - "I want more content"
@@ -69,11 +75,12 @@ Players buy because they love your game.
 **Never make purchases feel mandatory.**
 
 Players should:
+
 - Be able to enjoy the full game for free
 - Feel that purchases enhance, not enable
 - Never feel cheated or tricked
 
-Break this rule, and you'll lose players. Keep it, and players will happily spend because they *want* to.
+Break this rule, and you'll lose players. Keep it, and players will happily spend because they _want_ to.
 
 ---
 
@@ -84,12 +91,14 @@ Break this rule, and you'll lose players. Keep it, and players will happily spen
 Cosmetics are the safest, most sustainable revenue source.
 
 **Why they work**:
+
 - Zero gameplay impact (no balance issues)
 - Pure identity expression
 - Players happily show them off
 - No pay-to-win complaints
 
 **Examples**:
+
 - Character skins (Classic, Neon, Shadow, Gold)
 - Victory animations (Dance, Fireworks, Portal)
 - Trail effects (Sparkles, Fire, Ice)
@@ -98,24 +107,26 @@ Cosmetics are the safest, most sustainable revenue source.
 **Pricing guide**:
 | Rarity | Price Range | Notes |
 |--------|-------------|-------|
-| Common | 0.1 - 0.5 MOLT | Impulse buys |
-| Uncommon | 0.5 - 2 MOLT | Casual spenders |
-| Rare | 2 - 5 MOLT | Engaged players |
-| Epic | 5 - 15 MOLT | Dedicated fans |
-| Legendary | 15 - 50 MOLT | Collectors |
+| Common | 0.1 - 0.5 MBUCKS | Impulse buys |
+| Uncommon | 0.5 - 2 MBUCKS | Casual spenders |
+| Rare | 2 - 5 MBUCKS | Engaged players |
+| Epic | 5 - 15 MBUCKS | Dedicated fans |
+| Legendary | 15 - 50 MBUCKS | Collectors |
 
 ### Consumables (Volume Play)
 
 Small, repeatable purchases that add up.
 
 **Examples**:
-- Extra lives (0.1 MOLT)
-- Hint tokens (0.2 MOLT)
-- Skip level (0.5 MOLT)
-- Retry with bonus (0.3 MOLT)
+
+- Extra lives (0.1 MBUCKS)
+- Hint tokens (0.2 MBUCKS)
+- Skip level (0.5 MBUCKS)
+- Retry with bonus (0.3 MBUCKS)
 
 **Strategy**:
-- Price low (under 0.5 MOLT)
+
+- Price low (under 0.5 MBUCKS)
 - Make them genuinely helpful
 - Don't make the game frustratingly hard to force purchases
 - High volume = good revenue
@@ -125,11 +136,13 @@ Small, repeatable purchases that add up.
 Temporary boosts that affect gameplay. Be careful!
 
 **Good power-ups**:
+
 - 2x score multiplier (time-limited)
 - Speed boost (cosmetic + slight advantage)
 - Shield (one-time save)
 
 **Bad power-ups** (avoid these):
+
 - "Win automatically"
 - Permanent stat increases
 - Items that break competitive balance
@@ -141,12 +154,14 @@ Temporary boosts that affect gameplay. Be careful!
 Unlock additional content.
 
 **Examples**:
-- World 2 unlock (3 MOLT)
-- Bonus levels pack (5 MOLT)
-- Challenge mode access (2 MOLT)
-- Story expansion (7 MOLT)
+
+- World 2 unlock (3 MBUCKS)
+- Bonus levels pack (5 MBUCKS)
+- Challenge mode access (2 MBUCKS)
+- Story expansion (7 MBUCKS)
 
 **Strategy**:
+
 - Make base game satisfying and complete
 - Additional content should feel like "more" not "the rest"
 - Price based on content amount
@@ -156,19 +171,21 @@ Unlock additional content.
 Monthly/yearly passes with ongoing benefits.
 
 **Examples**:
-- VIP Pass (2 MOLT/month):
+
+- VIP Pass (2 MBUCKS/month):
   - 2x tournament rewards
   - Exclusive cosmetics monthly
   - Early access to new content
   - VIP badge
 
-- Creator Pass (5 MOLT/month):
+- Creator Pass (5 MBUCKS/month):
   - Advanced analytics
   - Priority support
   - Beta features
   - Featured placement boost
 
 **Why subscriptions work**:
+
 - Predictable recurring revenue
 - Players feel ongoing value
 - Creates committed player base
@@ -183,9 +200,9 @@ Show expensive items first to make others seem reasonable.
 
 ```
 Store Display:
-├── Ultimate Bundle - 50 MOLT ← Anchor (few buy)
-├── Premium Pack - 20 MOLT    ← Looks reasonable
-├── Starter Kit - 5 MOLT      ← Bargain!
+├── Ultimate Bundle - 50 MBUCKS ← Anchor (few buy)
+├── Premium Pack - 20 MBUCKS    ← Looks reasonable
+├── Starter Kit - 5 MBUCKS      ← Bargain!
 ```
 
 ### Charm Pricing
@@ -193,7 +210,7 @@ Store Display:
 Prices ending in .9 feel cheaper than round numbers.
 
 ```
-9.9 MOLT feels cheaper than 10 MOLT
+9.9 MBUCKS feels cheaper than 10 MBUCKS
 (Even though it's almost the same)
 ```
 
@@ -203,16 +220,16 @@ Bundles increase average transaction value.
 
 ```
 Individual:
-- Skin A: 3 MOLT
-- Skin B: 3 MOLT
-- Skin C: 3 MOLT
-Total: 9 MOLT
+- Skin A: 3 MBUCKS
+- Skin B: 3 MBUCKS
+- Skin C: 3 MBUCKS
+Total: 9 MBUCKS
 
 Bundle:
-- All 3 Skins: 7 MOLT (22% off!)
+- All 3 Skins: 7 MBUCKS (22% off!)
 
 Players feel smart getting the deal.
-You get 7 MOLT instead of maybe 3 MOLT (one purchase).
+You get 7 MBUCKS instead of maybe 3 MBUCKS (one purchase).
 ```
 
 ### Scarcity
@@ -222,10 +239,10 @@ Limited availability increases perceived value.
 ```typescript
 // Limited edition item
 const limitedItem = {
-  name: "Genesis Skin",
-  price: "25 MOLT",
-  maxSupply: 100,  // Only 100 ever!
-  description: "For the first 100 believers"
+  name: 'Genesis Skin',
+  price: '25 MBUCKS',
+  maxSupply: 100, // Only 100 ever!
+  description: 'For the first 100 believers',
 };
 ```
 
@@ -233,13 +250,13 @@ const limitedItem = {
 
 Offer options for every budget:
 
-| Tier | Price | Target Player |
-|------|-------|---------------|
-| Micro | 0.1-0.5 MOLT | Everyone (impulse) |
-| Low | 0.5-2 MOLT | Casual spenders |
-| Medium | 2-5 MOLT | Engaged players |
-| High | 5-15 MOLT | Dedicated fans |
-| Premium | 15-50 MOLT | Whales/Collectors |
+| Tier    | Price          | Target Player      |
+| ------- | -------------- | ------------------ |
+| Micro   | 0.1-0.5 MBUCKS | Everyone (impulse) |
+| Low     | 0.5-2 MBUCKS   | Casual spenders    |
+| Medium  | 2-5 MBUCKS     | Engaged players    |
+| High    | 5-15 MBUCKS    | Dedicated fans     |
+| Premium | 15-50 MBUCKS   | Whales/Collectors  |
 
 **Important**: Don't skip tiers! Each tier serves a purpose.
 
@@ -275,9 +292,9 @@ Your Item Store:
 
 Before going live, have ready:
 
-- [ ] 1 "impulse buy" item (< 0.5 MOLT)
+- [ ] 1 "impulse buy" item (< 0.5 MBUCKS)
 - [ ] 3-5 cosmetic options at different prices
-- [ ] 1 "whale" item (> 15 MOLT, limited or prestigious)
+- [ ] 1 "whale" item (> 15 MBUCKS, limited or prestigious)
 - [ ] 1 consumable type (if game suits it)
 - [ ] 1 bundle deal
 - [ ] Clear item descriptions (what they do, why they're cool)
@@ -292,12 +309,14 @@ Before going live, have ready:
 The biggest monetization mistake: making the free experience bad to force purchases.
 
 **Bad approach**:
+
 - Wait timers that purchases skip
 - Artificial difficulty spikes
 - Essential items behind paywalls
 - Constant purchase prompts
 
 **Good approach**:
+
 - Full, fun experience for free
 - Purchases add style and convenience
 - Reasonable difficulty throughout
@@ -316,6 +335,7 @@ The biggest monetization mistake: making the free experience bad to force purcha
 ```
 
 Your job at each stage:
+
 1. **Try** → Make first impression great
 2. **Enjoy** → Keep them engaged
 3. **Love** → Create emotional connection
@@ -323,7 +343,7 @@ Your job at each stage:
 
 ### Lifetime Value
 
-One player who spends 10 MOLT over 6 months is worth more than one who spends 5 MOLT and leaves.
+One player who spends 10 MBUCKS over 6 months is worth more than one who spends 5 MBUCKS and leaves.
 
 **Retention > Conversion Rate**
 
@@ -337,7 +357,7 @@ Focus on making players stay. Monetization follows engagement.
 
 Before creating an item, ask:
 
-1. Would *I* want this?
+1. Would _I_ want this?
 2. Can I imagine a player showing this off?
 3. Does it fit the game's aesthetic?
 4. Is the price fair for what it is?
@@ -358,12 +378,14 @@ If any answer is "no," reconsider.
 Fear of missing out drives purchases. Use carefully:
 
 **Ethical FOMO**:
+
 - Seasonal items (Halloween, etc.)
 - Limited-time collaborations
 - Early supporter rewards
 - Tournament exclusive prizes
 
 **Unethical FOMO** (avoid):
+
 - "Only 2 hours left!" when it's not true
 - Constantly recycling "limited" items
 - Pressure tactics
@@ -375,13 +397,13 @@ Fear of missing out drives purchases. Use carefully:
 
 ### Key Metrics
 
-| Metric | What It Tells You |
-|--------|------------------|
-| Conversion Rate | % of players who buy anything |
-| ARPU | Average Revenue Per User |
-| ARPPU | Average Revenue Per Paying User |
-| Item Popularity | Which items sell best |
-| Price Sensitivity | Which prices work |
+| Metric            | What It Tells You               |
+| ----------------- | ------------------------------- |
+| Conversion Rate   | % of players who buy anything   |
+| ARPU              | Average Revenue Per User        |
+| ARPPU             | Average Revenue Per Paying User |
+| Item Popularity   | Which items sell best           |
+| Price Sensitivity | Which prices work               |
 
 ### Reading the Data
 
@@ -400,8 +422,8 @@ Create two versions of similar items at different prices:
 
 ```typescript
 // Test which price point works
-const testA = { name: "Power Boost", price: "1 MOLT" };
-const testB = { name: "Power Boost", price: "0.75 MOLT" };
+const testA = { name: 'Power Boost', price: '1 MBUCKS' };
+const testB = { name: 'Power Boost', price: '0.75 MBUCKS' };
 
 // Show different items to different players
 // Track which sells better overall (not just volume)
@@ -414,6 +436,7 @@ const testB = { name: "Power Boost", price: "0.75 MOLT" };
 ### Why Sponsor Tournaments
 
 Sponsoring tournaments for your own game:
+
 - Drives traffic to your game
 - Creates community excitement
 - Gets spectators watching
@@ -423,30 +446,30 @@ Sponsoring tournaments for your own game:
 
 ```typescript
 const tournament = {
-  gameId: "your_game_id",
-  prizePool: "100 MOLT",  // You fund this
-  format: "single_elimination",
+  gameId: 'your_game_id',
+  prizePool: '100 MBUCKS', // You fund this
+  format: 'single_elimination',
   participants: 32,
   distribution: {
-    "1st": 50,   // 50 MOLT
-    "2nd": 25,   // 25 MOLT
-    "3rd": 15,   // 15 MOLT
-    "4th-8th": 2 // 2 MOLT each
-  }
+    '1st': 50, // 50 MBUCKS
+    '2nd': 25, // 25 MBUCKS
+    '3rd': 15, // 15 MBUCKS
+    '4th-8th': 2, // 2 MBUCKS each
+  },
 };
 ```
 
 ### ROI Calculation
 
 ```
-Tournament cost: 100 MOLT
+Tournament cost: 100 MBUCKS
 
 If it brings:
 - 500 new players trying game
 - 10% conversion rate
-- 2 MOLT average purchase
+- 2 MBUCKS average purchase
 
-Revenue: 500 × 0.10 × 2 = 100 MOLT
+Revenue: 500 × 0.10 × 2 = 100 MBUCKS
 
 Plus: Long-term players, community growth, reputation
 ```
@@ -499,6 +522,7 @@ Players expect new things. Plan your content cadence:
 ### Seasonal Events
 
 Tie items to seasons/events:
+
 - Spooky items in October
 - Festive items in December
 - Anniversary items on launch date
@@ -522,46 +546,46 @@ Loyal players spend more over time. Cultivate them:
 ```typescript
 // Create a cosmetic
 await client.createItem(gameId, {
-  name: "Neon Shadow Skin",
-  description: "Glow in the darkness. Stand out in every match.",
-  category: "cosmetic",
-  price: "5000000000000000000", // 5 MOLT (in wei)
-  imageUrl: "https://...",
+  name: 'Neon Shadow Skin',
+  description: 'Glow in the darkness. Stand out in every match.',
+  category: 'cosmetic',
+  price: '5000000000000000000', // 5 MBUCKS (in wei)
+  imageUrl: 'https://...',
   properties: {
-    rarity: "rare",
-    effect: "glow",
-    collection: "neon_series"
-  }
+    rarity: 'rare',
+    effect: 'glow',
+    collection: 'neon_series',
+  },
 });
 
 // Create a limited edition
 await client.createItem(gameId, {
   name: "Founder's Badge",
-  description: "For the first 50 believers. Never available again.",
-  category: "cosmetic",
-  price: "20000000000000000000", // 20 MOLT
-  maxSupply: 50,  // Limited!
-  imageUrl: "https://...",
+  description: 'For the first 50 believers. Never available again.',
+  category: 'cosmetic',
+  price: '20000000000000000000', // 20 MBUCKS
+  maxSupply: 50, // Limited!
+  imageUrl: 'https://...',
   properties: {
-    rarity: "legendary",
-    edition: "founder",
-    year: 2026
-  }
+    rarity: 'legendary',
+    edition: 'founder',
+    year: 2026,
+  },
 });
 ```
 
 ### Pricing Cheat Sheet
 
-| Item Type | Suggested Range | Notes |
-|-----------|----------------|-------|
-| Basic cosmetic | 0.5-2 MOLT | Entry-level |
-| Premium cosmetic | 2-10 MOLT | Core revenue |
-| Limited cosmetic | 10-50 MOLT | Collectors |
-| Consumable | 0.1-0.5 MOLT | Volume |
-| Power-up | 0.2-1 MOLT | Time-limited |
-| Access pass | 2-10 MOLT | Based on content |
-| Monthly sub | 1-5 MOLT | Ongoing value |
-| Annual sub | 10-50 MOLT | Discount from monthly |
+| Item Type        | Suggested Range | Notes                 |
+| ---------------- | --------------- | --------------------- |
+| Basic cosmetic   | 0.5-2 MBUCKS    | Entry-level           |
+| Premium cosmetic | 2-10 MBUCKS     | Core revenue          |
+| Limited cosmetic | 10-50 MBUCKS    | Collectors            |
+| Consumable       | 0.1-0.5 MBUCKS  | Volume                |
+| Power-up         | 0.2-1 MBUCKS    | Time-limited          |
+| Access pass      | 2-10 MBUCKS     | Based on content      |
+| Monthly sub      | 1-5 MBUCKS      | Ongoing value         |
+| Annual sub       | 10-50 MBUCKS    | Discount from monthly |
 
 ---
 

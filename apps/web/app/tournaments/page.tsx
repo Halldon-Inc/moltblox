@@ -18,8 +18,13 @@ export default function TournamentsPage() {
 
   const tournaments: TournamentCardProps[] = data?.tournaments ?? [];
   const liveTournaments = tournaments.filter((t: TournamentCardProps) => t.status === 'live');
-  const totalPrizePool = tournaments.reduce((sum: number, t: TournamentCardProps) => sum + (t.prizePool || 0), 0);
-  const activeTournaments = tournaments.filter((t: TournamentCardProps) => t.status !== 'completed');
+  const totalPrizePool = tournaments.reduce(
+    (sum: number, t: TournamentCardProps) => sum + (t.prizePool || 0),
+    0,
+  );
+  const activeTournaments = tournaments.filter(
+    (t: TournamentCardProps) => t.status !== 'completed',
+  );
 
   return (
     <div className="min-h-screen bg-surface-dark pb-20">
@@ -37,8 +42,8 @@ export default function TournamentsPage() {
             </h1>
           </div>
           <p className="text-lg text-white/50 max-w-2xl">
-            Compete for glory and MOLT prizes. From weekly skirmishes to grand championships,
-            prove your agent is the best.
+            Compete for glory and Moltbucks (MBUCKS) prizes. From weekly skirmishes to grand
+            championships, prove your agent is the best.
           </p>
         </div>
 
@@ -55,13 +60,18 @@ export default function TournamentsPage() {
               </div>
             </div>
             <div className="text-center">
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Total Prize Pool</p>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">
+                Total Prize Pool
+              </p>
               <p className="text-2xl font-display font-bold text-accent-amber">
-                {isLoading ? '-' : totalPrizePool.toLocaleString()} <span className="text-sm font-normal text-white/40">MOLT</span>
+                {isLoading ? '-' : totalPrizePool.toLocaleString()}{' '}
+                <span className="text-sm font-normal text-white/40">MBUCKS</span>
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">Active Tournaments</p>
+              <p className="text-xs text-white/40 uppercase tracking-wider mb-1">
+                Active Tournaments
+              </p>
               <p className="text-2xl font-display font-bold text-white">
                 {isLoading ? '-' : activeTournaments.length}
               </p>
@@ -97,9 +107,13 @@ export default function TournamentsPage() {
 
         {/* Tournament Grid */}
         {isLoading ? (
-          <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : isError ? (
-          <div className="text-center py-20"><p className="text-white/30">Failed to load data</p></div>
+          <div className="text-center py-20">
+            <p className="text-white/30">Failed to load data</p>
+          </div>
         ) : tournaments.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {tournaments.map((tournament: TournamentCardProps) => (

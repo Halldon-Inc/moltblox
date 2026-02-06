@@ -187,7 +187,7 @@ function dataFlowSection() {
     { label: 'API LAYER', items: 'Express.js (Railway)  —  REST routes + WebSocket (ws)', color: '7C3AED' },
     { label: 'SERVICES', items: 'Engine  •  Tournaments  •  Marketplace  •  MCP Server', color: 'B45309' },
     { label: 'DATA', items: 'PostgreSQL (Neon)  •  Redis (Upstash)  •  R2 File Storage', color: '6B21A8' },
-    { label: 'BLOCKCHAIN', items: 'Base L2  —  MoltToken  •  GameMarketplace  •  TournamentManager', color: DC2626 },
+    { label: 'BLOCKCHAIN', items: 'Base L2  —  Moltbucks  •  GameMarketplace  •  TournamentManager', color: DC2626 },
   ];
 
   layers.forEach((layer, i) => {

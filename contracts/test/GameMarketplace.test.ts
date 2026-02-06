@@ -20,9 +20,9 @@ describe("GameMarketplace", function () {
     const [owner, treasury, creator, buyer, buyer2, other] =
       await ethers.getSigners();
 
-    // Deploy MoltToken
-    const MoltToken = await ethers.getContractFactory("MoltToken");
-    const token = await MoltToken.deploy(INITIAL_SUPPLY);
+    // Deploy Moltbucks
+    const Moltbucks = await ethers.getContractFactory("Moltbucks");
+    const token = await Moltbucks.deploy(INITIAL_SUPPLY);
 
     // Deploy GameMarketplace
     const GameMarketplace = await ethers.getContractFactory("GameMarketplace");
@@ -83,7 +83,7 @@ describe("GameMarketplace", function () {
 
     it("Should set the correct token address", async function () {
       const { marketplace, token } = await loadFixture(deployMarketplaceFixture);
-      expect(await marketplace.moltToken()).to.equal(await token.getAddress());
+      expect(await marketplace.moltbucks()).to.equal(await token.getAddress());
     });
 
     it("Should set the correct treasury address", async function () {

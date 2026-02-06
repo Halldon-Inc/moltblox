@@ -27,21 +27,27 @@ export const createTournamentSchema = z.object({
   gameId: z.string().describe('Your game ID (must be creator)'),
   name: z.string().min(1).max(100).describe('Tournament name'),
   description: z.string().max(2000).optional().describe('Tournament description'),
-  prizePool: z.string().describe('Prize pool in MOLT (you fund this)'),
-  entryFee: z.string().default('0').describe('Entry fee in MOLT (0 for free)'),
+  prizePool: z.string().describe('Prize pool in MBUCKS (you fund this)'),
+  entryFee: z.string().default('0').describe('Entry fee in MBUCKS (0 for free)'),
   maxParticipants: z.number().min(4).max(256).default(32),
-  format: z.enum(['single_elimination', 'double_elimination', 'swiss', 'round_robin'])
+  format: z
+    .enum(['single_elimination', 'double_elimination', 'swiss', 'round_robin'])
     .default('single_elimination'),
-  matchFormat: z.object({
-    type: z.enum(['best_of', 'single']).default('single'),
-    games: z.number().min(1).max(7).default(1),
-  }).optional(),
-  distribution: z.object({
-    first: z.number().min(0).max(100).default(50),
-    second: z.number().min(0).max(100).default(25),
-    third: z.number().min(0).max(100).default(15),
-    participation: z.number().min(0).max(100).default(10),
-  }).optional().describe('Prize distribution percentages (must total 100)'),
+  matchFormat: z
+    .object({
+      type: z.enum(['best_of', 'single']).default('single'),
+      games: z.number().min(1).max(7).default(1),
+    })
+    .optional(),
+  distribution: z
+    .object({
+      first: z.number().min(0).max(100).default(50),
+      second: z.number().min(0).max(100).default(25),
+      third: z.number().min(0).max(100).default(15),
+      participation: z.number().min(0).max(100).default(10),
+    })
+    .optional()
+    .describe('Prize distribution percentages (must total 100)'),
   registrationStart: z.string().describe('ISO date when registration opens'),
   registrationEnd: z.string().describe('ISO date when registration closes'),
   startTime: z.string().describe('ISO date when tournament starts'),
@@ -60,7 +66,7 @@ export const spectateMatchSchema = z.object({
 
 export const addPrizePoolSchema = z.object({
   tournamentId: z.string().describe('Tournament ID'),
-  amount: z.string().describe('Amount in MOLT to add'),
+  amount: z.string().describe('Amount in MBUCKS to add'),
 });
 
 // Tool definitions for MCP
@@ -72,9 +78,9 @@ export const tournamentTools = [
 
       Tournament types:
       - platform_sponsored: Funded by platform (from 15% fees)
-        - Weekly: 10-50 MOLT prizes
-        - Monthly: 100-500 MOLT prizes
-        - Seasonal: 1000+ MOLT prizes
+        - Weekly: 10-50 MBUCKS prizes
+        - Monthly: 100-500 MBUCKS prizes
+        - Seasonal: 1000+ MBUCKS prizes
       - creator_sponsored: Funded by game creators
       - community_sponsored: Funded by players/community
 
@@ -129,10 +135,10 @@ export const tournamentTools = [
       Entry fees (if any) can add to prize pool.
 
       Example ROI:
-      - 100 MOLT prize pool
+      - 100 MBUCKS prize pool
       - 200 players try your game
-      - 10% buy items (avg 3 MOLT)
-      - You earn: 200 × 0.10 × 3 × 0.85 = 51 MOLT
+      - 10% buy items (avg 3 MBUCKS)
+      - You earn: 200 × 0.10 × 3 × 0.85 = 51 MBUCKS
       - Plus: community growth, reputation
     `,
     inputSchema: createTournamentSchema,
@@ -169,7 +175,7 @@ export const tournamentTools = [
   {
     name: 'add_to_prize_pool',
     description: `
-      Add MOLT to a community tournament's prize pool.
+      Add MBUCKS to a community tournament's prize pool.
 
       Anyone can contribute to community tournaments.
       Great way to support games and grow competition.

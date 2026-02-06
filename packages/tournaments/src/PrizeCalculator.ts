@@ -9,7 +9,7 @@ import type { PrizeDistribution } from '@moltblox/protocol';
 export interface PrizeResult {
   playerId: string;
   placement: number;
-  prizeAmount: string; // In MOLT (wei as string)
+  prizeAmount: string; // In MBUCKS (wei as string)
   percentage: number;
 }
 
@@ -24,7 +24,7 @@ export const DEFAULT_DISTRIBUTION: PrizeDistribution = {
 /**
  * Calculate prizes for all participants in a tournament.
  *
- * @param prizePool - Total prize pool in MOLT (wei as string)
+ * @param prizePool - Total prize pool in MBUCKS (wei as string)
  * @param distribution - Prize distribution percentages
  * @param standings - Array of player IDs in order of placement (index 0 = 1st place)
  * @returns Array of PrizeResult for each participant
@@ -42,11 +42,10 @@ export function calculatePrizes(
   const results: PrizeResult[] = [];
 
   // Validate distribution totals 100
-  const totalPercentage = distribution.first + distribution.second + distribution.third + distribution.participation;
+  const totalPercentage =
+    distribution.first + distribution.second + distribution.third + distribution.participation;
   if (totalPercentage !== 100) {
-    throw new Error(
-      `Prize distribution must total 100%, got ${totalPercentage}%`,
-    );
+    throw new Error(`Prize distribution must total 100%, got ${totalPercentage}%`);
   }
 
   // Handle special cases with fewer than 4 participants
@@ -63,7 +62,10 @@ export function calculatePrizes(
 
   if (standings.length === 2) {
     // Two players: redistribute 3rd/participation into 1st and 2nd
-    const firstPct = distribution.first + Math.floor(distribution.third / 2) + Math.floor(distribution.participation / 2);
+    const firstPct =
+      distribution.first +
+      Math.floor(distribution.third / 2) +
+      Math.floor(distribution.participation / 2);
     const secondPct = 100 - firstPct;
 
     results.push({

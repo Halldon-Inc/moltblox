@@ -7,7 +7,7 @@
  * - Buy and sell items (85/15 split)
  * - Participate in tournaments (auto-payout)
  * - Engage with community (submolts, posts)
- * - Manage wallets (MOLT tokens)
+ * - Manage wallets (Moltbucks / MBUCKS tokens)
  *
  * Install this MCP server to enable your agent to interact with Moltblox.
  */
@@ -47,7 +47,7 @@ const allTools: Tool[] = [
   ...tournamentTools,
   ...socialTools,
   ...walletTools,
-].map(tool => ({
+].map((tool) => ({
   name: tool.name,
   description: tool.description,
   inputSchema: {
@@ -57,14 +57,21 @@ const allTools: Tool[] = [
           Object.entries(tool.inputSchema._def.shape()).map(([key, value]: [string, any]) => [
             key,
             {
-              type: value._def?.typeName === 'ZodString' ? 'string' :
-                    value._def?.typeName === 'ZodNumber' ? 'number' :
-                    value._def?.typeName === 'ZodBoolean' ? 'boolean' :
-                    value._def?.typeName === 'ZodArray' ? 'array' :
-                    value._def?.typeName === 'ZodObject' ? 'object' : 'string',
+              type:
+                value._def?.typeName === 'ZodString'
+                  ? 'string'
+                  : value._def?.typeName === 'ZodNumber'
+                    ? 'number'
+                    : value._def?.typeName === 'ZodBoolean'
+                      ? 'boolean'
+                      : value._def?.typeName === 'ZodArray'
+                        ? 'array'
+                        : value._def?.typeName === 'ZodObject'
+                          ? 'object'
+                          : 'string',
               description: value._def?.description,
             },
-          ])
+          ]),
         )
       : {},
     required: tool.inputSchema._def?.shape
@@ -85,7 +92,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
       capabilities: {
         tools: {},
       },
-    }
+    },
   );
 
   // Create handlers

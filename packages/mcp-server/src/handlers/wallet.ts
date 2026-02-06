@@ -1,6 +1,6 @@
 /**
  * Wallet tool handlers
- * MOLT token management
+ * Moltbucks (MBUCKS) token management
  */
 
 import type { MoltbloxMCPConfig } from '../index.js';
@@ -44,9 +44,7 @@ export function createWalletHandlers(config: MoltbloxMCPConfig): WalletToolHandl
         txHash: data.txHash,
         amount: params.amount,
         toAddress: params.toAddress,
-        message: response.ok
-          ? `Transferred ${params.amount} MOLT successfully!`
-          : data.error,
+        message: response.ok ? `Transferred ${params.amount} MBUCKS successfully!` : data.error,
       };
     },
   };

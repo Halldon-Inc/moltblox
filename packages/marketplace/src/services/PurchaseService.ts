@@ -82,17 +82,9 @@ export class PurchaseService {
     this.marketplaceAddress = config.marketplaceAddress;
     this.moltTokenAddress = config.moltTokenAddress;
 
-    this.marketplace = new ethers.Contract(
-      this.marketplaceAddress,
-      MARKETPLACE_ABI,
-      this.provider
-    );
+    this.marketplace = new ethers.Contract(this.marketplaceAddress, MARKETPLACE_ABI, this.provider);
 
-    this.moltToken = new ethers.Contract(
-      this.moltTokenAddress,
-      MOLT_TOKEN_ABI,
-      this.provider
-    );
+    this.moltToken = new ethers.Contract(this.moltTokenAddress, MOLT_TOKEN_ABI, this.provider);
   }
 
   // ===================
@@ -123,12 +115,7 @@ export class PurchaseService {
     }
 
     // Validate purchase
-    const validation = await this.validatePurchase(
-      buyerAddress,
-      game,
-      item,
-      quantity
-    );
+    const validation = await this.validatePurchase(buyerAddress, game, item, quantity);
     if (!validation.valid) {
       return {
         success: false,
@@ -143,7 +130,7 @@ export class PurchaseService {
         gameId,
         itemId,
         item,
-        quantity
+        quantity,
       );
 
       // Record purchase in database
@@ -153,7 +140,7 @@ export class PurchaseService {
         game,
         item,
         quantity,
-        payout
+        payout,
       );
 
       // Add to inventory
@@ -188,7 +175,7 @@ export class PurchaseService {
     buyerAddress: string,
     game: StoredGame,
     item: GameItem,
-    quantity: number
+    quantity: number,
   ): Promise<{ valid: boolean; reason?: string }> {
     // Check game is active
     if (game.status !== 'active') {
@@ -226,7 +213,7 @@ export class PurchaseService {
     const balance = await this.getBalance(buyerAddress);
     const totalPrice = BigInt(item.price) * BigInt(quantity);
     if (BigInt(balance) < totalPrice) {
-      return { valid: false, reason: 'Insufficient MOLT balance' };
+      return { valid: false, reason: 'Insufficient MBUCKS balance' };
     }
 
     return { valid: true };
@@ -240,11 +227,11 @@ export class PurchaseService {
     gameId: string,
     itemId: string,
     item: GameItem,
-    quantity: number
+    quantity: number,
   ): Promise<PayoutInfo> {
     // In production, this would:
     // 1. Create a signer from the buyer's wallet
-    // 2. Approve the marketplace contract to spend MOLT
+    // 2. Approve the marketplace contract to spend MBUCKS
     // 3. Call purchaseItem or purchaseConsumable
     // 4. Wait for transaction confirmation
     // 5. Parse events for payout info
@@ -270,7 +257,7 @@ export class PurchaseService {
     game: StoredGame,
     item: GameItem,
     quantity: number,
-    payout: PayoutInfo
+    payout: PayoutInfo,
   ): Promise<Purchase> {
     const purchase: Purchase = {
       purchaseId: `purchase_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
@@ -296,11 +283,7 @@ export class PurchaseService {
   /**
    * Add purchased item to buyer's inventory
    */
-  private async addToInventory(
-    buyerId: string,
-    item: GameItem,
-    quantity: number
-  ): Promise<void> {
+  private async addToInventory(buyerId: string, item: GameItem, quantity: number): Promise<void> {
     const existingInventory = await this.store.getInventory(buyerId);
     const existingItem = existingInventory.find((i) => i.itemId === item.itemId);
 
@@ -318,9 +301,7 @@ export class PurchaseService {
         category: item.category,
         acquiredAt: Date.now(),
         quantity,
-        expiresAt: item.duration
-          ? Date.now() + item.duration * 1000
-          : undefined,
+        expiresAt: item.duration ? Date.now() + item.duration * 1000 : undefined,
       };
 
       await this.store.addToInventory(buyerId, ownedItem);
@@ -330,11 +311,7 @@ export class PurchaseService {
   /**
    * Update game and item statistics
    */
-  private async updateStats(
-    game: StoredGame,
-    item: GameItem,
-    quantity: number
-  ): Promise<void> {
+  private async updateStats(game: StoredGame, item: GameItem, quantity: number): Promise<void> {
     // Update item sold count
     await this.store.updateItem(item.itemId, {
       soldCount: (item.soldCount || 0) + quantity,
@@ -344,11 +321,7 @@ export class PurchaseService {
     const revenue = BigInt(item.price) * BigInt(quantity);
     const creatorRevenue = (revenue * BigInt(10000 - PLATFORM_FEE_BPS)) / BigInt(10000);
 
-    await this.store.recordRevenue(
-      game.gameId,
-      game.creatorBotId,
-      creatorRevenue.toString()
-    );
+    await this.store.recordRevenue(game.gameId, game.creatorBotId, creatorRevenue.toString());
 
     // Update game stats
     await this.store.incrementGameStat(game.gameId, 'itemsSold', quantity);
@@ -373,10 +346,7 @@ export class PurchaseService {
    */
   async checkOwnership(playerAddress: string, itemId: string): Promise<boolean> {
     try {
-      return await this.marketplace.ownsItem(
-        playerAddress,
-        ethers.encodeBytes32String(itemId)
-      );
+      return await this.marketplace.ownsItem(playerAddress, ethers.encodeBytes32String(itemId));
     } catch {
       return false;
     }
@@ -387,12 +357,12 @@ export class PurchaseService {
    */
   async checkSubscription(
     playerAddress: string,
-    itemId: string
+    itemId: string,
   ): Promise<{ active: boolean; expiresAt?: number }> {
     try {
       const expiry = await this.marketplace.subscriptionExpiry(
         playerAddress,
-        ethers.encodeBytes32String(itemId)
+        ethers.encodeBytes32String(itemId),
       );
 
       const expiresAt = Number(expiry) * 1000;
@@ -410,7 +380,7 @@ export class PurchaseService {
   async useConsumable(
     playerId: string,
     itemId: string,
-    quantity: number = 1
+    quantity: number = 1,
   ): Promise<{ success: boolean; remaining?: number; error?: string }> {
     const inventory = await this.store.getInventory(playerId);
     const item = inventory.find((i) => i.itemId === itemId);
@@ -452,7 +422,7 @@ export class PurchaseService {
   // ===================
 
   /**
-   * Get MOLT token balance for an address
+   * Get MBUCKS token balance for an address
    */
   async getBalance(address: string): Promise<string> {
     try {

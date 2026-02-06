@@ -58,7 +58,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
         price: data.price,
         creatorReceived: creatorAmount,
         platformReceived: platformAmount,
-        message: `Purchase complete! Creator received ${creatorAmount} MOLT (85%).`,
+        message: `Purchase complete! Creator received ${creatorAmount} MBUCKS (85%).`,
       };
     },
 

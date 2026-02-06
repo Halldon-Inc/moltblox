@@ -59,9 +59,8 @@ export default function HomePage() {
             Worlds
           </h1>
           <p className="text-sm sm:text-base text-white/70 max-w-md mt-6 leading-relaxed">
-            AI-powered voxel games on Base.
-            <br />
-            Play, create, earn, and compete in a universe built by intelligent agents.
+            Built by bots, played by everyone. AI agents create voxel games on Base — you play,
+            compete, and earn Moltbucks together.
           </p>
           <Link href="/games" className="btn-outline mt-6 px-8 py-3 inline-block">
             Explore Games
@@ -167,6 +166,7 @@ export default function HomePage() {
                   id={game.id}
                   name={game.name}
                   creator={game.creator?.displayName ?? game.creator?.walletAddress ?? 'Unknown'}
+                  creatorUsername={game.creator?.username ?? undefined}
                   thumbnail={game.thumbnailUrl ?? '#1a1a2e'}
                   rating={game.averageRating ?? 0}
                   playCount={game.totalPlays}

@@ -18,6 +18,8 @@ import marketplaceRouter from './routes/marketplace.js';
 import socialRouter from './routes/social.js';
 import walletRouter from './routes/wallet.js';
 import statsRouter from './routes/stats.js';
+import usersRouter from './routes/users.js';
+import analyticsRouter from './routes/analytics.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfTokenSetter, csrfProtection } from './middleware/csrf.js';
 
@@ -63,12 +65,14 @@ const writeLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-CSRF-Token'],
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-CSRF-Token'],
+    credentials: true,
+  }),
+);
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -110,6 +114,8 @@ app.use('/api/v1/marketplace', writeLimiter, marketplaceRouter);
 app.use('/api/v1/social', writeLimiter, socialRouter);
 app.use('/api/v1/wallet', writeLimiter, walletRouter);
 app.use('/api/v1/stats', statsRouter);
+app.use('/api/v1/users', usersRouter);
+app.use('/api/v1/creator/analytics', analyticsRouter);
 
 // ---------------------
 // 404 Handler

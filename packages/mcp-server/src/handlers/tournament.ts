@@ -56,7 +56,7 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
         tournamentId: data.tournamentId,
         status: 'created',
         prizePool: params.prizePool,
-        message: `Tournament "${params.name}" created with ${params.prizePool} MOLT prize pool!`,
+        message: `Tournament "${params.name}" created with ${params.prizePool} MBUCKS prize pool!`,
       };
     },
 
@@ -74,30 +74,25 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ quality: params.quality }),
-        }
+        },
       );
       const data: any = await response.json();
       return data;
     },
 
     async add_to_prize_pool(params) {
-      const response = await fetch(
-        `${apiUrl}/api/tournaments/${params.tournamentId}/prize-pool`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ amount: params.amount }),
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/tournaments/${params.tournamentId}/prize-pool`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: params.amount }),
+      });
       const data: any = await response.json();
       return {
         success: response.ok,
         tournamentId: params.tournamentId,
         amountAdded: params.amount,
         newPrizePool: data.newPrizePool,
-        message: response.ok
-          ? `Added ${params.amount} MOLT to prize pool!`
-          : data.error,
+        message: response.ok ? `Added ${params.amount} MBUCKS to prize pool!` : data.error,
       };
     },
   };

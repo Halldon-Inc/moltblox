@@ -16,16 +16,16 @@ async function main() {
   console.log(`  Balance:  ${ethers.formatEther(balance)} ETH`);
   console.log("=".repeat(55));
 
-  // Initial MOLT supply: 1 billion tokens (with 18 decimals)
+  // Initial MBUCKS supply: 1 billion tokens (with 18 decimals)
   const initialSupply = ethers.parseEther("1000000000");
 
-  // 1. Deploy MOLT Token
-  console.log("\n1. Deploying MoltToken...");
-  const MoltToken = await ethers.getContractFactory("MoltToken");
-  const moltToken = await MoltToken.deploy(initialSupply);
-  await moltToken.waitForDeployment();
-  const moltTokenAddress = await moltToken.getAddress();
-  console.log("   MoltToken deployed to:", moltTokenAddress);
+  // 1. Deploy Moltbucks Token
+  console.log("\n1. Deploying Moltbucks...");
+  const Moltbucks = await ethers.getContractFactory("Moltbucks");
+  const moltbucks = await Moltbucks.deploy(initialSupply);
+  await moltbucks.waitForDeployment();
+  const moltbucksAddress = await moltbucks.getAddress();
+  console.log("   Moltbucks deployed to:", moltbucksAddress);
 
   // 2. Treasury address — deployer for testnet, multisig for mainnet
   const treasuryAddress = process.env.TREASURY_ADDRESS || deployer.address;
@@ -34,7 +34,7 @@ async function main() {
   // 3. Deploy GameMarketplace
   console.log("\n3. Deploying GameMarketplace...");
   const GameMarketplace = await ethers.getContractFactory("GameMarketplace");
-  const gameMarketplace = await GameMarketplace.deploy(moltTokenAddress, treasuryAddress);
+  const gameMarketplace = await GameMarketplace.deploy(moltbucksAddress, treasuryAddress);
   await gameMarketplace.waitForDeployment();
   const gameMarketplaceAddress = await gameMarketplace.getAddress();
   console.log("   GameMarketplace deployed to:", gameMarketplaceAddress);
@@ -42,14 +42,14 @@ async function main() {
   // 4. Deploy TournamentManager
   console.log("\n4. Deploying TournamentManager...");
   const TournamentManager = await ethers.getContractFactory("TournamentManager");
-  const tournamentManager = await TournamentManager.deploy(moltTokenAddress, treasuryAddress);
+  const tournamentManager = await TournamentManager.deploy(moltbucksAddress, treasuryAddress);
   await tournamentManager.waitForDeployment();
   const tournamentManagerAddress = await tournamentManager.getAddress();
   console.log("   TournamentManager deployed to:", tournamentManagerAddress);
 
   // 5. Grant minter role to TournamentManager
   console.log("\n5. Setting up permissions...");
-  const tx = await moltToken.addMinter(tournamentManagerAddress);
+  const tx = await moltbucks.addMinter(tournamentManagerAddress);
   await tx.wait();
   console.log("   TournamentManager added as minter");
 
@@ -58,7 +58,7 @@ async function main() {
   console.log("  DEPLOYMENT COMPLETE");
   console.log("=".repeat(55));
   console.log("\n  Contract Addresses:");
-  console.log("    MoltToken:         ", moltTokenAddress);
+  console.log("    Moltbucks:         ", moltbucksAddress);
   console.log("    GameMarketplace:   ", gameMarketplaceAddress);
   console.log("    TournamentManager: ", tournamentManagerAddress);
   console.log("    Treasury:          ", treasuryAddress);
@@ -74,8 +74,8 @@ async function main() {
     deployer: deployer.address,
     treasury: treasuryAddress,
     contracts: {
-      MoltToken: {
-        address: moltTokenAddress,
+      Moltbucks: {
+        address: moltbucksAddress,
         initialSupply: "1000000000",
       },
       GameMarketplace: {
@@ -107,7 +107,7 @@ async function main() {
 
   // Generate .env snippet for easy copy-paste
   console.log("\n  Add to your .env:\n");
-  console.log(`    NEXT_PUBLIC_MOLT_TOKEN_ADDRESS=${moltTokenAddress}`);
+  console.log(`    NEXT_PUBLIC_MOLTBUCKS_ADDRESS=${moltbucksAddress}`);
   console.log(`    NEXT_PUBLIC_GAME_MARKETPLACE_ADDRESS=${gameMarketplaceAddress}`);
   console.log(`    NEXT_PUBLIC_TOURNAMENT_MANAGER_ADDRESS=${tournamentManagerAddress}`);
 
@@ -117,18 +117,18 @@ async function main() {
 
     try {
       await run("verify:verify", {
-        address: moltTokenAddress,
+        address: moltbucksAddress,
         constructorArguments: [initialSupply],
       });
-      console.log("    MoltToken verified");
+      console.log("    Moltbucks verified");
     } catch (e: any) {
-      console.log("    MoltToken verification:", e.message?.includes("Already") ? "already verified" : "failed");
+      console.log("    Moltbucks verification:", e.message?.includes("Already") ? "already verified" : "failed");
     }
 
     try {
       await run("verify:verify", {
         address: gameMarketplaceAddress,
-        constructorArguments: [moltTokenAddress, treasuryAddress],
+        constructorArguments: [moltbucksAddress, treasuryAddress],
       });
       console.log("    GameMarketplace verified");
     } catch (e: any) {
@@ -138,7 +138,7 @@ async function main() {
     try {
       await run("verify:verify", {
         address: tournamentManagerAddress,
-        constructorArguments: [moltTokenAddress, treasuryAddress],
+        constructorArguments: [moltbucksAddress, treasuryAddress],
       });
       console.log("    TournamentManager verified");
     } catch (e: any) {

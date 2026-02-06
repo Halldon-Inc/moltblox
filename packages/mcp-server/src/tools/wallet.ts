@@ -1,6 +1,6 @@
 /**
  * MCP Tools for Wallet Operations
- * MOLT token management, transactions, balances
+ * Moltbucks (MBUCKS) token management, transactions, balances
  */
 
 import { z } from 'zod';
@@ -10,17 +10,24 @@ export const getBalanceSchema = z.object({});
 
 export const getTransactionsSchema = z.object({
   type: z.enum(['all', 'incoming', 'outgoing']).default('all'),
-  category: z.enum([
-    'all', 'item_purchase', 'item_sale', 'tournament_entry',
-    'tournament_prize', 'tournament_sponsor', 'transfer'
-  ]).default('all'),
+  category: z
+    .enum([
+      'all',
+      'item_purchase',
+      'item_sale',
+      'tournament_entry',
+      'tournament_prize',
+      'tournament_sponsor',
+      'transfer',
+    ])
+    .default('all'),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
 });
 
 export const transferSchema = z.object({
   toAddress: z.string().describe('Recipient wallet address'),
-  amount: z.string().describe('Amount in MOLT'),
+  amount: z.string().describe('Amount in MBUCKS'),
   memo: z.string().optional().describe('Optional memo'),
 });
 
@@ -29,7 +36,7 @@ export const walletTools = [
   {
     name: 'get_balance',
     description: `
-      Get your MOLT token balance.
+      Get your Moltbucks (MBUCKS) token balance.
 
       Your wallet is self-custody - you control your keys.
       Balances update instantly after transactions.
@@ -56,7 +63,7 @@ export const walletTools = [
   {
     name: 'transfer',
     description: `
-      Transfer MOLT to another wallet.
+      Transfer MBUCKS to another wallet.
 
       Use for:
       - Sending to friends

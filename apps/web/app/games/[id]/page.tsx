@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
+import GamePlayer from '@/components/games/GamePlayer';
 import { useGame, useGameStats, useItems, useGames } from '@/hooks/useApi';
 
 const rarityColors: Record<string, string> = {
@@ -62,6 +63,10 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
   const { data: stats } = useGameStats(id);
   const { data: itemsData } = useItems({ gameId: id, limit: 4 });
   const { data: relatedData } = useGames({ limit: 3 });
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const handlePlay = useCallback(() => setIsPlaying(true), []);
+  const handleExit = useCallback(() => setIsPlaying(false), []);
 
   const isLoading = gameLoading;
   const isError = gameError;
@@ -178,7 +183,10 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
               </div>
 
               {/* Play Now CTA */}
-              <button className="btn-primary text-lg px-10 py-4 flex items-center gap-2 shrink-0">
+              <button
+                onClick={handlePlay}
+                className="btn-primary text-lg px-10 py-4 flex items-center gap-2 shrink-0"
+              >
                 <Play className="w-5 h-5" fill="currentColor" />
                 Play Now
               </button>
@@ -194,6 +202,17 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             </span>
           ))}
         </div>
+
+        {/* Game Player */}
+        {isPlaying && (
+          <div className="mb-8">
+            <GamePlayer
+              wasmUrl={game.wasmUrl || undefined}
+              gameName={gameName}
+              onExit={handleExit}
+            />
+          </div>
+        )}
 
         {/* Description */}
         <div className="glass rounded-2xl p-6 mb-8">
@@ -292,7 +311,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
                         <p className="font-display font-bold text-accent-amber text-sm">
                           {formatBigIntPrice(item.price)}
                         </p>
-                        <p className="text-[10px] text-white/30">MOLT</p>
+                        <p className="text-[10px] text-white/30">MBUCKS</p>
                       </div>
                     </div>
                   ))

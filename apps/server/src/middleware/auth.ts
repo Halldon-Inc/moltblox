@@ -1,6 +1,6 @@
 /**
  * Authentication middleware for Moltblox API
- * Supports JWT tokens (from SIWE) and API keys
+ * Supports JWT tokens (from SIWE), API keys, and Moltbook identity tokens
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -8,30 +8,56 @@ import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 
+export type UserRole = 'human' | 'bot';
+
 export interface AuthUser {
   id: string;
   address: string;
   displayName: string;
+  role: UserRole;
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: AuthUser;
+declare module 'express-serve-static-core' {
+  interface Request {
+    user?: AuthUser;
+  }
+}
+
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET must be set in production');
     }
-  }
-}
+    console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
+    return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
+  })();
 
-const JWT_SECRET = process.env.JWT_SECRET || (() => {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET must be set in production');
-  }
-  console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
-  return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
-})();
+const USER_SELECT = {
+  id: true,
+  walletAddress: true,
+  displayName: true,
+  username: true,
+  role: true,
+} as const;
 
 function hashApiKey(key: string): string {
   return createHash('sha256').update(key).digest('hex');
+}
+
+function buildAuthUser(dbUser: {
+  id: string;
+  walletAddress: string;
+  displayName: string | null;
+  username: string | null;
+  role: string;
+}): AuthUser {
+  return {
+    id: dbUser.id,
+    address: dbUser.walletAddress,
+    displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
+    role: dbUser.role as UserRole,
+  };
 }
 
 /**
@@ -62,13 +88,8 @@ export function signToken(userId: string, address: string): string {
  * Middleware that requires a valid authentication token.
  * Accepts Bearer JWT tokens or X-API-Key header.
  */
-export async function requireAuth(
-  req: Request,
-  res: Response,
-  next: NextFunction,
-): Promise<void> {
+export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    // Try Bearer token first
     const authHeader = req.headers.authorization;
     const apiKey = req.headers['x-api-key'] as string | undefined;
 
@@ -89,7 +110,7 @@ export async function requireAuth(
 
       const dbUser = await prisma.user.findUnique({
         where: { id: payload.userId },
-        select: { id: true, walletAddress: true, displayName: true, username: true },
+        select: USER_SELECT,
       });
 
       if (!dbUser) {
@@ -97,13 +118,8 @@ export async function requireAuth(
         return;
       }
 
-      user = {
-        id: dbUser.id,
-        address: dbUser.walletAddress,
-        displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-      };
+      user = buildAuthUser(dbUser);
     } else if (req.cookies?.moltblox_token) {
-      // Cookie-based JWT authentication
       const cookieToken = req.cookies.moltblox_token;
       const payload = verifyToken(cookieToken);
       if (!payload) {
@@ -113,7 +129,7 @@ export async function requireAuth(
 
       const dbUser = await prisma.user.findUnique({
         where: { id: payload.userId },
-        select: { id: true, walletAddress: true, displayName: true, username: true },
+        select: USER_SELECT,
       });
 
       if (!dbUser) {
@@ -121,17 +137,12 @@ export async function requireAuth(
         return;
       }
 
-      user = {
-        id: dbUser.id,
-        address: dbUser.walletAddress,
-        displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-      };
+      user = buildAuthUser(dbUser);
     } else if (apiKey) {
-      // API key authentication for bots/agents
       const hashedKey = hashApiKey(apiKey);
       const dbUser = await prisma.user.findUnique({
         where: { apiKey: hashedKey },
-        select: { id: true, walletAddress: true, displayName: true, username: true },
+        select: USER_SELECT,
       });
 
       if (!dbUser) {
@@ -139,11 +150,7 @@ export async function requireAuth(
         return;
       }
 
-      user = {
-        id: dbUser.id,
-        address: dbUser.walletAddress,
-        displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-      };
+      user = buildAuthUser(dbUser);
     }
 
     if (!user) {
@@ -159,6 +166,28 @@ export async function requireAuth(
   } catch (error) {
     next(error);
   }
+}
+
+/**
+ * Middleware that requires the authenticated user to be a bot (Moltbook-verified agent).
+ * Must be used AFTER requireAuth.
+ */
+export async function requireBot(req: Request, res: Response, next: NextFunction): Promise<void> {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized', message: 'Authentication required' });
+    return;
+  }
+
+  if (req.user.role !== 'bot') {
+    res.status(403).json({
+      error: 'Forbidden',
+      message:
+        'Only verified bot creators can perform this action. Authenticate via Moltbook identity to create games.',
+    });
+    return;
+  }
+
+  next();
 }
 
 /**
@@ -179,14 +208,10 @@ export async function optionalAuth(
       if (payload) {
         const dbUser = await prisma.user.findUnique({
           where: { id: payload.userId },
-          select: { id: true, walletAddress: true, displayName: true, username: true },
+          select: USER_SELECT,
         });
         if (dbUser) {
-          req.user = {
-            id: dbUser.id,
-            address: dbUser.walletAddress,
-            displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-          };
+          req.user = buildAuthUser(dbUser);
         }
       }
     } else if (req.cookies?.moltblox_token) {
@@ -195,28 +220,20 @@ export async function optionalAuth(
       if (payload) {
         const dbUser = await prisma.user.findUnique({
           where: { id: payload.userId },
-          select: { id: true, walletAddress: true, displayName: true, username: true },
+          select: USER_SELECT,
         });
         if (dbUser) {
-          req.user = {
-            id: dbUser.id,
-            address: dbUser.walletAddress,
-            displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-          };
+          req.user = buildAuthUser(dbUser);
         }
       }
     } else if (apiKey) {
       const hashedKey = hashApiKey(apiKey);
       const dbUser = await prisma.user.findUnique({
         where: { apiKey: hashedKey },
-        select: { id: true, walletAddress: true, displayName: true, username: true },
+        select: USER_SELECT,
       });
       if (dbUser) {
-        req.user = {
-          id: dbUser.id,
-          address: dbUser.walletAddress,
-          displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
-        };
+        req.user = buildAuthUser(dbUser);
       }
     }
 

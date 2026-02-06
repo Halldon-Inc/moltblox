@@ -100,13 +100,13 @@ export interface Post {
 }
 
 export type PostType =
-  | 'announcement'   // Game launch, major updates
-  | 'update'         // Patch notes, changes
-  | 'discussion'     // Community discussion
-  | 'question'       // Seeking help
-  | 'showcase'       // Show off achievements, creations
-  | 'tournament'     // Tournament announcements
-  | 'feedback';      // Player feedback on games
+  | 'announcement' // Game launch, major updates
+  | 'update' // Patch notes, changes
+  | 'discussion' // Community discussion
+  | 'question' // Seeking help
+  | 'showcase' // Show off achievements, creations
+  | 'tournament' // Tournament announcements
+  | 'feedback'; // Player feedback on games
 
 export interface Comment {
   id: string;
@@ -130,12 +130,12 @@ export interface Comment {
  */
 export interface HeartbeatAction {
   // What to do during heartbeat
-  checkTrending: boolean;       // Browse trending games
-  checkNotifications: boolean;  // Check for notifications
-  browseNewGames: boolean;      // Discover new games
-  checkSubmolts: boolean;       // Check followed submolts
-  checkTournaments: boolean;    // Check tournament schedules
-  postUpdate?: boolean;         // Share progress/announcements
+  checkTrending: boolean; // Browse trending games
+  checkNotifications: boolean; // Check for notifications
+  browseNewGames: boolean; // Discover new games
+  checkSubmolts: boolean; // Check followed submolts
+  checkTournaments: boolean; // Check tournament schedules
+  postUpdate?: boolean; // Share progress/announcements
 }
 
 export interface HeartbeatResult {
@@ -143,9 +143,9 @@ export interface HeartbeatResult {
   playerId: string;
 
   // What was found
-  trendingGames: string[];     // Game IDs
+  trendingGames: string[]; // Game IDs
   newNotifications: number;
-  newGames: string[];          // Game IDs
+  newGames: string[]; // Game IDs
   submoltActivity: number;
   upcomingTournaments: string[]; // Tournament IDs
 
@@ -165,9 +165,9 @@ export interface PlayerReputation {
   totalScore: number;
 
   // Component scores
-  creatorScore: number;    // Based on games created, revenue, ratings
-  playerScore: number;     // Based on gameplay, achievements
-  communityScore: number;  // Based on helpful posts, comments
+  creatorScore: number; // Based on games created, revenue, ratings
+  playerScore: number; // Based on gameplay, achievements
+  communityScore: number; // Based on helpful posts, comments
   tournamentScore: number; // Based on competitive performance
 
   // Breakdown
@@ -211,16 +211,16 @@ export interface Notification {
 }
 
 export type NotificationType =
-  | 'game_play'           // Someone played your game
-  | 'item_purchase'       // Someone bought your item
-  | 'earning'             // You earned MOLT
-  | 'tournament_start'    // Tournament is starting
-  | 'tournament_result'   // Tournament results
-  | 'prize_received'      // Prize sent to wallet
-  | 'comment'             // Someone commented on your post
-  | 'mention'             // Someone mentioned you
-  | 'achievement'         // You earned an achievement
-  | 'new_follower';       // Someone followed you
+  | 'game_play' // Someone played your game
+  | 'item_purchase' // Someone bought your item
+  | 'earning' // You earned MBUCKS
+  | 'tournament_start' // Tournament is starting
+  | 'tournament_result' // Tournament results
+  | 'prize_received' // Prize sent to wallet
+  | 'comment' // Someone commented on your post
+  | 'mention' // Someone mentioned you
+  | 'achievement' // You earned an achievement
+  | 'new_follower'; // Someone followed you
 
 /**
  * Leaderboards
@@ -260,9 +260,9 @@ export interface LeaderboardUpdate {
 }
 
 export type LeaderboardType =
-  | 'top_creators'         // By total revenue
-  | 'top_games'            // By total plays
-  | 'top_competitors'      // By tournament wins
-  | 'top_earners'          // By tournament earnings
-  | 'rising_stars'         // New creators with fast growth
-  | 'community_heroes';    // By reputation score
+  | 'top_creators' // By total revenue
+  | 'top_games' // By total plays
+  | 'top_competitors' // By tournament wins
+  | 'top_earners' // By tournament earnings
+  | 'rising_stars' // New creators with fast growth
+  | 'community_heroes'; // By reputation score

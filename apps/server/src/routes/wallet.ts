@@ -1,6 +1,6 @@
 /**
  * Wallet routes for Moltblox API
- * MOLT token balance, transfers, and transaction history
+ * Moltbucks token balance, transfers, and transaction history
  * Uses Prisma for all database operations
  */
 
@@ -9,6 +9,7 @@ import { requireAuth } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
 import { transferSchema, transactionsQuerySchema } from '../schemas/wallet.js';
+import { parseBigInt, ParseBigIntError } from '../lib/parseBigInt.js';
 
 const router: Router = Router();
 
@@ -55,10 +56,10 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     res.json({
       playerId: user.id,
       address: user.address,
-      currency: 'MOLT',
+      currency: 'MBUCKS',
       network: 'base-sepolia',
       balanceNote:
-        'On-chain balance is read from the MOLT token contract. This endpoint provides transaction-based summaries only.',
+        'On-chain balance is read from the Moltbucks token contract. This endpoint provides transaction-based summaries only.',
       earnings: {
         total: totalEarnings.toString(),
         sales: saleEarnings.toString(),
@@ -76,7 +77,7 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * GET /wallet/balance - Get MOLT balance info
+ * GET /wallet/balance - Get Moltbucks balance info
  * Real balance comes from on-chain query; this returns the user address
  * and last known transaction timestamp.
  */
@@ -93,10 +94,10 @@ router.get('/balance', async (req: Request, res: Response, next: NextFunction) =
     res.json({
       playerId: user.id,
       address: user.address,
-      currency: 'MOLT',
+      currency: 'MBUCKS',
       decimals: 18,
       balanceNote:
-        'Query the MOLT token contract on-chain for the real-time balance. This endpoint provides metadata only.',
+        'Query the Moltbucks token contract on-chain for the real-time balance. This endpoint provides metadata only.',
       lastTransactionAt: lastTransaction?.createdAt ?? null,
     });
   } catch (error) {
@@ -105,9 +106,9 @@ router.get('/balance', async (req: Request, res: Response, next: NextFunction) =
 });
 
 /**
- * POST /wallet/transfer - Record a MOLT transfer intent
+ * POST /wallet/transfer - Record a Moltbucks transfer intent
  * Creates transaction records for sender (transfer_out) and receiver (transfer_in).
- * NOTE: This is a record-keeping endpoint. The actual on-chain MOLT token
+ * NOTE: This is a record-keeping endpoint. The actual on-chain Moltbucks token
  * transfer must be executed separately by the client via the smart contract.
  * Required body: to (address), amount (string, wei)
  */
@@ -146,14 +147,13 @@ router.post(
 
       let transferAmount: bigint;
       try {
-        transferAmount = BigInt(amount);
-        if (transferAmount <= 0n) {
-          res.status(400).json({ error: 'Bad Request', message: 'Amount must be positive' });
+        transferAmount = parseBigInt(amount, 'amount');
+      } catch (err) {
+        if (err instanceof ParseBigIntError) {
+          res.status(400).json({ error: 'Bad Request', message: err.message });
           return;
         }
-      } catch {
-        res.status(400).json({ error: 'Bad Request', message: 'Invalid amount format' });
-        return;
+        throw err;
       }
 
       // Record outgoing transaction for sender
@@ -191,14 +191,14 @@ router.post(
           from: user.address,
           to,
           amount: transferAmount.toString(),
-          currency: 'MOLT',
+          currency: 'MBUCKS',
           status: 'recorded',
           recipientFound: !!recipient,
           createdAt: outgoingTx.createdAt,
         },
         message:
-          'Transfer recorded. Execute the on-chain MOLT token transfer separately to complete.',
-        note: 'This endpoint records the intent to transfer. The actual token transfer must be executed on-chain via the MOLT token contract.',
+          'Transfer recorded. Execute the on-chain Moltbucks token transfer separately to complete.',
+        note: 'This endpoint records the intent to transfer. The actual token transfer must be executed on-chain via the Moltbucks token contract.',
       });
     } catch (error) {
       next(error);
@@ -237,7 +237,7 @@ router.get(
         id: tx.id,
         type: tx.type,
         amount: tx.amount.toString(),
-        currency: 'MOLT',
+        currency: 'MBUCKS',
         description: tx.description,
         txHash: tx.txHash,
         blockNumber: tx.blockNumber,

@@ -2,18 +2,21 @@
 
 import { useAccount, useReadContract } from 'wagmi';
 import { formatUnits } from 'viem';
-import { MOLT_TOKEN_ADDRESS, ERC20_ABI } from '@/lib/contracts';
+import { MOLTBUCKS_ADDRESS, ERC20_ABI } from '@/lib/contracts';
 
 export function useMoltBalance() {
   const { address, isConnected } = useAccount();
 
   const { data: rawBalance, isLoading } = useReadContract({
-    address: MOLT_TOKEN_ADDRESS,
+    address: MOLTBUCKS_ADDRESS,
     abi: ERC20_ABI,
     functionName: 'balanceOf',
     args: address ? [address] : undefined,
     query: {
-      enabled: isConnected && !!address && MOLT_TOKEN_ADDRESS !== '0x0000000000000000000000000000000000000000',
+      enabled:
+        isConnected &&
+        !!address &&
+        MOLTBUCKS_ADDRESS !== '0x0000000000000000000000000000000000000000',
       refetchInterval: 15_000,
     },
   });

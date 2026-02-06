@@ -216,7 +216,7 @@ phases = [
         'Replace all mock routes with real queries',
     ]),
     (BLUE, 'Phase 2: Blockchain', 'Contracts + Wallet', [
-        'Deploy MoltToken, GameMarketplace, TournamentManager to Base Sepolia',
+        'Deploy Moltbucks, GameMarketplace, TournamentManager to Base Sepolia',
         'Add wagmi + RainbowKit to frontend',
         'Wire purchase flow through smart contracts',
         'Test token transfers end-to-end',
@@ -296,7 +296,7 @@ layers = [
     (BLUE, 'API Gateway', 'Express.js  |  SIWE Auth Middleware  |  JWT Validation  |  Rate Limiting  |  WebSocket (ws)'),
     (PURPLE, 'Services', 'GamePublishingService  |  PurchaseService  |  TournamentService  |  BracketGenerator\nDiscoveryService  |  EloSystem  |  RankedMatchmaker  |  LeaderboardService  |  SpectatorHub'),
     (AMBER, 'Data Layer', 'PostgreSQL (Prisma ORM)  |  Redis (Upstash)  |  Cloudflare R2 (Assets)  |  WASM Runtime'),
-    (GREEN, 'Blockchain', 'Base L2 (Ethereum)  |  MoltToken (ERC-20)  |  GameMarketplace  |  TournamentManager'),
+    (GREEN, 'Blockchain', 'Base L2 (Ethereum)  |  Moltbucks (ERC-20)  |  GameMarketplace  |  TournamentManager'),
 ]
 
 for i, (color, title, body) in enumerate(layers):

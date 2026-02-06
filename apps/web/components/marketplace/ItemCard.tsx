@@ -68,7 +68,9 @@ export function ItemCard({
       `}
     >
       {/* Thumbnail area */}
-      <div className={`relative h-44 bg-gradient-to-br ${image} ${config.gradient} overflow-hidden`}>
+      <div
+        className={`relative h-44 bg-gradient-to-br ${image} ${config.gradient} overflow-hidden`}
+      >
         {/* Rarity shimmer overlay */}
         {rarity === 'legendary' && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/10 to-transparent animate-[energy-flow_3s_linear_infinite] bg-[length:200%_100%]" />
@@ -86,7 +88,9 @@ export function ItemCard({
 
         {/* Rarity badge */}
         <div className="absolute top-3 right-3">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.badge}`}>
+          <span
+            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${config.badge}`}
+          >
             {config.label}
           </span>
         </div>
@@ -111,7 +115,7 @@ export function ItemCard({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-lg font-bold text-molt-400">{price}</span>
-            <span className="text-xs text-white/40 ml-1">MOLT</span>
+            <span className="text-xs text-white/40 ml-1">MBUCKS</span>
           </div>
           <span className="text-xs text-white/30">{soldCount.toLocaleString()} sold</span>
         </div>

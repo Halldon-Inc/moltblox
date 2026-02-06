@@ -5,132 +5,126 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireBot } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createItemSchema, purchaseItemSchema, browseItemsSchema } from '../schemas/marketplace.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import prisma from '../lib/prisma.js';
+import { parseBigInt, parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
 
 const router: Router = Router();
 
 /**
- * Serialize BigInt fields to strings in an object.
- * JSON.stringify cannot handle BigInt natively.
- */
-function serializeBigInts<T extends Record<string, unknown>>(obj: T): T {
-  const result = { ...obj };
-  for (const key in result) {
-    const value = result[key];
-    if (typeof value === 'bigint') {
-      (result as Record<string, unknown>)[key] = value.toString();
-    } else if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
-      (result as Record<string, unknown>)[key] = serializeBigInts(
-        value as Record<string, unknown>,
-      );
-    }
-  }
-  return result;
-}
-
-/**
  * GET /marketplace/items - Browse marketplace items
  * Query params: category, gameId, rarity, minPrice, maxPrice, limit, offset
  */
-router.get('/items', validate(browseItemsSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const {
-      category,
-      gameId,
-      rarity,
-      minPrice,
-      maxPrice,
-      limit = '20',
-      offset = '0',
-    } = req.query;
+router.get(
+  '/items',
+  validate(browseItemsSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const {
+        category,
+        gameId,
+        rarity,
+        minPrice,
+        maxPrice,
+        limit = '20',
+        offset = '0',
+      } = req.query;
 
-    const take = Math.min(parseInt(limit as string, 10) || 20, 100);
-    const skip = parseInt(offset as string, 10) || 0;
+      const take = Math.min(parseInt(limit as string, 10) || 20, 100);
+      const skip = parseInt(offset as string, 10) || 0;
 
-    const where: Prisma.ItemWhereInput = {
-      active: true,
-    };
+      const where: Prisma.ItemWhereInput = {
+        active: true,
+      };
 
-    if (category && category !== 'all') {
-      where.category = category as ItemCategory;
-    }
-
-    if (gameId && gameId !== 'all') {
-      where.gameId = gameId as string;
-    }
-
-    if (rarity && rarity !== 'all') {
-      where.rarity = rarity as ItemRarity;
-    }
-
-    if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) {
-        where.price.gte = BigInt(minPrice as string);
+      if (category && category !== 'all') {
+        where.category = category as ItemCategory;
       }
-      if (maxPrice) {
-        where.price.lte = BigInt(maxPrice as string);
-      }
-    }
 
-    const [items, total] = await Promise.all([
-      prisma.item.findMany({
-        where,
-        take,
-        skip,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          game: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              thumbnailUrl: true,
+      if (gameId && gameId !== 'all') {
+        where.gameId = gameId as string;
+      }
+
+      if (rarity && rarity !== 'all') {
+        where.rarity = rarity as ItemRarity;
+      }
+
+      if (minPrice || maxPrice) {
+        try {
+          where.price = {};
+          if (minPrice) {
+            where.price.gte = parseBigIntNonNegative(minPrice as string, 'minPrice');
+          }
+          if (maxPrice) {
+            where.price.lte = parseBigIntNonNegative(maxPrice as string, 'maxPrice');
+          }
+        } catch (err) {
+          if (err instanceof ParseBigIntError) {
+            res.status(400).json({ error: 'Bad Request', message: err.message });
+            return;
+          }
+          throw err;
+        }
+      }
+
+      const [items, total] = await Promise.all([
+        prisma.item.findMany({
+          where,
+          take,
+          skip,
+          orderBy: { createdAt: 'desc' },
+          include: {
+            game: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                thumbnailUrl: true,
+              },
+            },
+            creator: {
+              select: {
+                id: true,
+                displayName: true,
+                walletAddress: true,
+              },
             },
           },
-          creator: {
-            select: {
-              id: true,
-              displayName: true,
-              walletAddress: true,
-            },
-          },
+        }),
+        prisma.item.count({ where }),
+      ]);
+
+      const serializedItems = items.map((item) => ({
+        ...item,
+        price: item.price.toString(),
+      }));
+
+      res.json({
+        items: serializedItems,
+        pagination: {
+          total,
+          limit: take,
+          offset: skip,
+          hasMore: skip + take < total,
         },
-      }),
-      prisma.item.count({ where }),
-    ]);
-
-    const serializedItems = items.map((item) => ({
-      ...item,
-      price: item.price.toString(),
-    }));
-
-    res.json({
-      items: serializedItems,
-      pagination: {
-        total,
-        limit: take,
-        offset: skip,
-        hasMore: skip + take < total,
-      },
-      filters: {
-        category: category || 'all',
-        gameId: gameId || 'all',
-        rarity: rarity || 'all',
-        minPrice: minPrice || null,
-        maxPrice: maxPrice || null,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+        filters: {
+          category: category || 'all',
+          gameId: gameId || 'all',
+          rarity: rarity || 'all',
+          minPrice: minPrice || null,
+          maxPrice: maxPrice || null,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * GET /marketplace/items/:id - Get item details
@@ -178,91 +172,120 @@ router.get('/items/:id', async (req: Request, res: Response, next: NextFunction)
 });
 
 /**
- * POST /marketplace/items - Create a new marketplace item (auth required)
+ * POST /marketplace/items - Create a new marketplace item (bot creators only)
  * Required body: gameId, name, description, price (as string)
  * Optional body: category, rarity, imageUrl, maxSupply, properties
  */
-router.post('/items', requireAuth, validate(createItemSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = req.user!;
-    const { gameId, name, description, price, category, rarity, imageUrl, maxSupply, properties } =
-      req.body;
-
-    // Sanitize user input
-    const sanitized = sanitizeObject({ name, description } as Record<string, unknown>, ['name', 'description']);
-
-    if (!gameId || !name || !description || !price) {
-      res.status(400).json({
-        error: 'Bad Request',
-        message: 'Missing required fields: gameId, name, description, price',
-      });
-      return;
-    }
-
-    // Verify the user owns the game
-    const game = await prisma.game.findUnique({
-      where: { id: gameId },
-      select: { id: true, creatorId: true },
-    });
-
-    if (!game) {
-      res.status(404).json({
-        error: 'Not Found',
-        message: `Game with id "${gameId}" not found`,
-      });
-      return;
-    }
-
-    if (game.creatorId !== user.id) {
-      res.status(403).json({
-        error: 'Forbidden',
-        message: 'You can only create items for games you own',
-      });
-      return;
-    }
-
-    const item = await prisma.item.create({
-      data: {
+router.post(
+  '/items',
+  requireAuth,
+  requireBot,
+  validate(createItemSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const {
         gameId,
-        creatorId: user.id,
-        name: sanitized.name as string,
-        description: sanitized.description as string,
-        price: BigInt(price),
-        category: category || 'cosmetic',
-        rarity: rarity || 'common',
-        imageUrl: imageUrl || null,
-        maxSupply: maxSupply != null ? parseInt(maxSupply, 10) : null,
-        currentSupply: maxSupply != null ? parseInt(maxSupply, 10) : 0,
-        properties: properties || {},
-        active: true,
-      },
-      include: {
-        game: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        creator: {
-          select: {
-            id: true,
-            displayName: true,
-            walletAddress: true,
-          },
-        },
-      },
-    });
+        name,
+        description,
+        price,
+        category,
+        rarity,
+        imageUrl,
+        maxSupply,
+        properties,
+      } = req.body;
 
-    res.status(201).json({
-      ...item,
-      price: item.price.toString(),
-      message: 'Item created successfully',
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      // Sanitize user input
+      const sanitized = sanitizeObject({ name, description } as Record<string, unknown>, [
+        'name',
+        'description',
+      ]);
+
+      if (!gameId || !name || !description || !price) {
+        res.status(400).json({
+          error: 'Bad Request',
+          message: 'Missing required fields: gameId, name, description, price',
+        });
+        return;
+      }
+
+      // Verify the user owns the game
+      const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        select: { id: true, creatorId: true },
+      });
+
+      if (!game) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: `Game with id "${gameId}" not found`,
+        });
+        return;
+      }
+
+      if (game.creatorId !== user.id) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'You can only create items for games you own',
+        });
+        return;
+      }
+
+      let parsedPrice: bigint;
+      try {
+        parsedPrice = parseBigInt(price, 'price');
+      } catch (err) {
+        if (err instanceof ParseBigIntError) {
+          res.status(400).json({ error: 'Bad Request', message: err.message });
+          return;
+        }
+        throw err;
+      }
+
+      const item = await prisma.item.create({
+        data: {
+          gameId,
+          creatorId: user.id,
+          name: sanitized.name as string,
+          description: sanitized.description as string,
+          price: parsedPrice,
+          category: category || 'cosmetic',
+          rarity: rarity || 'common',
+          imageUrl: imageUrl || null,
+          maxSupply: maxSupply != null ? parseInt(maxSupply, 10) : null,
+          currentSupply: maxSupply != null ? parseInt(maxSupply, 10) : 0,
+          properties: properties || {},
+          active: true,
+        },
+        include: {
+          game: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+            },
+          },
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              walletAddress: true,
+            },
+          },
+        },
+      });
+
+      res.status(201).json({
+        ...item,
+        price: item.price.toString(),
+        message: 'Item created successfully',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * POST /marketplace/items/:id/purchase - Purchase an item (auth required)

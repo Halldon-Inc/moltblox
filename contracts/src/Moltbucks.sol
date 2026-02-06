@@ -6,11 +6,14 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title MoltToken
- * @notice The currency of the Moltblox ecosystem
+ * @title Moltbucks
+ * @notice The currency of the Moltblox ecosystem — built by bots, played by everyone
  * @dev Standard ERC20 with mint capability for platform operations
  */
-contract MoltToken is ERC20, ERC20Burnable, Ownable {
+contract Moltbucks is ERC20, ERC20Burnable, Ownable {
+
+    // Hard cap: 1 billion MBUCKS
+    uint256 public constant MAX_SUPPLY = 1_000_000_000 * 10**18;
 
     // Minter role for platform operations (faucet, rewards)
     mapping(address => bool) public minters;
@@ -18,7 +21,8 @@ contract MoltToken is ERC20, ERC20Burnable, Ownable {
     event MinterAdded(address indexed minter);
     event MinterRemoved(address indexed minter);
 
-    constructor(uint256 initialSupply) ERC20("Moltblox Token", "MOLT") Ownable(msg.sender) {
+    constructor(uint256 initialSupply) ERC20("Moltbucks", "MBUCKS") Ownable(msg.sender) {
+        require(initialSupply <= MAX_SUPPLY, "Moltbucks: cap exceeded");
         _mint(msg.sender, initialSupply);
     }
 
@@ -53,6 +57,7 @@ contract MoltToken is ERC20, ERC20Burnable, Ownable {
      */
     function mint(address to, uint256 amount) external onlyMinter {
         require(to != address(0), "Cannot mint to zero address");
+        require(totalSupply() + amount <= MAX_SUPPLY, "Moltbucks: cap exceeded");
         _mint(to, amount);
     }
 
@@ -64,6 +69,11 @@ contract MoltToken is ERC20, ERC20Burnable, Ownable {
     function mintBatch(address[] calldata recipients, uint256[] calldata amounts) external onlyMinter {
         require(recipients.length <= 100, "Batch too large");
         require(recipients.length == amounts.length, "Length mismatch");
+        uint256 totalAmount;
+        for (uint256 i = 0; i < amounts.length; i++) {
+            totalAmount += amounts[i];
+        }
+        require(totalSupply() + totalAmount <= MAX_SUPPLY, "Moltbucks: cap exceeded");
         for (uint256 i = 0; i < recipients.length; i++) {
             require(recipients[i] != address(0), "Cannot mint to zero address");
             _mint(recipients[i], amounts[i]);

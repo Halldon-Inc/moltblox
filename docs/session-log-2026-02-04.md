@@ -1,4 +1,5 @@
 # Moltblox Development Session Log
+
 **Date:** February 4, 2026
 **Sessions:** 3 (carried over from 2 prior context windows)
 **Author:** Claude Opus 4.5 + Halldon Inc.
@@ -8,6 +9,7 @@
 ## What We Built
 
 ### Session 1: Platform Foundation
+
 - Extracted Moltblox from the clawdbot-arena monorepo into its own standalone repo
 - Set up pnpm workspaces + Turborepo monorepo structure
 - Built all 11 packages from scratch:
@@ -20,13 +22,15 @@
   - `packages/game-builder` — BaseGame abstract class, ClickerGame + PuzzleGame examples
   - `packages/arena-sdk` — ArenaClient + MoltbloxClient for bot integration
   - `packages/mcp-server` — MCP tools for AI agent access (game, marketplace, social, tournament, wallet)
-  - `contracts/` — MoltToken (ERC-20), GameMarketplace, TournamentManager (Solidity)
+  - `contracts/` — Moltbucks (ERC-20), GameMarketplace, TournamentManager (Solidity)
   - `skill/` — 8 skill files for bot education and onboarding
 - Full design system: teal/cyan theme, glass morphism, neon accents, voxel aesthetic
 - Zero build errors across the entire monorepo
 
 ### Session 2: Full-Stack Wiring
+
 Executed 8 parallel tasks to connect everything:
+
 1. **Prisma schema** — 665-line schema with 16 models (users, games, tournaments, marketplace, social, wallets)
 2. **API routes rewrite** — All 5 route modules rewritten with Prisma queries (games, tournaments, marketplace, social, wallet)
 3. **SIWE authentication** — Sign-In with Ethereum, JWT tokens, auth middleware
@@ -37,6 +41,7 @@ Executed 8 parallel tasks to connect everything:
 8. **Environment config** — .env.example files for server, web, and contracts
 
 ### Session 3: Documentation & Research
+
 - Created clickable HTML UI prototype (`docs/moltblox-ui-preview.html`, 1,211 lines)
 - Verified wireframes accuracy against codebase, fixed 8+ discrepancies (Solana→Base, colors, fonts, stats)
 - Generated wireframes PDF via Playwright (846KB)
@@ -50,17 +55,18 @@ Executed 8 parallel tasks to connect everything:
 
 ## Repository State
 
-| Metric | Value |
-|--------|-------|
-| **Repo** | https://github.com/Halldon-Inc/moltblox |
-| **Branch** | main |
-| **Latest commit** | `702a7ae` |
-| **Total commits** | 3 |
-| **Files** | 130+ |
-| **Lines of code** | 33,000+ |
-| **Build status** | Passing (zero errors) |
+| Metric            | Value                                   |
+| ----------------- | --------------------------------------- |
+| **Repo**          | https://github.com/Halldon-Inc/moltblox |
+| **Branch**        | main                                    |
+| **Latest commit** | `702a7ae`                               |
+| **Total commits** | 3                                       |
+| **Files**         | 130+                                    |
+| **Lines of code** | 33,000+                                 |
+| **Build status**  | Passing (zero errors)                   |
 
 ### Commit History
+
 ```
 702a7ae Wire full stack: Prisma DB, SIWE auth, wagmi wallet, API integration, docs
 b6b56ff Add launch requirements report, flowcharts, and wireframes
@@ -71,16 +77,16 @@ ab69e39 Initial commit: Moltblox platform
 
 ## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| Frontend | Next.js 14 (App Router), Tailwind CSS, Lucide React |
-| Web3 | wagmi v2, viem, RainbowKit |
-| API | Express.js, ws (WebSocket) |
-| Database | PostgreSQL (Prisma ORM) |
-| Cache | Redis (Upstash) |
-| Blockchain | Base L2, Solidity 0.8.x, Hardhat |
-| Monorepo | pnpm workspaces, Turborepo |
-| Language | TypeScript 5.x |
+| Layer      | Technology                                          |
+| ---------- | --------------------------------------------------- |
+| Frontend   | Next.js 14 (App Router), Tailwind CSS, Lucide React |
+| Web3       | wagmi v2, viem, RainbowKit                          |
+| API        | Express.js, ws (WebSocket)                          |
+| Database   | PostgreSQL (Prisma ORM)                             |
+| Cache      | Redis (Upstash)                                     |
+| Blockchain | Base L2, Solidity 0.8.x, Hardhat                    |
+| Monorepo   | pnpm workspaces, Turborepo                          |
+| Language   | TypeScript 5.x                                      |
 
 ---
 
@@ -89,6 +95,7 @@ ab69e39 Initial commit: Moltblox platform
 See `docs/moltblox-prd-remaining.md` for the full PRD of remaining work.
 
 **High-level summary:**
+
 1. Provision real database + run Prisma migrations
 2. Deploy smart contracts to Base Sepolia testnet
 3. Set up hosting (Vercel + Railway + Neon + Upstash)

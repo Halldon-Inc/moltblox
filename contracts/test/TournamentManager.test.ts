@@ -39,9 +39,9 @@ describe("TournamentManager", function () {
     const [owner, treasury, sponsor, player1, player2, player3, player4, other] =
       await ethers.getSigners();
 
-    // Deploy MoltToken
-    const MoltToken = await ethers.getContractFactory("MoltToken");
-    const token = await MoltToken.deploy(INITIAL_SUPPLY);
+    // Deploy Moltbucks
+    const Moltbucks = await ethers.getContractFactory("Moltbucks");
+    const token = await Moltbucks.deploy(INITIAL_SUPPLY);
 
     // Deploy TournamentManager
     const TournamentManager =
@@ -142,7 +142,7 @@ describe("TournamentManager", function () {
 
     it("Should set the correct token address", async function () {
       const { manager, token } = await loadFixture(deployTournamentFixture);
-      expect(await manager.moltToken()).to.equal(await token.getAddress());
+      expect(await manager.moltbucks()).to.equal(await token.getAddress());
     });
 
     it("Should set the correct treasury address", async function () {
@@ -968,6 +968,54 @@ describe("TournamentManager", function () {
               other.address // not a participant
             )
         ).to.be.revertedWith("3rd not participant");
+      });
+
+      it("Should revert when duplicate winner addresses (1st == 2nd)", async function () {
+        const { manager, sponsor, player1, player3 } =
+          await loadFixture(deployWithActiveTournamentFixture);
+
+        await expect(
+          manager
+            .connect(sponsor)
+            .completeTournament(
+              "tourney-001",
+              player1.address,
+              player1.address,
+              player3.address
+            )
+        ).to.be.revertedWith("Duplicate winner");
+      });
+
+      it("Should revert when duplicate winner addresses (1st == 3rd)", async function () {
+        const { manager, sponsor, player1, player2 } =
+          await loadFixture(deployWithActiveTournamentFixture);
+
+        await expect(
+          manager
+            .connect(sponsor)
+            .completeTournament(
+              "tourney-001",
+              player1.address,
+              player2.address,
+              player1.address
+            )
+        ).to.be.revertedWith("Duplicate winner");
+      });
+
+      it("Should revert when duplicate winner addresses (2nd == 3rd)", async function () {
+        const { manager, sponsor, player1, player2 } =
+          await loadFixture(deployWithActiveTournamentFixture);
+
+        await expect(
+          manager
+            .connect(sponsor)
+            .completeTournament(
+              "tourney-001",
+              player1.address,
+              player2.address,
+              player2.address
+            )
+        ).to.be.revertedWith("Duplicate winner");
       });
 
       it("Should revert when completing already distributed tournament", async function () {

@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { Search, SlidersHorizontal, Gamepad2 } from 'lucide-react';
-import GameCard, { GameCardProps } from '@/components/games/GameCard';
+import GameCard from '@/components/games/GameCard';
 import { useGames } from '@/hooks/useApi';
+import type { GameResponse } from '@/types/api';
 
 const CATEGORIES = ['All', 'Arcade', 'Puzzle', 'Multiplayer', 'Casual', 'Competitive'] as const;
 const SORT_OPTIONS = ['Trending', 'Newest', 'Top Rated', 'Most Played'] as const;
@@ -28,7 +29,7 @@ export default function GamesPage() {
     limit: visibleCount,
   });
 
-  const allGames: GameCardProps[] = data?.games ?? [];
+  const allGames: GameResponse[] = data?.games ?? [];
   const visibleGames = allGames;
   const hasMore = data?.pagination?.total ? allGames.length < data.pagination.total : false;
 
@@ -130,8 +131,18 @@ export default function GamesPage() {
           </div>
         ) : visibleGames.length > 0 ? (
           <div className="card-grid">
-            {visibleGames.map((game: GameCardProps) => (
-              <GameCard key={game.id} {...game} />
+            {visibleGames.map((game: GameResponse) => (
+              <GameCard
+                key={game.id}
+                id={game.id}
+                name={game.name}
+                creator={game.creator?.displayName ?? game.creator?.walletAddress ?? 'Unknown'}
+                creatorUsername={game.creator?.username ?? undefined}
+                thumbnail={game.thumbnailUrl ?? '#1a1a2e'}
+                rating={game.averageRating ?? 0}
+                playCount={game.totalPlays}
+                tags={game.tags}
+              />
             ))}
           </div>
         ) : (

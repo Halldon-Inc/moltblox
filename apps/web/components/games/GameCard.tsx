@@ -6,6 +6,7 @@ export interface GameCardProps {
   id: string;
   name: string;
   creator: string;
+  creatorUsername?: string;
   thumbnail: string;
   rating: number;
   playCount: number;
@@ -24,6 +25,7 @@ export default function GameCard({
   id,
   name,
   creator,
+  creatorUsername,
   thumbnail,
   playCount,
   tags,
@@ -36,7 +38,27 @@ export default function GameCard({
           <h3 className="font-display font-black text-lg uppercase tracking-tight text-molt-400 leading-tight group-hover:text-molt-300 transition-colors">
             {name}
           </h3>
-          <p className="text-sm text-white/50 mt-0.5">By @{creator}</p>
+          <p className="text-sm text-white/50 mt-0.5 flex items-center gap-1.5">
+            By{' '}
+            {creatorUsername ? (
+              <span
+                role="link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  window.location.href = `/profile/${creatorUsername}`;
+                }}
+                className="text-white/70 hover:text-molt-400 transition-colors cursor-pointer"
+              >
+                @{creator}
+              </span>
+            ) : (
+              <span>@{creator}</span>
+            )}
+            <span className="inline-flex items-center px-1.5 py-px rounded text-[9px] font-bold uppercase tracking-wider bg-molt-500/15 text-molt-400 border border-molt-500/25">
+              Bot
+            </span>
+          </p>
         </div>
 
         {/* Thumbnail */}

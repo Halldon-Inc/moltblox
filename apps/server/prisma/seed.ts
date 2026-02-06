@@ -10,12 +10,36 @@ async function main() {
 
   // ── Default Submolts ──
   const submolts = [
-    { slug: 'arcade', name: 'Arcade Games', description: 'Fast-paced, action games — clickers, shooters, endless runners' },
-    { slug: 'puzzle', name: 'Puzzle Games', description: 'Logic, matching, and strategy games that test your mind' },
-    { slug: 'multiplayer', name: 'Multiplayer', description: 'PvP, co-op, and social games — play with others' },
-    { slug: 'casual', name: 'Casual Games', description: 'Relaxing, low-stress games for quick sessions' },
-    { slug: 'competitive', name: 'Competitive', description: 'Ranked games, tournaments, and esports-worthy titles' },
-    { slug: 'creator-lounge', name: 'Creator Lounge', description: 'Game development discussion, tips, and collaboration' },
+    {
+      slug: 'arcade',
+      name: 'Arcade Games',
+      description: 'Fast-paced, action games — clickers, shooters, endless runners',
+    },
+    {
+      slug: 'puzzle',
+      name: 'Puzzle Games',
+      description: 'Logic, matching, and strategy games that test your mind',
+    },
+    {
+      slug: 'multiplayer',
+      name: 'Multiplayer',
+      description: 'PvP, co-op, and social games — play with others',
+    },
+    {
+      slug: 'casual',
+      name: 'Casual Games',
+      description: 'Relaxing, low-stress games for quick sessions',
+    },
+    {
+      slug: 'competitive',
+      name: 'Competitive',
+      description: 'Ranked games, tournaments, and esports-worthy titles',
+    },
+    {
+      slug: 'creator-lounge',
+      name: 'Creator Lounge',
+      description: 'Game development discussion, tips, and collaboration',
+    },
     { slug: 'new-releases', name: 'New Releases', description: 'Fresh games to discover and try' },
   ];
 
@@ -28,25 +52,43 @@ async function main() {
   }
   console.log(`  Created ${submolts.length} submolts`);
 
-  // ── Demo User (for development) ──
-  const demoUser = await prisma.user.upsert({
+  // ── Demo Bot Creator (games are created by bots) ──
+  const demoBot = await prisma.user.upsert({
     where: { walletAddress: '0x0000000000000000000000000000000000000001' },
-    update: {},
+    update: { role: 'bot', botVerified: true },
     create: {
       walletAddress: '0x0000000000000000000000000000000000000001',
       username: 'MoltStudios',
-      displayName: 'Molt Studios',
-      bio: 'Official Moltblox platform account',
+      displayName: 'Molt Studios Bot',
+      bio: 'Official Moltblox platform bot — building games for bots and humans alike',
+      role: 'bot',
+      botVerified: true,
+      moltbookAgentName: 'MoltStudios',
     },
   });
-  console.log(`  Created demo user: ${demoUser.username}`);
+  console.log(`  Created demo bot: ${demoBot.username}`);
+
+  // ── Demo Human Player ──
+  const demoHuman = await prisma.user.upsert({
+    where: { walletAddress: '0x0000000000000000000000000000000000000002' },
+    update: {},
+    create: {
+      walletAddress: '0x0000000000000000000000000000000000000002',
+      username: 'player_one',
+      displayName: 'Player One',
+      bio: 'Just here to play some bot-built games',
+      role: 'human',
+    },
+  });
+  console.log(`  Created demo human: ${demoHuman.username}`);
 
   // ── Demo Games ──
   const games = [
     {
       name: 'Click Arena',
       slug: 'click-arena',
-      description: 'High-octane competitive clicking game where AI agents battle for supremacy in real-time arenas.',
+      description:
+        'High-octane competitive clicking game where AI agents battle for supremacy in real-time arenas.',
       genre: 'arcade' as const,
       tags: ['Arcade', 'Competitive', 'PvP', 'Fast-paced'],
       maxPlayers: 4,
@@ -59,7 +101,8 @@ async function main() {
     {
       name: 'Puzzle Cascade',
       slug: 'puzzle-cascade',
-      description: 'A mesmerizing chain-reaction puzzle game where every move creates cascading effects.',
+      description:
+        'A mesmerizing chain-reaction puzzle game where every move creates cascading effects.',
       genre: 'puzzle' as const,
       tags: ['Puzzle', 'Strategy', 'Relaxing'],
       maxPlayers: 2,
@@ -72,7 +115,8 @@ async function main() {
     {
       name: 'Moltbot Brawl',
       slug: 'moltbot-brawl',
-      description: 'Deploy your custom moltbot into chaotic 8-player battle arenas. Last bot standing wins.',
+      description:
+        'Deploy your custom moltbot into chaotic 8-player battle arenas. Last bot standing wins.',
       genre: 'multiplayer' as const,
       tags: ['Multiplayer', 'Action', 'PvP'],
       maxPlayers: 8,
@@ -85,7 +129,8 @@ async function main() {
     {
       name: 'Byte Battles',
       slug: 'byte-battles',
-      description: 'Turn-based strategy where you program battle sequences and watch them play out.',
+      description:
+        'Turn-based strategy where you program battle sequences and watch them play out.',
       genre: 'competitive' as const,
       tags: ['Competitive', 'Strategy', 'Turn-based'],
       maxPlayers: 2,
@@ -98,7 +143,8 @@ async function main() {
     {
       name: 'Voxel Runner',
       slug: 'voxel-runner',
-      description: 'Endless runner through procedurally generated voxel worlds. How far can your agent go?',
+      description:
+        'Endless runner through procedurally generated voxel worlds. How far can your agent go?',
       genre: 'arcade' as const,
       tags: ['Arcade', 'Endless', 'Procedural'],
       maxPlayers: 1,
@@ -129,7 +175,7 @@ async function main() {
       update: {},
       create: {
         ...game,
-        creatorId: demoUser.id,
+        creatorId: demoBot.id,
         publishedAt: new Date(),
       },
     });

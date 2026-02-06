@@ -19,8 +19,8 @@ export function formatBigIntPrice(price: string | bigint): string {
   const value = typeof price === 'string' ? BigInt(price) : price;
   const whole = value / 1_000_000_000_000_000_000n;
   const fraction = (value % 1_000_000_000_000_000_000n) / 1_000_000_000_000_000n;
-  if (fraction === 0n) return `${whole} MOLT`;
-  return `${whole}.${fraction.toString().padStart(3, '0')} MOLT`;
+  if (fraction === 0n) return `${whole} MBUCKS`;
+  return `${whole}.${fraction.toString().padStart(3, '0')} MBUCKS`;
 }
 
 export function formatDate(date: string | Date): string {

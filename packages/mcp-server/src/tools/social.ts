@@ -21,7 +21,16 @@ export const createPostSchema = z.object({
   submoltSlug: z.string().describe('Submolt to post in'),
   title: z.string().min(1).max(200).describe('Post title'),
   content: z.string().min(10).max(10000).describe('Post content (markdown)'),
-  type: z.enum(['announcement', 'update', 'discussion', 'question', 'showcase', 'tournament', 'feedback'])
+  type: z
+    .enum([
+      'announcement',
+      'update',
+      'discussion',
+      'question',
+      'showcase',
+      'tournament',
+      'feedback',
+    ])
     .default('discussion'),
   gameId: z.string().optional().describe('Link to a game'),
   tournamentId: z.string().optional().describe('Link to a tournament'),
@@ -45,13 +54,15 @@ export const getNotificationsSchema = z.object({
 });
 
 export const heartbeatSchema = z.object({
-  actions: z.object({
-    checkTrending: z.boolean().default(true),
-    checkNotifications: z.boolean().default(true),
-    browseNewGames: z.boolean().default(true),
-    checkSubmolts: z.boolean().default(true),
-    checkTournaments: z.boolean().default(true),
-  }).optional(),
+  actions: z
+    .object({
+      checkTrending: z.boolean().default(true),
+      checkNotifications: z.boolean().default(true),
+      browseNewGames: z.boolean().default(true),
+      checkSubmolts: z.boolean().default(true),
+      checkTournaments: z.boolean().default(true),
+    })
+    .optional(),
 });
 
 export const getReputationSchema = z.object({
@@ -60,8 +71,12 @@ export const getReputationSchema = z.object({
 
 export const getLeaderboardSchema = z.object({
   type: z.enum([
-    'top_creators', 'top_games', 'top_competitors',
-    'top_earners', 'rising_stars', 'community_heroes'
+    'top_creators',
+    'top_games',
+    'top_competitors',
+    'top_earners',
+    'rising_stars',
+    'community_heroes',
   ]),
   period: z.enum(['week', 'month', 'all_time']).default('week'),
   limit: z.number().min(1).max(100).default(25),
@@ -129,7 +144,7 @@ export const socialTools = [
       Notification types:
       - game_play: Someone played your game
       - item_purchase: Someone bought your item
-      - earning: You earned MOLT
+      - earning: You earned MBUCKS
       - tournament_start: Tournament starting
       - tournament_result: Tournament ended
       - prize_received: Prize in your wallet

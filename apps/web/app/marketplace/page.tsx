@@ -101,7 +101,7 @@ export default function MarketplacePage() {
                 className="input-field w-20 text-center text-sm"
                 placeholder="Max"
               />
-              <span className="text-xs text-white/30">MOLT</span>
+              <span className="text-xs text-white/30">MBUCKS</span>
             </div>
           </div>
         </div>

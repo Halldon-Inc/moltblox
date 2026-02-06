@@ -1,12 +1,26 @@
 /**
  * WebSocket server for Moltblox
- * Handles real-time game sessions, spectating, and live updates
+ *
+ * Handles real-time game sessions with matchmaking, spectating, and live updates.
+ * Integrates with the session manager for Prisma-backed game lifecycle.
  */
 
 import { Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
+import {
+  type ConnectedClient,
+  type WSMessage,
+  sendTo,
+  joinQueue,
+  leaveQueue,
+  handleGameAction,
+  endSession,
+  leaveSession,
+  handleDisconnect,
+  broadcastToSession,
+} from './sessionManager.js';
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
@@ -18,22 +32,42 @@ const JWT_SECRET =
     return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
   })();
 
-interface ConnectedClient {
-  id: string;
-  ws: WebSocket;
-  playerId?: string;
-  gameSessionId?: string;
-  spectating?: string; // Game session ID being spectated
-  lastPing: number;
-}
-
-interface WSMessage {
-  type: string;
-  payload: Record<string, unknown>;
-}
-
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
+const CHAT_MAX_LENGTH = 500;
+
+const VALID_MESSAGE_TYPES = new Set([
+  'authenticate',
+  'join_queue',
+  'leave_queue',
+  'game_action',
+  'end_game',
+  'leave',
+  'spectate',
+  'stop_spectating',
+  'chat',
+]);
+
+/** Message types that require authentication before use */
+const AUTH_REQUIRED_TYPES = new Set([
+  'join_queue',
+  'leave_queue',
+  'game_action',
+  'end_game',
+  'leave',
+  'spectate',
+  'stop_spectating',
+  'chat',
+]);
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
 
 /**
  * Initialize the WebSocket server on an existing HTTP server
@@ -49,6 +83,9 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       if (now - client.lastPing > CLIENT_TIMEOUT) {
         console.log(`[WS] Client ${clientId} timed out, disconnecting`);
         client.ws.terminate();
+        handleDisconnect(client, clients).catch((err) =>
+          console.error('[WS] Error handling timeout disconnect:', err),
+        );
         clients.delete(clientId);
         continue;
       }
@@ -70,7 +107,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     console.log(`[WS] Client connected: ${clientId} (total: ${clients.size})`);
 
     // Send welcome message
-    sendMessage(ws, {
+    sendTo(ws, {
       type: 'connected',
       payload: {
         clientId,
@@ -89,8 +126,8 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       try {
         const message: WSMessage = JSON.parse(data.toString());
         handleMessage(client, message, clients);
-      } catch (err) {
-        sendMessage(ws, {
+      } catch {
+        sendTo(ws, {
           type: 'error',
           payload: { message: 'Invalid message format. Expected JSON.' },
         });
@@ -100,30 +137,16 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     // Handle disconnect
     ws.on('close', () => {
       console.log(`[WS] Client disconnected: ${clientId} (total: ${clients.size - 1})`);
-
-      // Notify game session participants if applicable
-      if (client.gameSessionId) {
-        broadcastToSession(
-          clients,
-          client.gameSessionId,
-          {
-            type: 'player_disconnected',
-            payload: {
-              playerId: client.playerId,
-              clientId,
-              timestamp: new Date().toISOString(),
-            },
-          },
-          clientId,
-        );
-      }
-
+      handleDisconnect(client, clients).catch((err) =>
+        console.error('[WS] Error handling disconnect:', err),
+      );
       clients.delete(clientId);
     });
 
     // Handle errors
     ws.on('error', (err: Error) => {
       console.error(`[WS] Client error ${clientId}:`, err.message);
+      handleDisconnect(client, clients).catch(() => {});
       clients.delete(clientId);
     });
   });
@@ -147,20 +170,42 @@ function handleMessage(
 ): void {
   const { type, payload } = message;
 
+  // H3: Validate message type is known
+  if (!VALID_MESSAGE_TYPES.has(type)) {
+    sendTo(client.ws, {
+      type: 'error',
+      payload: {
+        message: `Unknown message type: ${type}`,
+        supportedTypes: [...VALID_MESSAGE_TYPES],
+      },
+    });
+    return;
+  }
+
+  // H3: Validate required fields per message type
+  const fieldError = validateMessageFields(type, payload);
+  if (fieldError) {
+    sendTo(client.ws, { type: 'error', payload: { message: fieldError } });
+    return;
+  }
+
+  // H2: Require authentication for all game-related messages
+  if (AUTH_REQUIRED_TYPES.has(type) && !client.playerId) {
+    sendTo(client.ws, {
+      type: 'error',
+      payload: { message: 'Authentication required. Send an "authenticate" message first.' },
+    });
+    return;
+  }
+
   switch (type) {
+    // ─── Authentication ───────────────────────────────
     case 'authenticate': {
       const token = payload.token as string;
-      if (!token) {
-        sendMessage(client.ws, {
-          type: 'error',
-          payload: { message: 'Missing token in authenticate message' },
-        });
-        break;
-      }
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; address: string };
         client.playerId = decoded.userId;
-        sendMessage(client.ws, {
+        sendTo(client.ws, {
           type: 'authenticated',
           payload: {
             playerId: client.playerId,
@@ -168,7 +213,7 @@ function handleMessage(
           },
         });
       } catch {
-        sendMessage(client.ws, {
+        sendTo(client.ws, {
           type: 'error',
           payload: { message: 'Invalid or expired token' },
         });
@@ -176,93 +221,69 @@ function handleMessage(
       break;
     }
 
-    case 'join_session': {
-      const sessionId = payload.sessionId as string;
-      client.gameSessionId = sessionId;
-      console.log(`[WS] Client ${client.id} joined session ${sessionId}`);
-
-      // Notify other participants
-      broadcastToSession(
-        clients,
-        sessionId,
-        {
-          type: 'player_joined',
-          payload: {
-            playerId: client.playerId,
-            sessionId,
-            timestamp: new Date().toISOString(),
-          },
-        },
-        client.id,
-      );
-
-      sendMessage(client.ws, {
-        type: 'session_joined',
-        payload: {
-          sessionId,
-          message: `Joined game session ${sessionId}`,
-        },
-      });
-      break;
-    }
-
-    case 'leave_session': {
-      const leftSessionId = client.gameSessionId;
-      if (leftSessionId) {
-        broadcastToSession(
-          clients,
-          leftSessionId,
-          {
-            type: 'player_left',
-            payload: {
-              playerId: client.playerId,
-              sessionId: leftSessionId,
-              timestamp: new Date().toISOString(),
-            },
-          },
-          client.id,
-        );
-      }
-      client.gameSessionId = undefined;
-      sendMessage(client.ws, {
-        type: 'session_left',
-        payload: { message: 'Left game session' },
-      });
-      break;
-    }
-
-    case 'game_action': {
-      // Forward game action to all participants in the session
-      if (!client.gameSessionId) {
-        sendMessage(client.ws, {
+    // ─── Matchmaking ──────────────────────────────────
+    case 'join_queue': {
+      const gameId = payload.gameId as string;
+      joinQueue(client, gameId, clients).catch((err) => {
+        console.error('[WS] Error joining queue:', err);
+        sendTo(client.ws, {
           type: 'error',
-          payload: { message: 'Not in a game session' },
+          payload: { message: 'Failed to join queue' },
         });
-        return;
-      }
-
-      broadcastToSession(
-        clients,
-        client.gameSessionId,
-        {
-          type: 'game_action',
-          payload: {
-            playerId: client.playerId,
-            action: payload.action,
-            timestamp: new Date().toISOString(),
-          },
-        },
-        client.id,
-      );
+      });
       break;
     }
 
+    case 'leave_queue': {
+      const removed = leaveQueue(client);
+      sendTo(client.ws, {
+        type: 'queue_left',
+        payload: { removed, message: removed ? 'Left queue' : 'Not in a queue' },
+      });
+      break;
+    }
+
+    // ─── Game Actions ─────────────────────────────────
+    case 'game_action': {
+      const action = (payload.action as Record<string, unknown>) || {};
+      handleGameAction(client, action, clients).catch((err) => {
+        console.error('[WS] Error handling game action:', err);
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Failed to process game action' },
+        });
+      });
+      break;
+    }
+
+    case 'end_game': {
+      const sessionId = payload.sessionId as string;
+      const scores = (payload.scores as Record<string, number>) || {};
+      const winnerId = (payload.winnerId as string) || null;
+      endSession(sessionId, scores, winnerId, clients).catch((err) => {
+        console.error('[WS] Error ending session:', err);
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Failed to end session' },
+        });
+      });
+      break;
+    }
+
+    // ─── Session Management ───────────────────────────
+    case 'leave': {
+      leaveSession(client, clients).catch((err) => {
+        console.error('[WS] Error leaving session:', err);
+      });
+      break;
+    }
+
+    // ─── Spectating ───────────────────────────────────
     case 'spectate': {
       const spectateSessionId = payload.sessionId as string;
       client.spectating = spectateSessionId;
       console.log(`[WS] Client ${client.id} spectating session ${spectateSessionId}`);
-
-      sendMessage(client.ws, {
+      sendTo(client.ws, {
         type: 'spectating',
         payload: {
           sessionId: spectateSessionId,
@@ -274,77 +295,83 @@ function handleMessage(
 
     case 'stop_spectating': {
       client.spectating = undefined;
-      sendMessage(client.ws, {
+      sendTo(client.ws, {
         type: 'stopped_spectating',
         payload: { message: 'Stopped spectating' },
       });
       break;
     }
 
+    // ─── Chat ─────────────────────────────────────────
     case 'chat': {
-      // Broadcast chat to the session
       const chatSessionId = client.gameSessionId || client.spectating;
       if (!chatSessionId) {
-        sendMessage(client.ws, {
+        sendTo(client.ws, {
           type: 'error',
           payload: { message: 'Not in a session or spectating' },
         });
-        return;
+        break;
       }
-
+      const rawMessage = String(payload.message);
+      if (rawMessage.trim().length === 0) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Chat message cannot be empty' },
+        });
+        break;
+      }
+      if (rawMessage.length > CHAT_MAX_LENGTH) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: {
+            message: `Chat message exceeds maximum length of ${CHAT_MAX_LENGTH} characters`,
+          },
+        });
+        break;
+      }
+      const sanitizedMessage = escapeHtml(rawMessage);
       broadcastToSession(clients, chatSessionId, {
         type: 'chat',
         payload: {
           playerId: client.playerId,
-          message: payload.message,
+          message: sanitizedMessage,
           timestamp: new Date().toISOString(),
         },
       });
       break;
     }
 
-    default: {
-      sendMessage(client.ws, {
-        type: 'error',
-        payload: {
-          message: `Unknown message type: ${type}`,
-          supportedTypes: [
-            'authenticate',
-            'join_session',
-            'leave_session',
-            'game_action',
-            'spectate',
-            'stop_spectating',
-            'chat',
-          ],
-        },
-      });
-    }
+    // Unknown types are caught by the validation above, so this is unreachable
+    default:
+      break;
   }
 }
 
 /**
- * Send a JSON message to a single WebSocket client
+ * Validate that required fields exist for each message type.
+ * Returns an error string if validation fails, or null if valid.
  */
-function sendMessage(ws: WebSocket, message: WSMessage): void {
-  if (ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(message));
+function validateMessageFields(type: string, payload: Record<string, unknown>): string | null {
+  switch (type) {
+    case 'authenticate':
+      if (!payload.token) return 'Missing required field "token" for authenticate message';
+      break;
+    case 'join_queue':
+      if (!payload.gameId) return 'Missing required field "gameId" for join_queue message';
+      break;
+    case 'game_action':
+      if (!payload.action) return 'Missing required field "action" for game_action message';
+      break;
+    case 'end_game':
+      if (!payload.sessionId) return 'Missing required field "sessionId" for end_game message';
+      break;
+    case 'spectate':
+      if (!payload.sessionId) return 'Missing required field "sessionId" for spectate message';
+      break;
+    case 'chat':
+      if (payload.message === undefined || payload.message === null)
+        return 'Missing required field "message" for chat message';
+      break;
   }
-}
-
-/**
- * Broadcast a message to all clients in a game session (players + spectators)
- */
-function broadcastToSession(
-  clients: Map<string, ConnectedClient>,
-  sessionId: string,
-  message: WSMessage,
-  excludeClientId?: string,
-): void {
-  for (const [clientId, client] of clients) {
-    if (clientId === excludeClientId) continue;
-    if (client.gameSessionId === sessionId || client.spectating === sessionId) {
-      sendMessage(client.ws, message);
-    }
-  }
+  return null;
 }

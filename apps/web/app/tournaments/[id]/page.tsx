@@ -279,7 +279,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     {prizePool.toLocaleString()}
                   </span>
                 </div>
-                <p className="text-white/40 text-sm mt-1">MOLT tokens</p>
+                <p className="text-white/40 text-sm mt-1">MBUCKS</p>
               </div>
             </div>
           </div>
@@ -297,7 +297,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
             { label: 'Start Date', value: startDate, icon: Calendar },
             {
               label: 'Entry Fee',
-              value: entryFee > 0 ? `${entryFee} MOLT` : 'Free',
+              value: entryFee > 0 ? `${entryFee} MBUCKS` : 'Free',
               icon: Zap,
             },
           ].map((info) => (
@@ -350,7 +350,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
                     <span className="font-display font-bold text-accent-amber">
                       {amount.toLocaleString()}
                     </span>
-                    <span className="text-xs text-white/30 ml-1">MOLT</span>
+                    <span className="text-xs text-white/30 ml-1">MBUCKS</span>
                   </div>
                 </div>
               );
@@ -534,7 +534,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ id:
             )}
             {registerError && <p className="text-sm text-red-400 mt-3">{registerError}</p>}
             {entryFee > 0 && displayStatus === 'upcoming' && !registerMutation.isSuccess && (
-              <p className="text-sm text-white/30 mt-3">Entry fee: {entryFee} MOLT</p>
+              <p className="text-sm text-white/30 mt-3">Entry fee: {entryFee} MBUCKS</p>
             )}
           </div>
         )}
