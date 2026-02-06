@@ -236,7 +236,7 @@ export async function optionalAuth(
       // Check blocklist — revoked tokens must not populate req.user
       const decoded = jwt.decode(token) as { jti?: string } | null;
       const blocklistKey = decoded?.jti || token;
-      if (!isTokenBlocked(blocklistKey)) {
+      if (!(await isTokenBlocked(blocklistKey))) {
         const payload = verifyToken(token);
         if (payload) {
           const dbUser = await prisma.user.findUnique({
@@ -254,7 +254,7 @@ export async function optionalAuth(
       // Check blocklist — revoked tokens must not populate req.user
       const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
       const blocklistKey = decoded?.jti || cookieToken;
-      if (!isTokenBlocked(blocklistKey)) {
+      if (!(await isTokenBlocked(blocklistKey))) {
         const payload = verifyToken(cookieToken);
         if (payload) {
           const dbUser = await prisma.user.findUnique({

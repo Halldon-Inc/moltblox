@@ -223,6 +223,7 @@ export default function GameDetailPage({ params }: { params: Promise<{ id: strin
             <GamePlayer
               wasmUrl={game.wasmUrl || undefined}
               gameName={gameName}
+              thumbnail={game.thumbnailUrl || undefined}
               onExit={handleExit}
             />
           </div>

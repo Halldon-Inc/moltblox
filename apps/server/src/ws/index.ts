@@ -6,7 +6,7 @@
  * Integrates with the session manager for Prisma-backed game lifecycle.
  */
 
-import { Server as HTTPServer } from 'http';
+import { Server as HTTPServer, IncomingMessage } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import jwt from 'jsonwebtoken';
@@ -22,6 +22,7 @@ import {
   handleDisconnect,
   broadcastToSession,
 } from './sessionManager.js';
+import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
@@ -74,7 +75,23 @@ function escapeHtml(str: string): string {
  * Initialize the WebSocket server on an existing HTTP server
  */
 export function createWebSocketServer(server: HTTPServer): WebSocketServer {
-  const wss = new WebSocketServer({ server });
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  const wss = new WebSocketServer({
+    server,
+    verifyClient: (info: { origin: string; req: IncomingMessage }, callback) => {
+      const origin = info.origin || info.req.headers.origin;
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(true);
+      } else {
+        console.warn(`[WS] Rejected connection from disallowed origin: ${origin}`);
+        callback(false, 403, 'Origin not allowed');
+      }
+    },
+  });
   const clients = new Map<string, ConnectedClient>();
 
   // Heartbeat interval to detect dead connections
@@ -126,7 +143,9 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     ws.on('message', (data: Buffer) => {
       try {
         const message: WSMessage = JSON.parse(data.toString());
-        handleMessage(client, message, clients);
+        handleMessage(client, message, clients).catch((err) =>
+          console.error('[WS] Error handling message:', err),
+        );
       } catch {
         sendTo(ws, {
           type: 'error',
@@ -164,11 +183,11 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
 /**
  * Route incoming WebSocket messages to appropriate handlers
  */
-function handleMessage(
+async function handleMessage(
   client: ConnectedClient,
   message: WSMessage,
   clients: Map<string, ConnectedClient>,
-): void {
+): Promise<void> {
   const { type, payload } = message;
 
   // H3: Validate message type is known
@@ -204,7 +223,22 @@ function handleMessage(
     case 'authenticate': {
       const token = payload.token as string;
       try {
-        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; address: string };
+        const decoded = jwt.verify(token, JWT_SECRET) as {
+          userId: string;
+          address: string;
+          jti?: string;
+        };
+
+        // Check if token has been blocklisted (logged out)
+        const blocklistKey = decoded.jti || token;
+        if (await isTokenBlocked(blocklistKey)) {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Token has been revoked' },
+          });
+          break;
+        }
+
         client.playerId = decoded.userId;
         sendTo(client.ws, {
           type: 'authenticated',

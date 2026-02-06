@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { ShoppingBag, Loader2, Check } from 'lucide-react';
+import { ShoppingBag, Loader2, Check, Wallet } from 'lucide-react';
+import { useAccount } from 'wagmi';
+import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { usePurchaseItem } from '@/hooks/useApi';
 
 export interface ItemCardProps {
@@ -62,8 +64,14 @@ export function ItemCard({
   const config = RARITY_CONFIG[rarity];
   const purchaseMutation = usePurchaseItem();
   const [purchased, setPurchased] = useState(false);
+  const { isConnected } = useAccount();
+  const { openConnectModal } = useConnectModal();
 
   const handleBuy = () => {
+    if (!isConnected) {
+      openConnectModal?.();
+      return;
+    }
     if (purchaseMutation.isPending || purchased) return;
     purchaseMutation.mutate(
       { id, quantity: 1 },
@@ -139,10 +147,15 @@ export function ItemCard({
 
         <button
           onClick={handleBuy}
-          disabled={purchaseMutation.isPending}
+          disabled={isConnected && purchaseMutation.isPending}
           className="btn-primary w-full py-2.5 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {purchaseMutation.isPending ? (
+          {!isConnected ? (
+            <>
+              <Wallet className="w-4 h-4" />
+              Connect Wallet
+            </>
+          ) : purchaseMutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
               Buying...
