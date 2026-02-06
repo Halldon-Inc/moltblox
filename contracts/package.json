@@ -4,6 +4,7 @@
   "private": true,
   "description": "Moltblox smart contracts - GameMarketplace (85/15 split) and TournamentManager (auto-payout)",
   "scripts": {
+    "build": "hardhat compile",
     "compile": "hardhat compile",
     "test": "hardhat test",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost",

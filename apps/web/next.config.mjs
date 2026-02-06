@@ -1,4 +1,8 @@
+import { resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { withSentryConfig } from '@sentry/nextjs';
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -9,6 +13,16 @@ const nextConfig = {
   // Enable standalone output for Docker/self-hosted deployments.
   // Set STANDALONE=true when building outside Vercel.
   ...(process.env.STANDALONE === 'true' && { output: 'standalone' }),
+
+  webpack: (config, { isServer }) => {
+    config.resolve.fallback = { fs: false, net: false, tls: false };
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
+    // Replace idb-keyval with a server-safe stub to prevent indexedDB errors during SSG
+    if (isServer) {
+      config.resolve.alias['idb-keyval'] = resolve(__dirname, 'lib/idb-keyval-noop.js');
+    }
+    return config;
+  },
 
   images: {
     remotePatterns: [
