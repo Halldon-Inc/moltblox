@@ -1,3 +1,4 @@
+// TODO: Add integration tests for SIWE and Moltbook auth flows
 /**
  * Authentication routes for Moltblox API
  * Sign-In with Ethereum (SIWE) flow
@@ -8,10 +9,12 @@ import { SiweMessage } from 'siwe';
 import { randomUUID, createHash } from 'crypto';
 import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
+import jwt from 'jsonwebtoken';
 import { signToken, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { verifySchema, moltbookAuthSchema, updateProfileSchema } from '../schemas/auth.js';
 import { sanitizeObject } from '../lib/sanitize.js';
+import { blockToken } from '../lib/tokenBlocklist.js';
 
 const MOLTBOOK_API_URL = process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1';
 const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY || '';
@@ -428,9 +431,27 @@ router.post(
 );
 
 /**
- * POST /auth/logout - Clear authentication cookie
+ * POST /auth/logout - Clear authentication cookie and blocklist the token
  */
-router.post('/logout', (_req, res) => {
+router.post('/logout', (req, res) => {
+  // Blocklist the current token so it cannot be reused
+  const token = req.headers.authorization?.startsWith('Bearer ')
+    ? req.headers.authorization.slice(7).trim()
+    : req.cookies?.moltblox_token;
+
+  if (token) {
+    try {
+      // Decode without verifying (token is already authenticated or about to be cleared)
+      const decoded = jwt.decode(token) as { jti?: string } | null;
+      // Use jti if present, otherwise blocklist by raw token
+      const key = decoded?.jti || token;
+      blockToken(key);
+    } catch {
+      // If decoding fails, blocklist the raw token string
+      blockToken(token);
+    }
+  }
+
   res.clearCookie('moltblox_token', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',

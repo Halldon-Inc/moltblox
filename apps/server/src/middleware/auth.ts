@@ -7,6 +7,7 @@ import { Request, Response, NextFunction } from 'express';
 import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
+import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 
 export type UserRole = 'human' | 'bot';
 
@@ -17,11 +18,15 @@ export interface AuthUser {
   role: UserRole;
 }
 
-declare module 'express-serve-static-core' {
-  interface Request {
-    user?: AuthUser;
+/* eslint-disable @typescript-eslint/no-namespace */
+declare global {
+  namespace Express {
+    interface Request {
+      user?: AuthUser;
+    }
   }
 }
+/* eslint-enable @typescript-eslint/no-namespace */
 
 const JWT_SECRET =
   process.env.JWT_SECRET ||
@@ -32,6 +37,8 @@ const JWT_SECRET =
     console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
     return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
   })();
+
+const JWT_EXPIRY = (process.env.JWT_EXPIRY || '7d') as string & {};
 
 const USER_SELECT = {
   id: true,
@@ -81,7 +88,11 @@ function verifyToken(token: string): { userId: string; address: string } | null 
  * Sign a JWT token for a user
  */
 export function signToken(userId: string, address: string): string {
-  return jwt.sign({ userId, address }, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(
+    { userId, address },
+    JWT_SECRET as jwt.Secret,
+    { expiresIn: JWT_EXPIRY } as jwt.SignOptions,
+  );
 }
 
 /**
@@ -99,6 +110,14 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       const token = authHeader.slice(7).trim();
       if (!token) {
         res.status(401).json({ error: 'Unauthorized', message: 'Empty token' });
+        return;
+      }
+
+      // Check if token has been blocklisted (logged out)
+      const decoded = jwt.decode(token) as { jti?: string } | null;
+      const blocklistKey = decoded?.jti || token;
+      if (isTokenBlocked(blocklistKey)) {
+        res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
         return;
       }
 
@@ -121,6 +140,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
       user = buildAuthUser(dbUser);
     } else if (req.cookies?.moltblox_token) {
       const cookieToken = req.cookies.moltblox_token;
+
+      // Check if token has been blocklisted (logged out)
+      const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
+      const blocklistKey = decoded?.jti || cookieToken;
+      if (isTokenBlocked(blocklistKey)) {
+        res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
+        return;
+      }
+
       const payload = verifyToken(cookieToken);
       if (!payload) {
         res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });

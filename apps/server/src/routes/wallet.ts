@@ -1,3 +1,4 @@
+// TODO: Add integration tests for wallet transfer flow
 /**
  * Wallet routes for Moltblox API
  * Moltbucks token balance, transfers, and transaction history
@@ -156,34 +157,39 @@ router.post(
         throw err;
       }
 
-      // Record outgoing transaction for sender
-      const outgoingTx = await prisma.transaction.create({
-        data: {
-          userId: user.id,
-          type: 'transfer_out',
-          amount: transferAmount,
-          counterparty: to,
-          description: `Transfer to ${to}`,
-        },
-      });
-
-      // If the recipient exists in the database, record an incoming transaction for them
-      const recipient = await prisma.user.findUnique({
-        where: { walletAddress: to },
-        select: { id: true },
-      });
-
-      if (recipient) {
-        await prisma.transaction.create({
+      // Wrap both records in a transaction for atomicity
+      const { outgoingTx, recipientFound } = await prisma.$transaction(async (tx) => {
+        // Record outgoing transaction for sender
+        const outgoing = await tx.transaction.create({
           data: {
-            userId: recipient.id,
-            type: 'transfer_in',
+            userId: user.id,
+            type: 'transfer_out',
             amount: transferAmount,
-            counterparty: user.address,
-            description: `Transfer from ${user.address}`,
+            counterparty: to,
+            description: `Transfer to ${to}`,
           },
         });
-      }
+
+        // If the recipient exists in the database, record an incoming transaction for them
+        const recipient = await tx.user.findUnique({
+          where: { walletAddress: to },
+          select: { id: true },
+        });
+
+        if (recipient) {
+          await tx.transaction.create({
+            data: {
+              userId: recipient.id,
+              type: 'transfer_in',
+              amount: transferAmount,
+              counterparty: user.address,
+              description: `Transfer from ${user.address}`,
+            },
+          });
+        }
+
+        return { outgoingTx: outgoing, recipientFound: !!recipient };
+      });
 
       res.json({
         transfer: {
@@ -192,13 +198,13 @@ router.post(
           to,
           amount: transferAmount.toString(),
           currency: 'MBUCKS',
-          status: 'recorded',
-          recipientFound: !!recipient,
+          status: 'pending_onchain',
+          recipientFound,
           createdAt: outgoingTx.createdAt,
         },
         message:
           'Transfer recorded. Execute the on-chain Moltbucks token transfer separately to complete.',
-        note: 'This endpoint records the intent to transfer. The actual token transfer must be executed on-chain via the Moltbucks token contract.',
+        note: 'This endpoint records the intent to transfer. The actual token transfer must be executed on-chain via the Moltbucks token contract. Clients should verify on-chain execution before considering the transfer final.',
       });
     } catch (error) {
       next(error);

@@ -2,15 +2,15 @@ import { z } from 'zod';
 
 export const verifySchema = {
   body: z.object({
-    message: z.string().min(1),
-    signature: z.string().min(1),
+    message: z.string().min(1).max(5000),
+    signature: z.string().min(1).max(500),
   }),
 };
 
 export const moltbookAuthSchema = {
   body: z.object({
-    identityToken: z.string().min(1, 'Moltbook identity token is required'),
-    walletAddress: z.string().min(1, 'Wallet address is required'),
+    identityToken: z.string().min(1, 'Moltbook identity token is required').max(500),
+    walletAddress: z.string().min(1, 'Wallet address is required').max(42),
   }),
 };
 

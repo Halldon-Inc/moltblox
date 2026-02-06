@@ -47,12 +47,7 @@ export class ValidationError extends AppError {
  * Global error handling middleware.
  * Must have 4 parameters to be recognized by Express as an error handler.
  */
-export function errorHandler(
-  err: Error,
-  _req: Request,
-  res: Response,
-  _next: NextFunction,
-): void {
+export function errorHandler(err: Error, _req: Request, res: Response, _next: NextFunction): void {
   console.error(`[ERROR] ${err.name}: ${err.message}`);
 
   Sentry.captureException(err);
@@ -76,11 +71,27 @@ export function errorHandler(
     return;
   }
 
-  // Unexpected errors
+  // Log full error details server-side (never expose to clients)
   console.error(err.stack);
+
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  // Handle Prisma/database errors — never leak DB details regardless of environment
+  const errCode = (err as unknown as Record<string, unknown>).code;
+  if (err.name?.startsWith('Prisma') || (typeof errCode === 'string' && errCode.startsWith('P'))) {
+    console.error(`[DB_ERROR] code=${errCode}`);
+    res.status(500).json({
+      error: 'InternalServerError',
+      message: 'A database error occurred',
+      statusCode: 500,
+    });
+    return;
+  }
+
+  // Generic fallback — hide details in production
   res.status(500).json({
     error: 'InternalServerError',
-    message: 'An unexpected error occurred',
+    message: isProduction ? 'Internal Server Error' : err.message,
     statusCode: 500,
   });
 }

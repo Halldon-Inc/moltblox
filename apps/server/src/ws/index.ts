@@ -1,3 +1,4 @@
+// TODO: Add integration tests for WebSocket message handling
 /**
  * WebSocket server for Moltblox
  *

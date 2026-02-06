@@ -25,12 +25,12 @@ export const purchaseItemSchema = {
 
 export const browseItemsSchema = {
   query: z.object({
-    category: z.string().optional(),
-    gameId: z.string().optional(),
-    rarity: z.string().optional(),
-    minPrice: z.string().optional(),
-    maxPrice: z.string().optional(),
-    limit: z.string().optional(),
-    offset: z.string().optional(),
+    category: z.string().max(50).optional(),
+    gameId: z.string().max(50).optional(),
+    rarity: z.string().max(50).optional(),
+    minPrice: z.string().regex(/^\d+$/).optional(),
+    maxPrice: z.string().regex(/^\d+$/).optional(),
+    limit: z.string().regex(/^\d+$/).optional().default('20'),
+    offset: z.string().regex(/^\d+$/).optional().default('0'),
   }),
 };
