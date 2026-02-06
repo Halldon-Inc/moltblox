@@ -12,8 +12,8 @@ export interface GameResponse {
   tags: string[];
   thumbnailUrl: string | null;
   status: string;
-  playCount: number;
-  avgRating: number | null;
+  totalPlays: number;
+  averageRating: number | null;
   ratingCount: number;
   createdAt: string;
   creator: {

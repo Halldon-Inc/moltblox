@@ -1,5 +1,6 @@
 'use client';
 
+import { use } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -55,10 +56,11 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default function GameDetailPage({ params }: { params: { id: string } }) {
-  const { data: game, isLoading: gameLoading, isError: gameError } = useGame(params.id);
-  const { data: stats } = useGameStats(params.id);
-  const { data: itemsData } = useItems({ gameId: params.id, limit: 4 });
+export default function GameDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: game, isLoading: gameLoading, isError: gameError } = useGame(id);
+  const { data: stats } = useGameStats(id);
+  const { data: itemsData } = useItems({ gameId: id, limit: 4 });
   const { data: relatedData } = useGames({ limit: 3 });
 
   const isLoading = gameLoading;
@@ -90,12 +92,13 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
   const thumbnail = game.thumbnailUrl || '#14b8a6, #0a1a1a';
   const rating = game.averageRating ?? 0;
   const playCount = game.totalPlays ?? 0;
-  const playerCount = game.activePlayers ?? 0;
+  const playerCount = game.uniquePlayers ?? 0;
   const tags: string[] = Array.isArray(game.tags) ? game.tags : [];
   const description = game.description || '';
 
   const gameStats = {
-    totalPlays: stats?.totalPlays != null ? formatNumber(stats.totalPlays) : formatNumber(playCount),
+    totalPlays:
+      stats?.totalPlays != null ? formatNumber(stats.totalPlays) : formatNumber(playCount),
     uniquePlayers: stats?.uniquePlayers != null ? formatNumber(stats.uniquePlayers) : '--',
     avgSession: stats?.avgSessionTime || stats?.avgSession || '--',
     created: game.createdAt ? formatDate(game.createdAt) : '--',
@@ -103,9 +106,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
 
   const items = itemsData?.items ?? [];
 
-  const relatedGames = (relatedData?.games ?? [])
-    .filter((g: any) => g.id !== params.id)
-    .slice(0, 3);
+  const relatedGames = (relatedData?.games ?? []).filter((g: any) => g.id !== id).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-surface-dark pb-20">
@@ -152,9 +153,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
                       <Star
                         key={i}
                         className={`w-4 h-4 ${
-                          i < Math.floor(rating)
-                            ? 'text-accent-amber'
-                            : 'text-white/20'
+                          i < Math.floor(rating) ? 'text-accent-amber' : 'text-white/20'
                         }`}
                         fill={i < Math.floor(rating) ? 'currentColor' : 'none'}
                       />
@@ -241,7 +240,9 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
                   <div key={stat.label} className="bg-surface-dark/50 rounded-xl p-4">
                     <div className="flex items-center gap-2 mb-1">
                       <stat.icon className="w-3.5 h-3.5 text-white/30" />
-                      <span className="text-xs text-white/40 uppercase tracking-wider">{stat.label}</span>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">
+                        {stat.label}
+                      </span>
                     </div>
                     <p className="font-display font-bold text-lg text-white">{stat.value}</p>
                   </div>
@@ -317,7 +318,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
                   thumbnail={g.thumbnailUrl || '#14b8a6, #0a1a1a'}
                   rating={g.averageRating ?? 0}
                   playCount={g.totalPlays ?? 0}
-                  playerCount={g.activePlayers ?? 0}
+                  playerCount={g.uniquePlayers ?? 0}
                   tags={Array.isArray(g.tags) ? g.tags : []}
                 />
               ))}

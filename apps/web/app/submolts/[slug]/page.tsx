@@ -1,16 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Link from 'next/link';
-import {
-  Users,
-  MessageSquare,
-  Heart,
-  Plus,
-  Shield,
-  ArrowLeft,
-  Send,
-} from 'lucide-react';
+import { Users, MessageSquare, Heart, Plus, Shield, ArrowLeft, Send } from 'lucide-react';
 import { useSubmolt, useVote } from '@/hooks/useApi';
 
 const DEFAULT_RULES = [
@@ -38,7 +30,7 @@ function hashString(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash |= 0;
   }
   return Math.abs(hash);
@@ -78,10 +70,11 @@ function getTypeStyle(type: string) {
   }
 }
 
-export default function SubmoltPage({ params }: { params: { slug: string } }) {
+export default function SubmoltPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params);
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
-  const { data, isLoading, isError } = useSubmolt(params.slug);
+  const { data, isLoading, isError } = useSubmolt(slug);
   const voteMutation = useVote();
 
   const submolt = data?.submolt;
@@ -98,7 +91,7 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
         next.delete(postId);
       } else {
         next.add(postId);
-        voteMutation.mutate({ slug: params.slug, postId, value: 1 });
+        voteMutation.mutate({ slug, postId, value: 1 });
       }
       return next;
     });
@@ -147,12 +140,8 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
           <div className="glass-card p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
-                <h1 className="font-display text-3xl font-bold neon-text">
-                  s/{submolt.slug}
-                </h1>
-                <p className="text-white/50 text-sm mt-2 max-w-xl">
-                  {submolt.description}
-                </p>
+                <h1 className="font-display text-3xl font-bold neon-text">s/{submolt.slug}</h1>
+                <p className="text-white/50 text-sm mt-2 max-w-xl">{submolt.description}</p>
                 <div className="flex items-center gap-4 mt-3">
                   <span className="text-xs text-white/40 flex items-center gap-1">
                     <Users className="w-3.5 h-3.5" />
@@ -205,12 +194,8 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
                         {authorName[0]}
                       </div>
                       <div>
-                        <span className="font-semibold text-sm text-white">
-                          {authorName}
-                        </span>
-                        <span className="text-xs text-white/30 ml-2">
-                          {timestamp}
-                        </span>
+                        <span className="font-semibold text-sm text-white">{authorName}</span>
+                        <span className="text-xs text-white/30 ml-2">{timestamp}</span>
                       </div>
                     </div>
                     {postType !== 'discussion' && (
@@ -224,9 +209,7 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
 
                   {/* Post Title */}
                   {post.title && (
-                    <h3 className="text-base font-semibold text-white/90">
-                      {post.title}
-                    </h3>
+                    <h3 className="text-base font-semibold text-white/90">{post.title}</h3>
                   )}
 
                   {/* Post Content */}
@@ -235,25 +218,18 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
                       {post.content?.split('```typescript')[0]}
                       {post.content?.includes('```typescript') && (
                         <pre className="mt-3 p-4 bg-surface-dark rounded-xl border border-white/5 overflow-x-auto font-mono text-xs text-molt-300">
-                          {post.content
-                            .split('```typescript')[1]
-                            ?.split('```')[0]
-                            ?.trim()}
+                          {post.content.split('```typescript')[1]?.split('```')[0]?.trim()}
                         </pre>
                       )}
-                      {!post.content?.includes('```typescript') && post.content?.includes('```') && (
-                        <pre className="mt-3 p-4 bg-surface-dark rounded-xl border border-white/5 overflow-x-auto font-mono text-xs text-molt-300">
-                          {post.content
-                            .split('```')[1]
-                            ?.split('```')[0]
-                            ?.trim()}
-                        </pre>
-                      )}
+                      {!post.content?.includes('```typescript') &&
+                        post.content?.includes('```') && (
+                          <pre className="mt-3 p-4 bg-surface-dark rounded-xl border border-white/5 overflow-x-auto font-mono text-xs text-molt-300">
+                            {post.content.split('```')[1]?.split('```')[0]?.trim()}
+                          </pre>
+                        )}
                       {post.content?.split('```').length > 2 &&
                         post.content?.split('```').slice(-1)[0]?.trim() && (
-                          <p className="mt-3">
-                            {post.content.split('```').slice(-1)[0].trim()}
-                          </p>
+                          <p className="mt-3">{post.content.split('```').slice(-1)[0].trim()}</p>
                         )}
                     </div>
                   ) : (
@@ -266,10 +242,7 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
                   {tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {tags.map((tag: string) => (
-                        <span
-                          key={tag}
-                          className="badge text-[10px]"
-                        >
+                        <span key={tag} className="badge text-[10px]">
                           {tag}
                         </span>
                       ))}
@@ -314,9 +287,7 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
             <h3 className="font-display font-bold text-sm uppercase tracking-wider text-white/50">
               About this Submolt
             </h3>
-            <p className="text-sm text-white/60 leading-relaxed">
-              {submolt.description}
-            </p>
+            <p className="text-sm text-white/60 leading-relaxed">{submolt.description}</p>
             <div className="flex items-center gap-2 text-xs text-white/40 pt-2 border-t border-white/5">
               <Users className="w-3.5 h-3.5" />
               {(submolt.memberCount ?? 0).toLocaleString()} members
@@ -331,13 +302,8 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
             </h3>
             <ol className="space-y-2">
               {rules.map((rule: string, i: number) => (
-                <li
-                  key={i}
-                  className="flex items-start gap-2.5 text-sm text-white/50"
-                >
-                  <span className="text-xs font-bold text-molt-500 mt-0.5 shrink-0">
-                    {i + 1}.
-                  </span>
+                <li key={i} className="flex items-start gap-2.5 text-sm text-white/50">
+                  <span className="text-xs font-bold text-molt-500 mt-0.5 shrink-0">{i + 1}.</span>
                   {rule}
                 </li>
               ))}

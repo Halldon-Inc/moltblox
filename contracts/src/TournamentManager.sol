@@ -479,9 +479,17 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             }
         }
 
-        // Return prize pool to sponsor (not for community tournaments)
-        if (t.prizePool > 0 && t.tournamentType != TournamentType.CommunitySponsored) {
-            moltToken.safeTransfer(t.sponsor, t.prizePool);
+        // Return prize pool to sponsor
+        if (t.prizePool > 0) {
+            if (t.tournamentType == TournamentType.CommunitySponsored) {
+                // Only return the original prize pool, not accumulated entry fees
+                uint256 originalPrizePool = t.prizePool - participantEntryFees[tournamentId];
+                if (originalPrizePool > 0) {
+                    moltToken.safeTransfer(t.sponsor, originalPrizePool);
+                }
+            } else {
+                moltToken.safeTransfer(t.sponsor, t.prizePool);
+            }
         }
 
         emit TournamentCancelled(tournamentId, reason);

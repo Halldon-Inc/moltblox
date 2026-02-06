@@ -20,6 +20,16 @@ function hashApiKey(key: string): string {
 }
 
 /**
+ * GET /auth/csrf - Get CSRF token (also sets cookie)
+ * Called by frontend on app initialization
+ */
+router.get('/csrf', (req: Request, res: Response) => {
+  // The csrfTokenSetter middleware already sets the cookie if missing
+  const token = req.cookies?.moltblox_csrf;
+  res.json({ csrfToken: token || 'pending' });
+});
+
+/**
  * GET /auth/nonce - Get a nonce for SIWE
  * The client includes this nonce in the SIWE message to prevent replay attacks.
  */
@@ -41,90 +51,97 @@ router.get('/nonce', async (req: Request, res: Response, next: NextFunction) => 
  * POST /auth/verify - Verify SIWE signature and issue JWT
  * Body: { message: string, signature: string }
  */
-router.post('/verify', validate(verifySchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { message, signature } = req.body;
+router.post(
+  '/verify',
+  validate(verifySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { message, signature } = req.body;
 
-    if (!message || !signature) {
-      res.status(400).json({
-        error: 'BadRequest',
-        message: 'Missing message or signature',
+      if (!message || !signature) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Missing message or signature',
+        });
+        return;
+      }
+
+      // Parse and verify the SIWE message
+      const siweMessage = new SiweMessage(message);
+
+      // Validate nonce
+      const siweNonce = siweMessage.nonce;
+      if (!siweNonce || !(await redis.exists(siweNonce))) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid or expired nonce. Request a new one.',
+        });
+        return;
+      }
+      // Consume nonce (one-time use)
+      await redis.del(siweNonce);
+
+      const { data: verified } = await siweMessage.verify({ signature });
+
+      const address = verified.address.toLowerCase();
+
+      // Find or create user
+      let user = await prisma.user.findUnique({
+        where: { walletAddress: address },
       });
-      return;
-    }
 
-    // Parse and verify the SIWE message
-    const siweMessage = new SiweMessage(message);
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            walletAddress: address,
+            username: `molt_${address.slice(2, 8)}`,
+            lastLoginAt: new Date(),
+          },
+        });
+      } else {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLoginAt: new Date() },
+        });
+      }
 
-    // Validate nonce
-    const siweNonce = siweMessage.nonce;
-    if (!siweNonce || !(await redis.exists(siweNonce))) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid or expired nonce. Request a new one.',
+      // Issue JWT
+      const token = signToken(user.id, address);
+
+      res.cookie('moltblox_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: '/',
       });
-      return;
-    }
-    // Consume nonce (one-time use)
-    await redis.del(siweNonce);
 
-    const { data: verified } = await siweMessage.verify({ signature });
-
-    const address = verified.address.toLowerCase();
-
-    // Find or create user
-    let user = await prisma.user.findUnique({
-      where: { walletAddress: address },
-    });
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          walletAddress: address,
-          username: `molt_${address.slice(2, 8)}`,
-          lastLoginAt: new Date(),
+      res.json({
+        token,
+        user: {
+          id: user.id,
+          address: user.walletAddress,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
         },
+        expiresIn: '7d',
       });
-    } else {
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { lastLoginAt: new Date() },
-      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.message?.includes('Signature') || error.message?.includes('verify'))
+      ) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid SIWE signature',
+        });
+        return;
+      }
+      next(error);
     }
-
-    // Issue JWT
-    const token = signToken(user.id, address);
-
-    res.cookie('moltblox_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/',
-    });
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        address: user.walletAddress,
-        username: user.username,
-        displayName: user.displayName,
-        avatarUrl: user.avatarUrl,
-      },
-      expiresIn: '7d',
-    });
-  } catch (error: unknown) {
-    if (error instanceof Error && (error.message?.includes('Signature') || error.message?.includes('verify'))) {
-      res.status(401).json({
-        error: 'Unauthorized',
-        message: 'Invalid SIWE signature',
-      });
-      return;
-    }
-    next(error);
-  }
-});
+  },
+);
 
 /**
  * POST /auth/refresh - Refresh JWT token (auth required)
@@ -195,51 +212,59 @@ router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFun
 /**
  * PUT /auth/profile - Update user profile (auth required)
  */
-router.put('/profile', requireAuth, validate(updateProfileSchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { username, displayName, bio, avatarUrl } = req.body;
+router.put(
+  '/profile',
+  requireAuth,
+  validate(updateProfileSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { username, displayName, bio, avatarUrl } = req.body;
 
-    // Sanitize user input
-    const sanitized = sanitizeObject({ displayName, bio } as Record<string, unknown>, ['displayName', 'bio']);
+      // Sanitize user input
+      const sanitized = sanitizeObject({ displayName, bio } as Record<string, unknown>, [
+        'displayName',
+        'bio',
+      ]);
 
-    const updateData: Record<string, string> = {};
-    if (username !== undefined) updateData.username = username;
-    if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
-    if (bio !== undefined) updateData.bio = sanitized.bio as string;
-    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+      const updateData: Record<string, string> = {};
+      if (username !== undefined) updateData.username = username;
+      if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
+      if (bio !== undefined) updateData.bio = sanitized.bio as string;
+      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
 
-    if (Object.keys(updateData).length === 0) {
-      res.status(400).json({ error: 'BadRequest', message: 'No fields to update' });
-      return;
-    }
-
-    // Check username uniqueness
-    if (username) {
-      const existing = await prisma.user.findUnique({ where: { username } });
-      if (existing && existing.id !== req.user!.id) {
-        res.status(409).json({ error: 'Conflict', message: 'Username already taken' });
+      if (Object.keys(updateData).length === 0) {
+        res.status(400).json({ error: 'BadRequest', message: 'No fields to update' });
         return;
       }
+
+      // Check username uniqueness
+      if (username) {
+        const existing = await prisma.user.findUnique({ where: { username } });
+        if (existing && existing.id !== req.user!.id) {
+          res.status(409).json({ error: 'Conflict', message: 'Username already taken' });
+          return;
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.user!.id },
+        data: updateData,
+        select: {
+          id: true,
+          walletAddress: true,
+          username: true,
+          displayName: true,
+          avatarUrl: true,
+          bio: true,
+        },
+      });
+
+      res.json({ user, message: 'Profile updated' });
+    } catch (error) {
+      next(error);
     }
-
-    const user = await prisma.user.update({
-      where: { id: req.user!.id },
-      data: updateData,
-      select: {
-        id: true,
-        walletAddress: true,
-        username: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-      },
-    });
-
-    res.json({ user, message: 'Profile updated' });
-  } catch (error) {
-    next(error);
-  }
-});
+  },
+);
 
 /**
  * POST /auth/api-key - Generate an API key for bot access (auth required)
@@ -266,7 +291,12 @@ router.post('/api-key', requireAuth, async (req: Request, res: Response, next: N
  * POST /auth/logout - Clear authentication cookie
  */
 router.post('/logout', (_req, res) => {
-  res.clearCookie('moltblox_token', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'strict', path: '/' });
+  res.clearCookie('moltblox_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/',
+  });
   res.json({ message: 'Logged out' });
 });
 

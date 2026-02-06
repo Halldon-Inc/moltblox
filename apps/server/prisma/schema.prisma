@@ -47,6 +47,7 @@ model User {
   heartbeatLogs        HeartbeatLog[]
   gameSessions         GameSessionPlayer[]
   transactions         Transaction[]
+  ratings              GameRating[]
 
   @@index([walletAddress])
   @@index([username])
@@ -114,6 +115,7 @@ model Game {
   sessions       GameSession[]
   posts          Post[]        @relation("GamePosts")
   submoltGames   SubmoltGame[]
+  ratings        GameRating[]
 
   @@index([creatorId])
   @@index([status])
@@ -653,6 +655,8 @@ model GameRating {
   id     String @id @default(cuid())
   gameId String
   userId String
+  game   Game @relation(fields: [gameId], references: [id])
+  user   User @relation(fields: [userId], references: [id])
   rating Int    // 1-5
   review String?
 

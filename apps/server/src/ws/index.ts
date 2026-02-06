@@ -6,6 +6,17 @@
 import { Server as HTTPServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: JWT_SECRET must be set in production');
+    }
+    console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
+    return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
+  })();
 
 interface ConnectedClient {
   id: string;
@@ -92,14 +103,19 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
 
       // Notify game session participants if applicable
       if (client.gameSessionId) {
-        broadcastToSession(clients, client.gameSessionId, {
-          type: 'player_disconnected',
-          payload: {
-            playerId: client.playerId,
-            clientId,
-            timestamp: new Date().toISOString(),
+        broadcastToSession(
+          clients,
+          client.gameSessionId,
+          {
+            type: 'player_disconnected',
+            payload: {
+              playerId: client.playerId,
+              clientId,
+              timestamp: new Date().toISOString(),
+            },
           },
-        }, clientId);
+          clientId,
+        );
       }
 
       clients.delete(clientId);
@@ -133,15 +149,30 @@ function handleMessage(
 
   switch (type) {
     case 'authenticate': {
-      // Associate a player ID with this connection
-      client.playerId = payload.playerId as string;
-      sendMessage(client.ws, {
-        type: 'authenticated',
-        payload: {
-          playerId: client.playerId,
-          message: 'Authentication successful',
-        },
-      });
+      const token = payload.token as string;
+      if (!token) {
+        sendMessage(client.ws, {
+          type: 'error',
+          payload: { message: 'Missing token in authenticate message' },
+        });
+        break;
+      }
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; address: string };
+        client.playerId = decoded.userId;
+        sendMessage(client.ws, {
+          type: 'authenticated',
+          payload: {
+            playerId: client.playerId,
+            message: 'Authentication successful',
+          },
+        });
+      } catch {
+        sendMessage(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid or expired token' },
+        });
+      }
       break;
     }
 
@@ -151,14 +182,19 @@ function handleMessage(
       console.log(`[WS] Client ${client.id} joined session ${sessionId}`);
 
       // Notify other participants
-      broadcastToSession(clients, sessionId, {
-        type: 'player_joined',
-        payload: {
-          playerId: client.playerId,
-          sessionId,
-          timestamp: new Date().toISOString(),
+      broadcastToSession(
+        clients,
+        sessionId,
+        {
+          type: 'player_joined',
+          payload: {
+            playerId: client.playerId,
+            sessionId,
+            timestamp: new Date().toISOString(),
+          },
         },
-      }, client.id);
+        client.id,
+      );
 
       sendMessage(client.ws, {
         type: 'session_joined',
@@ -173,14 +209,19 @@ function handleMessage(
     case 'leave_session': {
       const leftSessionId = client.gameSessionId;
       if (leftSessionId) {
-        broadcastToSession(clients, leftSessionId, {
-          type: 'player_left',
-          payload: {
-            playerId: client.playerId,
-            sessionId: leftSessionId,
-            timestamp: new Date().toISOString(),
+        broadcastToSession(
+          clients,
+          leftSessionId,
+          {
+            type: 'player_left',
+            payload: {
+              playerId: client.playerId,
+              sessionId: leftSessionId,
+              timestamp: new Date().toISOString(),
+            },
           },
-        }, client.id);
+          client.id,
+        );
       }
       client.gameSessionId = undefined;
       sendMessage(client.ws, {
@@ -200,14 +241,19 @@ function handleMessage(
         return;
       }
 
-      broadcastToSession(clients, client.gameSessionId, {
-        type: 'game_action',
-        payload: {
-          playerId: client.playerId,
-          action: payload.action,
-          timestamp: new Date().toISOString(),
+      broadcastToSession(
+        clients,
+        client.gameSessionId,
+        {
+          type: 'game_action',
+          payload: {
+            playerId: client.playerId,
+            action: payload.action,
+            timestamp: new Date().toISOString(),
+          },
         },
-      }, client.id);
+        client.id,
+      );
       break;
     }
 

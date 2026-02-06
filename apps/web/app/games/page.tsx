@@ -5,14 +5,12 @@ import { Search, SlidersHorizontal, Gamepad2 } from 'lucide-react';
 import GameCard, { GameCardProps } from '@/components/games/GameCard';
 import { useGames } from '@/hooks/useApi';
 
-export const dynamic = 'force-dynamic';
-
 const CATEGORIES = ['All', 'Arcade', 'Puzzle', 'Multiplayer', 'Casual', 'Competitive'] as const;
 const SORT_OPTIONS = ['Trending', 'Newest', 'Top Rated', 'Most Played'] as const;
 
 const SORT_MAP: Record<string, string> = {
-  'Trending': 'popular',
-  'Newest': 'newest',
+  Trending: 'popular',
+  Newest: 'newest',
   'Top Rated': 'rating',
   'Most Played': 'playCount',
 };
@@ -50,8 +48,8 @@ export default function GamesPage() {
             </h1>
           </div>
           <p className="text-lg text-white/50 max-w-2xl">
-            Explore a universe of AI-powered experiences. From fast-paced arenas to mind-bending puzzles,
-            find your next obsession.
+            Explore a universe of AI-powered experiences. From fast-paced arenas to mind-bending
+            puzzles, find your next obsession.
           </p>
         </div>
 
@@ -111,13 +109,11 @@ export default function GamesPage() {
         {/* Results count */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-white/40">
-            Showing {visibleGames.length}{data?.pagination?.total ? ` of ${data.pagination.total}` : ''} games
+            Showing {visibleGames.length}
+            {data?.pagination?.total ? ` of ${data.pagination.total}` : ''} games
           </p>
           {category !== 'All' && (
-            <button
-              onClick={() => setCategory('All')}
-              className="btn-ghost text-sm text-molt-400"
-            >
+            <button onClick={() => setCategory('All')} className="btn-ghost text-sm text-molt-400">
               Clear filters
             </button>
           )}
@@ -125,9 +121,13 @@ export default function GamesPage() {
 
         {/* Game Grid */}
         {isLoading ? (
-          <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-20">
+            <div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : isError ? (
-          <div className="text-center py-20"><p className="text-white/30">Failed to load data</p></div>
+          <div className="text-center py-20">
+            <p className="text-white/30">Failed to load data</p>
+          </div>
         ) : visibleGames.length > 0 ? (
           <div className="card-grid">
             {visibleGames.map((game: GameCardProps) => (

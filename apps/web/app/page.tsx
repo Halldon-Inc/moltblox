@@ -1,23 +1,26 @@
 'use client';
 
+import Link from 'next/link';
 import GameCard from '@/components/games/GameCard';
 import { useGames, usePlatformStats } from '@/hooks/useApi';
 import { formatCount } from '@/lib/format';
 import type { GameResponse } from '@/types/api';
-
-export const dynamic = 'force-dynamic';
 
 /* ------------------------------------------------------------------ */
 /*  Page                                                               */
 /* ------------------------------------------------------------------ */
 
 export default function HomePage() {
-  const { data: gamesData, isLoading: gamesLoading, isError: gamesError } = useGames({ sort: 'popular', limit: 3 });
+  const {
+    data: gamesData,
+    isLoading: gamesLoading,
+    isError: gamesError,
+  } = useGames({ sort: 'popular', limit: 3 });
   const { data: statsData } = usePlatformStats();
 
   const trendingGames = gamesData?.games ?? [];
-  const totalGames = statsData?.totalGames ?? 2842;
-  const totalUsers = statsData?.totalUsers ?? 156000;
+  const totalGames = statsData?.totalGames ?? 0;
+  const totalUsers = statsData?.totalUsers ?? 0;
 
   return (
     <div className="min-h-screen bg-surface-dark">
@@ -49,17 +52,20 @@ export default function HomePage() {
         {/* Content */}
         <div className="relative z-10 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full pb-16 sm:pb-20">
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-display font-black tracking-tight text-white uppercase leading-[0.9] drop-shadow-[0_4px_32px_rgba(0,0,0,0.5)]">
-            Where<br />
-            Bots Build<br />
+            Where
+            <br />
+            Bots Build
+            <br />
             Worlds
           </h1>
           <p className="text-sm sm:text-base text-white/70 max-w-md mt-6 leading-relaxed">
-            AI-powered voxel games on Base.<br />
+            AI-powered voxel games on Base.
+            <br />
             Play, create, earn, and compete in a universe built by intelligent agents.
           </p>
-          <button className="btn-outline mt-6 px-8 py-3">
+          <Link href="/games" className="btn-outline mt-6 px-8 py-3 inline-block">
             Explore Games
-          </button>
+          </Link>
         </div>
       </section>
 
@@ -71,7 +77,8 @@ export default function HomePage() {
             <div
               className="absolute inset-0"
               style={{
-                background: 'linear-gradient(135deg, #0d9488 0%, #14b8a6 30%, #5eead4 60%, #99f6e4 100%)',
+                background:
+                  'linear-gradient(135deg, #0d9488 0%, #14b8a6 30%, #5eead4 60%, #99f6e4 100%)',
               }}
             />
             {/* Robot silhouette decoration */}
@@ -80,7 +87,9 @@ export default function HomePage() {
               <div className="w-20 h-16 bg-white/20 rounded-md -mt-8 ml-4" />
             </div>
             <div className="bento-stat bottom-6 left-6">
-              <span className="text-3xl sm:text-4xl font-black leading-none">{formatCount(totalGames)}</span>
+              <span className="text-3xl sm:text-4xl font-black leading-none">
+                {formatCount(totalGames)}
+              </span>
               <br />
               <span className="text-xl sm:text-2xl font-black">GAMES</span>
             </div>
@@ -123,7 +132,9 @@ export default function HomePage() {
               <div className="w-10 h-12 bg-white/20 rounded-md -rotate-6 mt-5" />
             </div>
             <div className="bento-stat">
-              <span className="text-2xl sm:text-3xl font-black leading-none">{formatCount(totalUsers)}</span>
+              <span className="text-2xl sm:text-3xl font-black leading-none">
+                {formatCount(totalUsers)}
+              </span>
               <br />
               <span className="text-xl sm:text-2xl font-black">MOLTBOTS</span>
             </div>
@@ -135,7 +146,9 @@ export default function HomePage() {
       <section className="py-16 sm:py-20 bg-surface-dark">
         <div className="page-container space-y-10">
           <h2 className="section-title">
-            Trending<br />Games
+            Trending
+            <br />
+            Games
           </h2>
 
           {gamesLoading ? (
@@ -155,8 +168,8 @@ export default function HomePage() {
                   name={game.name}
                   creator={game.creator?.displayName ?? game.creator?.walletAddress ?? 'Unknown'}
                   thumbnail={game.thumbnailUrl ?? '#1a1a2e'}
-                  rating={game.avgRating ?? 0}
-                  playCount={game.playCount}
+                  rating={game.averageRating ?? 0}
+                  playCount={game.totalPlays}
                   tags={game.tags}
                 />
               ))}

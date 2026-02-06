@@ -5,31 +5,26 @@ import { ShoppingBag, Search, SlidersHorizontal } from 'lucide-react';
 import { ItemCard, ItemCardProps } from '@/components/marketplace/ItemCard';
 import { useItems } from '@/hooks/useApi';
 
-export const dynamic = 'force-dynamic';
-
 const CATEGORIES = ['All', 'Cosmetics', 'Power-ups', 'Consumables', 'Subscriptions'] as const;
-
-const GAMES = [
-  'All Games',
-  'Click Race',
-  'Puzzle Master',
-  'Strategy Wars',
-  'Space Shooter',
-  'Neon Arena',
-  'Voxel Craft',
-] as const;
 
 type Category = (typeof CATEGORIES)[number];
 
+function weiToMolt(wei: string | number): number {
+  if (typeof wei === 'number') return wei;
+  try {
+    return Number(BigInt(wei) / BigInt(10 ** 18));
+  } catch {
+    return 0;
+  }
+}
+
 export default function MarketplacePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
-  const [selectedGame, setSelectedGame] = useState<string>('All Games');
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data, isLoading, isError } = useItems({
     category: selectedCategory !== 'All' ? selectedCategory.toLowerCase() : undefined,
-    gameId: selectedGame !== 'All Games' ? selectedGame : undefined,
     rarity: undefined,
   });
 
@@ -37,7 +32,11 @@ export default function MarketplacePage() {
 
   // Client-side filtering for price range and search (these may not be supported by the API)
   const filteredItems = items.filter((item: ItemCardProps) => {
-    if (item.price < priceRange[0] || item.price > priceRange[1]) return false;
+    if (
+      weiToMolt(String(item.price)) < priceRange[0] ||
+      weiToMolt(String(item.price)) > priceRange[1]
+    )
+      return false;
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
       return (
@@ -59,9 +58,7 @@ export default function MarketplacePage() {
           </div>
           <div>
             <h1 className="section-title">Marketplace</h1>
-            <p className="text-white/50 text-sm mt-1">
-              Find items for your favorite games
-            </p>
+            <p className="text-white/50 text-sm mt-1">Find items for your favorite games</p>
           </div>
         </div>
       </div>
@@ -82,30 +79,15 @@ export default function MarketplacePage() {
           </div>
 
           <div className="flex gap-3">
-            {/* Game Filter */}
-            <select
-              value={selectedGame}
-              onChange={(e) => setSelectedGame(e.target.value)}
-              className="input-field w-auto min-w-[160px] appearance-none cursor-pointer"
-            >
-              {GAMES.map((g) => (
-                <option key={g} value={g} className="bg-surface-dark">
-                  {g}
-                </option>
-              ))}
-            </select>
-
             {/* Price Range */}
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="w-4 h-4 text-white/30 shrink-0" />
               <input
                 type="number"
                 min={0}
-                max={100}
+                max={10000}
                 value={priceRange[0]}
-                onChange={(e) =>
-                  setPriceRange([Number(e.target.value), priceRange[1]])
-                }
+                onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
                 className="input-field w-20 text-center text-sm"
                 placeholder="Min"
               />
@@ -113,11 +95,9 @@ export default function MarketplacePage() {
               <input
                 type="number"
                 min={0}
-                max={100}
+                max={10000}
                 value={priceRange[1]}
-                onChange={(e) =>
-                  setPriceRange([priceRange[0], Number(e.target.value)])
-                }
+                onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
                 className="input-field w-20 text-center text-sm"
                 placeholder="Max"
               />
@@ -147,15 +127,23 @@ export default function MarketplacePage() {
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-white/40">
-          Showing <span className="text-white/70 font-medium">{isLoading ? '-' : filteredItems.length}</span> items
+          Showing{' '}
+          <span className="text-white/70 font-medium">
+            {isLoading ? '-' : filteredItems.length}
+          </span>{' '}
+          items
         </p>
       </div>
 
       {/* Items Grid */}
       {isLoading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-20">
+          <div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" />
+        </div>
       ) : isError ? (
-        <div className="text-center py-20"><p className="text-white/30">Failed to load data</p></div>
+        <div className="text-center py-20">
+          <p className="text-white/30">Failed to load data</p>
+        </div>
       ) : filteredItems.length > 0 ? (
         <div className="card-grid">
           {filteredItems.map((item: ItemCardProps) => (
@@ -168,9 +156,7 @@ export default function MarketplacePage() {
             <ShoppingBag className="w-8 h-8 text-white/20" />
           </div>
           <h3 className="text-lg font-semibold text-white/60 mb-1">No items found</h3>
-          <p className="text-white/30 text-sm">
-            Try adjusting your filters or search query.
-          </p>
+          <p className="text-white/30 text-sm">Try adjusting your filters or search query.</p>
         </div>
       )}
     </div>

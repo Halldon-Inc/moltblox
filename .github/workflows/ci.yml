@@ -46,7 +46,7 @@ jobs:
         run: pnpm test
 
       - name: Type check
-        run: pnpm -r exec tsc --noEmit || true
+        run: pnpm -r exec tsc --noEmit
 
   security-scan:
     name: Security Scan
@@ -72,7 +72,7 @@ jobs:
         continue-on-error: true
 
       - name: Type checking
-        run: pnpm -r exec tsc --noEmit || true
+        run: pnpm -r exec tsc --noEmit
 
   contracts:
     runs-on: ubuntu-latest
@@ -96,6 +96,9 @@ jobs:
 
       - name: Compile contracts
         run: cd contracts && npx hardhat compile
+
+      - name: Test contracts
+        run: cd contracts && npx hardhat test
 
   deploy-web:
     name: Deploy Web

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, use } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -17,10 +17,31 @@ import {
 } from 'lucide-react';
 import { useTournament, useTournamentBracket, useRegisterForTournament } from '@/hooks/useApi';
 
-const statusConfig: Record<string, { bg: string; text: string; border: string; label: string; dot: string }> = {
-  live: { bg: 'bg-green-400/10', text: 'text-green-400', border: 'border-green-400/20', label: 'Live Now', dot: 'bg-green-400 animate-pulse' },
-  upcoming: { bg: 'bg-accent-amber/10', text: 'text-accent-amber', border: 'border-accent-amber/20', label: 'Upcoming', dot: 'bg-accent-amber' },
-  completed: { bg: 'bg-white/5', text: 'text-white/40', border: 'border-white/10', label: 'Completed', dot: 'bg-white/30' },
+const statusConfig: Record<
+  string,
+  { bg: string; text: string; border: string; label: string; dot: string }
+> = {
+  live: {
+    bg: 'bg-green-400/10',
+    text: 'text-green-400',
+    border: 'border-green-400/20',
+    label: 'Live Now',
+    dot: 'bg-green-400 animate-pulse',
+  },
+  upcoming: {
+    bg: 'bg-accent-amber/10',
+    text: 'text-accent-amber',
+    border: 'border-accent-amber/20',
+    label: 'Upcoming',
+    dot: 'bg-accent-amber',
+  },
+  completed: {
+    bg: 'bg-white/5',
+    text: 'text-white/40',
+    border: 'border-white/10',
+    label: 'Completed',
+    dot: 'bg-white/30',
+  },
 };
 
 const API_STATUS_MAP: Record<string, string> = {
@@ -64,9 +85,10 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export default function TournamentDetailPage({ params }: { params: { id: string } }) {
-  const { data: tournament, isLoading, isError } = useTournament(params.id);
-  const { data: bracketData } = useTournamentBracket(params.id);
+export default function TournamentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const { data: tournament, isLoading, isError } = useTournament(id);
+  const { data: bracketData } = useTournamentBracket(id);
   const registerMutation = useRegisterForTournament();
   const [registerError, setRegisterError] = useState<string | null>(null);
 
@@ -108,21 +130,44 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
   const players = participants.map((p: any, idx: number) => ({
     rank: idx + 1,
-    name: p.user?.displayName || p.user?.username || p.username || p.displayName || `Player ${idx + 1}`,
+    name:
+      p.user?.displayName || p.user?.username || p.username || p.displayName || `Player ${idx + 1}`,
     rating: p.rating ?? p.user?.rating ?? 0,
-    status: p.eliminated ? 'Eliminated' : tournament.status === 'REGISTRATION' ? 'Registered' : 'Active',
+    status: p.eliminated
+      ? 'Eliminated'
+      : tournament.status === 'REGISTRATION'
+        ? 'Registered'
+        : 'Active',
   }));
 
-  const bracket: { round: string; matches: { player1: string; player2: string; winner?: string }[] }[] = [];
+  const bracket: {
+    round: string;
+    matches: { player1: string; player2: string; winner?: string }[];
+  }[] = [];
   if (bracketData) {
     if (Array.isArray(bracketData)) {
       for (const round of bracketData) {
         bracket.push({
           round: round.round || round.name || `Round ${bracket.length + 1}`,
           matches: (round.matches || []).map((m: any) => ({
-            player1: m.player1?.user?.username || m.player1?.username || m.player1Name || m.player1 || 'TBD',
-            player2: m.player2?.user?.username || m.player2?.username || m.player2Name || m.player2 || 'TBD',
-            winner: m.winner?.user?.username || m.winner?.username || m.winnerName || m.winner || undefined,
+            player1:
+              m.player1?.user?.username ||
+              m.player1?.username ||
+              m.player1Name ||
+              m.player1 ||
+              'TBD',
+            player2:
+              m.player2?.user?.username ||
+              m.player2?.username ||
+              m.player2Name ||
+              m.player2 ||
+              'TBD',
+            winner:
+              m.winner?.user?.username ||
+              m.winner?.username ||
+              m.winnerName ||
+              m.winner ||
+              undefined,
           })),
         });
       }
@@ -131,9 +176,24 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
         bracket.push({
           round: round.round || round.name || `Round ${bracket.length + 1}`,
           matches: (round.matches || []).map((m: any) => ({
-            player1: m.player1?.user?.username || m.player1?.username || m.player1Name || m.player1 || 'TBD',
-            player2: m.player2?.user?.username || m.player2?.username || m.player2Name || m.player2 || 'TBD',
-            winner: m.winner?.user?.username || m.winner?.username || m.winnerName || m.winner || undefined,
+            player1:
+              m.player1?.user?.username ||
+              m.player1?.username ||
+              m.player1Name ||
+              m.player1 ||
+              'TBD',
+            player2:
+              m.player2?.user?.username ||
+              m.player2?.username ||
+              m.player2Name ||
+              m.player2 ||
+              'TBD',
+            winner:
+              m.winner?.user?.username ||
+              m.winner?.username ||
+              m.winnerName ||
+              m.winner ||
+              undefined,
           })),
         });
       }
@@ -161,7 +221,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
 
   function handleRegister() {
     setRegisterError(null);
-    registerMutation.mutate(params.id, {
+    registerMutation.mutate(id, {
       onError: (err: any) => {
         setRegisterError(err?.message || 'Failed to register');
       },
@@ -207,9 +267,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                   <Swords className="w-4 h-4" />
                   <span>{gameName}</span>
                 </div>
-                <p className="text-white/50 mt-4 max-w-xl text-sm leading-relaxed">
-                  {description}
-                </p>
+                <p className="text-white/50 mt-4 max-w-xl text-sm leading-relaxed">{description}</p>
               </div>
 
               {/* Prize Pool Display */}
@@ -268,10 +326,10 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                         prize.place === '1st'
                           ? 'text-accent-amber'
                           : prize.place === '2nd'
-                          ? 'text-gray-300'
-                          : prize.place === '3rd'
-                          ? 'text-amber-700'
-                          : 'text-white/30'
+                            ? 'text-gray-300'
+                            : prize.place === '3rd'
+                              ? 'text-amber-700'
+                              : 'text-white/30'
                       }`}
                     />
                     <span className="text-sm font-medium text-white">{prize.place}</span>
@@ -394,9 +452,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                           {/* Player 1 */}
                           <div
                             className={`flex items-center justify-between px-4 py-2.5 border-b border-white/5 ${
-                              match.winner === match.player1
-                                ? 'bg-molt-500/10'
-                                : ''
+                              match.winner === match.player1 ? 'bg-molt-500/10' : ''
                             }`}
                           >
                             <span
@@ -404,8 +460,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                                 match.winner === match.player1
                                   ? 'text-neon-cyan font-medium'
                                   : match.player1 === 'TBD'
-                                  ? 'text-white/20 italic'
-                                  : 'text-white/60'
+                                    ? 'text-white/20 italic'
+                                    : 'text-white/60'
                               }`}
                             >
                               {match.player1}
@@ -417,9 +473,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                           {/* Player 2 */}
                           <div
                             className={`flex items-center justify-between px-4 py-2.5 ${
-                              match.winner === match.player2
-                                ? 'bg-molt-500/10'
-                                : ''
+                              match.winner === match.player2 ? 'bg-molt-500/10' : ''
                             }`}
                           >
                             <span
@@ -427,8 +481,8 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
                                 match.winner === match.player2
                                   ? 'text-neon-cyan font-medium'
                                   : match.player2 === 'TBD'
-                                  ? 'text-white/20 italic'
-                                  : 'text-white/60'
+                                    ? 'text-white/20 italic'
+                                    : 'text-white/60'
                               }`}
                             >
                               {match.player2}
@@ -478,13 +532,9 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
             {registerMutation.isSuccess && (
               <p className="text-sm text-green-400 mt-3">Successfully registered!</p>
             )}
-            {registerError && (
-              <p className="text-sm text-red-400 mt-3">{registerError}</p>
-            )}
+            {registerError && <p className="text-sm text-red-400 mt-3">{registerError}</p>}
             {entryFee > 0 && displayStatus === 'upcoming' && !registerMutation.isSuccess && (
-              <p className="text-sm text-white/30 mt-3">
-                Entry fee: {entryFee} MOLT
-              </p>
+              <p className="text-sm text-white/30 mt-3">Entry fee: {entryFee} MOLT</p>
             )}
           </div>
         )}
