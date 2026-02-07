@@ -7,7 +7,7 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@moltblox/protocol'],
+  transpilePackages: ['@moltblox/protocol', '@moltblox/game-builder'],
   poweredByHeader: false,
 
   // Enable standalone output for Docker/self-hosted deployments.

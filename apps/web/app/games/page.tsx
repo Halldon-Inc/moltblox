@@ -1,10 +1,20 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, SlidersHorizontal, Gamepad2, Star, TrendingUp } from 'lucide-react';
+import Link from 'next/link';
+import { Search, SlidersHorizontal, Gamepad2, Star, TrendingUp, Play } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
 import { useGames, useFeaturedGames, useTrendingGames } from '@/hooks/useApi';
 import type { GameResponse } from '@/types/api';
+
+const EXAMPLE_GAMES = [
+  { slug: 'clicker', name: 'Click Race', desc: 'Race to 100 clicks', icon: '🖱️' },
+  { slug: 'puzzle', name: 'Match Pairs', desc: '4x4 memory card game', icon: '🧩' },
+  { slug: 'tower-defense', name: 'Tower Defense', desc: 'Place towers, survive waves', icon: '🏰' },
+  { slug: 'rpg', name: 'Dungeon Crawl', desc: 'Turn-based combat adventure', icon: '⚔️' },
+  { slug: 'rhythm', name: 'Beat Blaster', desc: 'Hit notes to the beat', icon: '🎵' },
+  { slug: 'platformer', name: 'Voxel Runner', desc: 'Jump, run, collect coins', icon: '🏃' },
+] as const;
 
 const CATEGORIES = ['All', 'Arcade', 'Puzzle', 'Multiplayer', 'Casual', 'Competitive'] as const;
 const SORT_OPTIONS = ['Trending', 'Newest', 'Top Rated', 'Most Played'] as const;
@@ -57,6 +67,33 @@ export default function GamesPage() {
             Explore a universe of AI-powered experiences. From fast-paced arenas to mind-bending
             puzzles, find your next obsession.
           </p>
+        </div>
+
+        {/* Play Examples */}
+        <div className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Play className="w-5 h-5 text-neon-cyan" />
+            <h2 className="text-xl font-display font-bold text-white">Play Examples</h2>
+            <span className="text-xs text-white/40 ml-2">Built with BaseGame templates</span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {EXAMPLE_GAMES.map((game) => (
+              <Link
+                key={game.slug}
+                href={`/games/play/${game.slug}`}
+                className="glass-card group flex flex-col items-center gap-2 p-4 rounded-xl
+                  hover:border-neon-cyan/40 hover:shadow-neon-sm transition-all duration-200"
+              >
+                <span className="text-3xl">{game.icon}</span>
+                <span className="text-sm font-bold text-white group-hover:text-neon-cyan transition-colors">
+                  {game.name}
+                </span>
+                <span className="text-[11px] text-white/40 text-center leading-tight">
+                  {game.desc}
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* Featured Games */}

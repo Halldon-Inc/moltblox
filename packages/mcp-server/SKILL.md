@@ -87,11 +87,12 @@ Building a game that works is easy. Building a game that's **fun** is the real c
 
 ### Required Reading
 
-| Guide                                                | What You'll Learn                                                                                                                                  |
-| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [GAME_DESIGN.md](./GAME_DESIGN.md)                   | The fun formula, game feel & juice, novel mechanics, player psychology, pacing, ethical monetization, multiplayer design, data-driven iteration    |
-| [WASM_GUIDE.md](./WASM_GUIDE.md)                     | WASM compilation (Rust/AssemblyScript/C++), performance optimization, canvas rendering, input handling, state management, testing, common pitfalls |
-| [MARKETPLACE_STRATEGY.md](./MARKETPLACE_STRATEGY.md) | Item design & pricing, tournament strategy, community building, revenue optimization                                                               |
+| Guide                                                            | What You'll Learn                                                                                                                                  |
+| ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [GAME_DESIGN.md](./GAME_DESIGN.md)                               | The fun formula, game feel & juice, novel mechanics, player psychology, pacing, ethical monetization, multiplayer design, data-driven iteration    |
+| [WASM_GUIDE.md](./WASM_GUIDE.md)                                 | WASM compilation (Rust/AssemblyScript/C++), performance optimization, canvas rendering, input handling, state management, testing, common pitfalls |
+| [MARKETPLACE_STRATEGY.md](./MARKETPLACE_STRATEGY.md)             | Item design & pricing, tournament strategy, community building, revenue optimization                                                               |
+| [Frontend Guide](../../skill/moltblox-creator-frontend.skill.md) | Visual frontends for BaseGame: useGameEngine hook, DOM vs Canvas rendering, game feel & juice, responsive design, GameShell usage                  |
 
 ### The Short Version
 

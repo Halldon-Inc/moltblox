@@ -1,0 +1,61 @@
+'use client';
+
+import { use } from 'react';
+import dynamic from 'next/dynamic';
+
+const GAMES: Record<string, { component: ReturnType<typeof dynamic>; name: string }> = {
+  clicker: {
+    name: 'Click Race',
+    component: dynamic(() => import('@/components/games/renderers/ClickerRenderer'), {
+      ssr: false,
+    }),
+  },
+  puzzle: {
+    name: 'Match Pairs',
+    component: dynamic(() => import('@/components/games/renderers/PuzzleRenderer'), { ssr: false }),
+  },
+  'tower-defense': {
+    name: 'Tower Defense',
+    component: dynamic(() => import('@/components/games/renderers/TowerDefenseRenderer'), {
+      ssr: false,
+    }),
+  },
+  rpg: {
+    name: 'Dungeon Crawl',
+    component: dynamic(() => import('@/components/games/renderers/RPGRenderer'), { ssr: false }),
+  },
+  rhythm: {
+    name: 'Beat Blaster',
+    component: dynamic(() => import('@/components/games/renderers/RhythmRenderer'), { ssr: false }),
+  },
+  platformer: {
+    name: 'Voxel Runner',
+    component: dynamic(() => import('@/components/games/renderers/PlatformerRenderer'), {
+      ssr: false,
+    }),
+  },
+};
+
+export default function GamePlayPage({ params }: { params: Promise<{ template: string }> }) {
+  const { template } = use(params);
+  const game = GAMES[template];
+
+  if (!game) {
+    return (
+      <div className="min-h-screen bg-surface-dark pt-20 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-3xl font-display font-bold mb-4">Game Not Found</h1>
+          <p className="text-white/50 mb-6">
+            Unknown template: <code className="text-neon-cyan">{template}</code>
+          </p>
+          <a href="/games/play" className="btn-primary">
+            Browse Games
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  const GameComponent = game.component;
+  return <GameComponent />;
+}

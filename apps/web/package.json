@@ -19,7 +19,9 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "viem": "^2.21.0",
-    "wagmi": "^2.14.0"
+    "wagmi": "^2.14.0",
+    "@moltblox/game-builder": "workspace:*",
+    "@moltblox/protocol": "workspace:*"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.1",
