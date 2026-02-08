@@ -5,6 +5,9 @@ import * as dotenv from "dotenv";
 dotenv.config();
 
 const PRIVATE_KEY = process.env.DEPLOYER_PRIVATE_KEY || "";
+if (PRIVATE_KEY && !/^(0x)?[0-9a-fA-F]{64}$/.test(PRIVATE_KEY)) {
+  throw new Error("DEPLOYER_PRIVATE_KEY must be a valid 32-byte hex string");
+}
 const BASE_SEPOLIA_RPC = process.env.BASE_SEPOLIA_RPC_URL || "https://sepolia.base.org";
 const BASE_MAINNET_RPC = process.env.BASE_MAINNET_RPC_URL || "https://mainnet.base.org";
 const BASESCAN_API_KEY = process.env.BASESCAN_API_KEY || "";

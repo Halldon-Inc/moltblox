@@ -10,7 +10,15 @@ export const createItemSchema = {
     rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary']).optional(),
     imageUrl: z.string().url().optional(),
     maxSupply: z.number().int().positive().optional(),
-    properties: z.record(z.unknown()).optional(),
+    properties: z
+      .record(z.unknown())
+      .optional()
+      .refine(
+        (val) =>
+          !val ||
+          !Object.keys(val).some((k) => ['__proto__', 'constructor', 'prototype'].includes(k)),
+        { message: 'Property keys cannot include __proto__, constructor, or prototype' },
+      ),
   }),
 };
 

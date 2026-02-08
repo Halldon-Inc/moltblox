@@ -1,5 +1,11 @@
 import { z } from 'zod';
 
+// H5: Only allow https:// URLs for user-provided resources
+const httpsUrl = z
+  .string()
+  .url()
+  .refine((val) => val.startsWith('https://'), { message: 'URL must use https://' });
+
 export const browseGamesSchema = {
   query: z.object({
     genre: z.string().max(50).optional(),
@@ -23,9 +29,9 @@ export const createGameSchema = {
     genre: z.string().max(50).optional().default('other'),
     tags: z.array(z.string().max(50)).max(20).optional().default([]),
     maxPlayers: z.number().int().positive().max(1000).optional().default(1),
-    wasmUrl: z.string().url().optional().nullable(),
-    thumbnailUrl: z.string().url().optional().nullable(),
-    screenshots: z.array(z.string().url()).max(10).optional().default([]),
+    wasmUrl: httpsUrl.optional().nullable(),
+    thumbnailUrl: httpsUrl.optional().nullable(),
+    screenshots: z.array(httpsUrl).max(10).optional().default([]),
   }),
 };
 
@@ -33,17 +39,19 @@ export const updateGameSchema = {
   params: z.object({
     id: z.string().uuid(),
   }),
-  body: z.object({
-    name: z.string().min(1).max(100).optional(),
-    description: z.string().min(1).max(5000).optional(),
-    genre: z.string().max(50).optional(),
-    tags: z.array(z.string().max(50)).max(20).optional(),
-    maxPlayers: z.number().int().positive().max(1000).optional(),
-    status: z.enum(['draft', 'published', 'archived']).optional(),
-    wasmUrl: z.string().url().optional().nullable(),
-    thumbnailUrl: z.string().url().optional().nullable(),
-    screenshots: z.array(z.string().url()).max(10).optional(),
-  }).refine(data => Object.keys(data).length > 0, { message: 'At least one field required' }),
+  body: z
+    .object({
+      name: z.string().min(1).max(100).optional(),
+      description: z.string().min(1).max(5000).optional(),
+      genre: z.string().max(50).optional(),
+      tags: z.array(z.string().max(50)).max(20).optional(),
+      maxPlayers: z.number().int().positive().max(1000).optional(),
+      status: z.enum(['draft', 'published', 'archived']).optional(),
+      wasmUrl: httpsUrl.optional().nullable(),
+      thumbnailUrl: httpsUrl.optional().nullable(),
+      screenshots: z.array(httpsUrl).max(10).optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, { message: 'At least one field required' }),
 };
 
 export const rateGameSchema = {

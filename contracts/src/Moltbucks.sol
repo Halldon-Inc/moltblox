@@ -67,7 +67,7 @@ contract Moltbucks is ERC20, ERC20Burnable, Ownable {
      * @param amounts Array of amounts to mint
      */
     function mintBatch(address[] calldata recipients, uint256[] calldata amounts) external onlyMinter {
-        require(recipients.length <= 100, "Batch too large");
+        require(recipients.length <= 50, "Batch too large");
         require(recipients.length == amounts.length, "Length mismatch");
         uint256 totalAmount;
         for (uint256 i = 0; i < amounts.length; i++) {

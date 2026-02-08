@@ -33,7 +33,7 @@ export default function MarketplacePage() {
   const items: ItemCardProps[] = data?.items ?? [];
 
   // Client-side filtering for price range and search
-  const filteredItems = items.filter((item: ItemCardProps) => {
+  const filteredItems = items.filter((item) => {
     if (
       weiToMolt(String(item.price)) < priceRange[0] ||
       weiToMolt(String(item.price)) > priceRange[1]
@@ -225,7 +225,7 @@ export default function MarketplacePage() {
             </div>
           ) : filteredItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {filteredItems.map((item: ItemCardProps, index: number) => (
+              {filteredItems.map((item, index) => (
                 <div
                   key={item.id}
                   className="animate-fade-in-up"

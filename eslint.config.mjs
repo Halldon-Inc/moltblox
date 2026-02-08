@@ -28,6 +28,15 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/.next/**', '**/generated/**', 'contracts/**'],
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/.next/**',
+      '**/generated/**',
+      'contracts/src/**',
+      'contracts/artifacts/**',
+      'contracts/cache/**',
+      'contracts/typechain-types/**',
+    ],
   },
 );

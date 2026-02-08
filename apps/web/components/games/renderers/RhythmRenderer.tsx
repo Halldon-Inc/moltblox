@@ -64,8 +64,8 @@ export default function RhythmRenderer() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [started, setStarted] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('normal');
-  const [hitFlash, setHitFlash] = useState<Record<number, string>>({});
-  const [ratingPopup, setRatingPopup] = useState<{
+  const hitFlashRef = useRef<Record<number, string>>({});
+  const ratingPopupRef = useRef<{
     text: string;
     lane: number;
     time: number;
@@ -91,28 +91,26 @@ export default function RhythmRenderer() {
           const lane = (ev.data as { lane: number; rating: string }).lane;
           const rating = (ev.data as { rating: string }).rating;
           const labels: Record<string, string> = { perfect: 'Perfect!', good: 'Good!', ok: 'OK!' };
-          setHitFlash((prev) => ({ ...prev, [lane]: LANE_COLORS[lane] }));
-          setRatingPopup({ text: labels[rating] || rating, lane, time: Date.now() });
+          hitFlashRef.current = { ...hitFlashRef.current, [lane]: LANE_COLORS[lane] };
+          ratingPopupRef.current = { text: labels[rating] || rating, lane, time: Date.now() };
           setTimeout(() => {
-            setHitFlash((prev) => {
-              const next = { ...prev };
-              delete next[lane];
-              return next;
-            });
+            const next = { ...hitFlashRef.current };
+            delete next[lane];
+            hitFlashRef.current = next;
           }, 200);
           setTimeout(() => {
-            setRatingPopup((prev) => (prev && prev.time <= Date.now() - 500 ? null : prev));
+            if (ratingPopupRef.current && ratingPopupRef.current.time <= Date.now() - 500) {
+              ratingPopupRef.current = null;
+            }
           }, 600);
         }
         if (ev.type === 'note_missed') {
           const lane = (ev.data as { lane: number }).lane;
-          setHitFlash((prev) => ({ ...prev, [lane]: '#333' }));
+          hitFlashRef.current = { ...hitFlashRef.current, [lane]: '#333' };
           setTimeout(() => {
-            setHitFlash((prev) => {
-              const next = { ...prev };
-              delete next[lane];
-              return next;
-            });
+            const next = { ...hitFlashRef.current };
+            delete next[lane];
+            hitFlashRef.current = next;
           }, 300);
         }
       }
@@ -159,7 +157,13 @@ export default function RhythmRenderer() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [started, isGameOver, dispatch]);
 
-  // Canvas rendering loop
+  // Keep data in a ref so the RAF loop doesn't tear down on every state change
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
+  // Canvas rendering loop — runs once on mount
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -185,9 +189,10 @@ export default function RhythmRenderer() {
       }
 
       // Lane background tint
+      const hf = hitFlashRef.current;
       for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = hitFlash[i]
-          ? hitFlash[i] === '#333'
+        ctx.fillStyle = hf[i]
+          ? hf[i] === '#333'
             ? 'rgba(50,50,50,0.3)'
             : `${LANE_COLORS[i]}22`
           : 'rgba(255,255,255,0.02)';
@@ -207,13 +212,12 @@ export default function RhythmRenderer() {
         const cx = i * LANE_WIDTH + LANE_WIDTH / 2;
         ctx.beginPath();
         ctx.arc(cx, HIT_ZONE_Y, 16, 0, Math.PI * 2);
-        ctx.strokeStyle =
-          hitFlash[i] && hitFlash[i] !== '#333' ? LANE_COLORS[i] : 'rgba(255,255,255,0.25)';
-        ctx.lineWidth = hitFlash[i] && hitFlash[i] !== '#333' ? 3 : 2;
+        ctx.strokeStyle = hf[i] && hf[i] !== '#333' ? LANE_COLORS[i] : 'rgba(255,255,255,0.25)';
+        ctx.lineWidth = hf[i] && hf[i] !== '#333' ? 3 : 2;
         ctx.stroke();
 
         // Flash fill
-        if (hitFlash[i] && hitFlash[i] !== '#333') {
+        if (hf[i] && hf[i] !== '#333') {
           ctx.beginPath();
           ctx.arc(cx, HIT_ZONE_Y, 14, 0, Math.PI * 2);
           ctx.fillStyle = `${LANE_COLORS[i]}66`;
@@ -222,8 +226,9 @@ export default function RhythmRenderer() {
       }
 
       // Draw notes
-      const currentBeat = data.currentBeat;
-      for (const note of data.notes) {
+      const d = dataRef.current;
+      const currentBeat = d.currentBeat;
+      for (const note of d.notes) {
         if (note.hit || note.missed) continue;
 
         const beatsAway = note.beatTime - currentBeat;
@@ -264,12 +269,13 @@ export default function RhythmRenderer() {
       }
 
       // Rating popup
-      if (ratingPopup) {
-        const age = Date.now() - ratingPopup.time;
+      const rp = ratingPopupRef.current;
+      if (rp) {
+        const age = Date.now() - rp.time;
         if (age < 600) {
           const alpha = Math.max(0, 1 - age / 600);
           const popupY = HIT_ZONE_Y - 40 - (age / 600) * 30;
-          const cx = ratingPopup.lane * LANE_WIDTH + LANE_WIDTH / 2;
+          const cx = rp.lane * LANE_WIDTH + LANE_WIDTH / 2;
 
           ctx.save();
           ctx.globalAlpha = alpha;
@@ -277,12 +283,8 @@ export default function RhythmRenderer() {
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillStyle =
-            ratingPopup.text === 'Perfect!'
-              ? '#ffd700'
-              : ratingPopup.text === 'Good!'
-                ? '#4fc3f7'
-                : '#aaa';
-          ctx.fillText(ratingPopup.text, cx, popupY);
+            rp.text === 'Perfect!' ? '#ffd700' : rp.text === 'Good!' ? '#4fc3f7' : '#aaa';
+          ctx.fillText(rp.text, cx, popupY);
           ctx.restore();
         }
       }
@@ -309,7 +311,7 @@ export default function RhythmRenderer() {
 
     animFrameRef.current = requestAnimationFrame(draw);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [data.notes, data.currentBeat, hitFlash, ratingPopup]);
+  }, []);
 
   const handleStart = useCallback(
     (difficulty: string) => {
@@ -321,8 +323,8 @@ export default function RhythmRenderer() {
 
   const handleRestart = useCallback(() => {
     setStarted(false);
-    setHitFlash({});
-    setRatingPopup(null);
+    hitFlashRef.current = {};
+    ratingPopupRef.current = null;
     prevEventsLen.current = 0;
     restart();
   }, [restart]);

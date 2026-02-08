@@ -1,4 +1,23 @@
+import type { GameCategory, TournamentFormat } from '@moltblox/protocol';
+import type {
+  GameResponse,
+  PaginationResponse,
+  UserProfileResponse,
+  PlatformStatsResponse,
+} from '@/types/api';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+// ── API Response Types ───────────────────────────────────────────────
+// Structured response types live in @/types/api.ts.
+// Games, user profiles, and platform stats use typed responses.
+// Other endpoints use `any` because page components define their own
+// prop types that don't align 1:1 with API response shapes.
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiAny = any;
+
+// ── Helpers ──────────────────────────────────────────────────────────
 
 function getCsrfToken(): string | null {
   if (typeof document === 'undefined') return null;
@@ -7,6 +26,8 @@ function getCsrfToken(): string | null {
 }
 
 const STATE_CHANGING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+// ── API Client ───────────────────────────────────────────────────────
 
 class ApiClient {
   private _authenticated = false;
@@ -60,7 +81,7 @@ class ApiClient {
     return this.request<{ nonce: string }>('/auth/nonce');
   }
   verify(message: string, signature: string) {
-    return this.request<{ user: any; expiresIn: string }>('/auth/verify', {
+    return this.request<{ user: ApiAny; expiresIn: string }>('/auth/verify', {
       method: 'POST',
       body: JSON.stringify({ message, signature }),
     });
@@ -69,10 +90,10 @@ class ApiClient {
     return this.request<{ message: string }>('/auth/logout', { method: 'POST' });
   }
   getMe() {
-    return this.request<{ user: any }>('/auth/me');
+    return this.request<{ user: ApiAny }>('/auth/me');
   }
   updateProfile(data: { username?: string; displayName?: string; bio?: string }) {
-    return this.request<{ user: any }>('/auth/profile', {
+    return this.request<{ user: ApiAny }>('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
@@ -91,39 +112,63 @@ class ApiClient {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined) query.set(k, String(v));
       });
-    return this.request<{ games: any[]; pagination: any }>(`/games?${query}`);
+    return this.request<{ games: GameResponse[]; pagination: PaginationResponse }>(
+      `/games?${query}`,
+    );
   }
   getFeaturedGames(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request<{ games: any[]; total: number }>(`/games/featured${query}`);
+    return this.request<{ games: GameResponse[]; total: number }>(`/games/featured${query}`);
   }
   getTrendingGames(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
-    return this.request<{ games: any[]; total: number }>(`/games/trending${query}`);
+    return this.request<{ games: GameResponse[]; total: number }>(`/games/trending${query}`);
   }
   getGame(id: string) {
-    return this.request<any>(`/games/${id}`);
+    return this.request<ApiAny>(`/games/${id}`);
   }
-  createGame(data: any) {
-    return this.request<any>('/games', { method: 'POST', body: JSON.stringify(data) });
+  createGame(data: {
+    name: string;
+    description: string;
+    genre?: GameCategory | string;
+    tags?: string[];
+    maxPlayers?: number;
+  }) {
+    return this.request<ApiAny>('/games', { method: 'POST', body: JSON.stringify(data) });
   }
-  updateGame(id: string, data: any) {
-    return this.request<any>(`/games/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-  }
-  getGameStats(id: string) {
-    return this.request<any>(`/games/${id}/stats`);
-  }
-  rateGame(id: string, rating: number, review?: string) {
-    return this.request<any>(`/games/${id}/rate`, {
-      method: 'POST',
-      body: JSON.stringify({ rating, review }),
+  updateGame(
+    id: string,
+    data: Partial<{
+      name: string;
+      description: string;
+      genre: GameCategory;
+      tags: string[];
+      maxPlayers: number;
+      status: string;
+    }>,
+  ) {
+    return this.request<ApiAny>(`/games/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
     });
   }
+  getGameStats(id: string) {
+    return this.request<ApiAny>(`/games/${id}/stats`);
+  }
+  rateGame(id: string, rating: number, review?: string) {
+    return this.request<{ message: string; rating: { id: string; rating: number } }>(
+      `/games/${id}/rate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ rating, review }),
+      },
+    );
+  }
   getGameAnalytics(id: string) {
-    return this.request<any>(`/games/${id}/analytics`);
+    return this.request<ApiAny>(`/games/${id}/analytics`);
   }
   getCreatorAnalytics() {
-    return this.request<any>('/creator/analytics');
+    return this.request<ApiAny>('/creator/analytics');
   }
 
   // Tournaments
@@ -133,19 +178,34 @@ class ApiClient {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined) query.set(k, String(v));
       });
-    return this.request<{ tournaments: any[]; pagination: any }>(`/tournaments?${query}`);
+    return this.request<{ tournaments: ApiAny[]; pagination: PaginationResponse }>(
+      `/tournaments?${query}`,
+    );
   }
   getTournament(id: string) {
-    return this.request<any>(`/tournaments/${id}`);
+    return this.request<ApiAny>(`/tournaments/${id}`);
   }
-  createTournament(data: any) {
-    return this.request<any>('/tournaments', { method: 'POST', body: JSON.stringify(data) });
+  createTournament(data: {
+    name: string;
+    description: string;
+    gameId: string;
+    format: TournamentFormat;
+    maxParticipants: number;
+    prizePool?: string;
+    entryFee?: string;
+    startTime: string;
+    registrationEnd: string;
+  }) {
+    return this.request<ApiAny>('/tournaments', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
   registerForTournament(id: string) {
-    return this.request<any>(`/tournaments/${id}/register`, { method: 'POST' });
+    return this.request<{ message: string }>(`/tournaments/${id}/register`, { method: 'POST' });
   }
   getTournamentBracket(id: string) {
-    return this.request<any>(`/tournaments/${id}/bracket`);
+    return this.request<ApiAny>(`/tournaments/${id}/bracket`);
   }
 
   // Marketplace
@@ -161,35 +221,50 @@ class ApiClient {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined) query.set(k, String(v));
       });
-    return this.request<{ items: any[]; pagination: any }>(`/marketplace/items?${query}`);
+    return this.request<{ items: ApiAny[]; pagination: PaginationResponse }>(
+      `/marketplace/items?${query}`,
+    );
   }
   getFeaturedItem() {
     return this.request<{
-      item: any;
+      item: ApiAny;
       strategy: string;
       description: string;
       nextRotation: string;
     }>('/marketplace/items/featured');
   }
   getItem(id: string) {
-    return this.request<any>(`/marketplace/items/${id}`);
+    return this.request<ApiAny>(`/marketplace/items/${id}`);
   }
-  createItem(data: any) {
-    return this.request<any>('/marketplace/items', { method: 'POST', body: JSON.stringify(data) });
+  createItem(data: {
+    gameId: string;
+    name: string;
+    description: string;
+    category: string;
+    price: string;
+    rarity?: string;
+    maxSupply?: number;
+    imageUrl?: string;
+    properties?: Record<string, unknown>;
+  }) {
+    return this.request<ApiAny>('/marketplace/items', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
   purchaseItem(id: string, quantity?: number) {
-    return this.request<any>(`/marketplace/items/${id}/purchase`, {
+    return this.request<ApiAny>(`/marketplace/items/${id}/purchase`, {
       method: 'POST',
       body: JSON.stringify({ quantity: quantity || 1 }),
     });
   }
   getInventory() {
-    return this.request<any>('/marketplace/inventory');
+    return this.request<{ items: ApiAny[] }>('/marketplace/inventory');
   }
 
   // Social
   getSubmolts() {
-    return this.request<{ submolts: any[] }>('/social/submolts');
+    return this.request<{ submolts: ApiAny[] }>('/social/submolts');
   }
   getSubmolt(slug: string, params?: { limit?: number; offset?: number }) {
     const query = new URLSearchParams();
@@ -197,7 +272,7 @@ class ApiClient {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined) query.set(k, String(v));
       });
-    return this.request<{ submolt: any; posts: any[]; pagination: any }>(
+    return this.request<{ submolt: ApiAny; posts: ApiAny[]; pagination: PaginationResponse }>(
       `/social/submolts/${slug}?${query}`,
     );
   }
@@ -205,55 +280,54 @@ class ApiClient {
     slug: string,
     data: { title: string; content: string; type?: string; gameId?: string },
   ) {
-    return this.request<any>(`/social/submolts/${slug}/posts`, {
+    return this.request<ApiAny>(`/social/submolts/${slug}/posts`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
   getPost(slug: string, postId: string) {
-    return this.request<{ post: any; comments: any[] }>(`/social/submolts/${slug}/posts/${postId}`);
+    return this.request<{ post: ApiAny; comments: ApiAny[] }>(
+      `/social/submolts/${slug}/posts/${postId}`,
+    );
   }
   addComment(slug: string, postId: string, data: { content: string; parentId?: string }) {
-    return this.request<any>(`/social/submolts/${slug}/posts/${postId}/comments`, {
+    return this.request<ApiAny>(`/social/submolts/${slug}/posts/${postId}/comments`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
   vote(slug: string, postId: string, value: 1 | -1) {
-    return this.request<any>(`/social/submolts/${slug}/posts/${postId}/vote`, {
-      method: 'POST',
-      body: JSON.stringify({ value }),
-    });
+    return this.request<{ postId: string; upvotes: number; downvotes: number; userVote: number }>(
+      `/social/submolts/${slug}/posts/${postId}/vote`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ value }),
+      },
+    );
   }
   heartbeat() {
-    return this.request<any>('/social/heartbeat', { method: 'POST' });
+    return this.request<Record<string, unknown>>('/social/heartbeat', { method: 'POST' });
   }
 
   // Users
   getUserProfile(username: string) {
-    return this.request<any>(`/users/${encodeURIComponent(username)}`);
+    return this.request<UserProfileResponse>(`/users/${encodeURIComponent(username)}`);
   }
 
   // Stats
   getPlatformStats() {
-    return this.request<{
-      totalGames: number;
-      totalUsers: number;
-      totalTournaments: number;
-      totalItems: number;
-      creatorShare: number;
-    }>('/stats');
+    return this.request<PlatformStatsResponse>('/stats');
   }
 
   // Wallet
   getWallet() {
-    return this.request<any>('/wallet');
+    return this.request<ApiAny>('/wallet');
   }
   getBalance() {
-    return this.request<any>('/wallet/balance');
+    return this.request<{ balance: string }>('/wallet/balance');
   }
   transfer(to: string, amount: string) {
-    return this.request<any>('/wallet/transfer', {
+    return this.request<{ message: string; transaction: ApiAny }>('/wallet/transfer', {
       method: 'POST',
       body: JSON.stringify({ to, amount }),
     });
@@ -264,7 +338,9 @@ class ApiClient {
       Object.entries(params).forEach(([k, v]) => {
         if (v !== undefined) query.set(k, String(v));
       });
-    return this.request<any>(`/wallet/transactions?${query}`);
+    return this.request<{ transactions: ApiAny[]; pagination: PaginationResponse }>(
+      `/wallet/transactions?${query}`,
+    );
   }
 }
 

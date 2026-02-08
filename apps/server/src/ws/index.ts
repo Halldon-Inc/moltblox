@@ -1,4 +1,3 @@
-// TODO: Add integration tests for WebSocket message handling
 /**
  * WebSocket server for Moltblox
  *
@@ -21,18 +20,10 @@ import {
   leaveSession,
   handleDisconnect,
   broadcastToSession,
+  isActiveSession,
 } from './sessionManager.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
-
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  (() => {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL: JWT_SECRET must be set in production');
-    }
-    console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
-    return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
-  })();
+import { JWT_SECRET } from '../lib/jwt.js';
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
@@ -77,15 +68,19 @@ const AUTH_REQUIRED_TYPES = new Set([
 
 /**
  * Check if a client has exceeded the message rate limit.
+ * H2: Rate-limits by playerId (if authenticated) to prevent reconnect bypass.
  * Returns true if the message should be allowed, false if rate-limited.
  */
-function checkRateLimit(clientId: string, ws: WebSocket): boolean {
+function checkRateLimit(client: ConnectedClient): boolean {
+  const ws = client.ws;
+  // Use playerId if authenticated, otherwise clientId (pre-auth messages)
+  const key = client.playerId || client.id;
   const now = Date.now();
-  let state = rateLimitMap.get(clientId);
+  let state = rateLimitMap.get(key);
 
   if (!state) {
     state = { messageCount: 0, windowStart: now, warnings: 0 };
-    rateLimitMap.set(clientId, state);
+    rateLimitMap.set(key, state);
   }
 
   // Reset window if expired
@@ -198,7 +193,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     // Handle incoming messages
     ws.on('message', (data: Buffer) => {
       // Per-client rate limiting
-      const allowed = checkRateLimit(clientId, ws);
+      const allowed = checkRateLimit(client);
       if (!allowed) {
         console.log(`[WS] Client ${clientId} disconnected for exceeding rate limit`);
         ws.terminate();
@@ -259,7 +254,22 @@ async function handleMessage(
   message: WSMessage,
   clients: Map<string, ConnectedClient>,
 ): Promise<void> {
-  const { type, payload } = message;
+  // M8: Validate incoming message shape
+  if (
+    !message ||
+    typeof message !== 'object' ||
+    typeof message.type !== 'string' ||
+    (message.payload !== undefined &&
+      (typeof message.payload !== 'object' || message.payload === null))
+  ) {
+    sendTo(client.ws, {
+      type: 'error',
+      payload: { message: 'Invalid message shape. Expected { type: string, payload?: object }.' },
+    });
+    return;
+  }
+
+  const { type, payload = {} } = message;
 
   // H3: Validate message type is known
   if (!VALID_MESSAGE_TYPES.has(type)) {
@@ -352,6 +362,13 @@ async function handleMessage(
     // ─── Game Actions ─────────────────────────────────
     case 'game_action': {
       const action = (payload.action as Record<string, unknown>) || {};
+      if (typeof action.type !== 'string') {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid action: missing "type" string field' },
+        });
+        break;
+      }
       handleGameAction(client, action, clients).catch((err) => {
         console.error('[WS] Error handling game action:', err);
         sendTo(client.ws, {
@@ -364,6 +381,14 @@ async function handleMessage(
 
     case 'end_game': {
       const sessionId = payload.sessionId as string;
+      // C2: Verify the client is actually in this session
+      if (client.gameSessionId !== sessionId) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Not authorized to end this session' },
+        });
+        break;
+      }
       const scores = (payload.scores as Record<string, number>) || {};
       const winnerId = (payload.winnerId as string) || null;
       endSession(sessionId, scores, winnerId, clients).catch((err) => {
@@ -387,6 +412,14 @@ async function handleMessage(
     // ─── Spectating ───────────────────────────────────
     case 'spectate': {
       const spectateSessionId = payload.sessionId as string;
+      // H3: Validate the session actually exists before allowing spectate
+      if (!isActiveSession(spectateSessionId)) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Session not found or already ended' },
+        });
+        break;
+      }
       client.spectating = spectateSessionId;
       console.log(`[WS] Client ${client.id} spectating session ${spectateSessionId}`);
       sendTo(client.ws, {

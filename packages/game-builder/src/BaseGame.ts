@@ -89,7 +89,7 @@ export abstract class BaseGame implements UnifiedGameInterface {
    * Get game state for a specific player.
    * Override to implement fog of war.
    */
-  getStateForPlayer(playerId: string): GameState {
+  getStateForPlayer(_playerId: string): GameState {
     // Default: return full state (no fog of war)
     return this.getState();
   }
@@ -109,7 +109,11 @@ export abstract class BaseGame implements UnifiedGameInterface {
       return { success: false, error: 'Game is already over' };
     }
 
-    // Process the action
+    // Process the action.
+    // Note: subclasses typically mutate state.data in place via getData<T>() and
+    // setData(), then return this.getState() as newState. The assignment below is
+    // therefore usually a no-op (same reference), but it is kept for correctness
+    // in case a subclass returns a genuinely new state object.
     const result = this.processAction(playerId, action);
 
     if (result.success) {
@@ -243,8 +247,19 @@ export abstract class BaseGame implements UnifiedGameInterface {
 
   /**
    * Get the game data (shorthand).
+   * Note: This performs an unsafe type assertion. The caller is responsible for
+   * ensuring T matches the actual shape of state.data. In debug mode, a basic
+   * sanity check verifies that state.data is a non-null object.
    */
   protected getData<T = Record<string, unknown>>(): T {
+    if (
+      process.env.NODE_ENV !== 'production' &&
+      (this.state.data === null || typeof this.state.data !== 'object')
+    ) {
+      throw new Error(
+        `BaseGame.getData(): expected state.data to be a non-null object, got ${typeof this.state.data}`,
+      );
+    }
     return this.state.data as T;
   }
 

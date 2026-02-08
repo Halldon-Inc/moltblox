@@ -14,9 +14,12 @@ import {
   rateGameSchema,
 } from '../schemas/games.js';
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
+import type { Prisma, GameGenre } from '../generated/prisma/client.js';
 import rateLimit from 'express-rate-limit';
 
-const writeLimiter = rateLimit({
+// Games-specific write limiter (60s window, 30 max) — stricter burst protection
+// than the global Redis-backed writeLimiter in app.ts (15min window, 30 max).
+const gamesWriteLimiter = rateLimit({
   windowMs: 60_000,
   max: 30,
   standardHeaders: true,
@@ -39,7 +42,7 @@ function slugify(name: string): string {
 /**
  * Serialize BigInt fields to strings so JSON.stringify doesn't throw.
  */
-function serializeGame(game: any) {
+function serializeGame(game: { totalRevenue?: bigint | null; [key: string]: unknown }) {
   return {
     ...game,
     totalRevenue: game.totalRevenue?.toString() ?? '0',
@@ -61,12 +64,12 @@ router.get(
       const skip = parseInt(offset as string, 10) || 0;
 
       // Build the where clause
-      const where: any = {
+      const where: Prisma.GameWhereInput = {
         status: 'published',
       };
 
       if (genre && genre !== 'all') {
-        where.genre = genre as string;
+        where.genre = genre as GameGenre;
       }
 
       if (search) {
@@ -77,7 +80,7 @@ router.get(
       }
 
       // Build the orderBy clause
-      let orderBy: any;
+      let orderBy: Prisma.GameOrderByWithRelationInput;
       switch (sort) {
         case 'newest':
           orderBy = { createdAt: 'desc' };
@@ -174,7 +177,9 @@ router.get('/trending', async (req: Request, res: Response, next: NextFunction) 
     });
     // Maintain trending order
     const gameMap = new Map(games.map((g) => [g.id, g]));
-    const orderedGames = gameIds.map((id) => gameMap.get(id)).filter(Boolean);
+    const orderedGames = gameIds
+      .map((id) => gameMap.get(id))
+      .filter((g): g is NonNullable<typeof g> => !!g);
     res.json({ games: orderedGames.map((g) => serializeGame(g)), total: orderedGames.length });
   } catch (error) {
     next(error);
@@ -221,7 +226,7 @@ router.get(
  */
 router.post(
   '/',
-  writeLimiter,
+  gamesWriteLimiter,
   requireAuth,
   requireBot,
   validate(createGameSchema),
@@ -230,14 +235,6 @@ router.post(
       const user = req.user!;
       const { name, description, genre, tags, maxPlayers, wasmUrl, thumbnailUrl, screenshots } =
         req.body;
-
-      if (!name || !description) {
-        res.status(400).json({
-          error: 'Validation error',
-          message: 'Name and description are required',
-        });
-        return;
-      }
 
       const sanitized = sanitizeObject({ name, description } as Record<string, unknown>, [
         'name',
@@ -286,7 +283,7 @@ router.post(
  */
 router.put(
   '/:id',
-  writeLimiter,
+  gamesWriteLimiter,
   requireAuth,
   requireBot,
   validate(updateGameSchema),
@@ -336,12 +333,12 @@ router.put(
       }
       const sanitized = keys.length > 0 ? sanitizeObject(fieldsToSanitize, keys) : {};
 
-      const data: any = {};
+      const data: Prisma.GameUpdateInput = {};
       if (name !== undefined) {
-        data.name = sanitized.name;
+        data.name = sanitized.name as string;
         data.slug = slugify(name);
       }
-      if (description !== undefined) data.description = sanitized.description;
+      if (description !== undefined) data.description = sanitized.description as string;
       if (genre !== undefined) data.genre = genre;
       if (tags !== undefined) data.tags = tags;
       if (maxPlayers !== undefined) data.maxPlayers = maxPlayers;
@@ -465,7 +462,7 @@ router.get(
  */
 router.post(
   '/:id/rate',
-  writeLimiter,
+  gamesWriteLimiter,
   requireAuth,
   validate(rateGameSchema),
   async (req: Request, res: Response, next: NextFunction) => {
@@ -475,14 +472,6 @@ router.post(
       const { rating, review } = req.body;
 
       const sanitizedReview = review ? sanitize(review) : null;
-
-      if (!rating || rating < 1 || rating > 5) {
-        res.status(400).json({
-          error: 'Validation error',
-          message: 'Rating must be an integer between 1 and 5',
-        });
-        return;
-      }
 
       // Check game exists
       const game = await prisma.game.findUnique({
@@ -555,6 +544,7 @@ router.get(
   '/:id/analytics',
   requireAuth,
   requireBot,
+  validate(gameIdParamSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;

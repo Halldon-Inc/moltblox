@@ -794,7 +794,7 @@ const NPC_DEFS: NPCDef[] = [
     type: 'healer',
     mapId: 'starter_town',
     x: 19,
-    y: 5,
+    y: 4,
     direction: 'down',
     dialogue: ['Your creatures are fully healed!', 'Come back anytime!'],
   },
@@ -865,6 +865,7 @@ interface BattleState {
   trainerName: string | null;
   turnCount: number;
   leechSeedActive: boolean;
+  leechSeedSource: 'player' | 'enemy' | null;
   message: string | null;
   awaitingAction: boolean;
   [key: string]: unknown;
@@ -930,7 +931,7 @@ export class CreatureRPGGame extends BaseGame {
       combatLog: [],
     };
     this.emitEvent('game_started', playerIds[0]);
-    return state as unknown as Record<string, unknown>;
+    return state;
   }
 
   protected processAction(playerId: string, action: GameAction): ActionResult {
@@ -984,7 +985,7 @@ export class CreatureRPGGame extends BaseGame {
     data.gamePhase = 'overworld';
     data.combatLog.push(`You chose ${species.charAt(0).toUpperCase() + species.slice(1)}!`);
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     this.emitEvent('starter_chosen', this.getPlayers()[0], { species });
     return { success: true, newState: this.state };
   }
@@ -1016,7 +1017,7 @@ export class CreatureRPGGame extends BaseGame {
       data.mapId = warp.toMap;
       data.playerPos = { x: warp.toX, y: warp.toY };
       data.totalSteps++;
-      this.setData(data as unknown as Record<string, unknown>);
+      this.setData(data as Record<string, unknown>);
       this.emitEvent('zone_entered', this.getPlayers()[0], { zone: warp.toMap });
       return { success: true, newState: this.state };
     }
@@ -1024,7 +1025,7 @@ export class CreatureRPGGame extends BaseGame {
     // Check bounds
     const map = MAPS[data.mapId];
     if (!map || newY < 0 || newY >= map.length || newX < 0 || newX >= map[0].length) {
-      this.setData(data as unknown as Record<string, unknown>);
+      this.setData(data as Record<string, unknown>);
       return { success: true, newState: this.state };
     }
 
@@ -1035,12 +1036,12 @@ export class CreatureRPGGame extends BaseGame {
       (n) => n.mapId === data.mapId && n.x === newX && n.y === newY,
     );
     if (blockingNpc) {
-      this.setData(data as unknown as Record<string, unknown>);
+      this.setData(data as Record<string, unknown>);
       return { success: true, newState: this.state };
     }
 
     if (!PASSABLE.has(tile)) {
-      this.setData(data as unknown as Record<string, unknown>);
+      this.setData(data as Record<string, unknown>);
       return { success: true, newState: this.state };
     }
 
@@ -1063,6 +1064,7 @@ export class CreatureRPGGame extends BaseGame {
           trainerName: null,
           turnCount: 0,
           leechSeedActive: false,
+          leechSeedSource: null,
           message: `A wild ${wildCreature.species.charAt(0).toUpperCase() + wildCreature.species.slice(1)} appeared!`,
           awaitingAction: true,
         };
@@ -1079,7 +1081,7 @@ export class CreatureRPGGame extends BaseGame {
       this.emitEvent('healed', this.getPlayers()[0]);
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1114,7 +1116,7 @@ export class CreatureRPGGame extends BaseGame {
           data.dialogueSpeaker = gymLeader.name;
           data.postDialogueAction = 'start_gym';
           data.gamePhase = 'dialogue';
-          this.setData(data as unknown as Record<string, unknown>);
+          this.setData(data as Record<string, unknown>);
           return { success: true, newState: this.state };
         } else {
           data.dialogueLines = ['The gym is quiet. You already defeated the leader!'];
@@ -1122,7 +1124,7 @@ export class CreatureRPGGame extends BaseGame {
           data.dialogueSpeaker = '';
           data.postDialogueAction = null;
           data.gamePhase = 'dialogue';
-          this.setData(data as unknown as Record<string, unknown>);
+          this.setData(data as Record<string, unknown>);
           return { success: true, newState: this.state };
         }
       }
@@ -1144,7 +1146,7 @@ export class CreatureRPGGame extends BaseGame {
         data.dialogueSpeaker = 'Sign';
         data.postDialogueAction = null;
         data.gamePhase = 'dialogue';
-        this.setData(data as unknown as Record<string, unknown>);
+        this.setData(data as Record<string, unknown>);
         return { success: true, newState: this.state };
       }
 
@@ -1181,7 +1183,7 @@ export class CreatureRPGGame extends BaseGame {
       data.gamePhase = 'dialogue';
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1209,7 +1211,7 @@ export class CreatureRPGGame extends BaseGame {
       }
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1263,7 +1265,7 @@ export class CreatureRPGGame extends BaseGame {
     // Check for faints
     this.checkBattleOutcome(data);
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1305,7 +1307,7 @@ export class CreatureRPGGame extends BaseGame {
     this.applyEndOfTurnEffects(data, newCreature, enemy);
     this.checkBattleOutcome(data);
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1344,7 +1346,7 @@ export class CreatureRPGGame extends BaseGame {
       return { success: false, error: 'Unknown item' };
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1414,7 +1416,7 @@ export class CreatureRPGGame extends BaseGame {
       this.checkBattleOutcome(data);
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1452,7 +1454,7 @@ export class CreatureRPGGame extends BaseGame {
       this.checkBattleOutcome(data);
     }
 
-    this.setData(data as unknown as Record<string, unknown>);
+    this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
   }
 
@@ -1596,6 +1598,7 @@ export class CreatureRPGGame extends BaseGame {
       // Leech Seed
       if (!data.battleState) return;
       data.battleState.leechSeedActive = true;
+      data.battleState.leechSeedSource = isPlayer ? 'player' : 'enemy';
       data.combatLog.push(`${userName} used ${move.name}! ${targetName} was seeded!`);
     } else {
       data.combatLog.push(`${userName} used ${move.name}!`);
@@ -1655,12 +1658,17 @@ export class CreatureRPGGame extends BaseGame {
       }
     }
 
-    // Leech seed
+    // Leech seed — drains HP from the seeded target to the source
     if (data.battleState?.leechSeedActive && enemy.stats.hp > 0 && player.stats.hp > 0) {
-      const drain = Math.max(1, Math.floor(enemy.stats.maxHp / 8));
-      enemy.stats.hp = Math.max(0, enemy.stats.hp - drain);
-      player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + drain);
-      data.combatLog.push(`Leech Seed drained ${drain} HP from ${this.capitalize(enemy.species)}!`);
+      const source = data.battleState.leechSeedSource;
+      const drainer = source === 'player' ? player : enemy;
+      const victim = source === 'player' ? enemy : player;
+      const drain = Math.max(1, Math.floor(victim.stats.maxHp / 8));
+      victim.stats.hp = Math.max(0, victim.stats.hp - drain);
+      drainer.stats.hp = Math.min(drainer.stats.maxHp, drainer.stats.hp + drain);
+      data.combatLog.push(
+        `Leech Seed drained ${drain} HP from ${this.capitalize(victim.species)}!`,
+      );
     }
   }
 
@@ -1743,9 +1751,16 @@ export class CreatureRPGGame extends BaseGame {
 
     const enemyParty = npc.party.map((p) => createCreature(p.species, p.level));
 
+    const activeIndex = this.getFirstAliveIndex(data);
+    if (activeIndex === -1) {
+      // All creatures fainted — cannot start battle
+      data.gamePhase = 'defeat';
+      return;
+    }
+
     data.battleState = {
       type,
-      activeIndex: this.getFirstAliveIndex(data),
+      activeIndex,
       enemyCreature: enemyParty[0],
       enemyParty,
       enemyPartyIndex: 0,
@@ -1755,11 +1770,12 @@ export class CreatureRPGGame extends BaseGame {
       trainerName: npc.name,
       turnCount: 0,
       leechSeedActive: false,
+      leechSeedSource: null,
       message: `${npc.name} wants to battle!`,
       awaitingAction: true,
     };
     data.gamePhase = 'battle';
-    data.activeCreatureIndex = this.getFirstAliveIndex(data);
+    data.activeCreatureIndex = activeIndex;
     this.emitEvent('battle_started', this.getPlayers()[0], { trainer: npc.name });
   }
 
@@ -1816,7 +1832,7 @@ export class CreatureRPGGame extends BaseGame {
     for (let i = 0; i < data.party.length; i++) {
       if (data.party[i].stats.hp > 0) return i;
     }
-    return data.party.length > 0 ? 0 : -1;
+    return -1;
   }
 
   private capitalize(s: string): string {
@@ -1859,6 +1875,8 @@ export class CreatureRPGGame extends BaseGame {
     if (totalMaxHp > 0) score += Math.floor((totalHp / totalMaxHp) * 200);
     const totalLevels = data.party.reduce((s, c) => s + c.level, 0);
     score += totalLevels * 10;
+    // Efficiency bonus: fewer steps = higher score. No penalty if > 500 steps
+    // (Math.max clamps to 0). This rewards speedrunners without punishing exploration.
     score += Math.max(0, (500 - data.totalSteps) * 2);
     score += data.caughtSpecies.length * 75;
     return { [this.getPlayers()[0]]: score };

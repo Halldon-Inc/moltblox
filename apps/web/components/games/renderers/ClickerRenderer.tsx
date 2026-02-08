@@ -64,9 +64,7 @@ export default function ClickerRenderer() {
       onRestart={restart}
     >
       {/* Scoped keyframes */}
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
+      <style>{`
         @keyframes clicker-ripple {
           0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232,121,39,0.5); }
           50% { transform: scale(1.08); box-shadow: 0 0 30px 10px rgba(232,121,39,0.3); }
@@ -89,9 +87,7 @@ export default function ClickerRenderer() {
         .clicker-ring { animation: clicker-pulse-ring 0.6s ease-out forwards; }
         .milestone-burst { animation: milestone-flash 0.8s ease-out forwards; }
         .milestone-particle { animation: milestone-particle 0.8s ease-out forwards; }
-      `,
-        }}
-      />
+      `}</style>
 
       <div className="flex flex-col items-center justify-center min-h-[420px] gap-8 relative">
         {/* Milestone celebration overlay */}

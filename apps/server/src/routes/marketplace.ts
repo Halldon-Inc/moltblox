@@ -10,7 +10,7 @@ import { validate } from '../middleware/validate.js';
 import { createItemSchema, purchaseItemSchema, browseItemsSchema } from '../schemas/marketplace.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import prisma from '../lib/prisma.js';
-import { parseBigInt, parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
+import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
 
@@ -128,7 +128,7 @@ router.get(
 
 /**
  * GET /marketplace/items/featured - Rotating featured item
- * Cycles through different strategies every 4 hours:
+ * Cycles through 5 strategies every 11 minutes (55-minute full cycle):
  *   0 = Top Seller (most sold)
  *   1 = Highest Priced
  *   2 = Hot Right Now (most recent purchase)
@@ -325,14 +325,6 @@ router.post(
         'description',
       ]);
 
-      if (!gameId || !name || !description || !price) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Missing required fields: gameId, name, description, price',
-        });
-        return;
-      }
-
       // Verify the user owns the game
       const game = await prisma.game.findUnique({
         where: { id: gameId },
@@ -357,7 +349,7 @@ router.post(
 
       let parsedPrice: bigint;
       try {
-        parsedPrice = parseBigInt(price, 'price');
+        parsedPrice = parseBigIntNonNegative(price, 'price');
       } catch (err) {
         if (err instanceof ParseBigIntError) {
           res.status(400).json({ error: 'Bad Request', message: err.message });

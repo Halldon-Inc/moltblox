@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { CreatureRPGGame } from '@moltblox/game-builder';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { GameShell } from '@/components/games/GameShell';
+import { MAPS } from './creature-rpg-maps';
 
 // ---------------------------------------------------------------------------
 // Types mirroring CreatureRPGGame state
@@ -123,86 +124,6 @@ const T = {
 } as const;
 
 // ---------------------------------------------------------------------------
-// Map data (matching game logic exactly)
-// ---------------------------------------------------------------------------
-
-// prettier-ignore
-const MAP_STARTER_TOWN: number[][] = [
-  [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,2,2,0,0,0,0,0,5,5,5,5,0,0,0,0,5,5,5,5,0,0,0,2,2,0,0,7],
-  [7,0,0,2,0,0,0,0,0,0,5,5,5,5,0,0,0,0,5,5,5,5,0,0,0,0,2,0,0,7],
-  [7,0,0,0,0,0,8,0,0,0,5,5,5,5,0,0,0,0,5,5,5,5,0,0,8,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,6,0,0,0,0,0,0,10,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,0,0,0,0,7],
-  [7,0,0,8,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,8,0,0,7],
-  [7,0,0,0,0,4,0,0,5,5,5,5,0,0,0,0,0,0,0,0,9,0,0,0,4,0,0,0,0,7],
-  [7,0,2,0,0,4,0,0,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,2,0,7],
-  [7,0,2,0,0,4,0,0,5,5,5,5,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,2,0,7],
-  [7,0,0,0,0,4,0,0,0,0,6,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,0,0,7],
-  [7,0,0,8,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,4,0,8,0,0,7],
-  [7,0,0,0,0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,2,0,0,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,2,0,0,7],
-  [7,0,2,0,0,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,2,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,7,7,7,7,7,7,7,7,7,7,7,7,4,0,0,4,7,7,7,7,7,7,7,7,7,7,7,7,7],
-];
-
-// prettier-ignore
-const MAP_ROUTE_1: number[][] = [
-  [2,2,2,2,2,2,2,2,2,2,2,2,2,4,0,0,4,2,2,2,2,2,2,2,2,2,2,2,2,2],
-  [2,0,0,1,1,1,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,1,1,1,0,0,0,2],
-  [2,0,1,1,1,1,1,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,1,1,1,1,1,0,0,2],
-  [2,0,1,1,1,1,0,0,0,2,0,0,0,4,0,0,4,0,0,0,2,0,0,1,1,1,0,0,0,2],
-  [2,0,0,1,1,0,0,0,0,0,0,0,4,4,0,0,4,4,0,0,0,0,0,0,1,1,0,0,0,2],
-  [2,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,2],
-  [2,0,0,0,0,2,0,0,0,0,4,4,0,0,0,0,0,0,4,4,0,0,0,0,2,0,0,0,0,2],
-  [2,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,2],
-  [2,3,3,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,3,3,2],
-  [2,3,3,3,0,0,0,4,4,0,0,0,0,9,0,0,0,0,0,0,0,4,4,0,0,0,3,3,3,2],
-  [2,3,3,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,3,3,2],
-  [2,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,2],
-  [2,0,0,0,4,4,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1,1,1,0,4,4,0,0,0,2],
-  [2,0,0,4,4,0,0,0,1,1,1,1,1,0,0,0,0,0,0,1,1,1,1,1,0,4,4,0,0,2],
-  [2,0,4,4,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,4,4,0,2],
-  [2,0,4,0,0,0,0,0,0,1,1,0,0,0,2,0,0,2,0,0,0,1,1,0,0,0,0,4,0,2],
-  [2,0,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,0,2],
-  [2,0,4,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4,4,0,2],
-  [2,0,0,4,4,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,4,4,0,0,2],
-  [2,2,2,2,4,2,2,2,2,2,2,2,2,4,0,0,4,2,2,2,2,2,2,2,2,4,2,2,2,2],
-];
-
-// prettier-ignore
-const MAP_VERDANT_CITY: number[][] = [
-  [7,7,7,7,4,7,7,7,7,7,7,7,7,4,0,0,4,7,7,7,7,7,7,7,7,4,7,7,7,7],
-  [7,0,0,0,4,0,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,0,0,4,0,0,0,7],
-  [7,0,5,5,4,5,5,0,0,0,0,0,0,4,0,0,4,0,0,0,0,5,5,5,5,4,5,5,0,7],
-  [7,0,5,5,4,5,5,0,0,0,0,0,0,4,4,4,4,0,0,0,0,5,5,5,5,4,5,5,0,7],
-  [7,0,5,5,4,5,5,0,0,0,9,0,0,0,0,0,0,0,0,0,0,5,5,5,5,4,5,5,0,7],
-  [7,0,0,10,4,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,11,0,0,4,0,0,0,7],
-  [7,0,0,0,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,7],
-  [7,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,8,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,8,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,7],
-  [7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7],
-];
-
-const MAPS: Record<string, number[][]> = {
-  starter_town: MAP_STARTER_TOWN,
-  route_1: MAP_ROUTE_1,
-  verdant_city: MAP_VERDANT_CITY,
-};
 
 // NPC positions (must match game logic NPC_DEFS)
 interface NPCInfo {
@@ -826,6 +747,7 @@ export default function CreatureRPGRenderer() {
   const prevCombatLogLenRef = useRef(0);
   const logContainerRef = useRef<HTMLDivElement>(null);
   const cameraRef = useRef({ x: 0, y: 0 });
+  const minimapCacheRef = useRef<{ mapId: string; canvas: HTMLCanvasElement } | null>(null);
   const [showHelp, setShowHelp] = useState(false);
 
   // --- Generate/cache sprites ---
@@ -977,62 +899,71 @@ export default function CreatureRPGRenderer() {
   // Canvas render loop
   // ---------------------------------------------------------------------------
 
+  // Keep a mutable ref to data so the RAF loop never tears down on state changes
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
   const renderFrame = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !data) return;
+    const d = dataRef.current;
+    if (!canvas || !d) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const frame = frameCountRef.current++;
 
-    if (data.gamePhase === 'overworld' || data.gamePhase === 'dialogue') {
-      renderOverworld(ctx, data, frame);
-    } else if (data.gamePhase === 'battle') {
-      renderBattle(ctx, data, frame);
-    } else if (data.gamePhase === 'starter_select') {
+    if (d.gamePhase === 'overworld' || d.gamePhase === 'dialogue') {
+      renderOverworld(ctx, d, frame);
+    } else if (d.gamePhase === 'battle') {
+      renderBattle(ctx, d, frame);
+    } else if (d.gamePhase === 'starter_select') {
       renderStarterSelect(ctx, frame);
-    } else if (data.gamePhase === 'victory') {
-      renderVictory(ctx, data, frame);
-    } else if (data.gamePhase === 'defeat') {
+    } else if (d.gamePhase === 'victory') {
+      renderVictory(ctx, d, frame);
+    } else if (d.gamePhase === 'defeat') {
       renderDefeat(ctx, frame);
     }
 
     // Render floating damage numbers
     ctx.save();
-    for (let i = damageNumbersRef.current.length - 1; i >= 0; i--) {
-      const dn = damageNumbersRef.current[i];
+    const dnArr = damageNumbersRef.current;
+    let dnWrite = 0;
+    for (let i = 0; i < dnArr.length; i++) {
+      const dn = dnArr[i];
       dn.y -= 1.2;
       dn.life--;
-      if (dn.life <= 0) {
-        damageNumbersRef.current.splice(i, 1);
-        continue;
-      }
+      if (dn.life <= 0) continue;
+      dnArr[dnWrite++] = dn;
       ctx.globalAlpha = Math.min(1, dn.life / 15);
       ctx.fillStyle = dn.color;
       ctx.font = `bold ${dn.value.length > 5 ? 16 : 22}px monospace`;
       ctx.textAlign = 'center';
       ctx.fillText(dn.value, dn.x, dn.y);
     }
+    dnArr.length = dnWrite;
     ctx.restore();
 
     // Render particles
     ctx.save();
-    for (let i = particlesRef.current.length - 1; i >= 0; i--) {
-      const p = particlesRef.current[i];
+    const pArr = particlesRef.current;
+    let pWrite = 0;
+    for (let i = 0; i < pArr.length; i++) {
+      const p = pArr[i];
       p.x += p.vx;
       p.y += p.vy;
       p.vy += 0.1;
       p.life--;
-      if (p.life <= 0) {
-        particlesRef.current.splice(i, 1);
-        continue;
-      }
+      if (p.life <= 0) continue;
+      pArr[pWrite++] = p;
       ctx.globalAlpha = p.life / p.maxLife;
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
     }
+    pArr.length = pWrite;
     ctx.restore();
-  }, [data]);
+  }, []);
 
   // --- Overworld render ---
   function renderOverworld(ctx: CanvasRenderingContext2D, d: CreatureRPGState, frame: number) {
@@ -1244,7 +1175,7 @@ export default function CreatureRPGRenderer() {
       ctx.fillRect(px + 6, py + 6, 20, 20);
     }
 
-    // Mini-map overlay (top-right)
+    // Mini-map overlay (top-right) — pre-rendered to offscreen canvas, only redrawn on map change
     const mmSize = 90;
     const mmTile = mmSize / MAP_COLS;
     const mmX = CANVAS_W - mmSize - 8;
@@ -1252,23 +1183,33 @@ export default function CreatureRPGRenderer() {
     ctx.fillStyle = 'rgba(0,0,0,0.6)';
     ctx.fillRect(mmX - 2, mmY - 2, mmSize + 4, mmTile * MAP_ROWS + 4);
 
-    for (let row = 0; row < MAP_ROWS; row++) {
-      for (let col = 0; col < MAP_COLS; col++) {
-        const tile = map[row]?.[col] ?? 0;
-        if (tile === T.TREE || tile === T.BUILDING || tile === T.FENCE) {
-          ctx.fillStyle = '#555';
-        } else if (tile === T.WATER) {
-          ctx.fillStyle = '#2196f3';
-        } else if (tile === T.PATH) {
-          ctx.fillStyle = '#c4a45a';
-        } else if (tile === T.TALL_GRASS) {
-          ctx.fillStyle = '#2d8a2d';
-        } else {
-          ctx.fillStyle = '#4a7c3f';
+    // Cache minimap tiles to offscreen canvas
+    if (!minimapCacheRef.current || minimapCacheRef.current.mapId !== d.mapId) {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = Math.ceil(mmSize);
+      offscreen.height = Math.ceil(mmTile * MAP_ROWS);
+      const offCtx = offscreen.getContext('2d')!;
+      for (let row = 0; row < MAP_ROWS; row++) {
+        for (let col = 0; col < MAP_COLS; col++) {
+          const tile = map[row]?.[col] ?? 0;
+          if (tile === T.TREE || tile === T.BUILDING || tile === T.FENCE) {
+            offCtx.fillStyle = '#555';
+          } else if (tile === T.WATER) {
+            offCtx.fillStyle = '#2196f3';
+          } else if (tile === T.PATH) {
+            offCtx.fillStyle = '#c4a45a';
+          } else if (tile === T.TALL_GRASS) {
+            offCtx.fillStyle = '#2d8a2d';
+          } else {
+            offCtx.fillStyle = '#4a7c3f';
+          }
+          offCtx.fillRect(col * mmTile, row * mmTile, mmTile, mmTile);
         }
-        ctx.fillRect(mmX + col * mmTile, mmY + row * mmTile, mmTile, mmTile);
       }
+      minimapCacheRef.current = { mapId: d.mapId, canvas: offscreen };
     }
+    ctx.drawImage(minimapCacheRef.current.canvas, mmX, mmY);
+
     // Player dot
     ctx.fillStyle = '#ff1744';
     ctx.fillRect(mmX + d.playerPos.x * mmTile - 1, mmY + d.playerPos.y * mmTile - 1, 3, 3);
@@ -1747,7 +1688,7 @@ export default function CreatureRPGRenderer() {
     }
   }
 
-  // RAF loop
+  // RAF loop â€” runs once on mount; renderFrame reads dataRef.current
   useEffect(() => {
     let animId: number;
     function loop() {
@@ -1885,15 +1826,15 @@ export default function CreatureRPGRenderer() {
                 <h3 className="text-white font-semibold mb-1">Controls</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    <span className="text-white font-semibold">Arrow Keys / WASD</span> — Move in
+                    <span className="text-white font-semibold">Arrow Keys / WASD</span> â€” Move in
                     the overworld
                   </li>
                   <li>
-                    <span className="text-white font-semibold">Space / Enter</span> — Interact with
-                    NPCs, advance dialogue
+                    <span className="text-white font-semibold">Space / Enter</span> â€” Interact
+                    with NPCs, advance dialogue
                   </li>
                   <li>
-                    <span className="text-white font-semibold">1-4</span> — Use moves in battle
+                    <span className="text-white font-semibold">1-4</span> â€” Use moves in battle
                   </li>
                 </ul>
               </div>
@@ -1942,16 +1883,16 @@ export default function CreatureRPGRenderer() {
                 <h3 className="text-white font-semibold mb-1">Starters</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    <span className="text-orange-300 font-semibold">Emberfox</span> (Fire) — Fast,
+                    <span className="text-orange-300 font-semibold">Emberfox</span> (Fire) â€” Fast,
                     high special attack
                   </li>
                   <li>
-                    <span className="text-blue-300 font-semibold">Aquaphin</span> (Water) — Tanky,
+                    <span className="text-blue-300 font-semibold">Aquaphin</span> (Water) â€” Tanky,
                     balanced stats
                   </li>
                   <li>
-                    <span className="text-green-300 font-semibold">Thornvine</span> (Grass) — Bulky,
-                    inflicts status effects
+                    <span className="text-green-300 font-semibold">Thornvine</span> (Grass) â€”
+                    Bulky, inflicts status effects
                   </li>
                 </ul>
               </div>
@@ -1959,12 +1900,12 @@ export default function CreatureRPGRenderer() {
                 <h3 className="text-white font-semibold mb-1">Tips</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>Catch creatures to build a party of up to 3.</li>
-                  <li>Use type advantages — 2x damage makes a huge difference.</li>
+                  <li>Use type advantages â€” 2x damage makes a huge difference.</li>
                   <li>Heal at healing centers before the gym battle.</li>
                   <li>
                     Weaken wild creatures before catching (low HP + status = higher catch rate).
                   </li>
-                  <li>Gym Leader Verdana uses Ghost and Grass types — plan accordingly!</li>
+                  <li>Gym Leader Verdana uses Ghost and Grass types â€” plan accordingly!</li>
                 </ul>
               </div>
             </div>

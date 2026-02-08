@@ -4,10 +4,14 @@
  */
 
 import { Request, Response, NextFunction } from 'express';
-import { createHash } from 'crypto';
 import jwt from 'jsonwebtoken';
 import prisma from '../lib/prisma.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
+import { hashApiKey } from '../lib/crypto.js';
+import { verifyToken, signToken, extractBlocklistKey } from '../lib/jwt.js';
+
+// Re-export for consumers that import from middleware/auth
+export { signToken, extractBlocklistKey };
 
 export type UserRole = 'human' | 'bot';
 
@@ -28,18 +32,6 @@ declare global {
 }
 /* eslint-enable @typescript-eslint/no-namespace */
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  (() => {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL: JWT_SECRET must be set in production');
-    }
-    console.warn('[SECURITY] Using default JWT secret — set JWT_SECRET env var for production');
-    return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
-  })();
-
-const JWT_EXPIRY = (process.env.JWT_EXPIRY || '7d') as string & {};
-
 const USER_SELECT = {
   id: true,
   walletAddress: true,
@@ -48,9 +40,7 @@ const USER_SELECT = {
   role: true,
 } as const;
 
-function hashApiKey(key: string): string {
-  return createHash('sha256').update(key).digest('hex');
-}
+const VALID_ROLES: readonly UserRole[] = ['human', 'bot'] as const;
 
 function buildAuthUser(dbUser: {
   id: string;
@@ -59,40 +49,15 @@ function buildAuthUser(dbUser: {
   username: string | null;
   role: string;
 }): AuthUser {
+  if (!VALID_ROLES.includes(dbUser.role as UserRole)) {
+    throw new Error(`Invalid user role: ${dbUser.role}`);
+  }
   return {
     id: dbUser.id,
     address: dbUser.walletAddress,
     displayName: dbUser.displayName || dbUser.username || dbUser.walletAddress.slice(0, 10),
     role: dbUser.role as UserRole,
   };
-}
-
-/**
- * Verify a JWT token and return its payload
- */
-function verifyToken(token: string): { userId: string; address: string } | null {
-  try {
-    const payload = jwt.verify(token, JWT_SECRET) as {
-      userId: string;
-      address: string;
-      iat: number;
-      exp: number;
-    };
-    return { userId: payload.userId, address: payload.address };
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Sign a JWT token for a user
- */
-export function signToken(userId: string, address: string): string {
-  return jwt.sign(
-    { userId, address },
-    JWT_SECRET as jwt.Secret,
-    { expiresIn: JWT_EXPIRY } as jwt.SignOptions,
-  );
 }
 
 /**

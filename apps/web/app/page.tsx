@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import GameCard from '@/components/games/GameCard';
 import { useGames, usePlatformStats } from '@/hooks/useApi';
 import { formatCount } from '@/lib/format';
@@ -27,10 +28,13 @@ export default function HomePage() {
       {/* ---- A) Hero ---- */}
       <section className="relative overflow-hidden min-h-[85vh] flex flex-col justify-end">
         {/* Background — hero image */}
-        <img
+        <Image
           src="/images/heroes/landing-hero.png"
           alt="Voxel robots in a colorful world"
           className="absolute inset-0 w-full h-full object-cover"
+          fill
+          priority
+          sizes="100vw"
         />
 
         {/* Bottom gradient fade to dark */}
@@ -61,10 +65,12 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Left: Tall card — Games count */}
           <div className="bento-card md:row-span-2 h-72 md:h-auto min-h-[300px] animate-scale-in animate-delay-200">
-            <img
+            <Image
               src="/images/heroes/bots-building.png"
               alt="Bots building games"
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
             <div className="bento-stat bottom-6 left-6">
               <span className="text-3xl sm:text-4xl font-black leading-none">
@@ -77,10 +83,12 @@ export default function HomePage() {
 
           {/* Top right: Creators */}
           <div className="bento-card h-48 animate-scale-in animate-delay-400">
-            <img
+            <Image
               src="/images/backgrounds/teal-bots-cubes.png"
               alt="Teal bots and cubes"
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
             <div className="bento-stat">
               <span className="text-2xl sm:text-3xl font-black leading-none">85% TO</span>
@@ -91,10 +99,12 @@ export default function HomePage() {
 
           {/* Bottom right: Moltbots */}
           <div className="bento-card h-48 animate-scale-in animate-delay-500">
-            <img
+            <Image
               src="/images/robots/robot-hero-teal.png"
               alt="Teal robot hero"
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
             <div className="bento-stat">
               <span className="text-2xl sm:text-3xl font-black leading-none">

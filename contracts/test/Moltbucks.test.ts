@@ -237,12 +237,12 @@ describe("Moltbucks", function () {
       expect(await token.balanceOf(user3.address)).to.equal(amounts[2]);
     });
 
-    it("Should revert if batch size exceeds 100", async function () {
+    it("Should revert if batch size exceeds 50", async function () {
       const { token } = await loadFixture(deployTokenFixture);
-      const recipients = Array(101).fill(
+      const recipients = Array(51).fill(
         "0x0000000000000000000000000000000000000001"
       );
-      const amounts = Array(101).fill(ethers.parseEther("1"));
+      const amounts = Array(51).fill(ethers.parseEther("1"));
 
       await expect(
         token.mintBatch(recipients, amounts)

@@ -40,12 +40,22 @@ interface ActiveSession {
 }
 
 // ─── Matchmaking Queue ──────────────────────────────────
+//
+// WARNING: matchQueues and activeSessions are in-memory only.
+// In a multi-server deployment, these must be migrated to Redis
+// (or another shared store) so that all server instances share
+// the same matchmaking and session state. Single-server only for now.
 
 /** gameId -> queued players */
 const matchQueues = new Map<string, QueueEntry[]>();
 
 /** sessionId -> active session data */
 const activeSessions = new Map<string, ActiveSession>();
+
+/** Check if a session ID is tracked in memory (used by ws/index.ts for spectate validation). */
+export function isActiveSession(sessionId: string): boolean {
+  return activeSessions.has(sessionId);
+}
 
 // ─── Public API ─────────────────────────────────────────
 
@@ -145,6 +155,14 @@ export function leaveQueue(client: ConnectedClient): boolean {
 
 /**
  * Handle a game action from a player in an active session.
+ *
+ * TODO(CRITICAL): This function does NOT integrate with the game engine.
+ * It blindly accepts any action payload and broadcasts it to all session
+ * participants without validation. For multiplayer to work correctly, this
+ * must instantiate the appropriate BaseGame subclass, call handleAction()
+ * to validate and process the action through the game engine, and only
+ * broadcast the resulting state if the action succeeds. Without this,
+ * clients can send arbitrary state mutations that bypass all game rules.
  */
 export async function handleGameAction(
   client: ConnectedClient,

@@ -10,7 +10,14 @@ import prisma from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sanitize } from '../lib/sanitize.js';
 import { validate } from '../middleware/validate.js';
-import { submoltSlugParamSchema, submoltPostsQuerySchema, createPostSchema, getPostSchema, createCommentSchema, voteSchema } from '../schemas/social.js';
+import {
+  submoltSlugParamSchema,
+  submoltPostsQuerySchema,
+  createPostSchema,
+  getPostSchema,
+  createCommentSchema,
+  voteSchema,
+} from '../schemas/social.js';
 
 const router: Router = Router();
 
@@ -39,59 +46,60 @@ router.get('/submolts', async (req: Request, res: Response, next: NextFunction) 
  *   limit  - number of posts to return (default 20)
  *   offset - number of posts to skip   (default 0)
  */
-router.get('/submolts/:slug', validate(submoltPostsQuerySchema), async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { slug } = req.params;
-    const limit = Math.max(1, parseInt(req.query.limit as string) || 20);
-    const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+router.get(
+  '/submolts/:slug',
+  validate(submoltPostsQuerySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
 
-    const submolt = await prisma.submolt.findUnique({
-      where: { slug },
-    });
+      const submolt = await prisma.submolt.findUnique({
+        where: { slug },
+      });
 
-    if (!submolt) {
-      res.status(404).json({ error: 'Not found', message: `Submolt "${slug}" does not exist` });
-      return;
-    }
+      if (!submolt) {
+        res.status(404).json({ error: 'Not found', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
 
-    const [posts, total] = await Promise.all([
-      prisma.post.findMany({
-        where: { submoltId: submolt.id, deleted: false },
-        orderBy: [
-          { pinned: 'desc' },
-          { createdAt: 'desc' },
-        ],
-        include: {
-          author: {
-            select: {
-              username: true,
-              displayName: true,
-              walletAddress: true,
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where: { submoltId: submolt.id, deleted: false },
+          orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
+          include: {
+            author: {
+              select: {
+                username: true,
+                displayName: true,
+                walletAddress: true,
+              },
             },
           },
-        },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.post.count({
-        where: { submoltId: submolt.id, deleted: false },
-      }),
-    ]);
+          take: limit,
+          skip: offset,
+        }),
+        prisma.post.count({
+          where: { submoltId: submolt.id, deleted: false },
+        }),
+      ]);
 
-    res.json({
-      submolt,
-      posts,
-      pagination: {
-        total,
-        limit,
-        offset,
-        hasMore: offset + limit < total,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      res.json({
+        submolt,
+        posts,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 // ─── Posts ───────────────────────────────────────────────
 
@@ -337,45 +345,40 @@ router.post('/heartbeat', requireAuth, async (req: Request, res: Response, next:
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
     // Gather all platform data in parallel
-    const [
-      trendingGames,
-      newNotifications,
-      newGames,
-      submoltActivity,
-      upcomingTournaments,
-    ] = await Promise.all([
-      // Top 5 games by total plays
-      prisma.game.findMany({
-        where: { status: 'published' },
-        orderBy: { totalPlays: 'desc' },
-        take: 5,
-      }),
+    const [trendingGames, newNotifications, newGames, submoltActivity, upcomingTournaments] =
+      await Promise.all([
+        // Top 5 games by total plays
+        prisma.game.findMany({
+          where: { status: 'published' },
+          orderBy: { totalPlays: 'desc' },
+          take: 5,
+        }),
 
-      // Count of unread notifications for this user
-      prisma.notification.count({
-        where: { userId: user.id, read: false },
-      }),
+        // Count of unread notifications for this user
+        prisma.notification.count({
+          where: { userId: user.id, read: false },
+        }),
 
-      // Games published in the last 24 hours
-      prisma.game.findMany({
-        where: {
-          status: 'published',
-          publishedAt: { gte: twentyFourHoursAgo },
-        },
-      }),
+        // Games published in the last 24 hours
+        prisma.game.findMany({
+          where: {
+            status: 'published',
+            publishedAt: { gte: twentyFourHoursAgo },
+          },
+        }),
 
-      // Posts created in the last 24 hours
-      prisma.post.count({
-        where: { createdAt: { gte: twentyFourHoursAgo } },
-      }),
+        // Posts created in the last 24 hours
+        prisma.post.count({
+          where: { createdAt: { gte: twentyFourHoursAgo } },
+        }),
 
-      // Tournaments that are upcoming or in registration
-      prisma.tournament.findMany({
-        where: {
-          status: { in: ['upcoming', 'registration'] },
-        },
-      }),
-    ]);
+        // Tournaments that are upcoming or in registration
+        prisma.tournament.findMany({
+          where: {
+            status: { in: ['upcoming', 'registration'] },
+          },
+        }),
+      ]);
 
     // Log the heartbeat
     const heartbeat = await prisma.heartbeatLog.create({

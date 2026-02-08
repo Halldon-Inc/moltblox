@@ -97,6 +97,8 @@ export interface SubmoltResponse {
   name: string;
   slug: string;
   description: string;
+  rules?: string[];
+  memberCount?: number;
   _count: {
     posts: number;
     games: number;

@@ -99,6 +99,12 @@ function setupWildBattle(game: CreatureRPGGame, species = 'emberfox'): void {
 /**
  * Directly inject a wild battle state for tests that need guaranteed battle setup
  * without depending on map navigation.
+ *
+ * Note: This mutates `state.data` in place via a shallow reference obtained from
+ * `game.getState()`. This works because BaseGame.getState() returns a shallow copy
+ * of `this.state` but state.data is the same object reference. Any mutations to
+ * `data` here are immediately visible to the game engine. Tests relying on this
+ * helper should be aware of this coupling.
  */
 function forceBattle(game: CreatureRPGGame, enemySpecies = 'pebblecrab', enemyLevel = 4): void {
   const state = game.getState();
@@ -117,6 +123,7 @@ function forceBattle(game: CreatureRPGGame, enemySpecies = 'pebblecrab', enemyLe
     trainerName: null,
     turnCount: 0,
     leechSeedActive: false,
+    leechSeedSource: null,
     message: `A wild ${enemy.species} appeared!`,
     awaitingAction: true,
   };
@@ -148,6 +155,7 @@ function forceTrainerBattle(
     trainerName: 'Test Trainer',
     turnCount: 0,
     leechSeedActive: false,
+    leechSeedSource: null,
     message: `Test Trainer wants to battle!`,
     awaitingAction: true,
   };
@@ -980,6 +988,9 @@ describe('CreatureRPGGame', () => {
       expect(result.error).toBe('Game is already over');
     });
 
+    // This test verifies exact score values and is intentionally tightly coupled
+    // to the scoring formula in calculateScores(). If the formula changes, this
+    // test must be updated. This tight coupling serves as a regression guard.
     it('scores include gym bonus of 500', () => {
       const game = createGame();
       act(game, 'choose_starter', { species: 'emberfox' });

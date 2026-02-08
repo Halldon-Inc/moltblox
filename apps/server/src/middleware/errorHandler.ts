@@ -56,7 +56,6 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     res.status(err.statusCode).json({
       error: err.name,
       message: err.message,
-      statusCode: err.statusCode,
     });
     return;
   }
@@ -66,15 +65,12 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     res.status(400).json({
       error: 'BadRequest',
       message: 'Invalid JSON in request body',
-      statusCode: 400,
     });
     return;
   }
 
   // Log full error details server-side (never expose to clients)
   console.error(err.stack);
-
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Handle Prisma/database errors — never leak DB details regardless of environment
   const errCode = (err as unknown as Record<string, unknown>).code;
@@ -83,15 +79,13 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
     res.status(500).json({
       error: 'InternalServerError',
       message: 'A database error occurred',
-      statusCode: 500,
     });
     return;
   }
 
-  // Generic fallback — hide details in production
+  // Generic fallback — never expose internal error messages to clients
   res.status(500).json({
     error: 'InternalServerError',
-    message: isProduction ? 'Internal Server Error' : err.message,
-    statusCode: 500,
+    message: 'Internal Server Error',
   });
 }

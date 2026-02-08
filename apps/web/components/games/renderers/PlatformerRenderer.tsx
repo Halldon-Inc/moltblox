@@ -84,6 +84,7 @@ export default function PlatformerRenderer() {
   const keysRef = useRef<Set<string>>(new Set());
   const cameraRef = useRef({ x: 0, y: 0 });
   const rafRef = useRef<number>(0);
+  const bgGradRef = useRef<CanvasGradient | null>(null);
 
   const data = (state?.data as unknown as PlatformerData) ?? undefined;
 
@@ -187,11 +188,14 @@ export default function PlatformerRenderer() {
     cam.x = Math.max(0, Math.min(cam.x, data.levelWidth * UNIT - CANVAS_W));
     cam.y = Math.max(0, Math.min(cam.y, data.levelHeight * UNIT - CANVAS_H));
 
-    // Background gradient (dark sky)
-    const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    grad.addColorStop(0, '#0b1120');
-    grad.addColorStop(1, '#1a1a2e');
-    ctx.fillStyle = grad;
+    // Background gradient (dark sky) — cached
+    if (!bgGradRef.current) {
+      const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+      grad.addColorStop(0, '#0b1120');
+      grad.addColorStop(1, '#1a1a2e');
+      bgGradRef.current = grad;
+    }
+    ctx.fillStyle = bgGradRef.current;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Helper: world to screen

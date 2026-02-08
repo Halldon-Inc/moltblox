@@ -75,6 +75,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     mapping(string => Tournament) public tournaments;
     mapping(string => mapping(address => bool)) public isParticipant;
     mapping(string => uint256) public participantEntryFees; // Total fees collected
+    mapping(string => uint256) public originalPrizePool; // SC1: Track sponsor's original deposit
 
     // Events
     event TournamentCreated(
@@ -285,6 +286,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         t.registrationEnd = registrationEnd;
         t.startTime = startTime;
         t.prizesDistributed = false;
+
+        // SC1: Track original sponsor deposit separately for accurate cancel refunds
+        originalPrizePool[tournamentId] = prizePool;
 
         emit TournamentCreated(
             tournamentId,
@@ -547,17 +551,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             }
         }
 
-        // Return prize pool to sponsor
-        if (t.prizePool > 0) {
-            if (t.tournamentType == TournamentType.CommunitySponsored) {
-                // Only return the original prize pool, not accumulated entry fees
-                uint256 originalPrizePool = t.prizePool - participantEntryFees[tournamentId];
-                if (originalPrizePool > 0) {
-                    moltbucks.safeTransfer(t.sponsor, originalPrizePool);
-                }
-            } else {
-                moltbucks.safeTransfer(t.sponsor, t.prizePool);
-            }
+        // SC1: Return original sponsor deposit (tracked separately to prevent double-counting)
+        uint256 sponsorRefund = originalPrizePool[tournamentId];
+        if (sponsorRefund > 0) {
+            moltbucks.safeTransfer(t.sponsor, sponsorRefund);
         }
 
         emit TournamentCancelled(tournamentId, reason);
@@ -635,5 +632,17 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
         moltbucks.safeTransferFrom(msg.sender, address(this), amount);
         t.prizePool += amount;
+    }
+
+    /**
+     * @notice SC3: Recover accidentally sent ERC20 tokens (not MBUCKS)
+     * @param token The ERC20 token to recover
+     * @param to Recipient address
+     * @param amount Amount to recover
+     */
+    function recoverTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        require(address(token) != address(moltbucks), "Cannot recover MBUCKS");
+        require(to != address(0), "Invalid recipient");
+        token.safeTransfer(to, amount);
     }
 }

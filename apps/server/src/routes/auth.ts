@@ -1,4 +1,3 @@
-// TODO: Add integration tests for SIWE and Moltbook auth flows
 /**
  * Authentication routes for Moltblox API
  * Sign-In with Ethereum (SIWE) flow
@@ -6,24 +5,37 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { SiweMessage } from 'siwe';
-import { randomUUID, createHash } from 'crypto';
+import { randomUUID } from 'crypto';
 import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
 import jwt from 'jsonwebtoken';
-import { signToken, requireAuth } from '../middleware/auth.js';
+import { signToken, extractBlocklistKey, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { verifySchema, moltbookAuthSchema, updateProfileSchema } from '../schemas/auth.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import { blockToken } from '../lib/tokenBlocklist.js';
+import { hashApiKey } from '../lib/crypto.js';
 
-const MOLTBOOK_API_URL = process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1';
-const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY || '';
+// H1: Validate Moltbook API URL against allowlist to prevent SSRF
+const MOLTBOOK_ALLOWED_HOSTS = ['https://www.moltbook.com/api/v1', 'https://api.moltbook.com/v1'];
+const rawMoltbookUrl = process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1';
+if (!MOLTBOOK_ALLOWED_HOSTS.includes(rawMoltbookUrl)) {
+  throw new Error(
+    `FATAL: MOLTBOOK_API_URL "${rawMoltbookUrl}" is not in the allowlist. ` +
+      `Allowed: ${MOLTBOOK_ALLOWED_HOSTS.join(', ')}`,
+  );
+}
+const MOLTBOOK_API_URL = rawMoltbookUrl;
+const MOLTBOOK_APP_KEY =
+  process.env.MOLTBOOK_APP_KEY ||
+  (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('FATAL: MOLTBOOK_APP_KEY must be set in production');
+    }
+    return '';
+  })();
 
 const router: Router = Router();
-
-function hashApiKey(key: string): string {
-  return createHash('sha256').update(key).digest('hex');
-}
 
 /**
  * GET /auth/csrf - Get CSRF token (also sets cookie)
@@ -63,14 +75,6 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { message, signature } = req.body;
-
-      if (!message || !signature) {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Missing message or signature',
-        });
-        return;
-      }
 
       // Parse and verify the SIWE message
       const siweMessage = new SiweMessage(message);
@@ -116,7 +120,7 @@ router.post(
 
       res.cookie('moltblox_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV !== 'development',
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         path: '/',
@@ -150,15 +154,25 @@ router.post(
 
 /**
  * POST /auth/refresh - Refresh JWT token (auth required)
+ * Blocklists the old token to prevent reuse.
  */
 router.post('/refresh', requireAuth, async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = req.user!;
+
+    // Blocklist the old token so it cannot be reused
+    const oldToken = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7).trim()
+      : req.cookies?.moltblox_token;
+    if (oldToken) {
+      await blockToken(extractBlocklistKey(oldToken));
+    }
+
     const token = signToken(user.id, user.address);
 
     res.cookie('moltblox_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV !== 'development',
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: '/',
@@ -235,6 +249,19 @@ router.put(
         'bio',
       ]);
 
+      // H4: Reject data: URIs and javascript: URIs in avatarUrl
+      if (avatarUrl !== undefined) {
+        const lower = avatarUrl.toLowerCase();
+        if (lower.startsWith('data:') || lower.startsWith('javascript:')) {
+          res.status(400).json({
+            error: 'BadRequest',
+            message:
+              'avatarUrl must be an https:// URL. data: and javascript: URIs are not allowed.',
+          });
+          return;
+        }
+      }
+
       const updateData: Record<string, string> = {};
       if (username !== undefined) updateData.username = username;
       if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
@@ -308,14 +335,6 @@ router.post(
     try {
       const { identityToken, walletAddress } = req.body;
 
-      if (!identityToken || !walletAddress) {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Missing identityToken or walletAddress',
-        });
-        return;
-      }
-
       // Verify identity token against Moltbook API
       const verifyResponse = await fetch(`${MOLTBOOK_API_URL}/agents/verify-identity`, {
         method: 'POST',
@@ -334,17 +353,43 @@ router.post(
         return;
       }
 
-      const agentData = (await verifyResponse.json()) as {
+      const rawAgentData = (await verifyResponse.json()) as Record<string, unknown>;
+
+      // H1: Validate response schema from Moltbook API
+      if (
+        !rawAgentData ||
+        typeof rawAgentData !== 'object' ||
+        typeof rawAgentData.id !== 'string' ||
+        !rawAgentData.id
+      ) {
+        res.status(502).json({
+          error: 'BadGateway',
+          message: 'Invalid response from Moltbook verification service',
+        });
+        return;
+      }
+
+      const agentData = rawAgentData as {
         id: string;
         name: string;
         description?: string;
         karma?: number;
         avatar_url?: string;
+        wallet_address?: string;
         claimed?: boolean;
         follower_count?: number;
       };
 
       const address = walletAddress.toLowerCase();
+
+      // M3: If Moltbook returns a wallet_address, verify it matches the claimed one
+      if (agentData.wallet_address && agentData.wallet_address.toLowerCase() !== address) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Wallet address does not match the Moltbook agent identity',
+        });
+        return;
+      }
 
       // Find or create bot user
       let user = await prisma.user.findFirst({
@@ -396,7 +441,7 @@ router.post(
 
       res.cookie('moltblox_token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV !== 'development',
         sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000,
         path: '/',
@@ -455,7 +500,7 @@ router.post('/logout', async (req, res, next) => {
 
     res.clearCookie('moltblox_token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV !== 'development',
       sameSite: 'lax',
       path: '/',
     });

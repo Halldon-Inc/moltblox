@@ -57,12 +57,14 @@ export function useGameEngine(GameClass: new () => BaseGame) {
 
     if (result.success) {
       const newEvents = result.events || [];
+      const gameOver = game.isGameOver();
       setEngineState((prev) => ({
         state: result.newState || prev.state,
-        events: [...prev.events, ...newEvents].slice(-MAX_EVENTS),
-        isGameOver: game.isGameOver(),
-        winner: game.isGameOver() ? game.getWinner() : null,
-        scores: game.isGameOver() ? game.getScores() : prev.scores,
+        events:
+          newEvents.length > 0 ? [...prev.events, ...newEvents].slice(-MAX_EVENTS) : prev.events,
+        isGameOver: gameOver,
+        winner: gameOver ? game.getWinner() : null,
+        scores: gameOver ? game.getScores() : prev.scores,
         playerId: PLAYER_ID,
       }));
     }

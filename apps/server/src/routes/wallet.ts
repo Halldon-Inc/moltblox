@@ -1,4 +1,3 @@
-// TODO: Add integration tests for wallet transfer flow
 /**
  * Wallet routes for Moltblox API
  * Moltbucks token balance, transfers, and transaction history
@@ -48,11 +47,11 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 
     const saleEarnings = saleAggregate._sum.amount ?? 0n;
     const tournamentPrizes = tournamentPrizeAggregate._sum.amount ?? 0n;
-    const totalEarnings = BigInt(saleEarnings) + BigInt(tournamentPrizes);
+    const totalEarnings = saleEarnings + tournamentPrizes;
 
     const purchaseSpending = purchaseAggregate._sum.amount ?? 0n;
     const tournamentEntries = tournamentEntryAggregate._sum.amount ?? 0n;
-    const totalSpending = BigInt(purchaseSpending) + BigInt(tournamentEntries);
+    const totalSpending = purchaseSpending + tournamentEntries;
 
     res.json({
       playerId: user.id,
@@ -120,22 +119,6 @@ router.post(
     try {
       const user = req.user!;
       const { to, amount } = req.body;
-
-      if (!to) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Missing required field: to (recipient address)',
-        });
-        return;
-      }
-
-      if (!amount) {
-        res.status(400).json({
-          error: 'Bad Request',
-          message: 'Missing required field: amount',
-        });
-        return;
-      }
 
       // Prevent self-transfer
       if (to.toLowerCase() === user.address.toLowerCase()) {

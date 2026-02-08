@@ -134,7 +134,6 @@ interface TurnEntry {
 }
 
 interface SideBattlerState {
-  [key: string]: unknown;
   party: PartyCharacter[];
   enemies: EnemyUnit[];
   currentWave: number;
@@ -148,6 +147,7 @@ interface SideBattlerState {
   bossKillCount: number;
   combatLog: string[];
   playerScores: Record<string, number>;
+  [key: string]: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -544,6 +544,9 @@ export class SideBattlerGame extends BaseGame {
     }
     if (data.currentWave >= data.maxWaves) {
       return { success: false, error: 'All waves completed' };
+    }
+    if (!data.party.some((c) => c.alive)) {
+      return { success: false, error: 'All party members have fallen' };
     }
 
     data.currentWave++;
@@ -1143,6 +1146,10 @@ export class SideBattlerGame extends BaseGame {
         const mpDrain = Math.min(target.stats.mp, absorbed);
         target.stats.mp -= mpDrain;
         totalDmg -= mpDrain;
+        if (target.stats.mp <= 0) {
+          target.statusEffects = target.statusEffects.filter((e) => e.type !== 'mana_shield');
+          data.combatLog.push(`${target.name}'s Mana Shield shatters!`);
+        }
       }
 
       // DEF Up
@@ -1462,3 +1469,5 @@ export class SideBattlerGame extends BaseGame {
     return scores;
   }
 }
+
+export type { SideBattlerState, PartyCharacter, EnemyUnit, Skill, StatusEffect };

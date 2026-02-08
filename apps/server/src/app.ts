@@ -136,7 +136,6 @@ app.get('/health', (_req: Request, res: Response) => {
     service: 'moltblox-api',
     version: '0.1.0',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
   });
 });
 
@@ -146,7 +145,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 app.use('/api/v1/auth', authLimiter, authRouter);
 app.use('/api/v1/games', gamesRouter);
-app.use('/api/v1/tournaments', tournamentsRouter);
+app.use('/api/v1/tournaments', writeLimiter, tournamentsRouter);
 app.use('/api/v1/marketplace', writeLimiter, marketplaceRouter);
 app.use('/api/v1/social', writeLimiter, socialRouter);
 app.use('/api/v1/wallet', writeLimiter, walletRouter);
@@ -163,7 +162,6 @@ app.use((_req: Request, res: Response) => {
   res.status(404).json({
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
-    statusCode: 404,
   });
 });
 

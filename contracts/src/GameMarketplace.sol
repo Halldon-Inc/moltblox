@@ -368,4 +368,16 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     function unpause() external onlyOwner {
         _unpause();
     }
+
+    /**
+     * @notice SC3: Recover accidentally sent ERC20 tokens (not MBUCKS)
+     * @param token The ERC20 token to recover
+     * @param to Recipient address
+     * @param amount Amount to recover
+     */
+    function recoverTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
+        require(address(token) != address(moltbucks), "Cannot recover MBUCKS");
+        require(to != address(0), "Invalid recipient");
+        token.safeTransfer(to, amount);
+    }
 }

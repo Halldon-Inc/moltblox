@@ -1,9 +1,4 @@
-import {
-  PlayerRating,
-  EloChange,
-  RankTier,
-  RANK_THRESHOLDS,
-} from '@moltblox/protocol';
+import { PlayerRating, EloChange, RankTier, RANK_THRESHOLDS } from '@moltblox/protocol';
 
 // =============================================================================
 // ELO Configuration
@@ -31,10 +26,7 @@ export const ELO_CONFIG = {
  * Calculate expected score (probability of winning) based on ratings
  * Uses standard ELO formula: E = 1 / (1 + 10^((Rb - Ra) / 400))
  */
-export function calculateExpectedScore(
-  playerRating: number,
-  opponentRating: number
-): number {
+export function calculateExpectedScore(playerRating: number, opponentRating: number): number {
   return 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400));
 }
 
@@ -42,7 +34,7 @@ export function calculateExpectedScore(
  * Determine K-factor based on games played and rating
  * Higher K-factor = more volatile rating changes
  */
-export function getKFactor(gamesPlayed: number, rating: number): number {
+export function getKFactor(gamesPlayed: number, _rating: number): number {
   // Provisional players have higher K-factor for faster calibration
   if (gamesPlayed < ELO_CONFIG.provisionalGames) {
     return ELO_CONFIG.kFactorProvisional;
@@ -64,7 +56,7 @@ export function calculateRatingChange(
   winnerRating: number,
   loserRating: number,
   winnerGames: number,
-  loserGames: number
+  loserGames: number,
 ): { winnerDelta: number; loserDelta: number } {
   // Expected scores
   const winnerExpected = calculateExpectedScore(winnerRating, loserRating);
@@ -89,10 +81,7 @@ export function calculateRatingChange(
  * Clamp rating to valid bounds
  */
 export function clampRating(rating: number): number {
-  return Math.max(
-    ELO_CONFIG.floorRating,
-    Math.min(ELO_CONFIG.ceilingRating, rating)
-  );
+  return Math.max(ELO_CONFIG.floorRating, Math.min(ELO_CONFIG.ceilingRating, rating));
 }
 
 /**
@@ -126,7 +115,7 @@ export class EloSystem {
     loserId: string,
     winnerRating: PlayerRating,
     loserRating: PlayerRating,
-    matchId: string
+    matchId: string,
   ): [EloChange, EloChange] {
     const timestamp = Date.now();
 
@@ -135,7 +124,7 @@ export class EloSystem {
       winnerRating.rating,
       loserRating.rating,
       winnerRating.gamesPlayed,
-      loserRating.gamesPlayed
+      loserRating.gamesPlayed,
     );
 
     // Calculate new ratings (clamped)
@@ -171,10 +160,7 @@ export class EloSystem {
   /**
    * Apply an ELO change to update a player's rating record
    */
-  static applyChange(
-    player: PlayerRating,
-    change: EloChange
-  ): PlayerRating {
+  static applyChange(player: PlayerRating, change: EloChange): PlayerRating {
     const newRating = change.newRating;
     const isWin = change.isWin;
 
@@ -188,8 +174,12 @@ export class EloSystem {
       winRate: (player.wins + (isWin ? 1 : 0)) / (player.gamesPlayed + 1),
       peakRating: Math.max(player.peakRating, newRating),
       currentStreak: isWin
-        ? (player.currentStreak >= 0 ? player.currentStreak + 1 : 1)
-        : (player.currentStreak <= 0 ? player.currentStreak - 1 : -1),
+        ? player.currentStreak >= 0
+          ? player.currentStreak + 1
+          : 1
+        : player.currentStreak <= 0
+          ? player.currentStreak - 1
+          : -1,
       lastMatchTimestamp: change.timestamp,
     };
   }
@@ -243,7 +233,7 @@ export class EloSystem {
   static estimateChange(
     playerRating: number,
     opponentRating: number,
-    playerGames: number
+    playerGames: number,
   ): { ifWin: number; ifLoss: number } {
     const k = getKFactor(playerGames, playerRating);
     const expected = calculateExpectedScore(playerRating, opponentRating);

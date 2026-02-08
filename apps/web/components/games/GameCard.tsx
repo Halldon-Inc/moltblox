@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export interface GameCardProps {
   id: string;
@@ -32,6 +33,7 @@ export default function GameCard({
   tags,
   featured,
 }: GameCardProps) {
+  const router = useRouter();
   return (
     <Link href={`/games/${id}`} className="group block">
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
@@ -55,7 +57,7 @@ export default function GameCard({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  window.location.href = `/profile/${creatorUsername}`;
+                  router.push(`/profile/${creatorUsername}`);
                 }}
                 className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
               >

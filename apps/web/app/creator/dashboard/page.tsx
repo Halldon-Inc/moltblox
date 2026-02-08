@@ -90,19 +90,18 @@ export default function CreatorDashboardPage() {
   const isLoading = meLoading || gamesLoading || walletLoading || txLoading;
   const isAuthenticated = !!meData?.user;
 
-  const games: any[] = gamesData?.games ?? [];
-  const transactions: any[] = txData?.transactions ?? txData ?? [];
-  const allTransactions = Array.isArray(transactions) ? transactions : [];
+  const games = gamesData?.games ?? [];
+  const transactions = txData?.transactions ?? [];
 
   // Filter sale-type transactions for the recent sales table
   const recentSales = useMemo(() => {
-    return allTransactions
+    return transactions
       .filter((tx: any) => {
         const type = tx.type?.toUpperCase();
         return type === 'SALE' || type === 'PURCHASE' || type === 'CREDIT';
       })
       .slice(0, 8);
-  }, [allTransactions]);
+  }, [transactions]);
 
   // Derive stats
   const stats = useMemo(() => {
@@ -118,7 +117,7 @@ export default function CreatorDashboardPage() {
           ratedGames.length
         : 0;
 
-    const balance = walletData?.balance ?? walletData?.wallet?.balance ?? 0;
+    const balance = walletData?.balance ?? 0;
     const totalRevenue = parseBigIntAmount(balance);
 
     return { totalRevenue, totalGames, totalPlayers, avgRating };
@@ -129,7 +128,7 @@ export default function CreatorDashboardPage() {
     const now = new Date();
     const dayTotals: number[] = Array(7).fill(0);
 
-    allTransactions.forEach((tx: any) => {
+    transactions.forEach((tx: any) => {
       const txDate = new Date(tx.createdAt);
       const diffDays = Math.floor((now.getTime() - txDate.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays >= 0 && diffDays < 7) {
@@ -159,7 +158,7 @@ export default function CreatorDashboardPage() {
       })),
       total: weekTotal,
     };
-  }, [allTransactions]);
+  }, [transactions]);
 
   // 30-day plays chart from analytics API
   const playsChartData = useMemo(() => {

@@ -4,48 +4,60 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { requireAuth, requireBot } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import {
+  gameIdParamSchema,
+  addCollaboratorSchema,
+  collaboratorParamsSchema,
+  updateCollaboratorSchema,
+} from '../schemas/collaborators.js';
 import prisma from '../lib/prisma.js';
+import type { CollaboratorRole } from '../generated/prisma/client.js';
 
 const router: Router = Router();
 
 /**
  * GET /games/:gameId/collaborators - List collaborators for a game (public)
  */
-router.get('/:gameId/collaborators', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { gameId } = req.params;
+router.get(
+  '/:gameId/collaborators',
+  validate(gameIdParamSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { gameId } = req.params;
 
-    const game = await prisma.game.findUnique({
-      where: { id: gameId },
-      select: { id: true },
-    });
+      const game = await prisma.game.findUnique({
+        where: { id: gameId },
+        select: { id: true },
+      });
 
-    if (!game) {
-      res.status(404).json({ error: 'Not found', message: 'Game not found' });
-      return;
-    }
+      if (!game) {
+        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        return;
+      }
 
-    const collaborators = await prisma.gameCollaborator.findMany({
-      where: { gameId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            displayName: true,
-            walletAddress: true,
-            role: true,
+      const collaborators = await prisma.gameCollaborator.findMany({
+        where: { gameId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              walletAddress: true,
+              role: true,
+            },
           },
         },
-      },
-      orderBy: { addedAt: 'asc' },
-    });
+        orderBy: { addedAt: 'asc' },
+      });
 
-    res.json({ gameId, collaborators });
-  } catch (error) {
-    next(error);
-  }
-});
+      res.json({ gameId, collaborators });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * POST /games/:gameId/collaborators - Add a collaborator (owner only, bot auth)
@@ -54,26 +66,12 @@ router.post(
   '/:gameId/collaborators',
   requireAuth,
   requireBot,
+  validate(addCollaboratorSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { gameId } = req.params;
       const user = req.user!;
       const { userId, role, canEditCode, canEditMeta, canCreateItems, canPublish } = req.body;
-
-      if (!userId) {
-        res.status(400).json({ error: 'Validation error', message: 'userId is required' });
-        return;
-      }
-
-      // Validate role
-      const validRoles = ['contributor', 'tester'];
-      if (role && !validRoles.includes(role)) {
-        res.status(400).json({
-          error: 'Validation error',
-          message: 'Role must be "contributor" or "tester"',
-        });
-        return;
-      }
 
       // Verify game exists and requester is the owner
       const game = await prisma.game.findUnique({
@@ -164,6 +162,7 @@ router.delete(
   '/:gameId/collaborators/:userId',
   requireAuth,
   requireBot,
+  validate(collaboratorParamsSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { gameId, userId } = req.params;
@@ -215,6 +214,7 @@ router.patch(
   '/:gameId/collaborators/:userId',
   requireAuth,
   requireBot,
+  validate(updateCollaboratorSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { gameId, userId } = req.params;
@@ -233,25 +233,11 @@ router.patch(
       }
 
       if (game.creatorId !== user.id) {
-        res
-          .status(403)
-          .json({
-            error: 'Forbidden',
-            message: 'Only the game owner can update collaborator permissions',
-          });
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Only the game owner can update collaborator permissions',
+        });
         return;
-      }
-
-      // Validate role if provided
-      if (role) {
-        const validRoles = ['contributor', 'tester'];
-        if (!validRoles.includes(role)) {
-          res.status(400).json({
-            error: 'Validation error',
-            message: 'Role must be "contributor" or "tester"',
-          });
-          return;
-        }
       }
 
       // Verify collaborator exists
@@ -264,8 +250,14 @@ router.patch(
         return;
       }
 
-      const data: any = {};
-      if (role !== undefined) data.role = role;
+      const data: {
+        role?: CollaboratorRole;
+        canEditCode?: boolean;
+        canEditMeta?: boolean;
+        canCreateItems?: boolean;
+        canPublish?: boolean;
+      } = {};
+      if (role !== undefined) data.role = role as CollaboratorRole;
       if (canEditCode !== undefined) data.canEditCode = canEditCode;
       if (canEditMeta !== undefined) data.canEditMeta = canEditMeta;
       if (canCreateItems !== undefined) data.canCreateItems = canCreateItems;

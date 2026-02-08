@@ -13,28 +13,35 @@ import {
 } from '../schemas/tournaments.js';
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
 import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
+import type { Prisma, TournamentStatus, TournamentFormat } from '../generated/prisma/client.js';
 
 const router: Router = Router();
 
 /**
  * Serialize BigInt fields on a tournament (and nested relations) to strings.
  */
-function serializeTournament(tournament: any) {
-  const result = {
+function serializeTournament(tournament: {
+  prizePool?: bigint | null;
+  entryFee?: bigint | null;
+  participants?: {
+    entryFeePaid?: bigint | null;
+    prizeWon?: bigint | null;
+    [key: string]: unknown;
+  }[];
+  [key: string]: unknown;
+}) {
+  const participants = tournament.participants?.map((p) => ({
+    ...p,
+    entryFeePaid: p.entryFeePaid?.toString() ?? '0',
+    prizeWon: p.prizeWon?.toString() ?? null,
+  }));
+
+  return {
     ...tournament,
     prizePool: tournament.prizePool?.toString() ?? '0',
     entryFee: tournament.entryFee?.toString() ?? '0',
+    ...(participants && { participants }),
   };
-
-  if (result.participants) {
-    result.participants = result.participants.map((p: any) => ({
-      ...p,
-      entryFeePaid: p.entryFeePaid?.toString() ?? '0',
-      prizeWon: p.prizeWon?.toString() ?? null,
-    }));
-  }
-
-  return result;
 }
 
 /**
@@ -51,14 +58,14 @@ router.get(
       const take = Math.min(parseInt(limit as string, 10) || 20, 100);
       const skip = parseInt(offset as string, 10) || 0;
 
-      const where: any = {};
+      const where: Prisma.TournamentWhereInput = {};
 
       if (status && status !== 'all') {
-        where.status = status as string;
+        where.status = status as TournamentStatus;
       }
 
       if (format && format !== 'all') {
-        where.format = format as string;
+        where.format = format as TournamentFormat;
       }
 
       const [tournaments, total] = await Promise.all([
@@ -179,23 +186,6 @@ router.post(
         startTime,
         endTime,
       } = req.body;
-
-      if (
-        !name ||
-        !description ||
-        !gameId ||
-        !maxParticipants ||
-        !registrationStart ||
-        !registrationEnd ||
-        !startTime
-      ) {
-        res.status(400).json({
-          error: 'Validation error',
-          message:
-            'name, description, gameId, maxParticipants, registrationStart, registrationEnd, and startTime are required',
-        });
-        return;
-      }
 
       // Verify the game exists
       const game = await prisma.game.findUnique({
@@ -377,10 +367,11 @@ router.post(
         ...result,
         message: 'Successfully registered for tournament',
       });
-    } catch (error: any) {
-      if (error.statusCode) {
-        res.status(error.statusCode).json({
-          error: error.statusCode === 404 ? 'Not found' : 'Registration error',
+    } catch (error) {
+      if (error instanceof Error && 'statusCode' in error) {
+        const statusCode = (error as Error & { statusCode: number }).statusCode;
+        res.status(statusCode).json({
+          error: statusCode === 404 ? 'Not found' : 'Registration error',
           message: error.message,
         });
         return;
@@ -420,8 +411,25 @@ router.get(
         orderBy: [{ round: 'asc' }, { matchNumber: 'asc' }],
       });
 
+      interface BracketMatch {
+        id: string;
+        tournamentId: string;
+        round: number;
+        matchNumber: number;
+        bracket: string | null;
+        player1Id: string | null;
+        player2Id: string | null;
+        status: string;
+        winnerId: string | null;
+        scorePlayer1: number | null;
+        scorePlayer2: number | null;
+        scheduledAt: Date | null;
+        startedAt: Date | null;
+        endedAt: Date | null;
+      }
+
       // Group matches by round
-      const roundsMap = new Map<number, any[]>();
+      const roundsMap = new Map<number, BracketMatch[]>();
       for (const match of matches) {
         if (!roundsMap.has(match.round)) {
           roundsMap.set(match.round, []);
@@ -445,26 +453,29 @@ router.get(
       }
 
       // Determine the current round (the earliest round with non-completed matches)
-      let currentRound = 1;
+      let currentRound: number | null = null;
       const sortedRounds = Array.from(roundsMap.keys()).sort((a, b) => a - b);
       for (const roundNum of sortedRounds) {
         const roundMatches = roundsMap.get(roundNum)!;
         const hasIncomplete = roundMatches.some(
-          (m: any) => m.status !== 'completed' && m.status !== 'forfeit',
+          (m) => m.status !== 'completed' && m.status !== 'forfeit',
         );
         if (hasIncomplete) {
           currentRound = roundNum;
           break;
         }
-        currentRound = roundNum;
+      }
+      // If all rounds are completed, currentRound is null (tournament finished)
+      if (currentRound === null && sortedRounds.length > 0) {
+        currentRound = sortedRounds[sortedRounds.length - 1];
       }
 
       const rounds = sortedRounds.map((roundNumber) => {
         const roundMatches = roundsMap.get(roundNumber)!;
         const allCompleted = roundMatches.every(
-          (m: any) => m.status === 'completed' || m.status === 'forfeit',
+          (m) => m.status === 'completed' || m.status === 'forfeit',
         );
-        const anyInProgress = roundMatches.some((m: any) => m.status === 'in_progress');
+        const anyInProgress = roundMatches.some((m) => m.status === 'in_progress');
 
         let status = 'pending';
         if (allCompleted) status = 'completed';

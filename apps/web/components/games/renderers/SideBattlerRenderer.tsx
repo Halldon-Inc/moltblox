@@ -4,6 +4,16 @@ import { useRef, useEffect, useCallback, useState, useMemo } from 'react';
 import { SideBattlerGame } from '@moltblox/game-builder';
 import { useGameEngine } from '@/hooks/useGameEngine';
 import { GameShell } from '@/components/games/GameShell';
+import {
+  WARRIOR_PIXELS,
+  WARRIOR_PALETTE,
+  MAGE_PIXELS,
+  MAGE_PALETTE,
+  ARCHER_PIXELS,
+  ARCHER_PALETTE,
+  HEALER_PIXELS,
+  HEALER_PALETTE,
+} from './side-battler-sprites';
 
 // --- Type definitions matching game logic ---
 
@@ -92,170 +102,7 @@ interface Particle {
   size: number;
 }
 
-// --- Procedural sprite pixel data ---
-// Each row is an array of palette indices (0 = transparent)
-
-const WARRIOR_PIXELS = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 1, 1, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 3, 3, 3, 3, 3, 3, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 3, 4, 3, 3, 4, 3, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 3, 3, 3, 3, 3, 3, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 3, 3, 5, 5, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 3, 3, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 0, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 1, 1, 0, 0, 0, 6, 6, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 6, 6, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 6, 6, 1, 1, 6, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 6, 6, 1, 1, 1, 6, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 1, 0, 0, 0, 0, 6, 6, 1, 1, 1, 6, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 6, 6, 1, 1, 1, 6, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 2, 1, 0, 0, 6, 6, 1, 1, 1, 6, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 2, 1, 0, 0, 6, 1, 1, 1, 6, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 2, 1, 0, 0, 6, 1, 1, 6, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 2, 2, 1, 1, 0, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 0, 0, 1, 2, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 1, 0, 0, 1, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-];
-const WARRIOR_PALETTE = ['', '#708090', '#4A5568', '#DEB887', '#2D3748', '#CD853F', '#A0AEC0'];
-
-const MAGE_PIXELS = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 4, 3, 3, 3, 4, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 5, 5, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 6, 6, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 6, 3, 6, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 6, 3, 3, 6, 0, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 3, 3, 3, 6, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 3, 3, 6, 0, 0, 0, 1, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 3, 6, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 6, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 7, 7, 0, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 0, 0, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2, 0, 0, 2, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 2, 0, 0, 2, 2, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 1, 0, 0, 1, 2, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-];
-const MAGE_PALETTE = [
-  '',
-  '#4B0082',
-  '#6B21A8',
-  '#DEB887',
-  '#2D3748',
-  '#CD853F',
-  '#8B6914',
-  '#FFD700',
-];
-
-const ARCHER_PIXELS = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 4, 3, 3, 4, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 5, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 1, 6, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 2, 2, 6, 6, 6, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 6, 6, 0, 6, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 6, 6, 0, 0, 0, 6, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 6, 6, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 6, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 6, 6, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 6, 6, 0, 0, 6, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 1, 0, 0, 1, 1, 2, 1, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 0, 0, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-];
-const ARCHER_PALETTE = ['', '#228B22', '#8B4513', '#DEB887', '#2D3748', '#CD853F', '#DAA520'];
-
-const HEALER_PIXELS = [
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 4, 3, 3, 4, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 3, 3, 3, 3, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 5, 5, 3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 6, 6, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 6, 6, 6, 6, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 6, 6, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 7, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 7, 7, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 7, 7, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 1, 1, 2, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 1, 1, 0, 0, 0, 1, 1, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 1, 2, 2, 2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-];
-const HEALER_PALETTE = [
-  '',
-  '#F0F0F0',
-  '#8B4513',
-  '#DEB887',
-  '#2D3748',
-  '#CD853F',
-  '#E63946',
-  '#FFD700',
-];
+// Sprite pixel data imported from ./side-battler-sprites.ts
 
 // --- Sprite generation helpers ---
 
@@ -538,10 +385,13 @@ function createEnemySprite(name: string, isBoss: boolean): HTMLCanvasElement {
 
 // --- Positions for party and enemies ---
 
-// Ground line Y — must match the background render
+// Ground line Y â€” must match the background render
 const GROUND_Y = CANVAS_H * 0.72;
 
+const partyPosCache = new Map<number, { x: number; y: number }[]>();
 function getPartyPositions(count: number): { x: number; y: number }[] {
+  const cached = partyPosCache.get(count);
+  if (cached) return cached;
   // Party sprites are 32px drawn at 2x (64px). They render from drawY-16 to drawY+48.
   // Align feet (drawY+48) with the ground line. Stagger upward for depth.
   const feetOffset = 48;
@@ -554,12 +404,16 @@ function getPartyPositions(count: number): { x: number; y: number }[] {
       y: bottomDrawY - (count - 1 - i) * spacing,
     });
   }
+  partyPosCache.set(count, positions);
   return positions;
 }
 
+const enemyPosCache = new Map<number, { x: number; y: number }[]>();
 function getEnemyPositions(count: number): { x: number; y: number }[] {
+  const cached = enemyPosCache.get(count);
+  if (cached) return cached;
   // Regular enemy sprites are 32px at 2x (64px), drawn from drawY to drawY+64.
-  // Boss sprites are 64px at 2x (128px) — handled by an offset in the render loop.
+  // Boss sprites are 64px at 2x (128px) â€” handled by an offset in the render loop.
   const feetOffset = 64;
   const bottomDrawY = GROUND_Y - feetOffset;
   const spacing = 28;
@@ -570,6 +424,7 @@ function getEnemyPositions(count: number): { x: number; y: number }[] {
       y: bottomDrawY - (count - 1 - i) * spacing,
     });
   }
+  enemyPosCache.set(count, positions);
   return positions;
 }
 
@@ -581,6 +436,7 @@ export default function SideBattlerRenderer() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const skyGradRef = useRef<CanvasGradient | null>(null);
   const frameCountRef = useRef(0);
   const logEndRef = useRef<HTMLDivElement>(null);
 
@@ -727,21 +583,35 @@ export default function SideBattlerRenderer() {
     };
   }, [data?.currentTurnIndex, data?.battlePhase, data?.totalTurns, dispatch, isGameOver]);
 
+  // Keep mutable refs so the RAF loop never tears down on state changes
+  const dataRef = useRef(data);
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+  const selectedTargetRef = useRef(selectedTarget);
+  useEffect(() => {
+    selectedTargetRef.current = selectedTarget;
+  }, [selectedTarget]);
+
   // --- Canvas render loop ---
   const renderFrame = useCallback(() => {
     const canvas = canvasRef.current;
+    const data = dataRef.current;
     if (!canvas || !data) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const frame = frameCountRef.current++;
 
-    // --- Background: parallax sky ---
-    const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    skyGrad.addColorStop(0, '#0a0a1a');
-    skyGrad.addColorStop(0.4, '#1a1a3e');
-    skyGrad.addColorStop(1, '#2a1a2e');
-    ctx.fillStyle = skyGrad;
+    // --- Background: parallax sky --- cached gradient
+    if (!skyGradRef.current) {
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
+      skyGrad.addColorStop(0, '#0a0a1a');
+      skyGrad.addColorStop(0.4, '#1a1a3e');
+      skyGrad.addColorStop(1, '#2a1a2e');
+      skyGradRef.current = skyGrad;
+    }
+    ctx.fillStyle = skyGradRef.current;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
     // Stars (twinkling)
@@ -983,7 +853,7 @@ export default function SideBattlerRenderer() {
       animRef.current[animKey] = anim;
 
       let drawX = pos.x;
-      // Boss sprites are 128px tall vs 64px regular — shift up so feet stay on ground
+      // Boss sprites are 128px tall vs 64px regular â€” shift up so feet stay on ground
       let drawY = enemy.isBoss ? pos.y - (BOSS_SIZE * 2 - SPRITE_SIZE * 2) : pos.y;
       let opacity = 1;
 
@@ -1003,7 +873,7 @@ export default function SideBattlerRenderer() {
       }
 
       // Selected target indicator
-      if (selectedTarget === i && data.battlePhase === 'combat') {
+      if (selectedTargetRef.current === i && data.battlePhase === 'combat') {
         const pulse = Math.sin(frame * 0.12) * 0.3 + 0.7;
         ctx.save();
         ctx.globalAlpha = pulse;
@@ -1082,14 +952,13 @@ export default function SideBattlerRenderer() {
 
     // --- Floating damage numbers ---
     const nums = damageNumsRef.current;
-    for (let i = nums.length - 1; i >= 0; i--) {
+    let nWrite = 0;
+    for (let i = 0; i < nums.length; i++) {
       const dn = nums[i];
       dn.life--;
       dn.y -= 0.8;
-      if (dn.life <= 0) {
-        nums.splice(i, 1);
-        continue;
-      }
+      if (dn.life <= 0) continue;
+      nums[nWrite++] = dn;
       ctx.save();
       ctx.globalAlpha = Math.min(1, dn.life / 20);
       ctx.fillStyle = dn.color;
@@ -1099,24 +968,25 @@ export default function SideBattlerRenderer() {
       ctx.textAlign = 'left';
       ctx.restore();
     }
+    nums.length = nWrite;
 
     // --- Particles ---
     const parts = particlesRef.current;
-    for (let i = parts.length - 1; i >= 0; i--) {
+    let pWrite = 0;
+    for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
       p.x += p.vx;
       p.y += p.vy;
       p.life--;
-      if (p.life <= 0) {
-        parts.splice(i, 1);
-        continue;
-      }
+      if (p.life <= 0) continue;
+      parts[pWrite++] = p;
       ctx.save();
       ctx.globalAlpha = p.life / p.maxLife;
       ctx.fillStyle = p.color;
       ctx.fillRect(p.x, p.y, p.size, p.size);
       ctx.restore();
     }
+    parts.length = pWrite;
 
     // --- HUD overlay ---
     // Wave info
@@ -1169,7 +1039,7 @@ export default function SideBattlerRenderer() {
       );
       ctx.restore();
     }
-  }, [data, selectedTarget]);
+  }, []);
 
   // RAF loop
   useEffect(() => {
@@ -1330,16 +1200,16 @@ export default function SideBattlerRenderer() {
                 <h3 className="text-white font-semibold mb-1">Actions</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    <span className="text-red-300 font-semibold">Attack</span> — Deal physical
+                    <span className="text-red-300 font-semibold">Attack</span> â€” Deal physical
                     damage to the selected target.
                   </li>
                   <li>
-                    <span className="text-blue-300 font-semibold">Defend</span> — Take 50% less
+                    <span className="text-blue-300 font-semibold">Defend</span> â€” Take 50% less
                     damage until your next turn and restore 3 MP.
                   </li>
                   <li>
-                    <span className="text-purple-300 font-semibold">Skills</span> — Spend MP to use
-                    powerful abilities (damage, heal, buff, AoE).
+                    <span className="text-purple-300 font-semibold">Skills</span> â€” Spend MP to
+                    use powerful abilities (damage, heal, buff, AoE).
                   </li>
                 </ul>
               </div>
@@ -1354,19 +1224,19 @@ export default function SideBattlerRenderer() {
                 <h3 className="text-white font-semibold mb-1">Your Party</h3>
                 <ul className="list-disc list-inside space-y-1">
                   <li>
-                    <span className="text-white font-semibold">Warrior</span> (front row) — Tank.
+                    <span className="text-white font-semibold">Warrior</span> (front row) â€” Tank.
                     High HP/DEF. Skills: Cleave, Shield Wall, Taunt.
                   </li>
                   <li>
-                    <span className="text-white font-semibold">Mage</span> (back row) — Magic DPS.
+                    <span className="text-white font-semibold">Mage</span> (back row) â€” Magic DPS.
                     Skills: Fireball, Blizzard (AoE), Mana Shield.
                   </li>
                   <li>
-                    <span className="text-white font-semibold">Archer</span> (back row) — Sniper.
+                    <span className="text-white font-semibold">Archer</span> (back row) â€” Sniper.
                     Skills: Snipe (ignores DEF), Rain of Arrows (AoE), Poison Shot.
                   </li>
                   <li>
-                    <span className="text-white font-semibold">Healer</span> (back row) — Support.
+                    <span className="text-white font-semibold">Healer</span> (back row) â€” Support.
                     Skills: Heal, Purify (removes debuffs), Holy Light (damage + self-heal).
                   </li>
                 </ul>
@@ -1381,11 +1251,11 @@ export default function SideBattlerRenderer() {
               <div>
                 <h3 className="text-white font-semibold mb-1">Tips</h3>
                 <ul className="list-disc list-inside space-y-1">
-                  <li>Use Defend when low on MP — it restores 3 MP per use.</li>
+                  <li>Use Defend when low on MP â€” it restores 3 MP per use.</li>
                   <li>Focus down one enemy at a time to reduce incoming damage.</li>
                   <li>Taunt with Warrior to protect wounded allies.</li>
-                  <li>Save Healer MP for emergencies — basic attacks are free.</li>
-                  <li>Blizzard and Rain of Arrows hit ALL enemies — great for clearing waves.</li>
+                  <li>Save Healer MP for emergencies â€” basic attacks are free.</li>
+                  <li>Blizzard and Rain of Arrows hit ALL enemies â€” great for clearing waves.</li>
                 </ul>
               </div>
             </div>
@@ -1444,7 +1314,7 @@ export default function SideBattlerRenderer() {
               <div className="text-center text-xs font-semibold">
                 {isPlayerTurn && currentChar ? (
                   <span className="text-neon-cyan">
-                    {currentChar.name}&apos;s turn — choose an action
+                    {currentChar.name}&apos;s turn â€” choose an action
                   </span>
                 ) : (
                   <span className="text-white/40">Enemy turn...</span>
