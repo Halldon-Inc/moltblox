@@ -292,16 +292,18 @@ router.post(
         });
 
         if (!tournament) {
-          throw { statusCode: 404, message: 'Tournament not found' };
+          throw Object.assign(new Error('Tournament not found'), { statusCode: 404 });
         }
 
         if (tournament.status !== 'registration') {
-          throw { statusCode: 400, message: 'Tournament is not open for registration' };
+          throw Object.assign(new Error('Tournament is not open for registration'), {
+            statusCode: 400,
+          });
         }
 
         const now = new Date();
         if (now < tournament.registrationStart || now > tournament.registrationEnd) {
-          throw { statusCode: 400, message: 'Registration period is not active' };
+          throw Object.assign(new Error('Registration period is not active'), { statusCode: 400 });
         }
 
         // 2. Check not already registered
@@ -315,12 +317,14 @@ router.post(
         });
 
         if (existingParticipant) {
-          throw { statusCode: 409, message: 'Already registered for this tournament' };
+          throw Object.assign(new Error('Already registered for this tournament'), {
+            statusCode: 409,
+          });
         }
 
         // 3. Check not full
         if (tournament.currentParticipants >= tournament.maxParticipants) {
-          throw { statusCode: 400, message: 'Tournament is full' };
+          throw Object.assign(new Error('Tournament is full'), { statusCode: 400 });
         }
 
         // 4. Create participant

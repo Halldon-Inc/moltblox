@@ -35,6 +35,9 @@ interface OpenBORMemoryLayout {
   p1StateOffset: number;
   p1FacingOffset: number;
   p1GroundedOffset: number;
+  p1MagicOffset: number;
+  p1VxOffset: number;
+  p1VyOffset: number;
 
   // Player 2 state offsets (same structure, different base)
   p2HealthOffset: number;
@@ -43,6 +46,9 @@ interface OpenBORMemoryLayout {
   p2StateOffset: number;
   p2FacingOffset: number;
   p2GroundedOffset: number;
+  p2MagicOffset: number;
+  p2VxOffset: number;
+  p2VyOffset: number;
 
   // Match state offsets
   roundNumberOffset: number;
@@ -64,6 +70,9 @@ const DEFAULT_MEMORY_LAYOUT: OpenBORMemoryLayout = {
   p1StateOffset: 0x100c,
   p1FacingOffset: 0x1010,
   p1GroundedOffset: 0x1014,
+  p1MagicOffset: 0x1018,
+  p1VxOffset: 0x101c,
+  p1VyOffset: 0x1020,
 
   p2HealthOffset: 0x1100,
   p2XOffset: 0x1104,
@@ -71,6 +80,9 @@ const DEFAULT_MEMORY_LAYOUT: OpenBORMemoryLayout = {
   p2StateOffset: 0x110c,
   p2FacingOffset: 0x1110,
   p2GroundedOffset: 0x1114,
+  p2MagicOffset: 0x1118,
+  p2VxOffset: 0x111c,
+  p2VyOffset: 0x1120,
 
   roundNumberOffset: 0x2000,
   roundsP1Offset: 0x2004,
@@ -177,11 +189,17 @@ export class OpenBORBridge {
           __assert_fail: () => {},
         },
         wasi_snapshot_preview1: {
-          // Basic WASI stubs
+          // WASI stubs — OpenBOR renders to canvas and reads game paks via fetch,
+          // so it does not need real filesystem or process lifecycle support.
+          // Return 0 (WASI errno success) for fd operations.
           proc_exit: () => {},
           fd_close: () => 0,
           fd_write: () => 0,
           fd_seek: () => 0,
+          fd_read: () => 0,
+          fd_fdstat_get: () => 0,
+          fd_prestat_get: () => 8, // errno 8 = EBADF (no preopens available)
+          fd_prestat_dir_name: () => 8,
         },
       });
 
@@ -221,6 +239,9 @@ export class OpenBORBridge {
             state: this.memoryLayout.p1StateOffset,
             facing: this.memoryLayout.p1FacingOffset,
             grounded: this.memoryLayout.p1GroundedOffset,
+            magic: this.memoryLayout.p1MagicOffset,
+            vx: this.memoryLayout.p1VxOffset,
+            vy: this.memoryLayout.p1VyOffset,
           }
         : {
             health: this.memoryLayout.p2HealthOffset,
@@ -229,6 +250,9 @@ export class OpenBORBridge {
             state: this.memoryLayout.p2StateOffset,
             facing: this.memoryLayout.p2FacingOffset,
             grounded: this.memoryLayout.p2GroundedOffset,
+            magic: this.memoryLayout.p2MagicOffset,
+            vx: this.memoryLayout.p2VxOffset,
+            vy: this.memoryLayout.p2VyOffset,
           };
 
     const stateCode = this.memoryView.getInt32(offsets.state, true);
@@ -238,12 +262,12 @@ export class OpenBORBridge {
     return {
       health: this.memoryView.getInt32(offsets.health, true),
       maxHealth: this.gameConfig.startingHealth,
-      magic: 0, // TODO: Add magic tracking
+      magic: this.memoryView.getInt32(offsets.magic, true),
       maxMagic: 100,
       x: this.memoryView.getFloat32(offsets.x, true),
       y: this.memoryView.getFloat32(offsets.y, true),
-      vx: 0, // TODO: Add velocity tracking
-      vy: 0,
+      vx: this.memoryView.getFloat32(offsets.vx, true),
+      vy: this.memoryView.getFloat32(offsets.vy, true),
       facing: this.memoryView.getInt32(offsets.facing, true) > 0 ? 'right' : 'left',
       state,
       grounded: this.memoryView.getInt32(offsets.grounded, true) !== 0,

@@ -285,8 +285,10 @@ export class GameCompiler {
     }
 
     try {
-      // Generate a placeholder WASM module
-      // In production, this would use AssemblyScript compiler
+      // Generate a minimal valid WASM module with stub exports.
+      // Full compilation to optimized WASM requires an AssemblyScript toolchain
+      // that is not bundled; this produces a structurally valid module that
+      // passes WebAssembly.compile() validation and exports the required symbols.
       const wasmBytes = await this.compileToWasm(code);
       const wasmHash = this.hashWasm(wasmBytes);
 
@@ -305,79 +307,156 @@ export class GameCompiler {
   }
 
   /**
-   * Compile TypeScript to WASM using AssemblyScript
+   * Encode an unsigned integer as a WASM LEB128 byte sequence.
+   */
+  private encodeLEB128(value: number): number[] {
+    const bytes: number[] = [];
+    do {
+      let byte = value & 0x7f;
+      value >>>= 7;
+      if (value !== 0) byte |= 0x80;
+      bytes.push(byte);
+    } while (value !== 0);
+    return bytes;
+  }
+
+  /**
+   * Build a single WASM section (id byte + LEB128 size + payload).
+   */
+  private buildWasmSection(id: number, payload: number[]): number[] {
+    return [id, ...this.encodeLEB128(payload.length), ...payload];
+  }
+
+  /**
+   * Generate a minimal valid WASM binary module with stub function exports.
    *
-   * Note: This is a simplified placeholder. Real implementation would:
-   * 1. Parse TypeScript AST
-   * 2. Transform to AssemblyScript-compatible code
-   * 3. Invoke AssemblyScript compiler
-   * 4. Return optimized WASM bytecode
+   * Because a full AssemblyScript / Emscripten toolchain is not bundled,
+   * this method produces a structurally valid WASM module that:
+   *  - Passes WebAssembly.compile() / WebAssembly.validate()
+   *  - Exports the six symbols expected by apps/web/lib/wasm-runtime.ts
+   *  - Contains one no-op function body shared by all exports
+   *
+   * When an AssemblyScript toolchain is available, replace this method
+   * with a call to asc.compileString() for real compilation.
    */
   private async compileToWasm(_code: string): Promise<Uint8Array> {
-    // Placeholder: Generate minimal valid WASM module
-    // Real implementation would use AssemblyScript
-    //
-    // Exports must match what apps/web/lib/wasm-runtime.ts expects:
-    //   init, update, render, handleInput, getState, destroy
+    // Required export names (must match apps/web/lib/wasm-runtime.ts)
     const exportNames = ['init', 'update', 'render', 'handleInput', 'getState', 'destroy'];
 
-    // Build export section payload: num_exports + (name_len, name_bytes, kind=0x00, func_idx=0x00)*
-    const exportEntries: number[] = [];
-    exportEntries.push(exportNames.length); // number of exports
-    for (const name of exportNames) {
-      const nameBytes = new TextEncoder().encode(name);
-      exportEntries.push(nameBytes.length, ...nameBytes, 0x00, 0x00); // kind=func, index=0
+    // --- Type section (id 0x01) ---
+    // One function type: () -> ()
+    const typePayload = [
+      0x01, // 1 type entry
+      0x60, // func type marker
+      0x00, // 0 params
+      0x00, // 0 results
+    ];
+
+    // --- Function section (id 0x03) ---
+    // N functions, all referencing type index 0
+    const funcPayload = [
+      ...this.encodeLEB128(exportNames.length),
+      ...new Array<number>(exportNames.length).fill(0x00),
+    ];
+
+    // --- Export section (id 0x07) ---
+    const exportBytes: number[] = [...this.encodeLEB128(exportNames.length)];
+    const encoder = new TextEncoder();
+    for (let i = 0; i < exportNames.length; i++) {
+      const nameBytes = encoder.encode(exportNames[i]);
+      exportBytes.push(...this.encodeLEB128(nameBytes.length), ...nameBytes);
+      exportBytes.push(0x00); // export kind: function
+      exportBytes.push(...this.encodeLEB128(i)); // function index
     }
 
+    // --- Code section (id 0x0a) ---
+    // N identical function bodies: 0 locals, `end` opcode
+    const funcBody = [0x02, 0x00, 0x0b]; // body_size=2, 0 local decls, end
+    const codePayload: number[] = [...this.encodeLEB128(exportNames.length)];
+    for (let i = 0; i < exportNames.length; i++) {
+      codePayload.push(...funcBody);
+    }
+
+    // --- Assemble full module ---
+    const sections = [
+      ...this.buildWasmSection(0x01, typePayload),
+      ...this.buildWasmSection(0x03, funcPayload),
+      ...this.buildWasmSection(0x07, exportBytes),
+      ...this.buildWasmSection(0x0a, codePayload),
+    ];
+
     const wasmModule = new Uint8Array([
-      // WASM magic number
       0x00,
       0x61,
       0x73,
-      0x6d,
-      // Version 1
+      0x6d, // WASM magic number (\0asm)
       0x01,
       0x00,
       0x00,
-      0x00,
-      // Type section: 1 type — () -> ()
-      0x01,
-      0x04,
-      0x01,
-      0x60,
-      0x00,
-      0x00,
-      // Function section: 1 function referencing type 0
-      0x03,
-      0x02,
-      0x01,
-      0x00,
-      // Export section
-      0x07,
-      exportEntries.length,
-      ...exportEntries,
-      // Code section: 1 function body — empty (nop + end)
-      0x0a,
-      0x04,
-      0x01,
-      0x02,
-      0x00,
-      0x0b,
+      0x00, // WASM version 1
+      ...sections,
     ]);
 
     return wasmModule;
   }
 
   /**
-   * Generate source map for debugging
+   * Encode an integer as a Base64 VLQ segment for source map mappings.
+   */
+  private encodeVLQ(value: number): string {
+    const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    let vlq = value < 0 ? (-value << 1) | 1 : value << 1;
+    let encoded = '';
+    do {
+      let digit = vlq & 0x1f;
+      vlq >>>= 5;
+      if (vlq > 0) digit |= 0x20; // continuation bit
+      encoded += BASE64_CHARS[digit];
+    } while (vlq > 0);
+    return encoded;
+  }
+
+  /**
+   * Generate a Source Map v3 that maps each line of the original TypeScript
+   * source to itself (identity mapping). This enables basic debugging by
+   * preserving line-level correspondence between source and compiled output.
+   *
+   * Follows the Source Map Revision 3 specification.
    */
   private generateSourceMap(code: string): string {
-    // Placeholder - would generate proper source map
+    const lines = code.split('\n');
+    const names: string[] = [];
+
+    // Build identity mappings: each output line maps to the same source line.
+    // Each segment encodes: [genCol, sourceIdx, sourceLine, sourceCol]
+    // We track previous values since VLQ fields are relative.
+    const mappingSegments: string[] = [];
+    let prevSourceLine = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim().length === 0) {
+        // Empty line — no mapping segment
+        mappingSegments.push('');
+        continue;
+      }
+      // Single segment: genCol=0, sourceIdx=0, sourceLine=delta, sourceCol=0
+      const sourceLineDelta = i - prevSourceLine;
+      const segment =
+        this.encodeVLQ(0) + // generated column (always 0)
+        this.encodeVLQ(0) + // source file index (always 0, relative delta is 0)
+        this.encodeVLQ(sourceLineDelta) + // source line (relative)
+        this.encodeVLQ(0); // source column (always 0)
+      mappingSegments.push(segment);
+      prevSourceLine = i;
+    }
+
     return JSON.stringify({
       version: 3,
+      file: 'game.wasm',
       sources: ['game.ts'],
-      names: [],
-      mappings: '',
+      sourcesContent: [code],
+      names,
+      mappings: mappingSegments.join(';'),
     });
   }
 

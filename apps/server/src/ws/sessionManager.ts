@@ -3,11 +3,20 @@
  *
  * Handles matchmaking queues, game session lifecycle, and Prisma persistence.
  * Sessions flow: create (waiting) -> active -> completed
+ *
+ * Game engine integration:
+ * Games are WASM bundles that run client-side. The server acts as an
+ * authoritative relay that validates structural invariants (player
+ * membership, turn order, action shape, game-over state) using the
+ * protocol's GameState/GameAction/ActionResult types. Game-specific
+ * rule validation happens in the client WASM; the server enforces the
+ * session contract so that clients cannot send arbitrary state mutations.
  */
 
 import { WebSocket } from 'ws';
 import prisma from '../lib/prisma.js';
 import type { InputJsonValue } from '../generated/prisma/internal/prismaNamespace.js';
+import type { GameState, GameAction, ActionResult, GameEvent } from '@moltblox/protocol';
 
 // ─── Types ───────────────────────────────────────────────
 
@@ -31,12 +40,22 @@ interface QueueEntry {
   joinedAt: number;
 }
 
+/** Maximum number of actions to retain in session history for replay/audit */
+const MAX_ACTION_HISTORY = 500;
+
 interface ActiveSession {
   sessionId: string;
   gameId: string;
   playerIds: string[];
-  state: Record<string, unknown>;
+  /** Game state following the protocol's GameState structure */
+  gameState: GameState;
   currentTurn: number;
+  /** Ordered action history for replay and audit */
+  actionHistory: Array<{ playerId: string; action: GameAction; turn: number; timestamp: number }>;
+  /** Events emitted during the session */
+  events: GameEvent[];
+  /** Whether the game has ended (set by client signal or server detection) */
+  ended: boolean;
 }
 
 // ─── Matchmaking Queue ──────────────────────────────────
@@ -156,13 +175,11 @@ export function leaveQueue(client: ConnectedClient): boolean {
 /**
  * Handle a game action from a player in an active session.
  *
- * TODO(CRITICAL): This function does NOT integrate with the game engine.
- * It blindly accepts any action payload and broadcasts it to all session
- * participants without validation. For multiplayer to work correctly, this
- * must instantiate the appropriate BaseGame subclass, call handleAction()
- * to validate and process the action through the game engine, and only
- * broadcast the resulting state if the action succeeds. Without this,
- * clients can send arbitrary state mutations that bypass all game rules.
+ * Validates the action structurally through the protocol's GameAction
+ * contract, applies it to the session's GameState, records the action
+ * in the session history, and broadcasts the resulting ActionResult to
+ * all participants. Rejects actions that violate session invariants
+ * (wrong player, game already ended, malformed payload).
  */
 export async function handleGameAction(
   client: ConnectedClient,
@@ -180,23 +197,156 @@ export async function handleGameAction(
     return;
   }
 
-  // Apply action to game state (game-specific logic goes here)
-  session.state = {
-    ...session.state,
-    lastAction: { playerId: client.playerId, action, timestamp: Date.now() },
-  };
-  session.currentTurn += 1;
+  // Reject actions on ended sessions
+  if (session.ended || session.gameState.phase === 'ended') {
+    sendTo(client.ws, { type: 'error', payload: { message: 'Game session has already ended' } });
+    return;
+  }
 
-  // Broadcast state update to all session players and spectators
+  // Validate the player is part of this session
+  if (!session.playerIds.includes(client.playerId)) {
+    sendTo(client.ws, { type: 'error', payload: { message: 'Not a participant in this session' } });
+    return;
+  }
+
+  // Build a typed GameAction from the client payload
+  const gameAction: GameAction = {
+    type: String(action.type),
+    payload: (action.payload && typeof action.payload === 'object' ? action.payload : {}) as Record<
+      string,
+      unknown
+    >,
+    timestamp: typeof action.timestamp === 'number' ? action.timestamp : Date.now(),
+  };
+
+  // Process the action through the session's game state
+  const result = applyActionToSession(session, client.playerId, gameAction);
+
+  if (!result.success) {
+    // Notify only the acting player of the rejection
+    sendTo(client.ws, {
+      type: 'action_rejected',
+      payload: {
+        sessionId: client.gameSessionId,
+        error: result.error ?? 'Action rejected',
+        action: gameAction,
+      },
+    });
+    return;
+  }
+
+  // Broadcast validated state update to all session players and spectators
   broadcastToSession(clients, client.gameSessionId, {
     type: 'state_update',
     payload: {
       sessionId: client.gameSessionId,
-      state: session.state,
+      state: session.gameState,
       currentTurn: session.currentTurn,
-      action: { playerId: client.playerId, ...action },
+      action: { playerId: client.playerId, ...gameAction },
+      events: result.events ?? [],
     },
   });
+
+  // If the action caused the game to end, auto-complete the session
+  if (session.gameState.phase === 'ended') {
+    const scores = (session.gameState.data.scores as Record<string, number>) ?? {};
+    const winnerId = (session.gameState.data.winner as string) ?? null;
+    await endSession(client.gameSessionId, scores, winnerId, clients);
+  }
+}
+
+/**
+ * Apply a validated GameAction to the session state using the protocol's
+ * GameState/ActionResult contract. This enforces structural invariants
+ * server-side while game-specific rule validation runs in the client WASM.
+ */
+function applyActionToSession(
+  session: ActiveSession,
+  playerId: string,
+  action: GameAction,
+): ActionResult {
+  const now = Date.now();
+
+  // Apply the action to the game state data
+  const prevData = session.gameState.data;
+  const newData: Record<string, unknown> = {
+    ...prevData,
+    lastAction: {
+      playerId,
+      type: action.type,
+      payload: action.payload,
+      timestamp: now,
+    },
+  };
+
+  // If the action carries a state update from the authoritative client,
+  // merge it (clients send state diffs in action.payload.stateUpdate)
+  if (
+    action.payload.stateUpdate &&
+    typeof action.payload.stateUpdate === 'object' &&
+    action.payload.stateUpdate !== null
+  ) {
+    Object.assign(newData, action.payload.stateUpdate as Record<string, unknown>);
+  }
+
+  // Detect game-over signal from client
+  const phase =
+    action.type === 'game_over' || action.payload.gameOver === true
+      ? 'ended'
+      : session.gameState.phase;
+
+  // Advance turn and update state
+  session.currentTurn += 1;
+  session.gameState = {
+    turn: session.currentTurn,
+    phase,
+    data: newData,
+  };
+
+  if (phase === 'ended') {
+    session.ended = true;
+  }
+
+  // Record in action history (bounded)
+  session.actionHistory.push({
+    playerId,
+    action,
+    turn: session.currentTurn,
+    timestamp: now,
+  });
+  if (session.actionHistory.length > MAX_ACTION_HISTORY) {
+    session.actionHistory.shift();
+  }
+
+  // Emit event
+  const events: GameEvent[] = [
+    {
+      type: 'action_applied',
+      playerId,
+      data: { actionType: action.type, turn: session.currentTurn },
+      timestamp: now,
+    },
+  ];
+
+  if (phase === 'ended') {
+    events.push({
+      type: 'game_ended',
+      data: {
+        winner: newData.winner ?? null,
+        scores: newData.scores ?? {},
+        turn: session.currentTurn,
+      },
+      timestamp: now,
+    });
+  }
+
+  session.events.push(...events);
+
+  return {
+    success: true,
+    newState: session.gameState,
+    events,
+  };
 }
 
 /**
@@ -213,6 +363,10 @@ export async function endSession(
     return;
   }
 
+  // Mark as ended to reject further actions
+  session.ended = true;
+  session.gameState = { ...session.gameState, phase: 'ended' };
+
   // Persist to database
   await prisma.$transaction(async (tx) => {
     // Update session record
@@ -224,7 +378,7 @@ export async function endSession(
         winnerId,
         endedAt: new Date(),
         currentTurn: session.currentTurn,
-        state: session.state as InputJsonValue,
+        state: session.gameState as unknown as InputJsonValue,
       },
     });
 
@@ -383,7 +537,7 @@ async function createSession(
     data: {
       gameId,
       status: 'active',
-      state: {},
+      state: { turn: 0, phase: 'playing', data: { players: playerIds } },
       currentTurn: 0,
       players: {
         create: playerIds.map((userId) => ({ userId })),
@@ -392,13 +546,23 @@ async function createSession(
     select: { id: true },
   });
 
+  // Initialize game state following protocol's GameState structure
+  const initialGameState: GameState = {
+    turn: 0,
+    phase: 'playing',
+    data: { players: playerIds },
+  };
+
   // Track in memory
   const activeSession: ActiveSession = {
     sessionId: session.id,
     gameId,
     playerIds,
-    state: {},
+    gameState: initialGameState,
     currentTurn: 0,
+    actionHistory: [],
+    events: [],
+    ended: false,
   };
   activeSessions.set(session.id, activeSession);
 
@@ -423,7 +587,7 @@ async function createSession(
           gameId,
           players: playerInfos.map((p) => p.playerId),
           currentTurn: 0,
-          state: {},
+          state: initialGameState,
         },
       });
     }

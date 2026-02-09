@@ -5,6 +5,7 @@
  * Integrates with game-builder for WASM compilation.
  */
 
+import { createHash } from 'crypto';
 import { ethers } from 'ethers';
 import type {
   GameMetadata,
@@ -102,7 +103,7 @@ export class GamePublishingService {
       // Generate game ID
       const gameId = this.generateGameId(metadata.name, creatorId);
 
-      // Generate WASM hash (placeholder)
+      // Generate WASM hash (SHA-256 of source code; will hash compiled WASM binary once builder is wired up)
       const wasmHash = this.hashCode(code);
 
       // Create stored game
@@ -471,14 +472,7 @@ export class GamePublishingService {
   }
 
   private hashCode(code: string): string {
-    // Simple hash for demo - in production use proper crypto hash
-    let hash = 0;
-    for (let i = 0; i < code.length; i++) {
-      const char = code.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash).toString(16).padStart(16, '0');
+    return createHash('sha256').update(code).digest('hex');
   }
 }
 
