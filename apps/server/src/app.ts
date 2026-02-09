@@ -2,8 +2,11 @@
  * Express application setup for Moltblox API
  */
 
+console.log('[BOOT] Loading Express app...');
+
 import { initSentry, Sentry } from './lib/sentry.js';
 initSentry();
+console.log('[BOOT] Sentry initialized');
 
 import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
@@ -13,6 +16,7 @@ import { RedisStore } from 'rate-limit-redis';
 import cookieParser from 'cookie-parser';
 import redis from './lib/redis.js';
 
+import prisma from './lib/prisma.js';
 import authRouter from './routes/auth.js';
 import gamesRouter from './routes/games.js';
 import tournamentsRouter from './routes/tournaments.js';
@@ -89,6 +93,7 @@ const writeLimiter = rateLimit({
 });
 
 app.use(globalLimiter);
+console.log('[BOOT] Rate limiters configured');
 
 const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
@@ -130,12 +135,38 @@ app.use((req: Request, _res: Response, next: NextFunction) => {
 // Health Check
 // ---------------------
 
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({
-    status: 'ok',
+app.get('/health', async (_req: Request, res: Response) => {
+  let dbOk = false;
+  let redisOk = false;
+
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbOk = true;
+  } catch {
+    // DB unreachable
+  }
+
+  try {
+    if (redis.status === 'ready') {
+      await redis.ping();
+      redisOk = true;
+    }
+  } catch {
+    // Redis unreachable
+  }
+
+  const status = dbOk ? 'ok' : 'degraded';
+  const statusCode = dbOk ? 200 : 503;
+
+  res.status(statusCode).json({
+    status,
     service: 'moltblox-api',
     version: process.env.npm_package_version || '0.1.0',
     timestamp: new Date().toISOString(),
+    dependencies: {
+      database: dbOk ? 'connected' : 'disconnected',
+      redis: redisOk ? 'connected' : 'disconnected',
+    },
   });
 });
 
@@ -153,6 +184,7 @@ app.use('/api/v1/stats', statsRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);
 app.use('/api/v1/games', collaboratorRoutes);
+console.log('[BOOT] All API routes mounted');
 
 // ---------------------
 // 404 Handler

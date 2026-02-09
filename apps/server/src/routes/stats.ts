@@ -7,9 +7,18 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import prisma from '../lib/prisma.js';
 
-const pkg = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8')) as {
-  version: string;
-};
+let platformVersion = '0.1.0';
+try {
+  const pkg = JSON.parse(readFileSync(join(__dirname, '..', '..', 'package.json'), 'utf-8')) as {
+    version: string;
+  };
+  platformVersion = pkg.version;
+} catch (err) {
+  console.warn(
+    '[BOOT] Could not read package.json for version:',
+    err instanceof Error ? err.message : err,
+  );
+}
 
 const router: Router = Router();
 
@@ -32,7 +41,7 @@ router.get('/', async (_req: Request, res: Response, next: NextFunction) => {
       totalTournaments,
       totalItems,
       creatorShare: 85,
-      platformVersion: pkg.version,
+      platformVersion,
     });
   } catch (error) {
     next(error);

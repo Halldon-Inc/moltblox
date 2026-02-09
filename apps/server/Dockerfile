@@ -56,4 +56,4 @@ COPY --from=build /app/node_modules /app/node_modules
 EXPOSE 3001
 
 # Run migrations then start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+CMD ["sh", "-c", "echo '[DOCKER] Running Prisma migrations...' && npx prisma migrate deploy && echo '[DOCKER] Migrations complete. Starting server...' && node dist/index.js"]

@@ -125,10 +125,12 @@ function escapeHtml(str: string): string {
  * Initialize the WebSocket server on an existing HTTP server
  */
 export function createWebSocketServer(server: HTTPServer): WebSocketServer {
+  console.log('[BOOT] Creating WebSocket server...');
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
+  console.log(`[BOOT] WebSocket allowed origins: ${allowedOrigins.join(', ')}`);
 
   const wss = new WebSocketServer({
     server,
