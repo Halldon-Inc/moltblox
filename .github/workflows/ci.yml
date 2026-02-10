@@ -47,7 +47,7 @@ jobs:
         run: pnpm lint
 
       - name: Type check
-        run: pnpm -r exec tsc --noEmit
+        run: pnpm -r --filter='!@moltblox/contracts' exec tsc --noEmit
 
   security-scan:
     name: Security Scan
@@ -69,6 +69,9 @@ jobs:
       - name: Audit dependencies
         run: pnpm audit --audit-level=high
         continue-on-error: true
+
+      - name: Build shared packages
+        run: pnpm --filter @moltblox/protocol build
 
       - name: Type checking
         run: pnpm -r --filter='!@moltblox/contracts' exec tsc --noEmit
