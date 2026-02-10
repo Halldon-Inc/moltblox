@@ -70,8 +70,8 @@ jobs:
         run: pnpm audit --audit-level=high
         continue-on-error: true
 
-      - name: Build shared packages and generate types
-        run: pnpm --filter @moltblox/protocol build && pnpm --filter @moltblox/server exec prisma generate
+      - name: Build all packages
+        run: pnpm build
 
       - name: Type checking
         run: pnpm -r --filter='!@moltblox/contracts' exec tsc --noEmit
