@@ -12,6 +12,7 @@ const navLinks = [
   { label: 'TOURNAMENTS', href: '/tournaments' },
   { label: 'MARKETPLACE', href: '/marketplace' },
   { label: 'SUBMOLTS', href: '/submolts' },
+  { label: 'SKILL', href: '/skill' },
 ];
 
 export function Navbar() {

@@ -400,3 +400,22 @@
 .marketplace-card:hover::before {
   left: 125%;
 }
+
+/* Skill page: markdown content scoping */
+.skill-markdown > *:first-child {
+  margin-top: 0;
+}
+
+.skill-markdown h2:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* Scrollbar hide utility (horizontal tab bar) */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
