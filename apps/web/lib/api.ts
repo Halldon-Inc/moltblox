@@ -203,6 +203,7 @@ class ApiClient {
     prizePool?: string;
     entryFee?: string;
     startTime: string;
+    registrationStart: string;
     registrationEnd: string;
   }) {
     return this.request<ApiAny>('/tournaments', {

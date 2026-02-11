@@ -1,10 +1,11 @@
 /**
  * Moltblox Client
  * Extended SDK for the Moltblox game ecosystem
- * Adds marketplace, creator, and player functionality to ArenaClient
+ *
+ * Marketplace, creator, and player operations use REST API calls.
+ * Game sessions (matchmaking, actions, spectating) use WebSocket via ArenaClient.
  */
 
-import WebSocket from 'isomorphic-ws';
 import { ethers } from 'ethers';
 import type {
   PublishedGame,
@@ -29,6 +30,9 @@ import type { GameActionHandler } from './types.js';
 // =============================================================================
 
 export interface MoltbloxClientConfig extends ArenaClientConfig {
+  /** REST API base URL (e.g. 'https://api.moltblox.com/api/v1') */
+  apiUrl: string;
+
   /** Private key for self-custody wallet */
   walletPrivateKey?: string;
 
@@ -59,28 +63,17 @@ export interface BalanceChange {
 export type BalanceChangeHandler = (change: BalanceChange) => void;
 export type InventoryUpdateHandler = (items: OwnedItem[]) => void;
 export type WalletUpdateHandler = (wallet: BotWallet) => void;
-export type GameStateHandler = (state: any) => void;
-export type GameEndHandler = (result: any) => void;
+export type GameStateHandler = (state: unknown) => void;
+export type GameEndHandler = (result: unknown) => void;
 
 // =============================================================================
 // Moltblox Client
 // =============================================================================
 
 export class MoltbloxClient extends ArenaClient {
-  private moltbloxConfig: Required<MoltbloxClientConfig>;
+  private moltbloxConfig: MoltbloxClientConfig;
   private wallet: ethers.Wallet | null = null;
   private provider: ethers.Provider | null = null;
-
-  // Marketplace handlers
-  private balanceChangeHandler: BalanceChangeHandler | null = null;
-  private inventoryUpdateHandler: InventoryUpdateHandler | null = null;
-  private walletUpdateHandler: WalletUpdateHandler | null = null;
-  private gameStateHandler: GameStateHandler | null = null;
-  private userGameEndHandler: GameEndHandler | null = null;
-
-  // Cached state
-  private cachedWallet: BotWallet | null = null;
-  private cachedInventory: OwnedItem[] = [];
 
   constructor(config: MoltbloxClientConfig) {
     super({
@@ -88,15 +81,7 @@ export class MoltbloxClient extends ArenaClient {
       serverUrl: config.serverUrl || 'wss://api.moltblox.com/ws',
     });
 
-    this.moltbloxConfig = {
-      serverUrl: 'wss://api.moltblox.com/ws',
-      autoReconnect: true,
-      reconnectDelay: 1000,
-      rpcUrl: 'https://mainnet.base.org',
-      walletPrivateKey: '',
-      wallet: undefined as any,
-      ...config,
-    };
+    this.moltbloxConfig = config;
 
     // Initialize wallet
     this.initializeWallet();
@@ -110,7 +95,9 @@ export class MoltbloxClient extends ArenaClient {
     if (this.moltbloxConfig.wallet) {
       this.wallet = this.moltbloxConfig.wallet;
     } else if (this.moltbloxConfig.walletPrivateKey) {
-      this.provider = new ethers.JsonRpcProvider(this.moltbloxConfig.rpcUrl);
+      this.provider = new ethers.JsonRpcProvider(
+        this.moltbloxConfig.rpcUrl || 'https://mainnet.base.org',
+      );
       this.wallet = new ethers.Wallet(this.moltbloxConfig.walletPrivateKey, this.provider);
     }
   }
@@ -122,267 +109,82 @@ export class MoltbloxClient extends ArenaClient {
     return this.wallet?.address || null;
   }
 
-  /**
-   * Get wallet info including balance
-   */
-  async getWallet(): Promise<BotWallet> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Wallet request timeout'));
-      }, 10000);
+  // =============================================================================
+  // REST API Helper
+  // =============================================================================
 
-      this.sendMarketplace({ type: 'GET_WALLET' });
-
-      // Will be resolved by message handler
-      const originalHandler = this.walletUpdateHandler;
-      this.walletUpdateHandler = (wallet) => {
-        clearTimeout(timeout);
-        this.walletUpdateHandler = originalHandler;
-        this.cachedWallet = wallet;
-        resolve(wallet);
-      };
+  private async apiRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.moltbloxConfig.apiUrl}${path}`, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.token}`,
+      },
+      body: body ? JSON.stringify(body) : undefined,
     });
+    if (!res.ok) {
+      throw new Error(`API ${method} ${path} failed: ${res.status}`);
+    }
+    return res.json() as Promise<T>;
   }
 
   // =============================================================================
-  // Event Handlers
-  // =============================================================================
-
-  /**
-   * Register balance change handler
-   */
-  onBalanceChange(handler: BalanceChangeHandler): void {
-    this.balanceChangeHandler = handler;
-  }
-
-  /**
-   * Register inventory update handler
-   */
-  onInventoryUpdate(handler: InventoryUpdateHandler): void {
-    this.inventoryUpdateHandler = handler;
-  }
-
-  /**
-   * Register wallet update handler
-   */
-  onWalletUpdate(handler: WalletUpdateHandler): void {
-    this.walletUpdateHandler = handler;
-  }
-
-  /**
-   * Register game state handler for user-created games
-   */
-  onGameState(handler: GameStateHandler): void {
-    this.gameStateHandler = handler;
-  }
-
-  /**
-   * Register game end handler for user-created games
-   */
-  onUserGameEnd(handler: GameEndHandler): void {
-    this.userGameEndHandler = handler;
-  }
-
-  // =============================================================================
-  // Marketplace - Browse & Discover
+  // Marketplace: Browse & Discover (REST)
   // =============================================================================
 
   /**
    * Browse games with optional filters
    */
   async browseGames(query: Partial<GameQuery> = {}): Promise<GameListing[]> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Browse games request timeout'));
-      }, 10000);
-
-      const requestId = Date.now().toString();
-
-      this.sendMarketplace({
-        type: 'BROWSE_GAMES',
-        query: {
-          limit: 20,
-          offset: 0,
-          ...query,
-        },
-        requestId,
-      });
-
-      // Handle response (simplified - real impl would use request ID)
-      this.onceMessage('GAMES_LIST', (message) => {
-        clearTimeout(timeout);
-        resolve(message.games);
-      });
-    });
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(query)) {
+      if (value !== undefined && value !== null) {
+        params.set(key, String(value));
+      }
+    }
+    const qs = params.toString();
+    return this.apiRequest<GameListing[]>('GET', `/games${qs ? `?${qs}` : ''}`);
   }
 
   /**
    * Get detailed game information
    */
   async getGameDetails(gameId: string): Promise<GameDetails> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Get game details timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'GET_GAME_DETAILS',
-        gameId,
-      });
-
-      this.onceMessage('GAME_DETAILS', (message) => {
-        clearTimeout(timeout);
-        resolve(message.game);
-      });
-    });
-  }
-
-  // =============================================================================
-  // Player - Join & Play
-  // =============================================================================
-
-  /**
-   * Join a user-created game
-   */
-  async joinGame(gameId: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Join game timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'JOIN_USER_GAME',
-        gameId,
-      });
-
-      this.onceMessage('USER_GAME_JOINED', (message) => {
-        clearTimeout(timeout);
-        if (message.success) {
-          resolve();
-        } else {
-          reject(new Error(message.error || 'Failed to join game'));
-        }
-      });
-    });
+    return this.apiRequest<GameDetails>('GET', `/games/${gameId}`);
   }
 
   /**
    * Rate a game
    */
   async rateGame(gameId: string, rating: number, review?: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (rating < 1 || rating > 5) {
-        reject(new Error('Rating must be between 1 and 5'));
-        return;
-      }
-
-      const timeout = setTimeout(() => {
-        reject(new Error('Rate game timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'RATE_GAME',
-        gameId,
-        rating,
-        review,
-      });
-
-      this.onceMessage('RATING_SUBMITTED', (message) => {
-        clearTimeout(timeout);
-        if (message.success) {
-          resolve();
-        } else {
-          reject(new Error(message.error || 'Failed to submit rating'));
-        }
-      });
-    });
+    if (rating < 1 || rating > 5) {
+      throw new Error('Rating must be between 1 and 5');
+    }
+    await this.apiRequest<void>('POST', `/games/${gameId}/rate`, { rating, review });
   }
 
   // =============================================================================
-  // Player - Purchases
+  // Player: Purchases (REST)
   // =============================================================================
 
   /**
    * Purchase an item
    */
   async purchaseItem(gameId: string, itemId: string): Promise<PurchaseResult> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Purchase timeout'));
-      }, 30000); // Longer timeout for blockchain
-
-      this.sendMarketplace({
-        type: 'PURCHASE_ITEM',
-        gameId,
-        itemId,
-      });
-
-      this.onceMessage('ITEM_PURCHASED', (message) => {
-        clearTimeout(timeout);
-        resolve(message.result);
-      });
-    });
-  }
-
-  /**
-   * Purchase consumable items
-   */
-  async purchaseConsumable(
-    gameId: string,
-    itemId: string,
-    quantity: number,
-  ): Promise<PurchaseResult> {
-    return new Promise((resolve, reject) => {
-      if (quantity < 1 || quantity > 100) {
-        reject(new Error('Quantity must be between 1 and 100'));
-        return;
-      }
-
-      const timeout = setTimeout(() => {
-        reject(new Error('Purchase timeout'));
-      }, 30000);
-
-      this.sendMarketplace({
-        type: 'PURCHASE_CONSUMABLE',
-        gameId,
-        itemId,
-        quantity,
-      });
-
-      this.onceMessage('ITEM_PURCHASED', (message) => {
-        clearTimeout(timeout);
-        resolve(message.result);
-      });
+    return this.apiRequest<PurchaseResult>('POST', `/marketplace/items/${itemId}/purchase`, {
+      gameId,
     });
   }
 
   /**
    * Get player inventory
    */
-  async getInventory(gameId?: string): Promise<PlayerInventory> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Get inventory timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'GET_INVENTORY',
-        gameId,
-      });
-
-      this.onceMessage('INVENTORY_UPDATE', (message) => {
-        clearTimeout(timeout);
-        this.cachedInventory = message.items;
-        resolve({
-          playerBotId: this.moltbloxConfig.botId,
-          items: message.items,
-        });
-      });
-    });
+  async getInventory(): Promise<PlayerInventory> {
+    return this.apiRequest<PlayerInventory>('GET', '/marketplace/inventory');
   }
 
   // =============================================================================
-  // Generic Game Play
+  // Generic Game Play (WebSocket via parent)
   // =============================================================================
 
   /**
@@ -392,17 +194,20 @@ export class MoltbloxClient extends ArenaClient {
    */
   playGame(gameId: string, handler: GameActionHandler): void {
     // Register the generic game action handler on the parent ArenaClient
-    // Use super to call ArenaClient's onGameState (not the MoltbloxClient override)
     super.onGameState(handler);
 
-    // Join the game queue via the parent's joinGame (sends JOIN_QUEUE)
+    // Join the game queue via the parent's joinGame (sends join_queue)
     super.joinGame(gameId);
 
     console.log(`[MoltbloxClient] Playing game ${gameId}`);
   }
 
+  // =============================================================================
+  // Creator: Game Publishing (REST)
+  // =============================================================================
+
   /**
-   * Create a new game from a built-in template via the REST-style WS API.
+   * Create a new game from a built-in template.
    * Templates: clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler
    */
   async createGameFromTemplate(
@@ -413,56 +218,21 @@ export class MoltbloxClient extends ArenaClient {
     tags?: string[],
     maxPlayers?: number,
   ): Promise<{ gameId: string; success: boolean; error?: string }> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Create game from template timeout'));
-      }, 30000);
-
-      this.sendMarketplace({
-        type: 'CREATE_GAME_FROM_TEMPLATE',
-        templateSlug,
-        name,
-        description,
-        genre,
-        tags: tags ?? [],
-        maxPlayers: maxPlayers ?? 2,
-      });
-
-      this.onceMessage('GAME_CREATED', (message) => {
-        clearTimeout(timeout);
-        resolve({
-          gameId: message.gameId,
-          success: message.success ?? true,
-          error: message.error,
-        });
-      });
+    return this.apiRequest<{ gameId: string; success: boolean; error?: string }>('POST', '/games', {
+      name,
+      description,
+      genre,
+      templateSlug,
+      tags: tags ?? [],
+      maxPlayers: maxPlayers ?? 2,
     });
   }
-
-  // =============================================================================
-  // Creator - Game Publishing
-  // =============================================================================
 
   /**
    * Publish a new game to the marketplace
    */
   async publishGame(code: string, metadata: GameMetadata): Promise<PublishResult> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Publish game timeout'));
-      }, 60000); // Longer for compilation
-
-      this.sendMarketplace({
-        type: 'PUBLISH_GAME',
-        code,
-        metadata,
-      });
-
-      this.onceMessage('GAME_PUBLISHED', (message) => {
-        clearTimeout(timeout);
-        resolve(message.result);
-      });
-    });
+    return this.apiRequest<PublishResult>('POST', '/games', { ...metadata, code });
   }
 
   /**
@@ -473,228 +243,32 @@ export class MoltbloxClient extends ArenaClient {
     code?: string,
     metadata?: Partial<GameMetadata>,
   ): Promise<{ success: boolean; error?: string }> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Update game timeout'));
-      }, 60000);
-
-      this.sendMarketplace({
-        type: 'UPDATE_GAME',
-        gameId,
-        code,
-        metadata,
-      });
-
-      this.onceMessage('GAME_UPDATED', (message) => {
-        clearTimeout(timeout);
-        resolve({
-          success: message.success,
-          error: message.error,
-        });
-      });
+    return this.apiRequest<{ success: boolean; error?: string }>('PUT', `/games/${gameId}`, {
+      ...metadata,
+      code,
     });
   }
 
   // =============================================================================
-  // Creator - Item Management
+  // Creator: Item Management (REST)
   // =============================================================================
 
   /**
    * Create a new item for a game
    */
   async createItem(gameId: string, item: ItemDefinition): Promise<ItemResult> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Create item timeout'));
-      }, 30000);
-
-      this.sendMarketplace({
-        type: 'CREATE_ITEM',
-        gameId,
-        item,
-      });
-
-      this.onceMessage('ITEM_CREATED', (message) => {
-        clearTimeout(timeout);
-        resolve(message.result);
-      });
-    });
-  }
-
-  /**
-   * Update item price
-   */
-  async updateItemPrice(
-    gameId: string,
-    itemId: string,
-    newPrice: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Update item timeout'));
-      }, 30000);
-
-      this.sendMarketplace({
-        type: 'UPDATE_ITEM',
-        gameId,
-        itemId,
-        updates: { price: newPrice },
-      });
-
-      this.onceMessage('ITEM_UPDATED', (message) => {
-        clearTimeout(timeout);
-        resolve({
-          success: message.success,
-          error: message.error,
-        });
-      });
-    });
-  }
-
-  /**
-   * Deactivate an item (stop sales)
-   */
-  async deactivateItem(
-    gameId: string,
-    itemId: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Deactivate item timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'DEACTIVATE_ITEM',
-        gameId,
-        itemId,
-      });
-
-      this.onceMessage('ITEM_UPDATED', (message) => {
-        clearTimeout(timeout);
-        resolve({
-          success: message.success,
-          error: message.error,
-        });
-      });
-    });
+    return this.apiRequest<ItemResult>('POST', '/marketplace/items', { gameId, ...item });
   }
 
   // =============================================================================
-  // Creator - Dashboard & Analytics
+  // Creator: Dashboard & Analytics (REST)
   // =============================================================================
 
   /**
    * Get creator dashboard with all stats
    */
   async getCreatorDashboard(): Promise<CreatorDashboard> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Get dashboard timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'GET_CREATOR_DASHBOARD',
-      });
-
-      this.onceMessage('CREATOR_DASHBOARD', (message) => {
-        clearTimeout(timeout);
-        resolve(message.dashboard);
-      });
-    });
-  }
-
-  /**
-   * Get marketing insights for a game
-   */
-  async getMarketingInsights(gameId: string): Promise<{
-    conversionRate: number;
-    topItems: { itemId: string; sales: number }[];
-    playerSegments: { segment: string; count: number }[];
-    recommendations: string[];
-  }> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('Get insights timeout'));
-      }, 10000);
-
-      this.sendMarketplace({
-        type: 'GET_MARKETING_INSIGHTS',
-        gameId,
-      });
-
-      this.onceMessage('MARKETING_INSIGHTS', (message) => {
-        clearTimeout(timeout);
-        resolve(message.insights);
-      });
-    });
-  }
-
-  // =============================================================================
-  // Internal Methods
-  // =============================================================================
-
-  private sendMarketplace(message: any): void {
-    // Add wallet address to all marketplace messages
-    const enrichedMessage = {
-      ...message,
-      walletAddress: this.wallet?.address,
-    };
-
-    // Use parent's send mechanism
-    (this as any).send(enrichedMessage);
-  }
-
-  private messageHandlers: Map<string, ((message: any) => void)[]> = new Map();
-
-  private onceMessage(type: string, handler: (message: any) => void): void {
-    const handlers = this.messageHandlers.get(type) || [];
-    handlers.push(handler);
-    this.messageHandlers.set(type, handlers);
-  }
-
-  /**
-   * Override parent's handleMessage to add marketplace message handling
-   */
-  protected async handleMarketplaceMessage(message: any): Promise<boolean> {
-    // Handle marketplace-specific messages
-    switch (message.type) {
-      case 'WALLET_UPDATE':
-        this.cachedWallet = message;
-        this.walletUpdateHandler?.(message);
-        break;
-
-      case 'BALANCE_CHANGE':
-        this.balanceChangeHandler?.(message);
-        break;
-
-      case 'INVENTORY_UPDATE':
-        this.cachedInventory = message.items;
-        this.inventoryUpdateHandler?.(message.items);
-        break;
-
-      case 'USER_GAME_STATE':
-        this.gameStateHandler?.(message.state);
-        break;
-
-      case 'USER_GAME_END':
-        this.userGameEndHandler?.(message.result);
-        break;
-
-      default: {
-        const handlers = this.messageHandlers.get(message.type);
-        if (handlers && handlers.length > 0) {
-          const handler = handlers.shift();
-          if (handlers.length === 0) {
-            this.messageHandlers.delete(message.type);
-          }
-          handler?.(message);
-          return true;
-        }
-        return false;
-      }
-    }
-
-    return true;
+    return this.apiRequest<CreatorDashboard>('GET', '/creator/analytics');
   }
 
   // =============================================================================

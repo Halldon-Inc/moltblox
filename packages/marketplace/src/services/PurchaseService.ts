@@ -45,11 +45,10 @@ export interface PayoutInfo {
 // =============================================================================
 
 const MARKETPLACE_ABI = [
-  'function purchaseItem(bytes32 gameId, bytes32 itemId) external',
-  'function purchaseConsumable(bytes32 gameId, bytes32 itemId, uint256 quantity) external',
-  'function ownsItem(address player, bytes32 itemId) external view returns (bool)',
-  'function subscriptionExpiry(address player, bytes32 itemId) external view returns (uint256)',
-  'event ItemPurchased(bytes32 indexed gameId, bytes32 indexed itemId, address indexed buyer, address creator, uint256 price, uint256 creatorAmount, uint256 platformFee)',
+  'function purchaseItem(string itemId) external',
+  'function purchaseItems(string[] itemIds) external',
+  'function ownsItem(address player, string itemId) external view returns (bool)',
+  'event ItemPurchased(string indexed itemId, string indexed gameId, address indexed buyer, uint256 price, uint256 creatorAmount, uint256 platformAmount)',
 ];
 
 const MOLT_TOKEN_ABI = [
@@ -346,7 +345,7 @@ export class PurchaseService {
    */
   async checkOwnership(playerAddress: string, itemId: string): Promise<boolean> {
     try {
-      return await this.marketplace.ownsItem(playerAddress, ethers.encodeBytes32String(itemId));
+      return await this.marketplace.ownsItem(playerAddress, itemId);
     } catch {
       return false;
     }
@@ -354,21 +353,21 @@ export class PurchaseService {
 
   /**
    * Check subscription status
+   * NOTE: No on-chain subscriptionExpiry function exists yet.
+   * Subscription tracking is handled off-chain via inventory expiresAt.
    */
   async checkSubscription(
-    playerAddress: string,
+    playerId: string,
     itemId: string,
   ): Promise<{ active: boolean; expiresAt?: number }> {
     try {
-      const expiry = await this.marketplace.subscriptionExpiry(
-        playerAddress,
-        ethers.encodeBytes32String(itemId),
-      );
-
-      const expiresAt = Number(expiry) * 1000;
-      const active = expiresAt > Date.now();
-
-      return { active, expiresAt: active ? expiresAt : undefined };
+      const inventory = await this.store.getInventory(playerId);
+      const item = inventory.find((i) => i.itemId === itemId);
+      if (!item || !item.expiresAt) {
+        return { active: false };
+      }
+      const active = item.expiresAt > Date.now();
+      return { active, expiresAt: active ? item.expiresAt : undefined };
     } catch {
       return { active: false };
     }

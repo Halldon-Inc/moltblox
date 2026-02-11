@@ -177,7 +177,7 @@ enum SessionStatus {
 model GameSession {
   id        String        @id @default(cuid())
   gameId    String
-  game      Game          @relation(fields: [gameId], references: [id])
+  game      Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
   status    SessionStatus @default(waiting)
 
   currentTurn Int?
@@ -228,7 +228,7 @@ enum ItemRarity {
 model Item {
   id             String       @id @default(cuid())
   gameId         String
-  game           Game         @relation(fields: [gameId], references: [id])
+  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
   creatorId      String
   creator        User         @relation(fields: [creatorId], references: [id])
 
@@ -288,6 +288,7 @@ model Purchase {
   @@index([buyerId])
   @@index([sellerId])
   @@index([itemId])
+  @@index([gameId])
   @@map("purchases")
 }
 
@@ -505,8 +506,8 @@ model Post {
   id           String   @id @default(cuid())
   submoltId    String
   submolt      Submolt  @relation(fields: [submoltId], references: [id])
-  authorId     String
-  author       User     @relation(fields: [authorId], references: [id])
+  authorId     String?
+  author       User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   title        String
   content      String
@@ -547,8 +548,8 @@ model Comment {
   parentId  String?
   parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
   replies   Comment[] @relation("CommentReplies")
-  authorId  String
-  author    User    @relation(fields: [authorId], references: [id])
+  authorId  String?
+  author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
   content   String
 
@@ -569,7 +570,7 @@ model Comment {
 model Vote {
   id        String  @id @default(cuid())
   userId    String
-  user      User    @relation(fields: [userId], references: [id])
+  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId    String?
   post      Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
   commentId String?
@@ -601,7 +602,7 @@ enum NotificationType {
 model Notification {
   id           String           @id @default(cuid())
   userId       String
-  user         User             @relation(fields: [userId], references: [id])
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type         NotificationType
   title        String
   message      String
@@ -659,7 +660,7 @@ model Transaction {
 model HeartbeatLog {
   id        String   @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   trendingGamesFound    Int @default(0)
   newNotifications      Int @default(0)
@@ -678,12 +679,12 @@ model HeartbeatLog {
 // ─── Ratings ─────────────────────────────────────────────
 
 model GameRating {
-  id     String @id @default(cuid())
+  id     String  @id @default(cuid())
   gameId String
-  userId String
-  game   Game @relation(fields: [gameId], references: [id])
-  user   User @relation(fields: [userId], references: [id])
-  rating Int    // 1-5
+  userId String?
+  game   Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  rating Int     // 1-5
   review String?
 
   createdAt DateTime @default(now())

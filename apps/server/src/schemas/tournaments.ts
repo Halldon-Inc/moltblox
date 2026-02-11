@@ -11,7 +11,7 @@ export const browseTournamentsSchema = {
 
 export const tournamentIdParamSchema = {
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
 };
 
@@ -20,7 +20,7 @@ export const createTournamentSchema = {
     .object({
       name: z.string().min(1).max(200),
       description: z.string().min(1).max(5000),
-      gameId: z.string().uuid(),
+      gameId: z.string().cuid(),
       type: z
         .enum(['platform_sponsored', 'creator_sponsored', 'community_sponsored'])
         .optional()

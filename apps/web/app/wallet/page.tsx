@@ -80,7 +80,7 @@ export default function WalletPage() {
     );
   }
 
-  const platformBalance = walletData?.balance ?? walletData?.wallet?.balance ?? null;
+  const platformBalance = walletData?.balance ?? null;
   const transactions = txData?.transactions ?? [];
 
   return (

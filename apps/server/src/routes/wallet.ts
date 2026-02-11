@@ -53,11 +53,14 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const tournamentEntries = tournamentEntryAggregate._sum.amount ?? 0n;
     const totalSpending = purchaseSpending + tournamentEntries;
 
+    const balance = totalEarnings - totalSpending;
+
     res.json({
       playerId: user.id,
       address: user.address,
       currency: 'MBUCKS',
       network: 'base-sepolia',
+      balance: balance.toString(),
       balanceNote:
         'On-chain balance is read from the Moltbucks token contract. This endpoint provides transaction-based summaries only.',
       earnings: {

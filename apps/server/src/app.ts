@@ -176,10 +176,15 @@ app.get('/health', async (_req: Request, res: Response) => {
 
 app.use('/api/v1/auth', authLimiter, authRouter);
 app.use('/api/v1/games', gamesRouter);
-app.use('/api/v1/tournaments', writeLimiter, tournamentsRouter);
-app.use('/api/v1/marketplace', writeLimiter, marketplaceRouter);
-app.use('/api/v1/social', writeLimiter, socialRouter);
-app.use('/api/v1/wallet', writeLimiter, walletRouter);
+const writeOnly =
+  (limiter: ReturnType<typeof rateLimit>) => (req: Request, res: Response, next: NextFunction) => {
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return limiter(req, res, next);
+    next();
+  };
+app.use('/api/v1/tournaments', writeOnly(writeLimiter), tournamentsRouter);
+app.use('/api/v1/marketplace', writeOnly(writeLimiter), marketplaceRouter);
+app.use('/api/v1/social', writeOnly(writeLimiter), socialRouter);
+app.use('/api/v1/wallet', writeOnly(writeLimiter), walletRouter);
 app.use('/api/v1/stats', statsRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);

@@ -17,14 +17,23 @@ import {
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
 import type { Prisma, GameGenre } from '../generated/prisma/client.js';
 import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import redis from '../lib/redis.js';
 
-// Games-specific write limiter (60s window, 30 max) — stricter burst protection
-// than the global Redis-backed writeLimiter in app.ts (15min window, 30 max).
+function createRedisStore(prefix: string) {
+  return new RedisStore({
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
+    prefix: `rl:${prefix}:`,
+  });
+}
+
+// Games-specific write limiter (60s window, 30 max), Redis-backed
 const gamesWriteLimiter = rateLimit({
   windowMs: 60_000,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
+  store: createRedisStore('games-write'),
   message: { error: 'TooManyRequests', message: 'Write rate limit exceeded.' },
 });
 
@@ -253,31 +262,42 @@ router.post(
 
       const slug = slugify(name);
 
-      const game = await prisma.game.create({
-        data: {
-          name: sanitized.name as string,
-          slug,
-          description: sanitized.description as string,
-          creatorId: user.id,
-          genre: genre || 'other',
-          tags: tags || [],
-          maxPlayers: maxPlayers || 1,
-          wasmUrl: wasmUrl || null,
-          templateSlug: templateSlug || null,
-          thumbnailUrl: thumbnailUrl || null,
-          screenshots: screenshots || [],
-          status: 'draft',
-        },
-        include: {
-          creator: {
-            select: {
-              username: true,
-              displayName: true,
-              walletAddress: true,
+      let game;
+      try {
+        game = await prisma.game.create({
+          data: {
+            name: sanitized.name as string,
+            slug,
+            description: sanitized.description as string,
+            creatorId: user.id,
+            genre: genre || 'other',
+            tags: tags || [],
+            maxPlayers: maxPlayers || 1,
+            wasmUrl: wasmUrl || null,
+            templateSlug: templateSlug || null,
+            thumbnailUrl: thumbnailUrl || null,
+            screenshots: screenshots || [],
+            status: 'draft',
+          },
+          include: {
+            creator: {
+              select: {
+                username: true,
+                displayName: true,
+                walletAddress: true,
+              },
             },
           },
-        },
-      });
+        });
+      } catch (err: unknown) {
+        if (err instanceof Error && 'code' in err && (err as any).code === 'P2002') {
+          res
+            .status(409)
+            .json({ error: 'Conflict', message: 'A game with this name already exists' });
+          return;
+        }
+        throw err;
+      }
 
       res.status(201).json({
         ...serializeGame(game),
@@ -365,19 +385,30 @@ router.put(
       if (thumbnailUrl !== undefined) data.thumbnailUrl = thumbnailUrl;
       if (screenshots !== undefined) data.screenshots = screenshots;
 
-      const game = await prisma.game.update({
-        where: { id },
-        data,
-        include: {
-          creator: {
-            select: {
-              username: true,
-              displayName: true,
-              walletAddress: true,
+      let game;
+      try {
+        game = await prisma.game.update({
+          where: { id },
+          data,
+          include: {
+            creator: {
+              select: {
+                username: true,
+                displayName: true,
+                walletAddress: true,
+              },
             },
           },
-        },
-      });
+        });
+      } catch (err: unknown) {
+        if (err instanceof Error && 'code' in err && (err as any).code === 'P2002') {
+          res
+            .status(409)
+            .json({ error: 'Conflict', message: 'A game with this name already exists' });
+          return;
+        }
+        throw err;
+      }
 
       res.json({
         ...serializeGame(game),
@@ -585,19 +616,19 @@ router.post(
         return;
       }
 
-      // Check if this user has played this game before (for uniquePlayers tracking)
-      const existingPlay = await prisma.gameSessionPlayer.findFirst({
-        where: {
-          userId: user.id,
-          session: { gameId: id },
-        },
-        select: { id: true },
-      });
-
-      const isNewPlayer = !existingPlay;
-
       // Create session, link player, and bump stats in a transaction
+      // The uniqueness check is inside the transaction to avoid race conditions
       const session = await prisma.$transaction(async (tx) => {
+        const existingPlay = await tx.gameSessionPlayer.findFirst({
+          where: {
+            userId: user.id,
+            session: { gameId: id },
+          },
+          select: { id: true },
+        });
+
+        const isNewPlayer = !existingPlay;
+
         const newSession = await tx.gameSession.create({
           data: {
             gameId: id,
@@ -664,14 +695,13 @@ router.get(
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      // Daily play counts for last 30 days
-      const sessions = await prisma.gameSession.findMany({
-        where: {
-          gameId: id,
-          startedAt: { gte: thirtyDaysAgo },
-        },
-        select: { startedAt: true },
-      });
+      // Daily play counts for last 30 days (aggregated at DB level)
+      const playRows = await prisma.$queryRaw<Array<{ day: string; count: bigint }>>`
+        SELECT DATE_TRUNC('day', "startedAt")::date::text AS day, COUNT(*)::bigint AS count
+        FROM "game_sessions"
+        WHERE "gameId" = ${id} AND "startedAt" >= ${thirtyDaysAgo}
+        GROUP BY day ORDER BY day
+      `;
 
       const dailyPlays: Record<string, number> = {};
       for (let i = 0; i < 30; i++) {
@@ -679,21 +709,19 @@ router.get(
         d.setDate(d.getDate() - i);
         dailyPlays[d.toISOString().slice(0, 10)] = 0;
       }
-      for (const s of sessions) {
-        const key = s.startedAt.toISOString().slice(0, 10);
-        if (key in dailyPlays) {
-          dailyPlays[key]++;
+      for (const row of playRows) {
+        if (row.day in dailyPlays) {
+          dailyPlays[row.day] = Number(row.count);
         }
       }
 
-      // Daily revenue for last 30 days
-      const purchases = await prisma.purchase.findMany({
-        where: {
-          gameId: id,
-          createdAt: { gte: thirtyDaysAgo },
-        },
-        select: { createdAt: true, price: true },
-      });
+      // Daily revenue for last 30 days (aggregated at DB level)
+      const revenueRows = await prisma.$queryRaw<Array<{ day: string; total: bigint }>>`
+        SELECT DATE_TRUNC('day', "createdAt")::date::text AS day, COALESCE(SUM("price"), 0)::bigint AS total
+        FROM "purchases"
+        WHERE "gameId" = ${id} AND "createdAt" >= ${thirtyDaysAgo}
+        GROUP BY day ORDER BY day
+      `;
 
       const dailyRevenue: Record<string, string> = {};
       for (let i = 0; i < 30; i++) {
@@ -701,10 +729,9 @@ router.get(
         d.setDate(d.getDate() - i);
         dailyRevenue[d.toISOString().slice(0, 10)] = '0';
       }
-      for (const p of purchases) {
-        const key = p.createdAt.toISOString().slice(0, 10);
-        if (key in dailyRevenue) {
-          dailyRevenue[key] = (BigInt(dailyRevenue[key]) + p.price).toString();
+      for (const row of revenueRows) {
+        if (row.day in dailyRevenue) {
+          dailyRevenue[row.day] = row.total.toString();
         }
       }
 

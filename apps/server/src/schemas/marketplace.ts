@@ -2,13 +2,17 @@ import { z } from 'zod';
 
 export const createItemSchema = {
   body: z.object({
-    gameId: z.string().uuid(),
+    gameId: z.string().cuid(),
     name: z.string().min(1).max(100),
     description: z.string().min(1).max(1000),
     price: z.string().regex(/^\d+$/, 'Price must be a numeric string'),
     category: z.enum(['cosmetic', 'power_up', 'consumable', 'access', 'subscription']).optional(),
     rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary']).optional(),
-    imageUrl: z.string().url().optional(),
+    imageUrl: z
+      .string()
+      .url()
+      .refine((url) => url.startsWith('https://'), { message: 'Must be HTTPS URL' })
+      .optional(),
     maxSupply: z.number().int().positive().optional(),
     properties: z
       .record(z.unknown())
@@ -24,7 +28,7 @@ export const createItemSchema = {
 
 export const purchaseItemSchema = {
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
   body: z.object({
     quantity: z.number().int().positive().max(100).optional().default(1),

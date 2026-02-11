@@ -13,8 +13,12 @@ export interface GameResponse {
   thumbnailUrl: string | null;
   status: string;
   totalPlays: number;
+  uniquePlayers: number;
   averageRating: number | null;
   ratingCount: number;
+  wasmUrl: string | null;
+  templateSlug: string | null;
+  howToPlay: string | null;
   createdAt: string;
   creator: {
     id: string;

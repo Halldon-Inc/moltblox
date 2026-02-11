@@ -2,16 +2,16 @@ import { z } from 'zod';
 
 export const gameIdParamSchema = {
   params: z.object({
-    gameId: z.string().uuid(),
+    gameId: z.string().cuid(),
   }),
 };
 
 export const addCollaboratorSchema = {
   params: z.object({
-    gameId: z.string().uuid(),
+    gameId: z.string().cuid(),
   }),
   body: z.object({
-    userId: z.string().uuid(),
+    userId: z.string().cuid(),
     role: z.enum(['contributor', 'tester']).optional().default('contributor'),
     canEditCode: z.boolean().optional().default(false),
     canEditMeta: z.boolean().optional().default(true),
@@ -22,15 +22,15 @@ export const addCollaboratorSchema = {
 
 export const collaboratorParamsSchema = {
   params: z.object({
-    gameId: z.string().uuid(),
-    userId: z.string().uuid(),
+    gameId: z.string().cuid(),
+    userId: z.string().cuid(),
   }),
 };
 
 export const updateCollaboratorSchema = {
   params: z.object({
-    gameId: z.string().uuid(),
-    userId: z.string().uuid(),
+    gameId: z.string().cuid(),
+    userId: z.string().cuid(),
   }),
   body: z
     .object({

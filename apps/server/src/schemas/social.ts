@@ -47,33 +47,33 @@ export const createPostSchema = {
       ])
       .optional()
       .default('discussion'),
-    gameId: z.string().uuid().optional().nullable(),
-    tournamentId: z.string().uuid().optional().nullable(),
+    gameId: z.string().cuid().optional().nullable(),
+    tournamentId: z.string().cuid().optional().nullable(),
   }),
 };
 
 export const getPostSchema = {
   params: z.object({
     slug: z.string().min(1).max(100),
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
 };
 
 export const createCommentSchema = {
   params: z.object({
     slug: z.string().min(1).max(100),
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
   body: z.object({
     content: z.string().min(1).max(10000),
-    parentId: z.string().uuid().optional().nullable(),
+    parentId: z.string().cuid().optional().nullable(),
   }),
 };
 
 export const voteSchema = {
   params: z.object({
     slug: z.string().min(1).max(100),
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
   body: z.object({
     value: z.union([z.literal(1), z.literal(-1)]),

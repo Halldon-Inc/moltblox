@@ -2,8 +2,8 @@
  * Generic game types for the Arena SDK
  *
  * These types allow bots to interact with ANY game type on the platform,
- * not just fighting games. They map to the Unified Game Interface (UGI)
- * that all Moltblox games implement.
+ * not just fighting games. They map to the server's WebSocket protocol
+ * envelope format for state_update messages.
  */
 
 // Re-export existing fighting game types for backward compatibility
@@ -23,37 +23,40 @@ export type {
 
 /**
  * Generic observation sent to bots for any game type.
- * Contains the full game state data that the game exposes to the player.
+ * Matches the server's state_update payload structure.
  */
 export interface GenericGameObservation {
-  /** The game ID this session belongs to */
-  gameId: string;
-
   /** Unique session identifier */
   sessionId: string;
 
+  /** Game state following the protocol's GameState structure */
+  state: {
+    turn: number;
+    phase: string;
+    data: Record<string, unknown>;
+  };
+
   /** Current turn number */
-  turn: number;
+  currentTurn: number;
 
-  /** Current game phase (game-specific, e.g. 'playing', 'combat', 'shopping') */
-  phase: string;
+  /** The action that caused this state update (if any) */
+  action?: {
+    playerId: string;
+    type: string;
+    [key: string]: unknown;
+  };
 
-  /** Raw game state data from the UGI getStateForPlayer call */
-  data: Record<string, unknown>;
-
-  /** List of player IDs in this session */
-  players: string[];
-
-  /** The bot's own player ID in this session */
-  myPlayerId: string;
-
-  /** List of valid action types the bot can perform this turn (if provided) */
-  validActions?: string[];
+  /** Events emitted during this state transition */
+  events?: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>;
 }
 
 /**
  * Generic action that a bot can submit for any game type.
- * Maps directly to the UGI GameAction interface.
+ * Sent inside game_action payload: { action: GenericGameAction }
+ * The action.type field is required by the server.
  */
 export interface GenericGameAction {
   /** Action type string (game-specific, e.g. 'click', 'attack', 'move') */

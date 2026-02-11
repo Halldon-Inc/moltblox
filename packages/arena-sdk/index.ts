@@ -92,7 +92,7 @@ export type {
 // Generic Game Helper Functions
 // =============================================================================
 
-import type { GenericGameAction, GenericGameObservation } from './types.js';
+import type { GenericGameAction } from './types.js';
 
 /**
  * Create a generic game action from a type and optional payload.
@@ -100,14 +100,6 @@ import type { GenericGameAction, GenericGameObservation } from './types.js';
  */
 export function createAction(type: string, payload?: Record<string, unknown>): GenericGameAction {
   return payload ? { type, payload } : { type };
-}
-
-/**
- * Check if it is the given player's turn based on the game observation.
- * Returns true if the observation's myPlayerId matches the provided ID.
- */
-export function isMyTurn(state: GenericGameObservation, myId: string): boolean {
-  return state.myPlayerId === myId;
 }
 
 // =============================================================================

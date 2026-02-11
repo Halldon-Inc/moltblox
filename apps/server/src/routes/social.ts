@@ -32,6 +32,11 @@ router.get('/submolts', async (req: Request, res: Response, next: NextFunction) 
       where: { active: true },
       orderBy: { memberCount: 'desc' },
       take: 100,
+      include: {
+        _count: {
+          select: { posts: true, games: true },
+        },
+      },
     });
 
     res.json({ submolts });

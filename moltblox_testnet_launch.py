@@ -320,7 +320,9 @@ def build():
         10,
         'Deploy to Base Sepolia',
         'Deploys all 3 contracts, saves addresses to contracts/deployments/base-sepolia-latest.json, '
-        'auto-verifies on Basescan, and outputs a .env snippet with all contract addresses.',
+        'auto-verifies on Basescan, and outputs a .env snippet with all contract addresses. '
+        'The server-side ABIs (GamePublishingService, PurchaseService) have been corrected to match '
+        'the actual deployed contracts. Mock implementations still work for testnet.',
         'claude',
         'cd contracts &amp;&amp; pnpm deploy:base-sepolia'
     ))
@@ -355,7 +357,9 @@ def build():
         'Set all required env vars on your hosting platform: '
         'DATABASE_URL, REDIS_URL, JWT_SECRET (64 random chars), NODE_ENV=production, PORT=3001, '
         'CORS_ORIGIN, BASE_RPC_URL=https://sepolia.base.org, all 3 contract addresses, '
-        'MOLTBOOK_API_URL, MOLTBOOK_APP_KEY, SENTRY_DSN.',
+        'MOLTBOOK_API_URL, MOLTBOOK_APP_KEY, SENTRY_DSN. '
+        'Note: REDIS_URL is critical. Redis now backs the games write rate limiter and a new '
+        'purchase-specific rate limiter (5 requests per 60 seconds).',
         'you'
     ))
     story.append(make_step(
@@ -369,8 +373,9 @@ def build():
         15,
         'Run the seed script',
         'Populates 7 default submolts, 2 demo users (bot + human), and 7 playable template games. '
-        'All seeded games are fully playable via built-in renderers. The add_template_slug migration '
-        'runs automatically via Dockerfile. Run via host console (set NODE_ENV=development first).',
+        'All seeded games are fully playable via built-in renderers. The Dockerfile runs 3 Prisma '
+        'migrations on startup: initial schema, add_template_slug, and cascades_and_indexes (adds '
+        'cascade deletes and a Purchase.gameId index). Run via host console (set NODE_ENV=development first).',
         'claude',
         'pnpm db:seed'
     ))
@@ -418,9 +423,10 @@ def build():
     story.append(make_step(
         19,
         'Smoke test the web app',
-        'Visit the Vercel URL. Browse Games, Tournaments, Marketplace, Submolts, and Skill pages. '
+        'Visit the Vercel URL. Browse Games, Tournaments, Marketplace, Submolts, Wallet, and Skill pages. '
         'Verify content loads, images render, and navigation works. '
-        'Confirm the 7 seeded games appear in the Games catalog.',
+        'Confirm all 7 template games appear in the Games catalog (updated from 6). '
+        'The Tournament, Wallet, Submolts, and Play pages were all updated in the latest audit.',
         'claude'
     ))
     story.append(make_step(
@@ -447,16 +453,70 @@ def build():
     ))
     story.append(make_step(
         23,
-        'Test contract interaction',
+        'Test contract interaction and Arena SDK',
         'Mint testnet MBUCKS to your wallet. Try creating a game (requires bot role). '
         'Test creating a game from a template via the Arena SDK with templateSlug. '
-        'Try listing and purchasing an item on the marketplace.',
+        'The SDK now uses JWT token auth (config: token, not apiKey), envelope message format '
+        '({ type, payload } with lowercase types), and REST API for marketplace operations '
+        '(config: apiUrl for the REST base URL). Try listing and purchasing an item.',
         'you'
     ))
 
-    # ---- Section F: Enable CI/CD ----
+    # ---- Section F: Post-Audit Notes ----
     story.append(Spacer(1, 8))
-    story.append(Paragraph('F. ENABLE CI/CD', section_style))
+    story.append(Paragraph('F. POST-AUDIT CHANGES (v2)', section_style))
+    story.append(Paragraph(
+        'Key changes from the comprehensive code audit that affect deployment and testing.',
+        step_body_style
+    ))
+    story.append(Spacer(1, 6))
+
+    story.append(make_step(
+        24,
+        'CUID validation on all IDs',
+        'All Zod schemas now validate IDs as CUID format (not UUID). This does not change deployment '
+        'but means any test scripts or external tools that send IDs must use valid CUIDs '
+        '(e.g. clxxxxxxxxxxxxxxxxxxxxxxxxx).',
+        'claude'
+    ))
+    story.append(make_step(
+        25,
+        'Prisma cascade deletes',
+        'User and Game deletion now cascades properly. GameRating.userId, Comment.authorId, and '
+        'Post.authorId are nullable (set null on delete). The Purchase model has a new gameId index. '
+        'These changes ship in migration 3_cascades_and_indexes.',
+        'claude'
+    ))
+    story.append(make_step(
+        26,
+        'Arena SDK protocol rewrite',
+        'The SDK was fully rewritten. Key changes: JWT token auth via "token" config field (not apiKey), '
+        'envelope message format { type, payload } with lowercase type strings, '
+        'MoltbloxClient marketplace operations use REST (not WebSocket), '
+        'new config requires "apiUrl" for the REST base URL. '
+        'Any bot setup must reference token instead of apiKey.',
+        'claude'
+    ))
+    story.append(make_step(
+        27,
+        'Rate limiting updates',
+        'A purchase-specific rate limiter was added (5 requests per 60 seconds). '
+        'The games write limiter is now Redis-backed. The writeLimiter only applies to write '
+        'methods. Ensure Redis is running and reachable before production traffic.',
+        'claude'
+    ))
+    story.append(make_step(
+        28,
+        'Contract ABI corrections',
+        'GamePublishingService and PurchaseService now have ABIs matching the actual Solidity contracts. '
+        'Mock implementations still work for testnet. Mainnet deployment will need real contract addresses '
+        'and the corrected ABIs are already in place.',
+        'claude'
+    ))
+
+    # ---- Section G: Enable CI/CD ----
+    story.append(Spacer(1, 8))
+    story.append(Paragraph('G. ENABLE CI/CD', section_style))
     story.append(Paragraph(
         'Turn on automated deployments so every push to main deploys automatically.',
         step_body_style
@@ -464,14 +524,14 @@ def build():
     story.append(Spacer(1, 6))
 
     story.append(make_step(
-        24,
+        29,
         'Add GitHub secrets',
         'In the repo settings (Settings > Secrets > Actions), add: '
         'VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.',
         'you'
     ))
     story.append(make_step(
-        25,
+        30,
         'Uncomment deploy jobs in CI',
         'Uncomment the deploy-web and deploy-server jobs in .github/workflows/ci.yml. '
         'Push the change to main.',
@@ -479,7 +539,7 @@ def build():
         '.github/workflows/ci.yml lines ~103-146'
     ))
     story.append(make_step(
-        26,
+        31,
         'Verify auto-deploy',
         'Make a small change, push to main, and confirm the CI pipeline builds, tests, '
         'and deploys to Vercel automatically.',

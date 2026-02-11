@@ -16,7 +16,15 @@ export default function TournamentsPage() {
     status: activeTab !== 'All' ? activeTab.toLowerCase() : undefined,
   });
 
-  const tournaments: TournamentCardProps[] = data?.tournaments ?? [];
+  const mapTournament = (t: any): TournamentCardProps => ({
+    ...t,
+    participants: t._count?.participants ?? 0,
+    status:
+      t.status === 'IN_PROGRESS' ? 'live' : t.status === 'REGISTRATION' ? 'upcoming' : 'completed',
+    startDate: t.startTime || t.startDate,
+  });
+
+  const tournaments: TournamentCardProps[] = (data?.tournaments ?? []).map(mapTournament);
   const liveTournaments = tournaments.filter((t: TournamentCardProps) => t.status === 'live');
   const totalPrizePool = tournaments.reduce(
     (sum: number, t: TournamentCardProps) => sum + (t.prizePool || 0),

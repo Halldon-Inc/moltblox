@@ -52,10 +52,10 @@ export interface UpdateGameRequest {
 // =============================================================================
 
 const MARKETPLACE_ABI = [
-  'function registerGame(bytes32 gameId, address creator) external',
-  'function createItem(bytes32 gameId, bytes32 itemId, uint256 price, uint256 maxSupply, uint256 duration) external',
-  'function updateItemPrice(bytes32 gameId, bytes32 itemId, uint256 newPrice) external',
-  'function deactivateItem(bytes32 gameId, bytes32 itemId) external',
+  'function publishGame(string gameId) external',
+  'function createItem(string itemId, string gameId, uint256 price, uint256 maxSupply, uint8 category) external',
+  'function updateItemPrice(string itemId, uint256 newPrice) external',
+  'function deactivateItem(string itemId) external',
 ];
 
 // =============================================================================

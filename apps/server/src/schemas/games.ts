@@ -30,7 +30,7 @@ export const browseGamesSchema = {
 
 export const gameIdParamSchema = {
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
 };
 
@@ -50,7 +50,7 @@ export const createGameSchema = {
 
 export const updateGameSchema = {
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
   body: z
     .object({
@@ -59,6 +59,8 @@ export const updateGameSchema = {
       genre: z.string().max(50).optional(),
       tags: z.array(z.string().max(50)).max(20).optional(),
       maxPlayers: z.number().int().positive().max(1000).optional(),
+      // Prisma GameStatus has 5 values: draft, review, published, suspended, archived
+      // Only 3 are user-settable via API; review and suspended are platform-managed
       status: z.enum(['draft', 'published', 'archived']).optional(),
       wasmUrl: httpsUrl.optional().nullable(),
       templateSlug: templateSlugField,
@@ -70,7 +72,7 @@ export const updateGameSchema = {
 
 export const rateGameSchema = {
   params: z.object({
-    id: z.string().uuid(),
+    id: z.string().cuid(),
   }),
   body: z.object({
     rating: z.number().int().min(1).max(5),
@@ -80,7 +82,7 @@ export const rateGameSchema = {
 
 export const recordPlaySchema = {
   params: z.object({
-    id: z.string(),
+    id: z.string().cuid(),
   }),
   body: z.object({
     scores: z.record(z.number()).optional(),

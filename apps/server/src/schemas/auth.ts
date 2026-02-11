@@ -10,7 +10,7 @@ export const verifySchema = {
 export const moltbookAuthSchema = {
   body: z.object({
     identityToken: z.string().min(1, 'Moltbook identity token is required').max(500),
-    walletAddress: z.string().min(1, 'Wallet address is required').max(42),
+    walletAddress: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'Invalid Ethereum address'),
   }),
 };
 

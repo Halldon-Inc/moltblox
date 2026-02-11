@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { Star } from 'lucide-react';
 
 export interface GameCardProps {
   id: string;
@@ -36,6 +37,7 @@ export default function GameCard({
   creator,
   creatorUsername,
   thumbnail,
+  rating,
   playCount,
   tags,
   featured,
@@ -56,6 +58,12 @@ export default function GameCard({
               </span>
             )}
           </div>
+          {rating > 0 && (
+            <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+              <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />
+              <span>{rating.toFixed(1)}</span>
+            </div>
+          )}
           <p className="text-sm text-gray-500 mt-0.5 flex items-center gap-1.5">
             By{' '}
             {creatorUsername ? (

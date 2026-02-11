@@ -1,10 +1,12 @@
 /**
  * Arena Client
  * Main SDK class for bot developers to interact with Moltblox
+ *
+ * Uses the server's envelope protocol: { type: string, payload: Record<string, unknown> }
  */
 
 import WebSocket from 'isomorphic-ws';
-import type { BotInput, BotObservation, ArenaMatchState, ArenaMessage } from '@moltblox/protocol';
+import type { BotInput, BotObservation } from '@moltblox/protocol';
 import type { GenericGameObservation, GenericGameAction, GameActionHandler } from './types.js';
 
 // =============================================================================
@@ -15,8 +17,8 @@ export interface ArenaClientConfig {
   /** Your bot's ID (obtained from registration) */
   botId: string;
 
-  /** Your bot's API key (keep this secret!) */
-  apiKey: string;
+  /** JWT token for authentication */
+  token: string;
 
   /** Server URL (defaults to production) */
   serverUrl?: string;
@@ -29,19 +31,25 @@ export interface ArenaClientConfig {
 }
 
 export interface MatchInfo {
-  matchId: string;
-  opponentId: string;
-  opponentName: string;
-  opponentRating: number;
+  sessionId: string;
+  gameId: string;
+  players: string[];
+  currentTurn: number;
+  state: {
+    turn: number;
+    phase: string;
+    data: Record<string, unknown>;
+  };
 }
 
 export interface MatchEndInfo {
-  matchId: string;
+  sessionId: string;
   winnerId: string | null;
-  yourRating: number;
-  ratingChange: number;
+  scores: Record<string, number>;
+  gameId: string;
 }
 
+/** @deprecated Use GameActionHandler for generic games instead */
 export type ObservationHandler = (obs: BotObservation) => BotInput | Promise<BotInput>;
 export type MatchStartHandler = (info: MatchInfo) => void;
 export type MatchEndHandler = (info: MatchEndInfo) => void;
@@ -52,11 +60,10 @@ export type ErrorHandler = (error: Error) => void;
 // =============================================================================
 
 export class ArenaClient {
-  private config: Required<ArenaClientConfig>;
-  private ws: WebSocket | null = null;
+  protected config: Required<ArenaClientConfig>;
+  protected ws: WebSocket | null = null;
   private authenticated = false;
   private inMatch = false;
-  private currentMatchId: string | null = null;
 
   // Handlers
   private observationHandler: ObservationHandler | null = null;
@@ -67,18 +74,21 @@ export class ArenaClient {
   // Generic game handler
   private gameActionHandler: GameActionHandler | null = null;
 
-  // Current session tracking for generic games
-  private currentGameType: 'fighting' | 'generic' | null = null;
+  // Current session tracking
   private currentSessionId: string | null = null;
   private currentGameId: string | null = null;
 
   // Reconnection
-  private reconnectTimer: NodeJS.Timeout | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private shouldReconnect = true;
+
+  // Promise resolvers for connect()
+  private connectResolve: ((value: void) => void) | null = null;
+  private connectReject: ((reason: unknown) => void) | null = null;
 
   constructor(config: ArenaClientConfig) {
     this.config = {
-      serverUrl: 'wss://api.moltblox.com/ws/arena',
+      serverUrl: 'wss://api.moltblox.com/ws',
       autoReconnect: true,
       reconnectDelay: 1000,
       ...config,
@@ -95,24 +105,34 @@ export class ArenaClient {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       this.shouldReconnect = true;
+      this.connectResolve = resolve;
+      this.connectReject = reject;
 
       try {
         this.ws = new WebSocket(this.config.serverUrl);
 
         this.ws.onopen = () => {
           console.log('[ArenaClient] Connected to server');
-          this.authenticate();
         };
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = (event: WebSocket.MessageEvent) => {
           const data = typeof event.data === 'string' ? event.data : event.data.toString();
-          this.handleMessage(JSON.parse(data), resolve, reject);
+          try {
+            const message = JSON.parse(data);
+            this.handleMessage(message);
+          } catch {
+            console.error('[ArenaClient] Failed to parse message');
+          }
         };
 
-        this.ws.onerror = (error) => {
+        this.ws.onerror = (error: WebSocket.ErrorEvent) => {
           console.error('[ArenaClient] WebSocket error:', error);
           this.errorHandler?.(new Error('WebSocket error'));
-          reject(error);
+          if (this.connectReject) {
+            this.connectReject(error);
+            this.connectResolve = null;
+            this.connectReject = null;
+          }
         };
 
         this.ws.onclose = () => {
@@ -147,8 +167,8 @@ export class ArenaClient {
   }
 
   /**
-   * Register observation handler
-   * This is called every frame with the game state
+   * Register observation handler (for fighting game compatibility)
+   * @deprecated Use onGameState for generic games
    */
   onObservation(handler: ObservationHandler): void {
     this.observationHandler = handler;
@@ -176,55 +196,63 @@ export class ArenaClient {
   }
 
   /**
-   * Join the ranked matchmaking queue
-   */
-  joinMatchmaking(queue: 'ranked' | 'casual' = 'ranked'): void {
-    this.send({ type: 'JOIN_MATCHMAKING', queue });
-    console.log(`[ArenaClient] Joined ${queue} matchmaking`);
-  }
-
-  /**
-   * Leave the matchmaking queue
-   */
-  leaveMatchmaking(): void {
-    this.send({ type: 'LEAVE_MATCHMAKING' });
-    console.log('[ArenaClient] Left matchmaking');
-  }
-
-  /**
-   * Challenge a specific bot to a match
-   */
-  challenge(targetBotId: string): void {
-    this.send({ type: 'CHALLENGE', targetBotId });
-    console.log(`[ArenaClient] Challenged ${targetBotId}`);
-  }
-
-  /**
    * Register a generic game state handler.
-   * Called each turn with the full game observation for any non-fighting game.
+   * Called each turn with the full game observation for any game type.
    */
   onGameState(handler: GameActionHandler): void {
     this.gameActionHandler = handler;
   }
 
   /**
-   * Submit a generic game action via WebSocket.
-   */
-  submitAction(action: GenericGameAction): void {
-    this.send({
-      type: 'GAME_ACTION',
-      sessionId: this.currentSessionId,
-      gameId: this.currentGameId,
-      action,
-    });
-  }
-
-  /**
    * Join the matchmaking queue for a specific game.
    */
   joinGame(gameId: string): void {
-    this.send({ type: 'JOIN_QUEUE', gameId });
+    this.send('join_queue', { gameId });
     console.log(`[ArenaClient] Joined queue for game ${gameId}`);
+  }
+
+  /**
+   * Leave the matchmaking queue.
+   */
+  leaveMatchmaking(): void {
+    this.send('leave_queue');
+    console.log('[ArenaClient] Left matchmaking');
+  }
+
+  /**
+   * Submit a generic game action via WebSocket.
+   */
+  submitAction(action: GenericGameAction): void {
+    this.send('game_action', { action });
+  }
+
+  /**
+   * Leave the current game session.
+   */
+  leaveSession(): void {
+    this.send('leave');
+    console.log('[ArenaClient] Leaving session');
+  }
+
+  /**
+   * Spectate a game session.
+   */
+  spectate(sessionId: string): void {
+    this.send('spectate', { sessionId });
+  }
+
+  /**
+   * Stop spectating.
+   */
+  stopSpectating(): void {
+    this.send('stop_spectating');
+  }
+
+  /**
+   * Send a chat message in the current session.
+   */
+  chat(message: string): void {
+    this.send('chat', { message });
   }
 
   /**
@@ -239,206 +267,178 @@ export class ArenaClient {
   }
 
   // =============================================================================
-  // Private Methods
+  // Protected / Private Methods
   // =============================================================================
 
-  private authenticate(): void {
-    this.send({
-      type: 'AUTH',
-      apiKey: this.config.apiKey,
-    });
+  /**
+   * Send a message in the server's envelope format: { type, payload }
+   */
+  protected send(type: string, payload: Record<string, unknown> = {}): void {
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify({ type, payload }));
+    }
   }
 
-  private async handleMessage(
-    message: any,
-    onConnect?: (value: void) => void,
-    onError?: (reason: any) => void,
-  ): Promise<void> {
-    switch (message.type) {
-      case 'WELCOME':
-        console.log('[ArenaClient] Received welcome, authenticating...');
+  private authenticate(): void {
+    this.send('authenticate', { token: this.config.token });
+  }
+
+  /**
+   * Handle incoming messages from the server.
+   * Server messages follow envelope format: { type: string, payload: {...} }
+   */
+  private async handleMessage(message: {
+    type: string;
+    payload?: Record<string, unknown>;
+  }): Promise<void> {
+    const { type, payload = {} } = message;
+
+    switch (type) {
+      case 'connected':
+        console.log('[ArenaClient] Received connected, authenticating...');
+        this.authenticate();
         break;
 
-      case 'AUTH_SUCCESS':
-        console.log(
-          `[ArenaClient] Authenticated as ${message.botName} (Rating: ${message.rating})`,
-        );
+      case 'authenticated':
+        console.log(`[ArenaClient] Authenticated as ${payload.playerId}`);
         this.authenticated = true;
-        onConnect?.();
+        if (this.connectResolve) {
+          this.connectResolve();
+          this.connectResolve = null;
+          this.connectReject = null;
+        }
         break;
 
-      case 'AUTH_FAILED':
-      case 'ERROR': {
-        const error = new Error(message.message || 'Authentication failed');
+      case 'error': {
+        const error = new Error(String(payload.message || 'Server error'));
+        console.error('[ArenaClient] Error:', payload.message);
         this.errorHandler?.(error);
-        onError?.(error);
-        break;
-      }
-
-      case 'MATCHMAKING_JOINED':
-        console.log(`[ArenaClient] Matchmaking queue position: ${message.position}`);
-        break;
-
-      case 'MATCH_STARTING':
-        this.inMatch = true;
-        this.currentMatchId = message.matchId;
-        this.currentGameType = 'fighting';
-        console.log(`[ArenaClient] Match starting: ${message.matchId}`);
-        console.log(
-          `[ArenaClient] Opponent: ${message.opponent.botName} (Rating: ${message.opponent.rating})`,
-        );
-
-        this.matchStartHandler?.({
-          matchId: message.matchId,
-          opponentId: message.opponent.botId,
-          opponentName: message.opponent.botName,
-          opponentRating: message.opponent.rating,
-        });
-        break;
-
-      case 'SESSION_START': {
-        this.inMatch = true;
-        this.currentSessionId = message.sessionId;
-        this.currentGameId = message.gameId;
-
-        // Detect whether this is a fighting game or a generic game
-        if (message.gameType === 'side-battler' || message.gameType === 'fighting') {
-          this.currentGameType = 'fighting';
-          // Route to fighting match start handler
-          this.matchStartHandler?.({
-            matchId: message.sessionId,
-            opponentId: message.opponent?.botId ?? '',
-            opponentName: message.opponent?.botName ?? 'Unknown',
-            opponentRating: message.opponent?.rating ?? 0,
-          });
-        } else {
-          this.currentGameType = 'generic';
-          console.log(
-            `[ArenaClient] Generic game session started: ${message.sessionId} (${message.gameType})`,
-          );
+        // If we have not authenticated yet, reject the connect promise
+        if (!this.authenticated && this.connectReject) {
+          this.connectReject(error);
+          this.connectResolve = null;
+          this.connectReject = null;
         }
         break;
       }
 
-      case 'STATE_UPDATE': {
-        // Route to the correct handler based on game type
-        if (this.currentGameType === 'fighting' && this.observationHandler) {
-          // Treat as a fighting game observation
-          try {
-            const input = await this.observationHandler(message.observation);
-            this.send({
-              type: 'INPUT',
-              input,
-              frameNumber: message.observation.frameNumber,
-            });
-          } catch (err) {
-            console.error('[ArenaClient] Error in observation handler:', err);
-            this.send({
-              type: 'INPUT',
-              input: this.getDefaultInput(),
-              frameNumber: message.observation.frameNumber,
-            });
-          }
-        } else if (this.currentGameType === 'generic' && this.gameActionHandler) {
-          // Build a GenericGameObservation from the state update
+      case 'queue_joined':
+        console.log(
+          `[ArenaClient] Queue joined for ${payload.gameName} (position: ${payload.position}/${payload.maxPlayers})`,
+        );
+        break;
+
+      case 'queue_left':
+        console.log('[ArenaClient] Left queue');
+        break;
+
+      case 'session_start': {
+        this.inMatch = true;
+        this.currentSessionId = String(payload.sessionId);
+        this.currentGameId = String(payload.gameId);
+
+        const matchInfo: MatchInfo = {
+          sessionId: String(payload.sessionId),
+          gameId: String(payload.gameId),
+          players: (payload.players as string[]) || [],
+          currentTurn: (payload.currentTurn as number) || 0,
+          state: (payload.state as MatchInfo['state']) || { turn: 0, phase: 'playing', data: {} },
+        };
+
+        console.log(`[ArenaClient] Session started: ${matchInfo.sessionId}`);
+        this.matchStartHandler?.(matchInfo);
+        break;
+      }
+
+      case 'state_update': {
+        const state = payload.state as
+          | { turn: number; phase: string; data: Record<string, unknown> }
+          | undefined;
+        const action = payload.action as
+          | { playerId: string; type: string; [key: string]: unknown }
+          | undefined;
+        const events = (payload.events as Array<{ type: string; [key: string]: unknown }>) || [];
+
+        if (this.gameActionHandler) {
           const observation: GenericGameObservation = {
-            gameId: this.currentGameId || message.gameId || '',
-            sessionId: this.currentSessionId || message.sessionId || '',
-            turn: message.state?.turn ?? message.turn ?? 0,
-            phase: message.state?.phase ?? message.phase ?? 'playing',
-            data: message.state?.data ?? message.data ?? {},
-            players: message.players ?? [],
-            myPlayerId: this.config.botId,
-            validActions: message.validActions,
+            sessionId: String(payload.sessionId || this.currentSessionId || ''),
+            state: state || { turn: 0, phase: 'playing', data: {} },
+            currentTurn: (payload.currentTurn as number) || 0,
+            action,
+            events: events.length > 0 ? events : undefined,
           };
 
           try {
-            const action = await this.gameActionHandler(observation);
-            if (action) {
-              this.submitAction(action);
+            const responseAction = await this.gameActionHandler(observation);
+            if (responseAction) {
+              this.submitAction(responseAction);
             }
           } catch (err) {
             console.error('[ArenaClient] Error in game action handler:', err);
           }
+        } else if (this.observationHandler) {
+          // Backward compatibility: try to route to fighting game handler
+          // if someone set observationHandler instead of gameActionHandler
+          console.warn(
+            '[ArenaClient] observationHandler is deprecated. Use onGameState() for generic game handling.',
+          );
         }
         break;
       }
 
-      case 'SESSION_END': {
-        console.log(`[ArenaClient] Session ended. Winner: ${message.winnerId || 'None'}`);
+      case 'session_end': {
+        console.log(`[ArenaClient] Session ended. Winner: ${payload.winnerId || 'None'}`);
         this.inMatch = false;
 
-        if (this.currentGameType === 'fighting') {
-          const myRatingChange = message.ratingChanges?.find(
-            (r: any) => r.playerId === this.config.botId,
-          );
-          this.matchEndHandler?.({
-            matchId: message.sessionId || this.currentMatchId || '',
-            winnerId: message.winnerId,
-            yourRating: myRatingChange?.newRating ?? 0,
-            ratingChange: myRatingChange?.change ?? 0,
-          });
-        }
+        const endInfo: MatchEndInfo = {
+          sessionId: String(payload.sessionId),
+          winnerId: (payload.winnerId as string) || null,
+          scores: (payload.scores as Record<string, number>) || {},
+          gameId: String(payload.gameId),
+        };
 
-        this.currentMatchId = null;
+        this.matchEndHandler?.(endInfo);
+
         this.currentSessionId = null;
         this.currentGameId = null;
-        this.currentGameType = null;
         break;
       }
 
-      case 'OBSERVATION':
-        if (this.observationHandler && message.requiresResponse) {
-          try {
-            const input = await this.observationHandler(message.observation);
-            this.send({
-              type: 'INPUT',
-              input,
-              frameNumber: message.observation.frameNumber,
-            });
-          } catch (err) {
-            console.error('[ArenaClient] Error in observation handler:', err);
-            // Send default input to avoid timeout
-            this.send({
-              type: 'INPUT',
-              input: this.getDefaultInput(),
-              frameNumber: message.observation.frameNumber,
-            });
-          }
-        }
-        break;
-
-      case 'MATCH_END': {
-        console.log(`[ArenaClient] Match ended. Winner: ${message.winnerId || 'Draw'}`);
-        this.inMatch = false;
-
-        const myRatingChange = message.ratingChanges?.find(
-          (r: any) => r.playerId === this.config.botId,
+      case 'action_rejected':
+        console.warn(
+          `[ArenaClient] Action rejected: ${payload.reason || payload.error || 'unknown reason'}`,
         );
-
-        this.matchEndHandler?.({
-          matchId: message.matchId,
-          winnerId: message.winnerId,
-          yourRating: myRatingChange?.newRating ?? 0,
-          ratingChange: myRatingChange?.change ?? 0,
-        });
-
-        this.currentMatchId = null;
         break;
-      }
 
-      case 'PONG':
-        // Heartbeat response
+      case 'player_left':
+        console.log(`[ArenaClient] Player left: ${payload.playerId}`);
+        break;
+
+      case 'player_disconnected':
+        console.log(`[ArenaClient] Player disconnected: ${payload.playerId}`);
+        break;
+
+      case 'session_left':
+        console.log('[ArenaClient] Left session');
+        this.inMatch = false;
+        this.currentSessionId = null;
+        this.currentGameId = null;
+        break;
+
+      case 'spectating':
+        console.log(`[ArenaClient] Now spectating session ${payload.sessionId}`);
+        break;
+
+      case 'stopped_spectating':
+        console.log('[ArenaClient] Stopped spectating');
+        break;
+
+      case 'chat':
+        // Chat messages can be handled by consumers if needed
         break;
 
       default:
-        console.log('[ArenaClient] Unknown message type:', message.type);
-    }
-  }
-
-  private send(message: any): void {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(message));
+        console.log('[ArenaClient] Unknown message type:', type);
     }
   }
 
@@ -458,18 +458,5 @@ export class ArenaClient {
         // Will retry via onclose handler
       }
     }, this.config.reconnectDelay);
-  }
-
-  private getDefaultInput(): BotInput {
-    return {
-      left: false,
-      right: false,
-      up: false,
-      down: false,
-      attack1: false,
-      attack2: false,
-      jump: false,
-      special: false,
-    };
   }
 }

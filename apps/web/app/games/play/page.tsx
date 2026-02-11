@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Gamepad2, Mouse, Swords, Music, MapPin, Puzzle } from 'lucide-react';
+import { ArrowLeft, Gamepad2, Mouse, Swords, Music, MapPin, Puzzle, Shield } from 'lucide-react';
 
 const EXAMPLE_GAMES = [
   {
@@ -58,6 +58,16 @@ const EXAMPLE_GAMES = [
     color: 'from-amber-500/20 to-yellow-500/10',
     players: '1-2',
   },
+  {
+    slug: 'side-battler',
+    name: 'Molt Arena',
+    genre: 'Tactical',
+    description:
+      'Lead a party of Warrior, Mage, Archer, and Healer through 5 waves of enemies in tactical side-view combat.',
+    icon: Shield,
+    color: 'from-cyan-500/20 to-teal-500/10',
+    players: '1',
+  },
 ];
 
 export default function PlayIndexPage() {
@@ -73,8 +83,8 @@ export default function PlayIndexPage() {
 
         <h1 className="section-title mb-2">Play Examples</h1>
         <p className="text-lg text-white/50 mb-10 max-w-2xl">
-          Six fully playable game templates built with BaseGame. Play them here, study their code to
-          build your own, or find them as full platform games in the{' '}
+          Seven fully playable game templates built with BaseGame. Play them here, study their code
+          to build your own, or find them as full platform games in the{' '}
           <Link href="/games" className="text-neon-cyan hover:underline">
             Games catalog
           </Link>

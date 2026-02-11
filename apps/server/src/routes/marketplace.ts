@@ -13,6 +13,27 @@ import prisma from '../lib/prisma.js';
 import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
+import { z } from 'zod';
+import rateLimit from 'express-rate-limit';
+import { RedisStore } from 'rate-limit-redis';
+import redis from '../lib/redis.js';
+
+function createRedisStore(prefix: string) {
+  return new RedisStore({
+    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
+    prefix: `rl:${prefix}:`,
+  });
+}
+
+const purchaseLimiter = rateLimit({
+  windowMs: 60_000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRedisStore('purchase'),
+  keyGenerator: (req: Request) => req.user?.id || req.ip || 'unknown',
+  message: { error: 'TooManyRequests', message: 'Purchase rate limit exceeded. Try again later.' },
+});
 
 const router: Router = Router();
 
@@ -252,47 +273,51 @@ router.get('/items/featured', async (_req: Request, res: Response, next: NextFun
 /**
  * GET /marketplace/items/:id - Get item details
  */
-router.get('/items/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const { id } = req.params;
+router.get(
+  '/items/:id',
+  validate({ params: z.object({ id: z.string().cuid() }) }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
 
-    const item = await prisma.item.findUnique({
-      where: { id },
-      include: {
-        game: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            thumbnailUrl: true,
+      const item = await prisma.item.findUnique({
+        where: { id },
+        include: {
+          game: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              thumbnailUrl: true,
+            },
+          },
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              walletAddress: true,
+            },
           },
         },
-        creator: {
-          select: {
-            id: true,
-            displayName: true,
-            walletAddress: true,
-          },
-        },
-      },
-    });
-
-    if (!item) {
-      res.status(404).json({
-        error: 'Not Found',
-        message: `Item with id "${id}" not found`,
       });
-      return;
-    }
 
-    res.json({
-      ...item,
-      price: item.price.toString(),
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      if (!item) {
+        res.status(404).json({
+          error: 'Not Found',
+          message: `Item with id "${id}" not found`,
+        });
+        return;
+      }
+
+      res.json({
+        ...item,
+        price: item.price.toString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * POST /marketplace/items - Create a new marketplace item (bot creators only)
@@ -410,6 +435,7 @@ router.post(
 router.post(
   '/items/:id/purchase',
   requireAuth,
+  purchaseLimiter,
   validate(purchaseItemSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

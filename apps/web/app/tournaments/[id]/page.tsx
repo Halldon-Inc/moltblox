@@ -243,10 +243,10 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
             <span className={`w-2.5 h-2.5 rounded-full ${statusInfo.dot}`} />
             <span className={`text-base font-medium ${statusInfo.text}`}>{statusInfo.label}</span>
             {displayStatus === 'live' && (
-              <span className="text-white/40 text-sm ml-1">&mdash; Started {startDate}</span>
+              <span className="text-white/40 text-sm ml-1"> | Started {startDate}</span>
             )}
             {displayStatus === 'upcoming' && (
-              <span className="text-white/40 text-sm ml-1">&mdash; Starts {startDate}</span>
+              <span className="text-white/40 text-sm ml-1"> | Starts {startDate}</span>
             )}
           </div>
           {description && (

@@ -44,17 +44,19 @@ router.get(
         averageRating: g.averageRating,
       }));
 
-      // Total plays across all games over last 30 days
+      // Total plays across all games over last 30 days (aggregated at DB level)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      const sessions = await prisma.gameSession.findMany({
-        where: {
-          gameId: { in: gameIds },
-          startedAt: { gte: thirtyDaysAgo },
-        },
-        select: { startedAt: true, gameId: true },
-      });
+      const playRows =
+        gameIds.length > 0
+          ? await prisma.$queryRaw<Array<{ day: string; count: bigint }>>`
+            SELECT DATE_TRUNC('day', "startedAt")::date::text AS day, COUNT(*)::bigint AS count
+            FROM "game_sessions"
+            WHERE "gameId" = ANY(${gameIds}) AND "startedAt" >= ${thirtyDaysAgo}
+            GROUP BY day ORDER BY day
+          `
+          : [];
 
       const dailyPlays: Record<string, number> = {};
       for (let i = 0; i < 30; i++) {
@@ -62,10 +64,9 @@ router.get(
         d.setDate(d.getDate() - i);
         dailyPlays[d.toISOString().slice(0, 10)] = 0;
       }
-      for (const s of sessions) {
-        const key = s.startedAt.toISOString().slice(0, 10);
-        if (key in dailyPlays) {
-          dailyPlays[key]++;
+      for (const row of playRows) {
+        if (row.day in dailyPlays) {
+          dailyPlays[row.day] = Number(row.count);
         }
       }
 
