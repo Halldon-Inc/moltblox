@@ -4,16 +4,26 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Play, Pause, X, Maximize, Minimize, Volume2, VolumeX, Wifi } from 'lucide-react';
 import Link from 'next/link';
 import WasmGameLoader from './WasmGameLoader';
+import TemplateGamePlayer from './TemplateGamePlayer';
 import type { RuntimeState } from '@/lib/wasm-runtime';
 
 interface GamePlayerProps {
   wasmUrl?: string;
+  templateSlug?: string;
+  gameId?: string;
   gameName: string;
   thumbnail?: string;
   onExit: () => void;
 }
 
-export default function GamePlayer({ wasmUrl, gameName, thumbnail, onExit }: GamePlayerProps) {
+export default function GamePlayer({
+  wasmUrl,
+  templateSlug,
+  gameId,
+  gameName,
+  thumbnail,
+  onExit,
+}: GamePlayerProps) {
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -65,7 +75,9 @@ export default function GamePlayer({ wasmUrl, gameName, thumbnail, onExit }: Gam
     >
       {/* Game canvas area */}
       <div className="relative flex-1 min-h-0">
-        {wasmUrl ? (
+        {templateSlug ? (
+          <TemplateGamePlayer templateSlug={templateSlug} gameId={gameId} onExit={onExit} />
+        ) : wasmUrl ? (
           <WasmGameLoader
             wasmUrl={wasmUrl}
             gameName={gameName}

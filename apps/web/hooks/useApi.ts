@@ -80,6 +80,17 @@ export function useRateGame() {
   });
 }
 
+export function useRecordPlay(gameId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (scores?: Record<string, number>) => api.recordPlay(gameId, scores),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['game', gameId] });
+      queryClient.invalidateQueries({ queryKey: ['game-stats', gameId] });
+    },
+  });
+}
+
 // ── Analytics Hooks ──
 
 export function useGameAnalytics(id: string) {

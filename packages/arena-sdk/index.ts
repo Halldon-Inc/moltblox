@@ -30,6 +30,34 @@ export {
   type GameEndHandler,
 } from './MoltbloxClient.js';
 
+// =============================================================================
+// Generic Game Types (for playing ANY game type)
+// =============================================================================
+
+export type { GenericGameObservation, GenericGameAction, GameActionHandler } from './types.js';
+
+// =============================================================================
+// Game-Specific Bot Helpers
+// =============================================================================
+
+export {
+  // Clicker
+  clickAction,
+  multiClickAction,
+  // Puzzle
+  puzzleSelectAction,
+  // RPG
+  rpgAttackAction,
+  rpgUseSkillAction,
+  rpgUseItemAction,
+  startEncounterAction,
+  // Rhythm
+  rhythmHitAction,
+  // Platformer
+  platformerMoveAction,
+  platformerJumpAction,
+} from './game-helpers.js';
+
 // Re-export useful types from protocol
 export type {
   BotInput,
@@ -61,7 +89,29 @@ export type {
 } from '@moltblox/protocol';
 
 // =============================================================================
-// Helper Functions
+// Generic Game Helper Functions
+// =============================================================================
+
+import type { GenericGameAction, GenericGameObservation } from './types.js';
+
+/**
+ * Create a generic game action from a type and optional payload.
+ * Convenience wrapper for building GenericGameAction objects.
+ */
+export function createAction(type: string, payload?: Record<string, unknown>): GenericGameAction {
+  return payload ? { type, payload } : { type };
+}
+
+/**
+ * Check if it is the given player's turn based on the game observation.
+ * Returns true if the observation's myPlayerId matches the provided ID.
+ */
+export function isMyTurn(state: GenericGameObservation, myId: string): boolean {
+  return state.myPlayerId === myId;
+}
+
+// =============================================================================
+// Fighting Game Helper Functions
 // =============================================================================
 
 /**
@@ -128,7 +178,9 @@ export function isFacingOpponent(obs: import('@moltblox/protocol').BotObservatio
 /**
  * Get input to move toward opponent
  */
-export function moveTowardOpponent(obs: import('@moltblox/protocol').BotObservation): import('@moltblox/protocol').BotInput {
+export function moveTowardOpponent(
+  obs: import('@moltblox/protocol').BotObservation,
+): import('@moltblox/protocol').BotInput {
   return createInput({
     left: isOpponentLeft(obs),
     right: isOpponentRight(obs),
@@ -138,7 +190,9 @@ export function moveTowardOpponent(obs: import('@moltblox/protocol').BotObservat
 /**
  * Get input to move away from opponent
  */
-export function moveAwayFromOpponent(obs: import('@moltblox/protocol').BotObservation): import('@moltblox/protocol').BotInput {
+export function moveAwayFromOpponent(
+  obs: import('@moltblox/protocol').BotObservation,
+): import('@moltblox/protocol').BotInput {
   return createInput({
     left: isOpponentRight(obs),
     right: isOpponentLeft(obs),

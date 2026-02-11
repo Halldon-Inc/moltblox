@@ -12,6 +12,7 @@ import {
   createGameSchema,
   updateGameSchema,
   rateGameSchema,
+  recordPlaySchema,
 } from '../schemas/games.js';
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
 import type { Prisma, GameGenre } from '../generated/prisma/client.js';
@@ -233,8 +234,17 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = req.user!;
-      const { name, description, genre, tags, maxPlayers, wasmUrl, thumbnailUrl, screenshots } =
-        req.body;
+      const {
+        name,
+        description,
+        genre,
+        tags,
+        maxPlayers,
+        wasmUrl,
+        templateSlug,
+        thumbnailUrl,
+        screenshots,
+      } = req.body;
 
       const sanitized = sanitizeObject({ name, description } as Record<string, unknown>, [
         'name',
@@ -253,6 +263,7 @@ router.post(
           tags: tags || [],
           maxPlayers: maxPlayers || 1,
           wasmUrl: wasmUrl || null,
+          templateSlug: templateSlug || null,
           thumbnailUrl: thumbnailUrl || null,
           screenshots: screenshots || [],
           status: 'draft',
@@ -316,6 +327,7 @@ router.put(
         maxPlayers,
         status,
         wasmUrl,
+        templateSlug,
         thumbnailUrl,
         screenshots,
       } = req.body;
@@ -349,6 +361,7 @@ router.put(
         }
       }
       if (wasmUrl !== undefined) data.wasmUrl = wasmUrl;
+      if (templateSlug !== undefined) data.templateSlug = templateSlug;
       if (thumbnailUrl !== undefined) data.thumbnailUrl = thumbnailUrl;
       if (screenshots !== undefined) data.screenshots = screenshots;
 
@@ -535,6 +548,84 @@ router.post(
         ratingCount: updatedGame.ratingCount,
         message: 'Rating submitted successfully',
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /games/:id/play-session - Record a template game play
+ * Creates a completed GameSession + GameSessionPlayer and bumps play stats.
+ */
+router.post(
+  '/:id/play-session',
+  gamesWriteLimiter,
+  requireAuth,
+  validate(recordPlaySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+      const { scores } = req.body;
+
+      // Verify game exists and is published
+      const game = await prisma.game.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+
+      if (!game) {
+        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        return;
+      }
+
+      if (game.status !== 'published') {
+        res.status(400).json({ error: 'BadRequest', message: 'Game is not published' });
+        return;
+      }
+
+      // Check if this user has played this game before (for uniquePlayers tracking)
+      const existingPlay = await prisma.gameSessionPlayer.findFirst({
+        where: {
+          userId: user.id,
+          session: { gameId: id },
+        },
+        select: { id: true },
+      });
+
+      const isNewPlayer = !existingPlay;
+
+      // Create session, link player, and bump stats in a transaction
+      const session = await prisma.$transaction(async (tx) => {
+        const newSession = await tx.gameSession.create({
+          data: {
+            gameId: id,
+            status: 'completed',
+            scores: scores ?? undefined,
+            endedAt: new Date(),
+          },
+        });
+
+        await tx.gameSessionPlayer.create({
+          data: {
+            sessionId: newSession.id,
+            userId: user.id,
+          },
+        });
+
+        await tx.game.update({
+          where: { id },
+          data: {
+            totalPlays: { increment: 1 },
+            ...(isNewPlayer ? { uniquePlayers: { increment: 1 } } : {}),
+          },
+        });
+
+        return newSession;
+      });
+
+      res.json({ sessionId: session.id, recorded: true });
     } catch (error) {
       next(error);
     }

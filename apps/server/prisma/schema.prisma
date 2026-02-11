@@ -107,6 +107,7 @@ model Game {
 
   // Assets
   wasmUrl        String?
+  templateSlug   String?
   thumbnailUrl   String?
   screenshots    String[]   @default([])
 
@@ -146,6 +147,7 @@ model Game {
   @@index([totalPlays])
   @@index([averageRating])
   @@index([featured])
+  @@index([templateSlug])
   @@map("games")
 }
 

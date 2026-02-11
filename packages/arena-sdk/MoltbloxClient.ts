@@ -22,6 +22,7 @@ import type {
   BotWallet,
 } from '@moltblox/protocol';
 import { ArenaClient, ArenaClientConfig } from './ArenaClient.js';
+import type { GameActionHandler } from './types.js';
 
 // =============================================================================
 // Types
@@ -110,10 +111,7 @@ export class MoltbloxClient extends ArenaClient {
       this.wallet = this.moltbloxConfig.wallet;
     } else if (this.moltbloxConfig.walletPrivateKey) {
       this.provider = new ethers.JsonRpcProvider(this.moltbloxConfig.rpcUrl);
-      this.wallet = new ethers.Wallet(
-        this.moltbloxConfig.walletPrivateKey,
-        this.provider
-      );
+      this.wallet = new ethers.Wallet(this.moltbloxConfig.walletPrivateKey, this.provider);
     }
   }
 
@@ -271,11 +269,7 @@ export class MoltbloxClient extends ArenaClient {
   /**
    * Rate a game
    */
-  async rateGame(
-    gameId: string,
-    rating: number,
-    review?: string
-  ): Promise<void> {
+  async rateGame(gameId: string, rating: number, review?: string): Promise<void> {
     return new Promise((resolve, reject) => {
       if (rating < 1 || rating > 5) {
         reject(new Error('Rating must be between 1 and 5'));
@@ -311,10 +305,7 @@ export class MoltbloxClient extends ArenaClient {
   /**
    * Purchase an item
    */
-  async purchaseItem(
-    gameId: string,
-    itemId: string
-  ): Promise<PurchaseResult> {
+  async purchaseItem(gameId: string, itemId: string): Promise<PurchaseResult> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Purchase timeout'));
@@ -339,7 +330,7 @@ export class MoltbloxClient extends ArenaClient {
   async purchaseConsumable(
     gameId: string,
     itemId: string,
-    quantity: number
+    quantity: number,
   ): Promise<PurchaseResult> {
     return new Promise((resolve, reject) => {
       if (quantity < 1 || quantity > 100) {
@@ -391,16 +382,71 @@ export class MoltbloxClient extends ArenaClient {
   }
 
   // =============================================================================
+  // Generic Game Play
+  // =============================================================================
+
+  /**
+   * High-level method to play any game type.
+   * Joins the queue, registers the handler for state updates, and
+   * auto-submits actions returned by the handler.
+   */
+  playGame(gameId: string, handler: GameActionHandler): void {
+    // Register the generic game action handler on the parent ArenaClient
+    // Use super to call ArenaClient's onGameState (not the MoltbloxClient override)
+    super.onGameState(handler);
+
+    // Join the game queue via the parent's joinGame (sends JOIN_QUEUE)
+    super.joinGame(gameId);
+
+    console.log(`[MoltbloxClient] Playing game ${gameId}`);
+  }
+
+  /**
+   * Create a new game from a built-in template via the REST-style WS API.
+   * Templates: clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler
+   */
+  async createGameFromTemplate(
+    templateSlug: string,
+    name: string,
+    description: string,
+    genre: string,
+    tags?: string[],
+    maxPlayers?: number,
+  ): Promise<{ gameId: string; success: boolean; error?: string }> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error('Create game from template timeout'));
+      }, 30000);
+
+      this.sendMarketplace({
+        type: 'CREATE_GAME_FROM_TEMPLATE',
+        templateSlug,
+        name,
+        description,
+        genre,
+        tags: tags ?? [],
+        maxPlayers: maxPlayers ?? 2,
+      });
+
+      this.onceMessage('GAME_CREATED', (message) => {
+        clearTimeout(timeout);
+        resolve({
+          gameId: message.gameId,
+          success: message.success ?? true,
+          error: message.error,
+        });
+      });
+    });
+  }
+
+  // =============================================================================
   // Creator - Game Publishing
   // =============================================================================
 
   /**
    * Publish a new game to the marketplace
    */
-  async publishGame(
-    code: string,
-    metadata: GameMetadata
-  ): Promise<PublishResult> {
+  async publishGame(code: string, metadata: GameMetadata): Promise<PublishResult> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Publish game timeout'));
@@ -425,7 +471,7 @@ export class MoltbloxClient extends ArenaClient {
   async updateGame(
     gameId: string,
     code?: string,
-    metadata?: Partial<GameMetadata>
+    metadata?: Partial<GameMetadata>,
   ): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -456,10 +502,7 @@ export class MoltbloxClient extends ArenaClient {
   /**
    * Create a new item for a game
    */
-  async createItem(
-    gameId: string,
-    item: ItemDefinition
-  ): Promise<ItemResult> {
+  async createItem(gameId: string, item: ItemDefinition): Promise<ItemResult> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error('Create item timeout'));
@@ -484,7 +527,7 @@ export class MoltbloxClient extends ArenaClient {
   async updateItemPrice(
     gameId: string,
     itemId: string,
-    newPrice: string
+    newPrice: string,
   ): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -513,7 +556,7 @@ export class MoltbloxClient extends ArenaClient {
    */
   async deactivateItem(
     gameId: string,
-    itemId: string
+    itemId: string,
   ): Promise<{ success: boolean; error?: string }> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -637,8 +680,7 @@ export class MoltbloxClient extends ArenaClient {
         this.userGameEndHandler?.(message.result);
         break;
 
-      default:
-        // Check for one-time handlers
+      default: {
         const handlers = this.messageHandlers.get(message.type);
         if (handlers && handlers.length > 0) {
           const handler = handlers.shift();
@@ -649,6 +691,7 @@ export class MoltbloxClient extends ArenaClient {
           return true;
         }
         return false;
+      }
     }
 
     return true;

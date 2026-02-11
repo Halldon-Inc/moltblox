@@ -167,6 +167,12 @@ class ApiClient {
       },
     );
   }
+  recordPlay(id: string, scores?: Record<string, number>) {
+    return this.request<{ sessionId: string; recorded: boolean }>(`/games/${id}/play-session`, {
+      method: 'POST',
+      body: JSON.stringify({ scores }),
+    });
+  }
   getGameAnalytics(id: string) {
     return this.request<ApiAny>(`/games/${id}/analytics`);
   }

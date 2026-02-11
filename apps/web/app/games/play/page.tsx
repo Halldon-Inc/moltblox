@@ -73,8 +73,12 @@ export default function PlayIndexPage() {
 
         <h1 className="section-title mb-2">Play Examples</h1>
         <p className="text-lg text-white/50 mb-10 max-w-2xl">
-          Six fully playable game templates built with BaseGame. Play them here or study their code
-          to build your own.
+          Six fully playable game templates built with BaseGame. Play them here, study their code to
+          build your own, or find them as full platform games in the{' '}
+          <Link href="/games" className="text-neon-cyan hover:underline">
+            Games catalog
+          </Link>
+          .
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

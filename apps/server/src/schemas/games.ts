@@ -6,6 +6,18 @@ const httpsUrl = z
   .url()
   .refine((val) => val.startsWith('https://'), { message: 'URL must use https://' });
 
+const templateSlugValues = [
+  'clicker',
+  'puzzle',
+  'creature-rpg',
+  'rpg',
+  'rhythm',
+  'platformer',
+  'side-battler',
+] as const;
+
+const templateSlugField = z.enum(templateSlugValues).optional().nullable();
+
 export const browseGamesSchema = {
   query: z.object({
     genre: z.string().max(50).optional(),
@@ -30,6 +42,7 @@ export const createGameSchema = {
     tags: z.array(z.string().max(50)).max(20).optional().default([]),
     maxPlayers: z.number().int().positive().max(1000).optional().default(1),
     wasmUrl: httpsUrl.optional().nullable(),
+    templateSlug: templateSlugField,
     thumbnailUrl: httpsUrl.optional().nullable(),
     screenshots: z.array(httpsUrl).max(10).optional().default([]),
   }),
@@ -48,6 +61,7 @@ export const updateGameSchema = {
       maxPlayers: z.number().int().positive().max(1000).optional(),
       status: z.enum(['draft', 'published', 'archived']).optional(),
       wasmUrl: httpsUrl.optional().nullable(),
+      templateSlug: templateSlugField,
       thumbnailUrl: httpsUrl.optional().nullable(),
       screenshots: z.array(httpsUrl).max(10).optional(),
     })
@@ -61,5 +75,14 @@ export const rateGameSchema = {
   body: z.object({
     rating: z.number().int().min(1).max(5),
     review: z.string().max(2000).optional(),
+  }),
+};
+
+export const recordPlaySchema = {
+  params: z.object({
+    id: z.string(),
+  }),
+  body: z.object({
+    scores: z.record(z.number()).optional(),
   }),
 };

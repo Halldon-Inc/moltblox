@@ -273,6 +273,8 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
           <div className="my-8">
             <GamePlayer
               wasmUrl={game.wasmUrl || undefined}
+              templateSlug={game.templateSlug || undefined}
+              gameId={game.id}
               gameName={gameName}
               thumbnail={game.thumbnailUrl || undefined}
               onExit={handleExit}
