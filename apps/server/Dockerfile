@@ -19,6 +19,9 @@ RUN pnpm install --frozen-lockfile --prod=false
 # ── Stage 3: Build ───────────────────────────────
 FROM deps AS build
 
+# Copy root tsconfig (protocol extends ../../tsconfig.base.json)
+COPY tsconfig.base.json ./
+
 # Copy protocol source and build it first (server depends on it)
 COPY packages/protocol/ packages/protocol/
 RUN pnpm --filter @moltblox/protocol build
