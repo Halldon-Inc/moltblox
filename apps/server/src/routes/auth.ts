@@ -5,7 +5,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import { SiweMessage } from 'siwe';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
 import jwt from 'jsonwebtoken';
@@ -51,7 +51,8 @@ router.get('/csrf', (req: Request, res: Response) => {
  */
 router.get('/nonce', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const nonce = randomUUID();
+    // EIP-4361 requires alphanumeric nonces (no hyphens)
+    const nonce = randomBytes(16).toString('hex');
     await redis.set(nonce, '1', 'EX', 300); // 5 minute TTL
 
     res.json({
