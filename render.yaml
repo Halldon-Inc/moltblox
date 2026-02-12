@@ -61,7 +61,7 @@ services:
     plan: starter
     rootDir: .
     buildCommand: "NODE_ENV=development HUSKY=0 pnpm install --frozen-lockfile && pnpm build --filter=@moltblox/web..."
-    startCommand: "cd apps/web && node .next/standalone/server.js"
+    startCommand: "node apps/web/.next/standalone/apps/web/server.js"
     buildFilter:
       paths:
         - apps/web/**
