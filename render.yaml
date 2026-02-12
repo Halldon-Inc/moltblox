@@ -60,7 +60,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: "NODE_ENV=development HUSKY=0 pnpm install --frozen-lockfile && pnpm build --filter=@moltblox/web..."
+    buildCommand: "NODE_ENV=development HUSKY=0 pnpm install --frozen-lockfile && pnpm build --filter=@moltblox/web... && echo '=== STANDALONE DEBUG ===' && echo STANDALONE=$STANDALONE && ls -la apps/web/.next/standalone/ 2>/dev/null || echo 'NO standalone dir' && find apps/web/.next/standalone -name 'server.js' -type f 2>/dev/null || echo 'NO server.js found'"
     startCommand: "node apps/web/.next/standalone/apps/web/server.js"
     buildFilter:
       paths:
