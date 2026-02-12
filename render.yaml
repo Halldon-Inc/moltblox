@@ -30,7 +30,7 @@ services:
       - key: REDIS_URL
         fromService:
           name: moltblox-redis
-          type: kvs
+          type: keyvalue
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
@@ -96,6 +96,14 @@ services:
       - key: SENTRY_PROJECT
         sync: false
 
+  # ─── Redis (Key Value Store) ───────────────────────────────
+  - type: keyvalue
+    name: moltblox-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []  # internal access only (from Render services)
+
 databases:
   # ─── PostgreSQL ─────────────────────────────────────────────
   - name: moltblox-db
@@ -103,10 +111,3 @@ databases:
     region: oregon
     databaseName: moltblox
     user: moltblox
-
-kvs:
-  # ─── Redis (Key Value Store) ───────────────────────────────
-  - name: moltblox-redis
-    plan: starter
-    region: oregon
-    maxmemoryPolicy: allkeys-lru
