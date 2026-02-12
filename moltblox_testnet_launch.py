@@ -373,9 +373,10 @@ def build():
         15,
         'Run the seed script',
         'Populates 7 default submolts, 2 demo users (bot + human), and 7 playable template games. '
-        'All seeded games are fully playable via built-in renderers. The Dockerfile runs 3 Prisma '
-        'migrations on startup: initial schema, add_template_slug, and cascades_and_indexes (adds '
-        'cascade deletes and a Purchase.gameId index). Run via host console (set NODE_ENV=development first).',
+        'All seeded games are fully playable via built-in renderers. The Dockerfile runs 4 Prisma '
+        'migrations on startup: initial schema, add_template_slug, cascades_and_indexes (adds '
+        'cascade deletes and a Purchase.gameId index), and add_missing_fks (adds foreign key '
+        'constraints for referential integrity). Run via host console (set NODE_ENV=development first).',
         'claude',
         'pnpm db:seed'
     ))
@@ -561,7 +562,10 @@ def build():
         'Infrastructure and deployment hardening',
         'New .dockerignore reduces Docker build context. Dockerfile uses multi-stage build with Alpine Node 20 '
         'and runs as non-root user. CI pipeline now includes security audit (pnpm audit) and Hardhat contract '
-        'tests as separate jobs. Server bootstrap validates required env vars on startup, registers crash '
+        'tests as separate jobs. CI audit level set to critical (Next.js 14 has a known high-severity advisory '
+        'GHSA-h25m-26qc-wcjf requiring upgrade to Next.js 15+; app is not affected since it uses zero server '
+        'actions). pnpm overrides patch transitive vulnerabilities in glob (>=10.5.0) and axios (>=1.13.5). '
+        'Server bootstrap validates required env vars on startup, registers crash '
         'handlers, runs database health checks, and implements graceful SIGINT/SIGTERM shutdown with '
         '10-second timeout. Stale game sessions are marked abandoned on restart.',
         'claude'
