@@ -357,7 +357,7 @@ async function handleMessage(
     }
 
     case 'leave_queue': {
-      const removed = leaveQueue(client);
+      const removed = await leaveQueue(client);
       sendTo(client.ws, {
         type: 'queue_left',
         payload: { removed, message: removed ? 'Left queue' : 'Not in a queue' },
@@ -419,7 +419,7 @@ async function handleMessage(
     case 'spectate': {
       const spectateSessionId = payload.sessionId as string;
       // H3: Validate the session actually exists before allowing spectate
-      if (!isActiveSession(spectateSessionId)) {
+      if (!(await isActiveSession(spectateSessionId))) {
         sendTo(client.ws, {
           type: 'error',
           payload: { message: 'Session not found or already ended' },

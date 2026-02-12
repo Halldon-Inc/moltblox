@@ -248,22 +248,27 @@ def build():
 
     story.append(make_step(
         1,
-        'Create a Vercel project',
-        'Go to vercel.com, sign up, import the Halldon-Inc/moltblox repo. '
-        'Note your VERCEL_TOKEN, VERCEL_ORG_ID, and VERCEL_PROJECT_ID from the dashboard.',
+        'Create a Render account and Blueprint',
+        'Go to render.com, sign up, and connect the Halldon-Inc/moltblox GitHub repo. '
+        'The repo contains a render.yaml Blueprint that auto-creates all services: '
+        'moltblox-server (Express API), moltblox-web (Next.js), PostgreSQL, and Redis. '
+        'Render auto-provisions DATABASE_URL, REDIS_URL, and JWT_SECRET.',
         'you'
     ))
     story.append(make_step(
         2,
-        'Provision a PostgreSQL database',
-        'Use Neon (neon.tech), Supabase, or Railway. Free tier is fine for testnet. '
-        'Copy the DATABASE_URL connection string (format: postgresql://user:pass@host:5432/moltblox).',
+        'Verify managed PostgreSQL',
+        'The render.yaml Blueprint auto-creates a Starter PostgreSQL instance (moltblox-db). '
+        'DATABASE_URL is injected into the server service automatically. '
+        'Format: postgresql://user:pass@host:5432/moltblox.',
         'you'
     ))
     story.append(make_step(
         3,
-        'Provision Redis',
-        'Use Upstash (upstash.com). Free tier works. Copy the REDIS_URL.',
+        'Verify managed Redis',
+        'The render.yaml Blueprint auto-creates a Starter Redis (Valkey 8) instance (moltblox-redis). '
+        'REDIS_URL is injected into the server service automatically. '
+        'Required for rate limiting, auth token blocklist, and WebSocket session state.',
         'you'
     ))
     story.append(make_step(
@@ -345,10 +350,11 @@ def build():
 
     story.append(make_step(
         12,
-        'Choose a server host',
-        'Railway (railway.app), Render (render.com), or Fly.io. '
-        'Connect the GitHub repo and point to apps/server/Dockerfile. '
-        'The Dockerfile handles build, Prisma generation, and migration on startup.',
+        'Verify server service on Render',
+        'The render.yaml Blueprint auto-creates moltblox-server as a Docker Web Service. '
+        'It uses apps/server/Dockerfile with the repo root as build context. '
+        'The Dockerfile handles build, Prisma generation, and migration on startup. '
+        'Health check is at /health. DATABASE_URL, REDIS_URL, and JWT_SECRET are auto-injected.',
         'you'
     ))
     story.append(make_step(
@@ -385,30 +391,33 @@ def build():
     story.append(Spacer(1, 8))
     story.append(Paragraph('D. DEPLOY WEB APP', section_style))
     story.append(Paragraph(
-        'Deploy the Next.js frontend to Vercel.',
+        'Deploy the Next.js frontend on Render (standalone output mode).',
         step_body_style
     ))
     story.append(Spacer(1, 6))
 
     story.append(make_step(
         16,
-        'Set Vercel environment variables',
-        'In the Vercel dashboard, set: NEXT_PUBLIC_API_URL, NEXT_PUBLIC_WS_URL, '
-        'NEXT_PUBLIC_WC_PROJECT_ID, NEXT_PUBLIC_CHAIN_ID=84532, all 3 contract addresses, '
-        'NEXT_PUBLIC_SENTRY_DSN.',
+        'Set Render web environment variables',
+        'In the Render dashboard for moltblox-web, set: NEXT_PUBLIC_API_URL '
+        '(https://moltblox-server.onrender.com/api/v1), NEXT_PUBLIC_WS_URL '
+        '(wss://moltblox-server.onrender.com), NEXT_PUBLIC_WC_PROJECT_ID, '
+        'NEXT_PUBLIC_CHAIN_ID=84532, all 3 contract addresses, NEXT_PUBLIC_SENTRY_DSN.',
         'you'
     ))
     story.append(make_step(
         17,
-        'Deploy to Vercel',
-        'Push to main to trigger auto-deploy, or use the Vercel dashboard to deploy manually.',
+        'Deploy web app on Render',
+        'Push to main to trigger auto-deploy, or use the Render dashboard to trigger manually. '
+        'Next.js builds in standalone mode (output: standalone in next.config.mjs). '
+        'The start command runs: cd apps/web && node .next/standalone/server.js',
         'you'
     ))
     story.append(make_step(
         18,
         'Update server CORS',
-        'Update the CORS_ORIGIN env var on your server host to match the actual Vercel URL '
-        '(e.g. https://moltblox.vercel.app). Restart the server.',
+        'Update the CORS_ORIGIN env var on moltblox-server to match the web app URL '
+        '(e.g. https://moltblox-web.onrender.com). Render restarts the service automatically.',
         'you'
     ))
 
@@ -424,7 +433,7 @@ def build():
     story.append(make_step(
         19,
         'Smoke test the web app',
-        'Visit the Vercel URL. Browse Games, Tournaments, Marketplace, Submolts, Wallet, and Skill pages. '
+        'Visit the Render web URL. Browse Games, Tournaments, Marketplace, Submolts, Wallet, and Skill pages. '
         'Verify content loads, images render, and navigation works. '
         'Confirm all 7 template games appear in the Games catalog (updated from 6). '
         'The Tournament, Wallet, Submolts, and Play pages were all updated in the latest audit.',
@@ -593,24 +602,26 @@ def build():
 
     story.append(make_step(
         35,
-        'Add GitHub secrets',
+        'Add GitHub secrets for Render deploy hooks',
         'In the repo settings (Settings > Secrets > Actions), add: '
-        'VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.',
+        'RENDER_DEPLOY_HOOK_SERVER and RENDER_DEPLOY_HOOK_WEB. '
+        'Get hooks from: Render Dashboard > Service > Settings > Deploy Hook.',
         'you'
     ))
     story.append(make_step(
         36,
-        'Uncomment deploy jobs in CI',
-        'Uncomment the deploy-web and deploy-server jobs in .github/workflows/ci.yml. '
-        'Push the change to main.',
+        'Verify CI deploy job',
+        'The CI pipeline (.github/workflows/ci.yml) has a deploy job that triggers '
+        'Render deploy hooks after build, test, security scan, and contract tests pass. '
+        'Alternatively, use Render auto-deploy from GitHub (no hooks needed).',
         'claude',
-        '.github/workflows/ci.yml lines ~103-146'
+        '.github/workflows/ci.yml deploy job'
     ))
     story.append(make_step(
         37,
         'Verify auto-deploy',
         'Make a small change, push to main, and confirm the CI pipeline builds, tests, '
-        'and deploys to Vercel automatically.',
+        'and deploys to Render automatically.',
         'claude'
     ))
 
@@ -631,7 +642,7 @@ def build():
         ['JWT_SECRET', 'Server', '<64 random characters>'],
         ['NODE_ENV', 'Server', 'production'],
         ['PORT', 'Server', '3001'],
-        ['CORS_ORIGIN', 'Server', 'https://<vercel-url>'],
+        ['CORS_ORIGIN', 'Server', 'https://moltblox-web.onrender.com'],
         ['BASE_RPC_URL', 'Server', 'https://sepolia.base.org'],
         ['MOLTBUCKS_ADDRESS', 'Server + Web', '<from contract deployment>'],
         ['GAME_MARKETPLACE_ADDRESS', 'Server + Web', '<from contract deployment>'],
@@ -639,17 +650,16 @@ def build():
         ['SENTRY_DSN', 'Server', '<from sentry.io>'],
         ['MOLTBOOK_API_URL', 'Server', 'https://www.moltbook.com/api/v1'],
         ['MOLTBOOK_APP_KEY', 'Server', '<from moltbook dashboard>'],
-        ['NEXT_PUBLIC_API_URL', 'Web (Vercel)', 'https://<server-url>/api/v1'],
-        ['NEXT_PUBLIC_WS_URL', 'Web (Vercel)', 'wss://<server-url>'],
-        ['NEXT_PUBLIC_WC_PROJECT_ID', 'Web (Vercel)', '<from walletconnect>'],
-        ['NEXT_PUBLIC_CHAIN_ID', 'Web (Vercel)', '84532 (testnet) | 8453 (mainnet)'],
-        ['NEXT_PUBLIC_SENTRY_DSN', 'Web (Vercel)', '<from sentry.io>'],
+        ['NEXT_PUBLIC_API_URL', 'Web (Render)', 'https://moltblox-server.onrender.com/api/v1'],
+        ['NEXT_PUBLIC_WS_URL', 'Web (Render)', 'wss://moltblox-server.onrender.com'],
+        ['NEXT_PUBLIC_WC_PROJECT_ID', 'Web (Render)', '<from walletconnect>'],
+        ['NEXT_PUBLIC_CHAIN_ID', 'Web (Render)', '84532 (testnet) | 8453 (mainnet)'],
+        ['NEXT_PUBLIC_SENTRY_DSN', 'Web (Render)', '<from sentry.io>'],
         ['DEPLOYER_PRIVATE_KEY', 'Contracts', '<wallet private key, no 0x>'],
         ['TREASURY_ADDRESS', 'Contracts', '<treasury wallet address>'],
         ['BASESCAN_API_KEY', 'Contracts', '<from basescan.org>'],
-        ['VERCEL_TOKEN', 'GitHub Secrets', '<from vercel dashboard>'],
-        ['VERCEL_ORG_ID', 'GitHub Secrets', '<from vercel dashboard>'],
-        ['VERCEL_PROJECT_ID', 'GitHub Secrets', '<from vercel dashboard>'],
+        ['RENDER_DEPLOY_HOOK_SERVER', 'GitHub Secrets', '<from Render dashboard>'],
+        ['RENDER_DEPLOY_HOOK_WEB', 'GitHub Secrets', '<from Render dashboard>'],
     ]
 
     # Style the env var names

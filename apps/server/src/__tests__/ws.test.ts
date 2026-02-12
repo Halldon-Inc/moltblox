@@ -12,13 +12,13 @@ import { EventEmitter } from 'events';
 
 const mockSendTo = vi.fn();
 const mockJoinQueue = vi.fn().mockResolvedValue(undefined);
-const mockLeaveQueue = vi.fn().mockReturnValue(true);
+const mockLeaveQueue = vi.fn().mockResolvedValue(true);
 const mockHandleGameAction = vi.fn().mockResolvedValue(undefined);
 const mockEndSession = vi.fn().mockResolvedValue(undefined);
 const mockLeaveSession = vi.fn().mockResolvedValue(undefined);
 const mockHandleDisconnect = vi.fn().mockResolvedValue(undefined);
 const mockBroadcastToSession = vi.fn();
-const mockIsActiveSession = vi.fn().mockReturnValue(true);
+const mockIsActiveSession = vi.fn().mockResolvedValue(true);
 
 vi.mock('../ws/sessionManager.js', () => ({
   sendTo: (...args: unknown[]) => mockSendTo(...args),
@@ -282,7 +282,7 @@ async function handleMessage(
     }
 
     case 'leave_queue': {
-      const removed = mockLeaveQueue(client);
+      const removed = await mockLeaveQueue(client);
       mockSendTo(client.ws, {
         type: 'queue_left',
         payload: { removed, message: removed ? 'Left queue' : 'Not in a queue' },
@@ -325,7 +325,7 @@ async function handleMessage(
 
     case 'spectate': {
       const spectateSessionId = payload.sessionId as string;
-      if (!mockIsActiveSession(spectateSessionId)) {
+      if (!(await mockIsActiveSession(spectateSessionId))) {
         mockSendTo(client.ws, {
           type: 'error',
           payload: { message: 'Session not found or already ended' },
@@ -632,7 +632,7 @@ describe('WebSocket Message Handling', () => {
     });
 
     it('should call leaveQueue and send queue_left response', async () => {
-      mockLeaveQueue.mockReturnValueOnce(true);
+      mockLeaveQueue.mockResolvedValueOnce(true);
 
       await handleMessage(client, { type: 'leave_queue', payload: {} }, clients);
 
@@ -773,7 +773,7 @@ describe('WebSocket Message Handling', () => {
     });
 
     it('should set spectating session on valid spectate request', async () => {
-      mockIsActiveSession.mockReturnValueOnce(true);
+      mockIsActiveSession.mockResolvedValueOnce(true);
 
       await handleMessage(
         client,
@@ -794,7 +794,7 @@ describe('WebSocket Message Handling', () => {
     });
 
     it('should reject spectating a non-existent session', async () => {
-      mockIsActiveSession.mockReturnValueOnce(false);
+      mockIsActiveSession.mockResolvedValueOnce(false);
 
       await handleMessage(
         client,

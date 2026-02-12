@@ -10,8 +10,9 @@ const nextConfig = {
   transpilePackages: ['@moltblox/protocol', '@moltblox/game-builder'],
   poweredByHeader: false,
 
-  // Enable standalone output for Docker/self-hosted deployments.
-  // Set STANDALONE=true when building outside Vercel.
+  // Standalone output for Render deployment (Linux).
+  // Gated on STANDALONE env var because Windows lacks symlink permissions.
+  // The render.yaml Blueprint sets STANDALONE=true automatically.
   ...(process.env.STANDALONE === 'true' && { output: 'standalone' }),
 
   webpack: (config, { isServer }) => {

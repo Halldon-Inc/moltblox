@@ -11,14 +11,32 @@
  * protocol's GameState/GameAction/ActionResult types. Game-specific
  * rule validation happens in the client WASM; the server enforces the
  * session contract so that clients cannot send arbitrary state mutations.
+ *
+ * Storage: Redis-backed via redisSessionStore for horizontal scaling.
+ * Falls back to in-memory Maps when Redis is unavailable (dev mode).
  */
 
 import { WebSocket } from 'ws';
 import prisma from '../lib/prisma.js';
+import redis from '../lib/redis.js';
 import type { InputJsonValue } from '../generated/prisma/internal/prismaNamespace.js';
 import type { GameState, GameAction, ActionResult, GameEvent } from '@moltblox/protocol';
+import {
+  type QueueEntry,
+  type ActiveSessionData,
+  pushToQueue,
+  spliceQueueFront,
+  findPlayerInQueues,
+  removeFromQueues,
+  getSession,
+  setSession,
+  deleteSession,
+  hasSession,
+  publishMatchFound,
+  publishSessionUpdate,
+} from './redisSessionStore.js';
 
-// ─── Types ───────────────────────────────────────────────
+// ---- Types ----
 
 export interface ConnectedClient {
   id: string;
@@ -34,49 +52,15 @@ export interface WSMessage {
   payload: Record<string, unknown>;
 }
 
-interface QueueEntry {
-  clientId: string;
-  playerId: string;
-  joinedAt: number;
-}
-
 /** Maximum number of actions to retain in session history for replay/audit */
 const MAX_ACTION_HISTORY = 500;
 
-interface ActiveSession {
-  sessionId: string;
-  gameId: string;
-  playerIds: string[];
-  /** Game state following the protocol's GameState structure */
-  gameState: GameState;
-  currentTurn: number;
-  /** Ordered action history for replay and audit */
-  actionHistory: Array<{ playerId: string; action: GameAction; turn: number; timestamp: number }>;
-  /** Events emitted during the session */
-  events: GameEvent[];
-  /** Whether the game has ended (set by client signal or server detection) */
-  ended: boolean;
+// ---- Public API ----
+
+/** Check if a session ID is tracked (used by ws/index.ts for spectate validation). */
+export async function isActiveSession(sessionId: string): Promise<boolean> {
+  return hasSession(redis, sessionId);
 }
-
-// ─── Matchmaking Queue ──────────────────────────────────
-//
-// WARNING: matchQueues and activeSessions are in-memory only.
-// In a multi-server deployment, these must be migrated to Redis
-// (or another shared store) so that all server instances share
-// the same matchmaking and session state. Single-server only for now.
-
-/** gameId -> queued players */
-const matchQueues = new Map<string, QueueEntry[]>();
-
-/** sessionId -> active session data */
-const activeSessions = new Map<string, ActiveSession>();
-
-/** Check if a session ID is tracked in memory (used by ws/index.ts for spectate validation). */
-export function isActiveSession(sessionId: string): boolean {
-  return activeSessions.has(sessionId);
-}
-
-// ─── Public API ─────────────────────────────────────────
 
 /**
  * Add a player to the matchmaking queue for a game.
@@ -111,7 +95,7 @@ export async function joinQueue(
     return;
   }
 
-  // Check if player is already in a queue or session
+  // Check if player is already in a game session
   if (client.gameSessionId) {
     sendTo(client.ws, {
       type: 'error',
@@ -120,21 +104,20 @@ export async function joinQueue(
     return;
   }
 
-  for (const [, queue] of matchQueues) {
-    if (queue.some((e) => e.playerId === client.playerId)) {
-      sendTo(client.ws, { type: 'error', payload: { message: 'Already in a matchmaking queue' } });
-      return;
-    }
+  // Check if player is already in a queue
+  const existingQueue = await findPlayerInQueues(redis, client.playerId);
+  if (existingQueue) {
+    sendTo(client.ws, { type: 'error', payload: { message: 'Already in a matchmaking queue' } });
+    return;
   }
 
   // Add to queue
-  if (!matchQueues.has(gameId)) {
-    matchQueues.set(gameId, []);
-  }
-  const queue = matchQueues.get(gameId)!;
-  queue.push({ clientId: client.id, playerId: client.playerId, joinedAt: Date.now() });
+  const position = await pushToQueue(redis, gameId, {
+    clientId: client.id,
+    playerId: client.playerId,
+    joinedAt: Date.now(),
+  });
 
-  const position = queue.length;
   sendTo(client.ws, {
     type: 'queue_joined',
     payload: { gameId, position, maxPlayers: game.maxPlayers, gameName: game.name },
@@ -145,31 +128,23 @@ export async function joinQueue(
   );
 
   // Check if we have enough players to start
-  if (queue.length >= game.maxPlayers) {
-    const matched = queue.splice(0, game.maxPlayers);
-    await createSession(gameId, matched, clients);
+  if (position >= game.maxPlayers) {
+    const matched = await spliceQueueFront(redis, gameId, game.maxPlayers);
+    if (matched.length === game.maxPlayers) {
+      await createSession(gameId, matched, clients);
+    }
   }
 }
 
 /**
  * Remove a player from all matchmaking queues.
  */
-export function leaveQueue(client: ConnectedClient): boolean {
-  let removed = false;
-  for (const [gameId, queue] of matchQueues) {
-    const idx = queue.findIndex((e) => e.clientId === client.id);
-    if (idx !== -1) {
-      queue.splice(idx, 1);
-      removed = true;
-      console.log(`[WS] Player ${client.playerId} left queue for game ${gameId}`);
-      // Clean up empty queues
-      if (queue.length === 0) {
-        matchQueues.delete(gameId);
-      }
-      break;
-    }
+export async function leaveQueue(client: ConnectedClient): Promise<boolean> {
+  const result = await removeFromQueues(redis, client.id);
+  if (result.removed && result.gameId) {
+    console.log(`[WS] Player ${client.playerId} left queue for game ${result.gameId}`);
   }
-  return removed;
+  return result.removed;
 }
 
 /**
@@ -191,7 +166,7 @@ export async function handleGameAction(
     return;
   }
 
-  const session = activeSessions.get(client.gameSessionId);
+  const session = await getSession(redis, client.gameSessionId);
   if (!session) {
     sendTo(client.ws, { type: 'error', payload: { message: 'Session not found in memory' } });
     return;
@@ -235,6 +210,17 @@ export async function handleGameAction(
     return;
   }
 
+  // Persist updated session to Redis
+  await setSession(redis, client.gameSessionId, session);
+
+  // Publish cross-instance notification
+  await publishSessionUpdate(redis, client.gameSessionId, {
+    type: 'state_update',
+    sessionId: client.gameSessionId,
+    state: session.gameState,
+    currentTurn: session.currentTurn,
+  });
+
   // Broadcast validated state update to all session players and spectators
   broadcastToSession(clients, client.gameSessionId, {
     type: 'state_update',
@@ -261,7 +247,7 @@ export async function handleGameAction(
  * server-side while game-specific rule validation runs in the client WASM.
  */
 function applyActionToSession(
-  session: ActiveSession,
+  session: ActiveSessionData,
   playerId: string,
   action: GameAction,
 ): ActionResult {
@@ -358,7 +344,7 @@ export async function endSession(
   winnerId: string | null,
   clients: Map<string, ConnectedClient>,
 ): Promise<void> {
-  const session = activeSessions.get(sessionId);
+  const session = await getSession(redis, sessionId);
   if (!session) {
     return;
   }
@@ -382,7 +368,7 @@ export async function endSession(
       },
     });
 
-    // Increment game stats — count only genuinely new players
+    // Increment game stats: count only genuinely new players
     const previousPlayers = await tx.gameSessionPlayer.findMany({
       where: {
         session: { gameId: session.gameId, id: { not: sessionId } },
@@ -422,7 +408,7 @@ export async function endSession(
     }
   }
 
-  activeSessions.delete(sessionId);
+  await deleteSession(redis, sessionId);
   console.log(`[WS] Session ${sessionId} completed. Winner: ${winnerId ?? 'none'}`);
 }
 
@@ -434,7 +420,7 @@ export async function leaveSession(
   clients: Map<string, ConnectedClient>,
 ): Promise<void> {
   // Remove from any queue first
-  leaveQueue(client);
+  await leaveQueue(client);
 
   const sessionId = client.gameSessionId;
   if (!sessionId) {
@@ -442,7 +428,7 @@ export async function leaveSession(
     return;
   }
 
-  const session = activeSessions.get(sessionId);
+  const session = await getSession(redis, sessionId);
   client.gameSessionId = undefined;
 
   // Notify others in the session
@@ -474,8 +460,11 @@ export async function leaveSession(
       where: { id: sessionId },
       data: { status: 'abandoned', endedAt: new Date() },
     });
-    activeSessions.delete(sessionId);
-    console.log(`[WS] Session ${sessionId} abandoned — no players remaining`);
+    await deleteSession(redis, sessionId);
+    console.log(`[WS] Session ${sessionId} abandoned: no players remaining`);
+  } else {
+    // Persist updated player list
+    await setSession(redis, sessionId, session);
   }
 }
 
@@ -486,7 +475,7 @@ export async function handleDisconnect(
   client: ConnectedClient,
   clients: Map<string, ConnectedClient>,
 ): Promise<void> {
-  leaveQueue(client);
+  await leaveQueue(client);
 
   if (client.gameSessionId) {
     broadcastToSession(
@@ -502,7 +491,7 @@ export async function handleDisconnect(
       client.id,
     );
 
-    const session = activeSessions.get(client.gameSessionId);
+    const session = await getSession(redis, client.gameSessionId);
     if (session) {
       session.playerIds = session.playerIds.filter((id) => id !== client.playerId);
       const remainingClients = [...clients.values()].filter(
@@ -513,8 +502,10 @@ export async function handleDisconnect(
           where: { id: client.gameSessionId },
           data: { status: 'abandoned', endedAt: new Date() },
         });
-        activeSessions.delete(client.gameSessionId);
+        await deleteSession(redis, client.gameSessionId);
         console.log(`[WS] Session ${client.gameSessionId} abandoned after disconnect`);
+      } else {
+        await setSession(redis, client.gameSessionId, session);
       }
     }
   }
@@ -531,7 +522,7 @@ export async function rejoinSession(
   userId: string,
   clients: Map<string, ConnectedClient>,
 ): Promise<boolean> {
-  const session = activeSessions.get(sessionId);
+  const session = await getSession(redis, sessionId);
   if (!session) return false;
 
   // Verify the user was a participant
@@ -574,7 +565,7 @@ export async function rejoinSession(
   return true;
 }
 
-// ─── Internal Helpers ───────────────────────────────────
+// ---- Internal Helpers ----
 
 /**
  * Create a new game session from matched players and persist to database.
@@ -611,7 +602,7 @@ async function createSession(
   }
 
   // Create session in database
-  const session = await prisma.gameSession.create({
+  const dbSession = await prisma.gameSession.create({
     data: {
       gameId,
       status: 'active',
@@ -631,9 +622,9 @@ async function createSession(
     data: initialData,
   };
 
-  // Track in memory
-  const activeSession: ActiveSession = {
-    sessionId: session.id,
+  // Store session data in Redis (or in-memory fallback)
+  const activeSession: ActiveSessionData = {
+    sessionId: dbSession.id,
     gameId,
     playerIds,
     gameState: initialGameState,
@@ -642,14 +633,17 @@ async function createSession(
     events: [],
     ended: false,
   };
-  activeSessions.set(session.id, activeSession);
+  await setSession(redis, dbSession.id, activeSession);
+
+  // Publish cross-instance match notification
+  await publishMatchFound(redis, dbSession.id, gameId, playerIds);
 
   // Assign clients to session and notify
   const playerInfos: { playerId: string; clientId: string }[] = [];
   for (const entry of matched) {
     const client = clients.get(entry.clientId);
     if (client) {
-      client.gameSessionId = session.id;
+      client.gameSessionId = dbSession.id;
       playerInfos.push({ playerId: entry.playerId, clientId: entry.clientId });
     }
   }
@@ -661,7 +655,7 @@ async function createSession(
       sendTo(client.ws, {
         type: 'session_start',
         payload: {
-          sessionId: session.id,
+          sessionId: dbSession.id,
           gameId,
           players: playerInfos.map((p) => p.playerId),
           currentTurn: 0,
@@ -672,11 +666,11 @@ async function createSession(
   }
 
   console.log(
-    `[WS] Session ${session.id} created for game ${gameId} with ${playerIds.length} players`,
+    `[WS] Session ${dbSession.id} created for game ${gameId} with ${playerIds.length} players`,
   );
 }
 
-// ─── Message Utilities ──────────────────────────────────
+// ---- Message Utilities ----
 
 export function sendTo(ws: WebSocket, message: WSMessage): void {
   if (ws.readyState === WebSocket.OPEN) {
