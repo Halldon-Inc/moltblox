@@ -60,7 +60,7 @@ services:
     region: oregon
     plan: starter
     rootDir: .
-    buildCommand: "pnpm install --frozen-lockfile && pnpm build --filter=@moltblox/web..."
+    buildCommand: "NODE_ENV=development HUSKY=0 pnpm install --frozen-lockfile && pnpm build --filter=@moltblox/web..."
     startCommand: "cd apps/web && node .next/standalone/server.js"
     buildFilter:
       paths:
