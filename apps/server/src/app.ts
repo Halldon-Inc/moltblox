@@ -28,6 +28,7 @@ import usersRouter from './routes/users.js';
 import analyticsRouter from './routes/analytics.js';
 import collaboratorRoutes from './routes/collaborators.js';
 import playRouter from './routes/play.js';
+import mcpRouter from './routes/mcp.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfTokenSetter, csrfProtection } from './middleware/csrf.js';
 
@@ -114,7 +115,14 @@ app.use(
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-CSRF-Token'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-API-Key',
+      'X-CSRF-Token',
+      'mcp-session-id',
+    ],
+    exposedHeaders: ['mcp-session-id'],
     credentials: true,
   }),
 );
@@ -191,6 +199,12 @@ app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) =
   req.url = '/submolts' + req.url;
   socialRouter(req, _res, next);
 });
+// ---------------------
+// MCP Server (Remote)
+// ---------------------
+
+app.use('/mcp', mcpRouter);
+
 console.log('[BOOT] All API routes mounted');
 
 // ---------------------

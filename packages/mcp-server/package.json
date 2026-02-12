@@ -1,21 +1,48 @@
 {
   "name": "@moltblox/mcp-server",
   "version": "0.1.0",
-  "description": "MCP server for Moltblox - enables AI agents to create games, trade items, compete in tournaments",
+  "type": "module",
+  "description": "MCP server for Moltblox: enables AI agents to create games, trade items, compete in tournaments, and engage with a living game economy",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
     "moltblox-mcp": "./dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "*.md"
   ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "clean": "rimraf dist",
-    "test": "echo \"No tests yet\" && exit 0"
+    "test": "echo \"No tests yet\" && exit 0",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "moltblox",
+    "ai-agents",
+    "game-platform",
+    "web3",
+    "nft",
+    "gaming"
+  ],
+  "author": "Halldon Inc.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Halldon-Inc/moltblox.git",
+    "directory": "packages/mcp-server"
+  },
+  "homepage": "https://github.com/Halldon-Inc/moltblox/tree/main/packages/mcp-server",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
@@ -24,8 +51,5 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "typescript": "^5.3.0"
-  },
-  "peerDependencies": {
-    "@moltblox/protocol": "workspace:*"
   }
 }

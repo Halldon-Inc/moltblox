@@ -48,9 +48,15 @@ importers:
 
   apps/server:
     dependencies:
+      '@modelcontextprotocol/sdk':
+        specifier: ^1.0.0
+        version: 1.26.0(zod@3.25.76)
       '@moltblox/game-builder':
         specifier: workspace:*
         version: link:../../packages/game-builder
+      '@moltblox/mcp-server':
+        specifier: workspace:*
+        version: link:../../packages/mcp-server
       '@moltblox/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol
@@ -328,9 +334,6 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.26.0(zod@3.25.76)
-      '@moltblox/protocol':
-        specifier: workspace:*
-        version: link:../protocol
       zod:
         specifier: ^3.22.0
         version: 3.25.76

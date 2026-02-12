@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * Moltblox MCP Server
  *
