@@ -38,6 +38,16 @@ const purchaseLimiter = rateLimit({
 const router: Router = Router();
 
 /**
+ * GET /marketplace - Alias for /marketplace/items (301 redirect)
+ */
+router.get('/', (req: Request, res: Response) => {
+  const qs = Object.keys(req.query).length
+    ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
+    : '';
+  res.redirect(301, `${req.baseUrl}/items${qs}`);
+});
+
+/**
  * GET /marketplace/items - Browse marketplace items
  * Query params: category, gameId, rarity, minPrice, maxPrice, limit, offset
  */

@@ -309,13 +309,27 @@ router.post(
           throw Object.assign(new Error('Tournament not found'), { statusCode: 404 });
         }
 
+        const now = new Date();
+
+        // Auto-transition from 'upcoming' to 'registration' when within registration window
+        if (
+          tournament.status === 'upcoming' &&
+          now >= tournament.registrationStart &&
+          now <= tournament.registrationEnd
+        ) {
+          await tx.tournament.update({
+            where: { id },
+            data: { status: 'registration' },
+          });
+          tournament.status = 'registration' as typeof tournament.status;
+        }
+
         if (tournament.status !== 'registration') {
           throw Object.assign(new Error('Tournament is not open for registration'), {
             statusCode: 400,
           });
         }
 
-        const now = new Date();
         if (now < tournament.registrationStart || now > tournament.registrationEnd) {
           throw Object.assign(new Error('Registration period is not active'), { statusCode: 400 });
         }

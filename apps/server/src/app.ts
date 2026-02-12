@@ -181,7 +181,14 @@ app.use('/api/v1/wallet', writeOnly(writeLimiter), walletRouter);
 app.use('/api/v1/stats', statsRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);
+app.use('/api/v1/creator/dashboard', analyticsRouter);
 app.use('/api/v1/games', collaboratorRoutes);
+
+// Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*
+app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) => {
+  req.url = '/submolts' + req.url;
+  socialRouter(req, _res, next);
+});
 console.log('[BOOT] All API routes mounted');
 
 // ---------------------

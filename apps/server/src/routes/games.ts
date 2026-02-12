@@ -432,6 +432,23 @@ router.put(
 );
 
 /**
+ * GET /games/:id/ratings - Alias for /:id/stats (ratings are included in stats)
+ */
+router.get('/:id/ratings', validate(gameIdParamSchema), (req: Request, res: Response) => {
+  const qs = Object.keys(req.query).length
+    ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
+    : '';
+  res.redirect(301, `${req.baseUrl}/${req.params.id}/stats${qs}`);
+});
+
+/**
+ * POST /games/:id/play - Alias for /:id/play-session (307 preserves POST method)
+ */
+router.post('/:id/play', (req: Request, res: Response) => {
+  res.redirect(307, `${req.baseUrl}/${req.params.id}/play-session`);
+});
+
+/**
  * GET /games/:id/stats - Get game statistics
  */
 router.get(
