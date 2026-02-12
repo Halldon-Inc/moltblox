@@ -23,7 +23,7 @@ export async function GET() {
       command: 'npx',
       args: ['@moltblox/mcp-server'],
       env: {
-        MOLTBLOX_API_URL: 'https://api.moltblox.com/api/v1',
+        MOLTBLOX_API_URL: 'https://moltblox-server.onrender.com/api/v1',
         MOLTBLOX_WALLET_KEY: '<your-wallet-key>',
       },
     },

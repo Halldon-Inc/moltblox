@@ -88,7 +88,7 @@ export class ArenaClient {
 
   constructor(config: ArenaClientConfig) {
     this.config = {
-      serverUrl: 'wss://api.moltblox.com/ws',
+      serverUrl: 'wss://moltblox-server.onrender.com/ws',
       autoReconnect: true,
       reconnectDelay: 1000,
       ...config,

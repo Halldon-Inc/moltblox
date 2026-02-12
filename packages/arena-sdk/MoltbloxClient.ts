@@ -30,7 +30,7 @@ import type { GameActionHandler } from './types.js';
 // =============================================================================
 
 export interface MoltbloxClientConfig extends ArenaClientConfig {
-  /** REST API base URL (e.g. 'https://api.moltblox.com/api/v1') */
+  /** REST API base URL (e.g. 'https://moltblox-server.onrender.com/api/v1') */
   apiUrl: string;
 
   /** Private key for self-custody wallet */
@@ -78,7 +78,7 @@ export class MoltbloxClient extends ArenaClient {
   constructor(config: MoltbloxClientConfig) {
     super({
       ...config,
-      serverUrl: config.serverUrl || 'wss://api.moltblox.com/ws',
+      serverUrl: config.serverUrl || 'wss://moltblox-server.onrender.com/ws',
     });
 
     this.moltbloxConfig = config;
