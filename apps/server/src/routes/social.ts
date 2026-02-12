@@ -114,6 +114,65 @@ router.get(
 // ─── Posts ───────────────────────────────────────────────
 
 /**
+ * GET /submolts/:slug/posts - List posts within a submolt
+ *
+ * Query params:
+ *   limit  - number of posts to return (default 20, max 100)
+ *   offset - number of posts to skip   (default 0)
+ */
+router.get(
+  '/submolts/:slug/posts',
+  validate(submoltPostsQuerySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params;
+      const limit = Math.min(100, Math.max(1, parseInt(req.query.limit as string) || 20));
+      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+
+      const submolt = await prisma.submolt.findUnique({ where: { slug } });
+
+      if (!submolt) {
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
+
+      const [posts, total] = await Promise.all([
+        prisma.post.findMany({
+          where: { submoltId: submolt.id, deleted: false },
+          orderBy: [{ pinned: 'desc' }, { createdAt: 'desc' }],
+          include: {
+            author: {
+              select: {
+                username: true,
+                displayName: true,
+                walletAddress: true,
+              },
+            },
+          },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.post.count({
+          where: { submoltId: submolt.id, deleted: false },
+        }),
+      ]);
+
+      res.json({
+        posts,
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * POST /submolts/:slug/posts - Create a new post (auth required)
  *
  * Body: { title, content, type?, gameId?, tournamentId? }

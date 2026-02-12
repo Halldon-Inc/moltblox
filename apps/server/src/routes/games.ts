@@ -442,10 +442,10 @@ router.get('/:id/ratings', validate(gameIdParamSchema), (req: Request, res: Resp
 });
 
 /**
- * POST /games/:id/play - Alias for /:id/play-session (307 preserves POST method)
+ * POST /games/:id/play - Alias for /:id/sessions (307 preserves POST method)
  */
 router.post('/:id/play', (req: Request, res: Response) => {
-  res.redirect(307, `${req.baseUrl}/${req.params.id}/play-session`);
+  res.redirect(307, `${req.baseUrl}/${req.params.id}/sessions`);
 });
 
 /**
