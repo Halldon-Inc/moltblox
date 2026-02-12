@@ -88,3 +88,27 @@ export const recordPlaySchema = {
     scores: z.record(z.number()).optional(),
   }),
 };
+
+export const startSessionSchema = {
+  params: z.object({
+    id: z.string().cuid(),
+  }),
+};
+
+export const sessionParamsSchema = {
+  params: z.object({
+    id: z.string().cuid(),
+    sessionId: z.string().cuid(),
+  }),
+};
+
+export const submitActionSchema = {
+  params: z.object({
+    id: z.string().cuid(),
+    sessionId: z.string().cuid(),
+  }),
+  body: z.object({
+    type: z.string().min(1).max(100),
+    payload: z.record(z.unknown()).default({}),
+  }),
+};

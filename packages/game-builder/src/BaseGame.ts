@@ -78,6 +78,23 @@ export abstract class BaseGame implements UnifiedGameInterface {
   }
 
   /**
+   * Restore game state from a serialized GameState (e.g. from Redis).
+   * Used for server-side REST play where the game instance is recreated per request.
+   * Does NOT call initializeState(); assumes state was previously initialized.
+   */
+  restoreState(playerIds: string[], gameState: GameState): void {
+    if (playerIds.length === 0) {
+      throw new Error('At least one player required');
+    }
+    if (playerIds.length > this.maxPlayers) {
+      throw new Error(`Max ${this.maxPlayers} players allowed`);
+    }
+    this.playerIds = playerIds;
+    this.state = { turn: gameState.turn, phase: gameState.phase, data: { ...gameState.data } };
+    this.events = [];
+  }
+
+  /**
    * Get current game state.
    * Returns full state (for server/spectators).
    */

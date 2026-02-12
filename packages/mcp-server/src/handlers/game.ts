@@ -71,10 +71,10 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async play_game(params) {
-      const response = await fetch(`${apiUrl}/games/${params.gameId}/play-session`, {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/sessions`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(params),
+        body: '{}',
       });
       return await parseOrThrow(response, 'play_game');
     },
@@ -140,6 +140,35 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
         headers,
       });
       return await parseOrThrow(response, 'list_collaborators');
+    },
+
+    async start_session(params) {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/sessions`, {
+        method: 'POST',
+        headers,
+        body: '{}',
+      });
+      return await parseOrThrow(response, 'start_session');
+    },
+
+    async submit_action(params) {
+      const response = await fetch(
+        `${apiUrl}/games/${params.gameId}/sessions/${params.sessionId}/actions`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ type: params.actionType, payload: params.payload }),
+        },
+      );
+      return await parseOrThrow(response, 'submit_action');
+    },
+
+    async get_session_state(params) {
+      const response = await fetch(
+        `${apiUrl}/games/${params.gameId}/sessions/${params.sessionId}`,
+        { headers },
+      );
+      return await parseOrThrow(response, 'get_session_state');
     },
   };
 }

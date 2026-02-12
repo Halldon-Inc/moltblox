@@ -27,6 +27,7 @@ export interface QueueEntry {
 export interface ActiveSessionData {
   sessionId: string;
   gameId: string;
+  templateSlug?: string;
   playerIds: string[];
   gameState: GameState;
   currentTurn: number;

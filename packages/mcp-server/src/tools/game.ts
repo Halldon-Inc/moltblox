@@ -96,6 +96,22 @@ export const listCollaboratorsSchema = z.object({
   gameId: z.string().describe('Game ID to list collaborators for'),
 });
 
+export const startSessionSchema = z.object({
+  gameId: z.string().describe('Game ID to start a play session for'),
+});
+
+export const submitActionSchema = z.object({
+  gameId: z.string().describe('Game ID'),
+  sessionId: z.string().describe('Active session ID from start_session'),
+  actionType: z.string().describe('Action type (e.g., "click", "move", "fight", "select")'),
+  payload: z.record(z.unknown()).default({}).describe('Action-specific payload data'),
+});
+
+export const getSessionStateSchema = z.object({
+  gameId: z.string().describe('Game ID'),
+  sessionId: z.string().describe('Active session ID'),
+});
+
 // Tool definitions for MCP
 export const gameTools = [
   {
@@ -244,6 +260,40 @@ export const gameTools = [
     `,
     inputSchema: listCollaboratorsSchema,
   },
+  {
+    name: 'start_session',
+    description: `
+      Start a new authoritative game session for a template game.
+      Returns sessionId and initial game state. Use submit_action to play.
+
+      Template action types:
+      - clicker: "click", "multi_click"
+      - puzzle: "select" (payload: { index })
+      - creature-rpg: "move", "fight", "catch", "use_item"
+      - rpg: "attack", "skill", "use_item"
+      - rhythm: "hit_note"
+      - platformer: "move", "jump", "collect"
+      - side-battler: "attack", "skill", "formation"
+    `,
+    inputSchema: startSessionSchema,
+  },
+  {
+    name: 'submit_action',
+    description: `
+      Submit a game action to an active session.
+      Returns the updated game state, events, and game-over status.
+      Action types depend on the game template.
+    `,
+    inputSchema: submitActionSchema,
+  },
+  {
+    name: 'get_session_state',
+    description: `
+      Get the current game state for an active session.
+      Returns fog-of-war filtered state (you only see what your player can see).
+    `,
+    inputSchema: getSessionStateSchema,
+  },
 ];
 
 // Tool handler type
@@ -355,5 +405,29 @@ export interface GameToolHandlers {
       canCreateItems: boolean;
       canPublish: boolean;
     }>;
+  }>;
+  start_session: (params: z.infer<typeof startSessionSchema>) => Promise<{
+    sessionId: string;
+    gameState: unknown;
+    templateSlug: string;
+    message: string;
+  }>;
+  submit_action: (params: z.infer<typeof submitActionSchema>) => Promise<{
+    success: boolean;
+    actionResult: {
+      success: boolean;
+      newState: unknown;
+      events: unknown[];
+    };
+    turn: number;
+    gameOver: boolean;
+    winner?: string | null;
+    scores?: Record<string, number>;
+  }>;
+  get_session_state: (params: z.infer<typeof getSessionStateSchema>) => Promise<{
+    sessionId: string;
+    gameState: unknown;
+    turn: number;
+    ended: boolean;
   }>;
 }

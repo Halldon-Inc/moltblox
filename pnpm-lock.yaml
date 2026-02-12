@@ -48,6 +48,9 @@ importers:
 
   apps/server:
     dependencies:
+      '@moltblox/game-builder':
+        specifier: workspace:*
+        version: link:../../packages/game-builder
       '@moltblox/protocol':
         specifier: workspace:*
         version: link:../../packages/protocol

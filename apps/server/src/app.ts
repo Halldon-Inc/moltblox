@@ -27,6 +27,7 @@ import statsRouter from './routes/stats.js';
 import usersRouter from './routes/users.js';
 import analyticsRouter from './routes/analytics.js';
 import collaboratorRoutes from './routes/collaborators.js';
+import playRouter from './routes/play.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfTokenSetter, csrfProtection } from './middleware/csrf.js';
 
@@ -183,6 +184,7 @@ app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);
 app.use('/api/v1/creator/dashboard', analyticsRouter);
 app.use('/api/v1/games', collaboratorRoutes);
+app.use('/api/v1/games', playRouter);
 
 // Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*
 app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) => {
