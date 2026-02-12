@@ -40,9 +40,24 @@ const router: Router = Router();
  * Called by frontend on app initialization
  */
 router.get('/csrf', (req: Request, res: Response) => {
-  // The csrfTokenSetter middleware already sets the cookie if missing
-  const token = req.cookies?.moltblox_csrf;
-  res.json({ csrfToken: token || 'pending' });
+  // If cookie already exists on the request, return it directly
+  const existing = req.cookies?.moltblox_csrf;
+  if (existing) {
+    res.json({ csrfToken: existing });
+    return;
+  }
+
+  // First request: csrfTokenSetter set the cookie in the response but it is
+  // not yet in req.cookies. Generate a fresh token and return it in the body.
+  const token = randomBytes(32).toString('hex');
+  res.cookie('moltblox_csrf', token, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+  res.json({ csrfToken: token });
 });
 
 /**
