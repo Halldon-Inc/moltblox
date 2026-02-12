@@ -214,16 +214,15 @@ describe('Auth Routes', () => {
       expect(res.body.error).toBe('ValidationError');
     });
 
-    it('should return error with invalid SIWE message format', async () => {
+    it('should return 400 with invalid SIWE message format', async () => {
       const res = await request(app, 'POST', '/auth/verify', {
         body: {
           message: 'not a valid siwe message',
           signature: '0xfake',
         },
       });
-      // Invalid SIWE format causes a parse error, which gets caught
-      // as a signature/verify error and returns 401 or bubbles to 500
-      expect([401, 500]).toContain(res.status);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('BadRequest');
     });
   });
 
@@ -434,7 +433,7 @@ describe('Auth Routes', () => {
       expect(res.body.error).toBe('ValidationError');
     });
 
-    it('should return error with invalid SIWE message format', async () => {
+    it('should return 400 with invalid SIWE message format', async () => {
       const res = await request(app, 'POST', '/auth/siwe-bot', {
         body: {
           message: 'not a valid siwe message',
@@ -442,8 +441,8 @@ describe('Auth Routes', () => {
           botName: 'MyBot',
         },
       });
-      // Invalid SIWE format causes a parse error, caught as signature error
-      expect([401, 500]).toContain(res.status);
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('BadRequest');
     });
   });
 });

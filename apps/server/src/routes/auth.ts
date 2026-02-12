@@ -74,8 +74,17 @@ router.post(
     try {
       const { message, signature } = req.body;
 
-      // Parse and verify the SIWE message
-      const siweMessage = new SiweMessage(message);
+      // Parse the SIWE message
+      let siweMessage: InstanceType<typeof SiweMessage>;
+      try {
+        siweMessage = new SiweMessage(message);
+      } catch {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Invalid SIWE message format',
+        });
+        return;
+      }
 
       // Validate nonce
       const siweNonce = siweMessage.nonce;
@@ -89,9 +98,30 @@ router.post(
       // Consume nonce (one-time use)
       await redis.del(siweNonce);
 
-      const { data: verified } = await siweMessage.verify({ signature });
+      // Verify the signature (siwe v2 returns { success, data, error })
+      let verifyResult: {
+        success: boolean;
+        data: InstanceType<typeof SiweMessage>;
+        error?: unknown;
+      };
+      try {
+        verifyResult = await siweMessage.verify({ signature });
+      } catch {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid SIWE signature',
+        });
+        return;
+      }
+      if (!verifyResult.success) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'SIWE signature verification failed',
+        });
+        return;
+      }
 
-      const address = verified.address.toLowerCase();
+      const address = verifyResult.data.address.toLowerCase();
 
       // Find or create user
       let user = await prisma.user.findUnique({
@@ -132,19 +162,10 @@ router.post(
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
         },
+        token,
         expiresIn: '7d',
       });
-    } catch (error: unknown) {
-      if (
-        error instanceof Error &&
-        (error.message?.includes('Signature') || error.message?.includes('verify'))
-      ) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid SIWE signature',
-        });
-        return;
-      }
+    } catch (error) {
       next(error);
     }
   },
@@ -164,8 +185,17 @@ router.post(
     try {
       const { message, signature, botName, botDescription } = req.body;
 
-      // Parse and verify the SIWE message
-      const siweMessage = new SiweMessage(message);
+      // Parse the SIWE message
+      let siweMessage: InstanceType<typeof SiweMessage>;
+      try {
+        siweMessage = new SiweMessage(message);
+      } catch {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Invalid SIWE message format',
+        });
+        return;
+      }
 
       // Validate nonce
       const siweNonce = siweMessage.nonce;
@@ -179,9 +209,30 @@ router.post(
       // Consume nonce (one-time use)
       await redis.del(siweNonce);
 
-      const { data: verified } = await siweMessage.verify({ signature });
+      // Verify the signature (siwe v2 returns { success, data, error })
+      let verifyResult: {
+        success: boolean;
+        data: InstanceType<typeof SiweMessage>;
+        error?: unknown;
+      };
+      try {
+        verifyResult = await siweMessage.verify({ signature });
+      } catch {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid SIWE signature',
+        });
+        return;
+      }
+      if (!verifyResult.success) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'SIWE signature verification failed',
+        });
+        return;
+      }
 
-      const address = verified.address.toLowerCase();
+      const address = verifyResult.data.address.toLowerCase();
 
       // Sanitize bot name for username
       const safeBotName = botName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 24);
@@ -249,17 +300,7 @@ router.post(
         token,
         expiresIn: '7d',
       });
-    } catch (error: unknown) {
-      if (
-        error instanceof Error &&
-        (error.message?.includes('Signature') || error.message?.includes('verify'))
-      ) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid SIWE signature',
-        });
-        return;
-      }
+    } catch (error) {
       next(error);
     }
   },
