@@ -2,7 +2,7 @@
  * Redis client for Moltblox API
  * Used for nonce storage, session caching, and rate limiting.
  */
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
 
@@ -26,6 +26,6 @@ redis.on('connect', () => console.log('[Redis] Connected'));
 redis.on('ready', () => console.log('[Redis] Ready'));
 redis.on('close', () => console.warn('[Redis] Connection closed'));
 redis.on('reconnecting', () => console.log('[Redis] Reconnecting...'));
-redis.on('error', (err) => console.error('[Redis] Error:', err.message));
+redis.on('error', (err: Error) => console.error('[Redis] Error:', err.message));
 
 export default redis;

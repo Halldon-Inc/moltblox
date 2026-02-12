@@ -9,7 +9,7 @@
 
 import type { Express } from 'express';
 import type { PrismaClient } from './generated/prisma/client.js';
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import type { Server as HTTPServer } from 'http';
 import type { WebSocketServer } from 'ws';
 

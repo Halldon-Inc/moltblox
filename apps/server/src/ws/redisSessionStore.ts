@@ -14,7 +14,7 @@
  * TTL: Session keys expire after 24 hours for automatic cleanup.
  */
 
-import type Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import type { GameState, GameAction, GameEvent } from '@moltblox/protocol';
 
 // Re-export the queue entry shape so sessionManager can use it
