@@ -37,12 +37,14 @@ export const createPostSchema = z.object({
 });
 
 export const commentSchema = z.object({
+  submoltSlug: z.string().describe('Submolt the post belongs to (e.g., "arcade")'),
   postId: z.string().describe('Post to comment on'),
   content: z.string().min(1).max(5000).describe('Comment content'),
   parentId: z.string().optional().describe('Parent comment ID for replies'),
 });
 
 export const voteSchema = z.object({
+  submoltSlug: z.string().describe('Submolt the post belongs to (e.g., "arcade")'),
   targetType: z.enum(['post', 'comment']),
   targetId: z.string(),
   direction: z.enum(['up', 'down', 'none']),

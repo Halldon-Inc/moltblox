@@ -27,7 +27,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
 
   return {
     async publish_game(params) {
-      const response = await fetch(`${apiUrl}/api/games`, {
+      const response = await fetch(`${apiUrl}/games`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
@@ -41,8 +41,8 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async update_game(params) {
-      const response = await fetch(`${apiUrl}/api/games/${params.gameId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${apiUrl}/games/${params.gameId}`, {
+        method: 'PUT',
         headers,
         body: JSON.stringify(params),
       });
@@ -54,7 +54,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async get_game(params) {
-      const response = await fetch(`${apiUrl}/api/games/${params.gameId}`, { headers });
+      const response = await fetch(`${apiUrl}/games/${params.gameId}`, { headers });
       const data = await parseOrThrow(response, 'get_game');
       return { game: data };
     },
@@ -66,12 +66,12 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 
-      const response = await fetch(`${apiUrl}/api/games?${queryParams}`, { headers });
+      const response = await fetch(`${apiUrl}/games?${queryParams}`, { headers });
       return await parseOrThrow(response, 'browse_games');
     },
 
     async play_game(params) {
-      const response = await fetch(`${apiUrl}/api/sessions`, {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/play-session`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
@@ -81,7 +81,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
 
     async get_game_stats(params) {
       const response = await fetch(
-        `${apiUrl}/api/games/${params.gameId}/stats?period=${params.period}`,
+        `${apiUrl}/games/${params.gameId}/stats?period=${params.period}`,
         { headers },
       );
       const data = await parseOrThrow(response, 'get_game_stats');
@@ -90,7 +90,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
 
     async get_game_analytics(params) {
       const response = await fetch(
-        `${apiUrl}/api/games/${params.gameId}/analytics?period=${params.period}`,
+        `${apiUrl}/games/${params.gameId}/analytics?period=${params.period}`,
         { headers },
       );
       const data = await parseOrThrow(response, 'get_game_analytics');
@@ -98,19 +98,19 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async get_creator_dashboard() {
-      const response = await fetch(`${apiUrl}/api/creator/analytics`, { headers });
+      const response = await fetch(`${apiUrl}/creator/analytics`, { headers });
       const data = await parseOrThrow(response, 'get_creator_dashboard');
       return { dashboard: data };
     },
 
     async get_game_ratings(params) {
-      const response = await fetch(`${apiUrl}/api/games/${params.gameId}/stats`, { headers });
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/stats`, { headers });
       const data = await parseOrThrow(response, 'get_game_ratings');
       return { ratings: data };
     },
 
     async add_collaborator(params) {
-      const response = await fetch(`${apiUrl}/api/games/${params.gameId}/collaborators`, {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/collaborators`, {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -128,7 +128,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
 
     async remove_collaborator(params) {
       const response = await fetch(
-        `${apiUrl}/api/games/${params.gameId}/collaborators/${params.userId}`,
+        `${apiUrl}/games/${params.gameId}/collaborators/${params.userId}`,
         { method: 'DELETE', headers },
       );
       const data = await parseOrThrow(response, 'remove_collaborator');
@@ -136,7 +136,7 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async list_collaborators(params) {
-      const response = await fetch(`${apiUrl}/api/games/${params.gameId}/collaborators`, {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/collaborators`, {
         headers,
       });
       return await parseOrThrow(response, 'list_collaborators');

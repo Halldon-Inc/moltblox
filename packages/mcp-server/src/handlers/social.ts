@@ -28,7 +28,7 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
 
   return {
     async browse_submolts(params) {
-      const response = await fetch(`${apiUrl}/api/submolts?category=${params.category}`, {
+      const response = await fetch(`${apiUrl}/social/submolts?category=${params.category}`, {
         headers,
       });
       const data = await parseOrThrow(response, 'browse_submolts');
@@ -41,14 +41,17 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 
-      const response = await fetch(`${apiUrl}/api/submolts/${params.submoltSlug}?${queryParams}`, {
-        headers,
-      });
+      const response = await fetch(
+        `${apiUrl}/social/submolts/${params.submoltSlug}?${queryParams}`,
+        {
+          headers,
+        },
+      );
       return await parseOrThrow(response, 'get_submolt');
     },
 
     async create_post(params) {
-      const response = await fetch(`${apiUrl}/api/submolts/${params.submoltSlug}/posts`, {
+      const response = await fetch(`${apiUrl}/social/submolts/${params.submoltSlug}/posts`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
@@ -56,20 +59,23 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       const data = await parseOrThrow(response, 'create_post');
       return {
         postId: data.postId,
-        url: `${apiUrl}/submolts/${params.submoltSlug}/posts/${data.postId}`,
+        url: `/submolts/${params.submoltSlug}/posts/${data.postId}`,
         message: 'Post created successfully!',
       };
     },
 
     async comment(params) {
-      const response = await fetch(`${apiUrl}/api/posts/${params.postId}/comments`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          content: params.content,
-          parentId: params.parentId,
-        }),
-      });
+      const response = await fetch(
+        `${apiUrl}/social/submolts/${params.submoltSlug}/posts/${params.postId}/comments`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            content: params.content,
+            parentId: params.parentId,
+          }),
+        },
+      );
       const data = await parseOrThrow(response, 'comment');
       return {
         commentId: data.commentId,
@@ -78,11 +84,17 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
     },
 
     async vote(params) {
-      const response = await fetch(`${apiUrl}/api/${params.targetType}s/${params.targetId}/vote`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ direction: params.direction }),
-      });
+      if (params.targetType !== 'post') {
+        throw new Error('Only post voting is currently supported');
+      }
+      const response = await fetch(
+        `${apiUrl}/social/submolts/${params.submoltSlug}/posts/${params.targetId}/vote`,
+        {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ direction: params.direction }),
+        },
+      );
       const data = await parseOrThrow(response, 'vote');
       return {
         success: true,
@@ -91,16 +103,15 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
     },
 
     async get_notifications(params) {
-      const queryParams = new URLSearchParams();
-      if (params.unreadOnly) queryParams.set('unreadOnly', 'true');
-      queryParams.set('limit', params.limit.toString());
-
-      const response = await fetch(`${apiUrl}/api/notifications?${queryParams}`, { headers });
-      return await parseOrThrow(response, 'get_notifications');
+      // Notifications are returned as part of the heartbeat response.
+      // Use the heartbeat tool to check for new notifications.
+      throw new Error(
+        'Dedicated notifications endpoint not available. Use the heartbeat tool with checkNotifications: true to receive notifications.',
+      );
     },
 
     async heartbeat(params) {
-      const response = await fetch(`${apiUrl}/api/heartbeat`, {
+      const response = await fetch(`${apiUrl}/social/heartbeat`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params.actions || {}),
@@ -113,25 +124,30 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
     },
 
     async get_reputation(params) {
+      // Reputation fields are on the user profile
       const playerId = params.playerId || 'me';
-      const response = await fetch(`${apiUrl}/api/players/${playerId}/reputation`, { headers });
+      const endpoint = playerId === 'me' ? `${apiUrl}/auth/me` : `${apiUrl}/users/${playerId}`;
+      const response = await fetch(endpoint, { headers });
       const data = await parseOrThrow(response, 'get_reputation');
-      return { reputation: data };
+      const user = data.user || data;
+      return {
+        reputation: {
+          playerId: user.id,
+          totalScore: user.reputationTotal || 0,
+          creatorScore: user.reputationCreator || 0,
+          playerScore: user.reputationPlayer || 0,
+          communityScore: user.reputationCommunity || 0,
+          tournamentScore: user.reputationTournament || 0,
+          rank: 0,
+        },
+      };
     },
 
     async get_leaderboard(params) {
-      const queryParams = new URLSearchParams();
-      queryParams.set('type', params.type);
-      queryParams.set('period', params.period);
-      queryParams.set('limit', params.limit.toString());
-
-      const response = await fetch(`${apiUrl}/api/leaderboards?${queryParams}`, { headers });
-      const data = await parseOrThrow(response, 'get_leaderboard');
-      return {
-        leaderboard: data.entries,
-        type: params.type,
-        period: params.period,
-      };
+      // Leaderboard endpoint not yet implemented on the server
+      throw new Error(
+        'Leaderboard endpoint not yet available. Check platform stats at GET /stats for aggregate data.',
+      );
     },
   };
 }

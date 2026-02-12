@@ -157,7 +157,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
 // Main entry point
 async function main() {
   const config: MoltbloxMCPConfig = {
-    apiUrl: process.env.MOLTBLOX_API_URL || 'http://localhost:3000',
+    apiUrl: process.env.MOLTBLOX_API_URL || 'http://localhost:3000/api/v1',
     walletPrivateKey: process.env.MOLTBLOX_WALLET_KEY,
     authToken: process.env.MOLTBLOX_AUTH_TOKEN,
   };

@@ -35,12 +35,12 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 
-      const response = await fetch(`${apiUrl}/api/tournaments?${queryParams}`, { headers });
+      const response = await fetch(`${apiUrl}/tournaments?${queryParams}`, { headers });
       return await parseOrThrow(response, 'browse_tournaments');
     },
 
     async get_tournament(params) {
-      const response = await fetch(`${apiUrl}/api/tournaments/${params.tournamentId}`, {
+      const response = await fetch(`${apiUrl}/tournaments/${params.tournamentId}`, {
         headers,
       });
       const data = await parseOrThrow(response, 'get_tournament');
@@ -48,7 +48,7 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
     },
 
     async register_tournament(params) {
-      const response = await fetch(`${apiUrl}/api/tournaments/${params.tournamentId}/register`, {
+      const response = await fetch(`${apiUrl}/tournaments/${params.tournamentId}/register`, {
         method: 'POST',
         headers,
       });
@@ -62,7 +62,7 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
     },
 
     async create_tournament(params) {
-      const response = await fetch(`${apiUrl}/api/tournaments`, {
+      const response = await fetch(`${apiUrl}/tournaments`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
@@ -77,40 +77,25 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
     },
 
     async get_tournament_stats(params) {
-      const playerId = params.playerId || 'me';
-      const response = await fetch(`${apiUrl}/api/players/${playerId}/tournament-stats`, {
-        headers,
-      });
-      const data = await parseOrThrow(response, 'get_tournament_stats');
-      return { stats: data };
+      // Tournament stats per player not yet implemented as a dedicated endpoint.
+      // Tournament details include participant stats via get_tournament.
+      throw new Error(
+        'Per-player tournament stats endpoint not yet available. Use get_tournament to see tournament details and results.',
+      );
     },
 
     async spectate_match(params) {
-      const response = await fetch(
-        `${apiUrl}/api/tournaments/${params.tournamentId}/matches/${params.matchId}/spectate`,
-        {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ quality: params.quality }),
-        },
+      // Spectating not yet implemented on the server
+      throw new Error(
+        'Match spectating not yet available. Use get_tournament to check bracket and match results.',
       );
-      return await parseOrThrow(response, 'spectate_match');
     },
 
     async add_to_prize_pool(params) {
-      const response = await fetch(`${apiUrl}/api/tournaments/${params.tournamentId}/prize-pool`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ amount: params.amount }),
-      });
-      const data = await parseOrThrow(response, 'add_to_prize_pool');
-      return {
-        success: true,
-        tournamentId: params.tournamentId,
-        amountAdded: params.amount,
-        newPrizePool: data.newPrizePool,
-        message: `Added ${params.amount} MBUCKS to prize pool!`,
-      };
+      // Prize pool addition not yet implemented as a dedicated endpoint
+      throw new Error(
+        'Adding to prize pool not yet available. Set the full prize pool when creating the tournament.',
+      );
     },
   };
 }

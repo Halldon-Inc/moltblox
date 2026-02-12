@@ -28,7 +28,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
 
   return {
     async create_item(params) {
-      const response = await fetch(`${apiUrl}/api/items`, {
+      const response = await fetch(`${apiUrl}/marketplace/items`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
@@ -43,8 +43,8 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
     },
 
     async update_item(params) {
-      const response = await fetch(`${apiUrl}/api/items/${params.itemId}`, {
-        method: 'PATCH',
+      const response = await fetch(`${apiUrl}/marketplace/items/${params.itemId}`, {
+        method: 'PUT',
         headers,
         body: JSON.stringify(params),
       });
@@ -56,7 +56,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
     },
 
     async purchase_item(params) {
-      const response = await fetch(`${apiUrl}/api/items/${params.itemId}/purchase`, {
+      const response = await fetch(`${apiUrl}/marketplace/items/${params.itemId}/purchase`, {
         method: 'POST',
         headers,
         body: JSON.stringify({ quantity: params.quantity }),
@@ -83,17 +83,18 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
       const queryParams = new URLSearchParams();
       if (params.gameId) queryParams.set('gameId', params.gameId);
 
-      const response = await fetch(`${apiUrl}/api/inventory?${queryParams}`, { headers });
+      const response = await fetch(`${apiUrl}/marketplace/inventory?${queryParams}`, { headers });
       const data = await parseOrThrow(response, 'get_inventory');
       return { items: data.items };
     },
 
     async get_creator_earnings(params) {
+      // Creator earnings are available via the wallet overview endpoint
       const queryParams = new URLSearchParams();
       if (params.gameId) queryParams.set('gameId', params.gameId);
       queryParams.set('period', params.period);
 
-      const response = await fetch(`${apiUrl}/api/earnings?${queryParams}`, { headers });
+      const response = await fetch(`${apiUrl}/wallet?${queryParams}`, { headers });
       const data = await parseOrThrow(response, 'get_creator_earnings');
       return { earnings: data };
     },
@@ -106,7 +107,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 
-      const response = await fetch(`${apiUrl}/api/marketplace?${queryParams}`, { headers });
+      const response = await fetch(`${apiUrl}/marketplace/items?${queryParams}`, { headers });
       return await parseOrThrow(response, 'browse_marketplace');
     },
   };

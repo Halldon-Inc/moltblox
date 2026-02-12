@@ -28,7 +28,7 @@ export function createWalletHandlers(config: MoltbloxMCPConfig): WalletToolHandl
 
   return {
     async get_balance(_params) {
-      const response = await fetch(`${apiUrl}/api/wallet/balance`, { headers });
+      const response = await fetch(`${apiUrl}/wallet/balance`, { headers });
       const data = await parseOrThrow(response, 'get_balance');
       return {
         balance: data.balance,
@@ -44,14 +44,14 @@ export function createWalletHandlers(config: MoltbloxMCPConfig): WalletToolHandl
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 
-      const response = await fetch(`${apiUrl}/api/wallet/transactions?${queryParams}`, {
+      const response = await fetch(`${apiUrl}/wallet/transactions?${queryParams}`, {
         headers,
       });
       return await parseOrThrow(response, 'get_transactions');
     },
 
     async transfer(params) {
-      const response = await fetch(`${apiUrl}/api/wallet/transfer`, {
+      const response = await fetch(`${apiUrl}/wallet/transfer`, {
         method: 'POST',
         headers,
         body: JSON.stringify(params),
