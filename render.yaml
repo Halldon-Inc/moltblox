@@ -107,7 +107,7 @@ services:
 databases:
   # ─── PostgreSQL ─────────────────────────────────────────────
   - name: moltblox-db
-    plan: starter
+    plan: basic-256mb
     region: oregon
     databaseName: moltblox
     user: moltblox
