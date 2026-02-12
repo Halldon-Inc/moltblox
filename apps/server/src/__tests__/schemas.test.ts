@@ -51,7 +51,7 @@ describe('Marketplace Schemas', () => {
   describe('createItemSchema', () => {
     it('should accept valid item data', () => {
       const result = createItemSchema.body.safeParse({
-        gameId: '00000000-0000-0000-0000-000000000001',
+        gameId: 'clxxxxxxxxxxxxxxxxxxxxxxxxx',
         name: 'Cool Sword',
         description: 'A very cool sword',
         price: '1000000000000000000',
@@ -64,7 +64,7 @@ describe('Marketplace Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject invalid UUID for gameId', () => {
+    it('should reject invalid CUID for gameId', () => {
       const result = createItemSchema.body.safeParse({
         gameId: 'not-a-uuid',
         name: 'test',
@@ -76,7 +76,7 @@ describe('Marketplace Schemas', () => {
 
     it('should reject oversized name', () => {
       const result = createItemSchema.body.safeParse({
-        gameId: '00000000-0000-0000-0000-000000000001',
+        gameId: 'clxxxxxxxxxxxxxxxxxxxxxxxxx',
         name: 'a'.repeat(101),
         description: 'test',
         price: '100',
@@ -86,7 +86,7 @@ describe('Marketplace Schemas', () => {
 
     it('should reject invalid category', () => {
       const result = createItemSchema.body.safeParse({
-        gameId: '00000000-0000-0000-0000-000000000001',
+        gameId: 'clxxxxxxxxxxxxxxxxxxxxxxxxx',
         name: 'test',
         description: 'test',
         price: '100',
@@ -99,7 +99,7 @@ describe('Marketplace Schemas', () => {
   describe('purchaseItemSchema', () => {
     it('should accept valid purchase', () => {
       const paramsResult = purchaseItemSchema.params.safeParse({
-        id: '00000000-0000-0000-0000-000000000001',
+        id: 'clxxxxxxxxxxxxxxxxxxxxxxxxx',
       });
       const bodyResult = purchaseItemSchema.body.safeParse({ quantity: 1 });
       expect(paramsResult.success).toBe(true);

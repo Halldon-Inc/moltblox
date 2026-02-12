@@ -464,9 +464,10 @@ def build():
 
     # ---- Section F: Post-Audit Notes ----
     story.append(Spacer(1, 8))
-    story.append(Paragraph('F. POST-AUDIT CHANGES (v2)', section_style))
+    story.append(Paragraph('F. POST-AUDIT CHANGES (FINAL)', section_style))
     story.append(Paragraph(
-        'Key changes from the comprehensive code audit that affect deployment and testing.',
+        'All changes from the comprehensive three-round code audit. These are already committed '
+        'and will deploy with the rest of the codebase.',
         step_body_style
     ))
     story.append(Spacer(1, 6))
@@ -481,10 +482,13 @@ def build():
     ))
     story.append(make_step(
         25,
-        'Prisma cascade deletes',
+        'Prisma cascade deletes and FK fixes',
         'User and Game deletion now cascades properly. GameRating.userId, Comment.authorId, and '
         'Post.authorId are nullable (set null on delete). The Purchase model has a new gameId index. '
-        'These changes ship in migration 3_cascades_and_indexes.',
+        'Migration 3 (cascades_and_indexes) and migration 4 (add_missing_fks) ship together. '
+        'Migration 4 adds foreign keys for Notification (gameId, itemId, tournamentId, postId), '
+        'TournamentMatch (player1Id, player2Id, winnerId), TournamentWinner (userId), and '
+        'GameSession (winnerId) with proper SET NULL cascades and indexes.',
         'claude'
     ))
     story.append(make_step(
@@ -513,9 +517,69 @@ def build():
         'and the corrected ABIs are already in place.',
         'claude'
     ))
+    story.append(make_step(
+        29,
+        'Solidity contract hardening',
+        'Five security improvements applied to GameMarketplace.sol and TournamentManager.sol: '
+        '(1) Donation refund tracking: addToPrizePool contributions are tracked per-donor and refunded '
+        'on tournament cancellation. '
+        '(2) Timelock treasury: treasury address changes require a 24-hour delay (propose then confirm). '
+        '(3) Emergency MBUCKS recovery: stuck tokens can be recovered with a 7-day timelock. '
+        '(4) MAX_ITEMS_PER_GAME: capped at 1000 items per game to prevent storage abuse. '
+        '(5) Commit-reveal for completeTournament: results are committed as a hash, then revealed '
+        'after 1+ blocks to prevent front-running.',
+        'claude'
+    ))
+    story.append(make_step(
+        30,
+        'WebSocket architecture improvements',
+        'Three server-side WS enhancements: '
+        '(1) Reconnect support: clients can reconnect with the same session token and resume state. '
+        '(2) rejoinSession: disconnected players rejoin active game sessions automatically. '
+        '(3) Template game initialization: createSession now initializes game state from the '
+        'template engine (clicker, puzzle, rpg, etc.) so games start with correct initial data.',
+        'claude'
+    ))
+    story.append(make_step(
+        31,
+        'Reputation system hooks',
+        'User reputation is now incremented automatically when users: rate games, create posts '
+        'or comments in submolts, vote on content, and purchase marketplace items. '
+        'The reputation field was already in the schema but was never being updated.',
+        'claude'
+    ))
+    story.append(make_step(
+        32,
+        'Standardized error format',
+        'All API error responses now use PascalCase error codes (BadRequest, Unauthorized, Forbidden, '
+        'NotFound, Conflict, ValidationError, TooManyRequests, InternalServerError). '
+        'The error handler middleware maps HTTP status codes to consistent code strings.',
+        'claude'
+    ))
+    story.append(make_step(
+        33,
+        'Infrastructure and deployment hardening',
+        'New .dockerignore reduces Docker build context. Dockerfile uses multi-stage build with Alpine Node 20 '
+        'and runs as non-root user. CI pipeline now includes security audit (pnpm audit) and Hardhat contract '
+        'tests as separate jobs. Server bootstrap validates required env vars on startup, registers crash '
+        'handlers, runs database health checks, and implements graceful SIGINT/SIGTERM shutdown with '
+        '10-second timeout. Stale game sessions are marked abandoned on restart.',
+        'claude'
+    ))
+    story.append(make_step(
+        34,
+        'Comprehensive test suite',
+        '235+ test cases across 19 test files covering: WebSocket protocol (30+ cases), auth routes (16), '
+        'wallet routes (16), analytics (6), collaborators (7), play-session (6), games/marketplace/'
+        'tournaments (32), social routes (12), user routes (3), CSRF (8), sanitization (15), '
+        'schemas (18), validation (7), integration (1), ArenaClient SDK (13), MoltbloxClient SDK (13), '
+        'GamePublishingService (9), and PurchaseService (10). '
+        'Run with: pnpm test (from repo root).',
+        'claude'
+    ))
 
     # ---- Section G: Enable CI/CD ----
-    story.append(Spacer(1, 8))
+    story.append(PageBreak())
     story.append(Paragraph('G. ENABLE CI/CD', section_style))
     story.append(Paragraph(
         'Turn on automated deployments so every push to main deploys automatically.',
@@ -524,14 +588,14 @@ def build():
     story.append(Spacer(1, 6))
 
     story.append(make_step(
-        29,
+        35,
         'Add GitHub secrets',
         'In the repo settings (Settings > Secrets > Actions), add: '
         'VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID.',
         'you'
     ))
     story.append(make_step(
-        30,
+        36,
         'Uncomment deploy jobs in CI',
         'Uncomment the deploy-web and deploy-server jobs in .github/workflows/ci.yml. '
         'Push the change to main.',
@@ -539,7 +603,7 @@ def build():
         '.github/workflows/ci.yml lines ~103-146'
     ))
     story.append(make_step(
-        31,
+        37,
         'Verify auto-deploy',
         'Make a small change, push to main, and confirm the CI pipeline builds, tests, '
         'and deploys to Vercel automatically.',

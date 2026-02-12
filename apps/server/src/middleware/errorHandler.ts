@@ -43,6 +43,18 @@ export class ValidationError extends AppError {
   }
 }
 
+/** Map HTTP status codes to PascalCase error codes */
+const STATUS_CODE_MAP: Record<number, string> = {
+  400: 'BadRequest',
+  401: 'Unauthorized',
+  403: 'Forbidden',
+  404: 'NotFound',
+  409: 'Conflict',
+  422: 'ValidationError',
+  429: 'TooManyRequests',
+  500: 'InternalServerError',
+};
+
 /**
  * Global error handling middleware.
  * Must have 4 parameters to be recognized by Express as an error handler.
@@ -54,7 +66,7 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
 
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
-      error: err.name,
+      error: STATUS_CODE_MAP[err.statusCode] || err.name,
       message: err.message,
     });
     return;

@@ -1297,14 +1297,68 @@ describe("TournamentManager", function () {
   });
 
   // ================================================================
-  // Admin Functions
+  // Admin Functions (Treasury Timelock)
   // ================================================================
   describe("Admin Functions", function () {
-    it("Should allow owner to set treasury", async function () {
+    it("Should propose treasury change via setTreasury", async function () {
       const { manager, other } = await loadFixture(deployTournamentFixture);
 
       await manager.setTreasury(other.address);
+      expect(await manager.pendingTreasury()).to.equal(other.address);
+    });
+
+    it("Should not change treasury immediately", async function () {
+      const { manager, treasury, other } = await loadFixture(deployTournamentFixture);
+
+      await manager.setTreasury(other.address);
+      // Treasury should still be the original
+      expect(await manager.treasury()).to.equal(treasury.address);
+    });
+
+    it("Should confirm treasury after 24 hours", async function () {
+      const { manager, other } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeTreasury(other.address);
+      await time.increase(24 * 60 * 60); // 24 hours
+      await manager.confirmTreasury();
+
       expect(await manager.treasury()).to.equal(other.address);
+      expect(await manager.pendingTreasury()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("Should emit TreasuryChangeProposed on propose", async function () {
+      const { manager, other } = await loadFixture(deployTournamentFixture);
+
+      await expect(manager.proposeTreasury(other.address))
+        .to.emit(manager, "TreasuryChangeProposed");
+    });
+
+    it("Should emit TreasuryChangeConfirmed on confirm", async function () {
+      const { manager, treasury, other } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeTreasury(other.address);
+      await time.increase(24 * 60 * 60);
+
+      await expect(manager.confirmTreasury())
+        .to.emit(manager, "TreasuryChangeConfirmed")
+        .withArgs(treasury.address, other.address);
+    });
+
+    it("Should revert confirmTreasury before 24 hours", async function () {
+      const { manager, other } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeTreasury(other.address);
+      await time.increase(23 * 60 * 60); // only 23 hours
+
+      await expect(manager.confirmTreasury())
+        .to.be.revertedWith("Timelock not elapsed");
+    });
+
+    it("Should revert confirmTreasury with no pending change", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await expect(manager.confirmTreasury())
+        .to.be.revertedWith("No pending treasury change");
     });
 
     it("Should revert setting treasury to zero address", async function () {
@@ -1823,6 +1877,353 @@ describe("TournamentManager", function () {
 
       const p1BalAfter = await token.balanceOf(player1.address);
       expect(p1BalAfter).to.be.gte(p1BalBefore + firstPrize);
+    });
+  });
+
+  // ================================================================
+  // Donation Refund on Cancel
+  // ================================================================
+  describe("Donation Refund on Cancel", function () {
+    it("Should refund third-party donations when tournament is cancelled", async function () {
+      const { token, manager, sponsor, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      // Give other some tokens and approve
+      const donationAmount = ethers.parseEther("500");
+      await token.transfer(other.address, ethers.parseEther("1000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      // Donate to prize pool
+      await manager.connect(other).addToPrizePool("tourney-001", donationAmount);
+
+      const otherBalBefore = await token.balanceOf(other.address);
+
+      // Cancel tournament
+      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+      // Donor should get their donation back
+      expect(await token.balanceOf(other.address)).to.equal(
+        otherBalBefore + donationAmount
+      );
+    });
+
+    it("Should emit PrizePoolContribution on addToPrizePool", async function () {
+      const { token, manager, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      const donationAmount = ethers.parseEther("200");
+      await token.transfer(other.address, ethers.parseEther("1000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      await expect(manager.connect(other).addToPrizePool("tourney-001", donationAmount))
+        .to.emit(manager, "PrizePoolContribution")
+        .withArgs("tourney-001", other.address, donationAmount);
+    });
+
+    it("Should emit DonationRefunded on cancel", async function () {
+      const { token, manager, sponsor, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      const donationAmount = ethers.parseEther("300");
+      await token.transfer(other.address, ethers.parseEther("1000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      await manager.connect(other).addToPrizePool("tourney-001", donationAmount);
+
+      await expect(
+        manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled")
+      )
+        .to.emit(manager, "DonationRefunded")
+        .withArgs("tourney-001", other.address, donationAmount);
+    });
+
+    it("Should track multiple donations from same donor", async function () {
+      const { token, manager, sponsor, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await token.transfer(other.address, ethers.parseEther("2000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      const donation1 = ethers.parseEther("200");
+      const donation2 = ethers.parseEther("300");
+
+      await manager.connect(other).addToPrizePool("tourney-001", donation1);
+      await manager.connect(other).addToPrizePool("tourney-001", donation2);
+
+      expect(await manager.contributions("tourney-001", other.address)).to.equal(
+        donation1 + donation2
+      );
+
+      const otherBalBefore = await token.balanceOf(other.address);
+      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+      expect(await token.balanceOf(other.address)).to.equal(
+        otherBalBefore + donation1 + donation2
+      );
+    });
+
+    it("Should refund multiple donors on cancel", async function () {
+      const { token, manager, sponsor, player1, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await token.transfer(other.address, ethers.parseEther("1000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      const d1 = ethers.parseEther("100");
+      const d2 = ethers.parseEther("200");
+
+      // Player1 already has tokens and approval from fixture
+      await manager.connect(player1).addToPrizePool("tourney-001", d1);
+      await manager.connect(other).addToPrizePool("tourney-001", d2);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+      const otherBalBefore = await token.balanceOf(other.address);
+
+      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+      expect(await token.balanceOf(player1.address)).to.equal(p1BalBefore + d1);
+      expect(await token.balanceOf(other.address)).to.equal(otherBalBefore + d2);
+    });
+  });
+
+  // ================================================================
+  // Emergency MBUCKS Recovery
+  // ================================================================
+  describe("Emergency MBUCKS Recovery", function () {
+    it("Should propose recovery", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      const amount = ethers.parseEther("1000");
+      await manager.proposeRecovery(amount);
+
+      expect(await manager.recoveryPending()).to.equal(true);
+      expect(await manager.pendingRecoveryAmount()).to.equal(amount);
+    });
+
+    it("Should emit RecoveryProposed event", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      const amount = ethers.parseEther("1000");
+      await expect(manager.proposeRecovery(amount))
+        .to.emit(manager, "RecoveryProposed");
+    });
+
+    it("Should execute recovery after 7 days", async function () {
+      const { token, manager, owner } = await loadFixture(deployTournamentFixture);
+
+      // Send some MBUCKS to the contract so it has a balance to recover
+      const amount = ethers.parseEther("500");
+      await token.transfer(await manager.getAddress(), amount);
+
+      await manager.proposeRecovery(amount);
+      await time.increase(7 * 24 * 60 * 60); // 7 days
+
+      const ownerBalBefore = await token.balanceOf(owner.address);
+      await manager.executeRecovery();
+
+      expect(await token.balanceOf(owner.address)).to.equal(ownerBalBefore + amount);
+      expect(await manager.recoveryPending()).to.equal(false);
+    });
+
+    it("Should revert execute before 7 days", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeRecovery(ethers.parseEther("100"));
+      await time.increase(6 * 24 * 60 * 60); // only 6 days
+
+      await expect(manager.executeRecovery())
+        .to.be.revertedWith("Recovery timelock not elapsed");
+    });
+
+    it("Should revert execute with no pending recovery", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await expect(manager.executeRecovery())
+        .to.be.revertedWith("No pending recovery");
+    });
+
+    it("Should cancel recovery", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeRecovery(ethers.parseEther("100"));
+      await manager.cancelRecovery();
+
+      expect(await manager.recoveryPending()).to.equal(false);
+    });
+
+    it("Should emit RecoveryCancelled event", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await manager.proposeRecovery(ethers.parseEther("100"));
+
+      await expect(manager.cancelRecovery())
+        .to.emit(manager, "RecoveryCancelled");
+    });
+
+    it("Should revert cancel with no pending recovery", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+
+      await expect(manager.cancelRecovery())
+        .to.be.revertedWith("No pending recovery");
+    });
+
+    it("Should revert when non-owner proposes recovery", async function () {
+      const { manager, other } = await loadFixture(deployTournamentFixture);
+
+      await expect(
+        manager.connect(other).proposeRecovery(ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(manager, "OwnableUnauthorizedAccount");
+    });
+  });
+
+  // ================================================================
+  // Commit-Reveal for Tournament Completion
+  // ================================================================
+  describe("Commit-Reveal", function () {
+    it("Should commit results hash", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const salt = ethers.id("mysalt");
+      const resultHash = ethers.keccak256(
+        ethers.solidityPacked(
+          ["string", "address", "address", "address", "bytes32"],
+          ["tourney-001", player1.address, player2.address, player3.address, salt]
+        )
+      );
+
+      await manager.connect(sponsor).commitResults("tourney-001", resultHash);
+
+      const commit = await manager.resultCommits("tourney-001");
+      expect(commit.resultHash).to.equal(resultHash);
+      expect(commit.commitBlock).to.be.gt(0);
+    });
+
+    it("Should emit ResultsCommitted event", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const salt = ethers.id("mysalt");
+      const resultHash = ethers.keccak256(
+        ethers.solidityPacked(
+          ["string", "address", "address", "address", "bytes32"],
+          ["tourney-001", player1.address, player2.address, player3.address, salt]
+        )
+      );
+
+      await expect(manager.connect(sponsor).commitResults("tourney-001", resultHash))
+        .to.emit(manager, "ResultsCommitted");
+    });
+
+    it("Should reveal results and distribute prizes after commit", async function () {
+      const { token, manager, sponsor, player1, player2, player3, player4 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const salt = ethers.id("mysecret");
+      const resultHash = ethers.keccak256(
+        ethers.solidityPacked(
+          ["string", "address", "address", "address", "bytes32"],
+          ["tourney-001", player1.address, player2.address, player3.address, salt]
+        )
+      );
+
+      await manager.connect(sponsor).commitResults("tourney-001", resultHash);
+
+      // Mine a block to satisfy the "must wait at least one block" requirement
+      await ethers.provider.send("evm_mine", []);
+
+      const p1BalBefore = await token.balanceOf(player1.address);
+
+      await manager.connect(sponsor).revealResults(
+        "tourney-001",
+        player1.address,
+        player2.address,
+        player3.address,
+        salt
+      );
+
+      const t = await manager.getTournament("tourney-001");
+      expect(t.status).to.equal(TournamentStatus.Completed);
+
+      const totalPool = PRIZE_POOL + ENTRY_FEE * 4n;
+      const firstPrize = (totalPool * 50n) / 100n;
+
+      const p1BalAfter = await token.balanceOf(player1.address);
+      expect(p1BalAfter).to.be.gte(p1BalBefore + firstPrize);
+    });
+
+    it("Should revert reveal with wrong salt", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const salt = ethers.id("mysecret");
+      const wrongSalt = ethers.id("wrongsalt");
+      const resultHash = ethers.keccak256(
+        ethers.solidityPacked(
+          ["string", "address", "address", "address", "bytes32"],
+          ["tourney-001", player1.address, player2.address, player3.address, salt]
+        )
+      );
+
+      await manager.connect(sponsor).commitResults("tourney-001", resultHash);
+      await ethers.provider.send("evm_mine", []);
+
+      await expect(
+        manager.connect(sponsor).revealResults(
+          "tourney-001",
+          player1.address,
+          player2.address,
+          player3.address,
+          wrongSalt
+        )
+      ).to.be.revertedWith("Hash mismatch");
+    });
+
+    it("Should revert reveal without commit", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      await expect(
+        manager.connect(sponsor).revealResults(
+          "tourney-001",
+          player1.address,
+          player2.address,
+          player3.address,
+          ethers.id("salt")
+        )
+      ).to.be.revertedWith("No committed results");
+    });
+
+    it("Should revert commit on non-active tournament", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      const resultHash = ethers.id("somehash");
+
+      await expect(
+        manager.connect(sponsor).commitResults("tourney-001", resultHash)
+      ).to.be.revertedWith("Not active");
+    });
+
+    it("Should revert double commit", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const resultHash = ethers.id("hash1");
+      await manager.connect(sponsor).commitResults("tourney-001", resultHash);
+
+      await expect(
+        manager.connect(sponsor).commitResults("tourney-001", ethers.id("hash2"))
+      ).to.be.revertedWith("Already committed");
+    });
+
+    it("Should revert commit from unauthorized user", async function () {
+      const { manager, other } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      await expect(
+        manager.connect(other).commitResults("tourney-001", ethers.id("hash"))
+      ).to.be.revertedWith("Not authorized");
     });
   });
 });

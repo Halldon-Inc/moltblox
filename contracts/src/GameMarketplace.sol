@@ -56,6 +56,18 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         Subscription
     }
 
+    // Max items per game cap
+    uint256 public constant MAX_ITEMS_PER_GAME = 1000;
+
+    // Treasury timelock (2-step change)
+    address public pendingTreasury;
+    uint256 public treasuryChangeTime;
+
+    // Emergency MBUCKS recovery (7-day timelock)
+    uint256 public pendingRecoveryAmount;
+    uint256 public recoveryProposalTime;
+    bool public recoveryPending;
+
     // Authorized publishers (bot-only, set by admin)
     mapping(address => bool) public authorizedPublishers;
 
@@ -95,6 +107,15 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     event TreasuryFunded(uint256 amount, string reason);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
     event ConsumableUsed(address indexed player, string indexed itemId, uint256 remainingBalance);
+
+    // Treasury timelock events
+    event TreasuryChangeProposed(address indexed newTreasury, uint256 effectiveTime);
+    event TreasuryChangeConfirmed(address indexed oldTreasury, address indexed newTreasury);
+
+    // Emergency recovery events
+    event RecoveryProposed(uint256 amount, uint256 effectiveTime);
+    event RecoveryExecuted(uint256 amount);
+    event RecoveryCancelled();
 
     constructor(address _moltbucks, address _treasury) Ownable(msg.sender) {
         require(_moltbucks != address(0), "Invalid token address");
@@ -161,6 +182,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         require(bytes(itemId).length > 0, "Invalid item ID");
         require(items[itemId].creator == address(0), "Item already exists");
         require(price > 0, "Price must be positive");
+        require(gameItems[gameId].length < MAX_ITEMS_PER_GAME, "Max items reached");
 
         items[itemId] = Item({
             itemId: itemId,
@@ -343,10 +365,24 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     // ============ Admin Functions ============
 
     function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid treasury address");
+        proposeTreasury(_treasury);
+    }
+
+    function proposeTreasury(address _newTreasury) public onlyOwner {
+        require(_newTreasury != address(0), "Invalid treasury address");
+        pendingTreasury = _newTreasury;
+        treasuryChangeTime = block.timestamp;
+        emit TreasuryChangeProposed(_newTreasury, block.timestamp + 24 hours);
+    }
+
+    function confirmTreasury() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        require(block.timestamp >= treasuryChangeTime + 24 hours, "Timelock not elapsed");
         address oldTreasury = treasury;
-        treasury = _treasury;
-        emit TreasuryUpdated(oldTreasury, _treasury);
+        treasury = pendingTreasury;
+        pendingTreasury = address(0);
+        treasuryChangeTime = 0;
+        emit TreasuryChangeConfirmed(oldTreasury, treasury);
     }
 
     /**
@@ -386,5 +422,34 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         require(address(token) != address(moltbucks), "Cannot recover MBUCKS");
         require(to != address(0), "Invalid recipient");
         token.safeTransfer(to, amount);
+    }
+
+    // ============ Emergency MBUCKS Recovery (7-day timelock) ============
+
+    function proposeRecovery(uint256 amount) external onlyOwner {
+        require(amount > 0, "Amount must be positive");
+        pendingRecoveryAmount = amount;
+        recoveryProposalTime = block.timestamp;
+        recoveryPending = true;
+        emit RecoveryProposed(amount, block.timestamp + 7 days);
+    }
+
+    function executeRecovery() external onlyOwner {
+        require(recoveryPending, "No pending recovery");
+        require(block.timestamp >= recoveryProposalTime + 7 days, "Recovery timelock not elapsed");
+        uint256 amount = pendingRecoveryAmount;
+        pendingRecoveryAmount = 0;
+        recoveryProposalTime = 0;
+        recoveryPending = false;
+        moltbucks.safeTransfer(owner(), amount);
+        emit RecoveryExecuted(amount);
+    }
+
+    function cancelRecovery() external onlyOwner {
+        require(recoveryPending, "No pending recovery");
+        pendingRecoveryAmount = 0;
+        recoveryProposalTime = 0;
+        recoveryPending = false;
+        emit RecoveryCancelled();
     }
 }

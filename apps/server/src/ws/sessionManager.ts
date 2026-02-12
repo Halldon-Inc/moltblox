@@ -520,6 +520,60 @@ export async function handleDisconnect(
   }
 }
 
+/**
+ * Rejoin a player to an existing session after a disconnect.
+ * Verifies the session exists and the user was a participant.
+ * Returns true if successfully rejoined, false otherwise.
+ */
+export async function rejoinSession(
+  sessionId: string,
+  clientId: string,
+  userId: string,
+  clients: Map<string, ConnectedClient>,
+): Promise<boolean> {
+  const session = activeSessions.get(sessionId);
+  if (!session) return false;
+
+  // Verify the user was a participant
+  if (!session.playerIds.includes(userId)) return false;
+
+  // Find the client and update their session binding
+  const client = clients.get(clientId);
+  if (!client) return false;
+
+  client.gameSessionId = sessionId;
+  client.playerId = userId;
+
+  // Send the current game state to the reconnected client
+  sendTo(client.ws, {
+    type: 'state_update',
+    payload: {
+      sessionId,
+      state: session.gameState,
+      currentTurn: session.currentTurn,
+      action: null,
+      events: [],
+    },
+  });
+
+  // Notify other session participants
+  broadcastToSession(
+    clients,
+    sessionId,
+    {
+      type: 'player_reconnected',
+      payload: {
+        playerId: userId,
+        timestamp: new Date().toISOString(),
+      },
+    },
+    clientId,
+  );
+
+  console.log(`[WS] Player ${userId} rejoined session ${sessionId}`);
+  return true;
+}
+
 // ─── Internal Helpers ───────────────────────────────────
 
 /**
@@ -532,12 +586,36 @@ async function createSession(
 ): Promise<void> {
   const playerIds = matched.map((e) => e.playerId);
 
+  // Look up the game's templateSlug for customized initial state
+  const gameInfo = await prisma.game.findUnique({
+    where: { id: gameId },
+    select: { templateSlug: true },
+  });
+
+  // Build initial game state data, customized by template if applicable
+  let initialData: Record<string, unknown> = { players: playerIds };
+  if (gameInfo?.templateSlug) {
+    const templateDefaults: Record<string, Record<string, unknown>> = {
+      clicker: { clicks: {}, target: 100 },
+      puzzle: { board: [], pairs: 8, moves: 0 },
+      rpg: { encounter: 0, maxEncounters: 10, party: {} },
+      'creature-rpg': { region: 'starter-town', party: [], badges: 0 },
+      rhythm: { score: 0, combo: 0, difficulty: 'normal' },
+      platformer: { position: { x: 0, y: 0 }, coins: 0, checkpoints: [] },
+      'side-battler': { wave: 1, maxWaves: 5, party: [], formation: 'standard' },
+    };
+    const templateData = templateDefaults[gameInfo.templateSlug];
+    if (templateData) {
+      initialData = { ...initialData, ...templateData };
+    }
+  }
+
   // Create session in database
   const session = await prisma.gameSession.create({
     data: {
       gameId,
       status: 'active',
-      state: { turn: 0, phase: 'playing', data: { players: playerIds } },
+      state: { turn: 0, phase: 'playing', data: initialData as InputJsonValue },
       currentTurn: 0,
       players: {
         create: playerIds.map((userId) => ({ userId })),
@@ -550,7 +628,7 @@ async function createSession(
   const initialGameState: GameState = {
     turn: 0,
     phase: 'playing',
-    data: { players: playerIds },
+    data: initialData,
   };
 
   // Track in memory

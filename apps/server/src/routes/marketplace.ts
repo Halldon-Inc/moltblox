@@ -86,7 +86,7 @@ router.get(
           }
         } catch (err) {
           if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'Bad Request', message: err.message });
+            res.status(400).json({ error: 'BadRequest', message: err.message });
             return;
           }
           throw err;
@@ -259,6 +259,7 @@ router.get('/items/featured', async (_req: Request, res: Response, next: NextFun
     const currentSlotStart = Math.floor(Date.now() / (ROTATION_MINUTES * 60 * 1000));
     const nextRotation = new Date((currentSlotStart + 1) * ROTATION_MINUTES * 60 * 1000);
 
+    res.set('Cache-Control', 'public, max-age=660');
     res.json({
       item: { ...item, price: item.price.toString() },
       strategy: strategy.label,
@@ -303,7 +304,7 @@ router.get(
 
       if (!item) {
         res.status(404).json({
-          error: 'Not Found',
+          error: 'NotFound',
           message: `Item with id "${id}" not found`,
         });
         return;
@@ -358,7 +359,7 @@ router.post(
 
       if (!game) {
         res.status(404).json({
-          error: 'Not Found',
+          error: 'NotFound',
           message: `Game with id "${gameId}" not found`,
         });
         return;
@@ -377,7 +378,7 @@ router.post(
         parsedPrice = parseBigIntNonNegative(price, 'price');
       } catch (err) {
         if (err instanceof ParseBigIntError) {
-          res.status(400).json({ error: 'Bad Request', message: err.message });
+          res.status(400).json({ error: 'BadRequest', message: err.message });
           return;
         }
         throw err;
@@ -586,7 +587,7 @@ router.post(
       if (error instanceof Error && 'statusCode' in error) {
         const statusCode = (error as Error & { statusCode: number }).statusCode;
         res.status(statusCode).json({
-          error: statusCode === 404 ? 'Not Found' : 'Bad Request',
+          error: statusCode === 404 ? 'NotFound' : 'BadRequest',
           message: error.message,
         });
         return;

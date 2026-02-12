@@ -1,7 +1,10 @@
 import { expect } from "chai";
 import { anyValue } from "@nomicfoundation/hardhat-chai-matchers/withArgs";
 import { ethers } from "hardhat";
-import { loadFixture } from "@nomicfoundation/hardhat-toolbox/network-helpers";
+import {
+  loadFixture,
+  time,
+} from "@nomicfoundation/hardhat-toolbox/network-helpers";
 
 describe("GameMarketplace", function () {
   const INITIAL_SUPPLY = ethers.parseEther("10000000"); // 10 million
@@ -858,12 +861,70 @@ describe("GameMarketplace", function () {
   // Admin Functions
   // ================================================================
   describe("Admin Functions", function () {
-    it("Should allow owner to set treasury", async function () {
+    it("Should propose treasury change via setTreasury", async function () {
       const { marketplace, other } =
         await loadFixture(deployMarketplaceFixture);
 
       await marketplace.setTreasury(other.address);
+      expect(await marketplace.pendingTreasury()).to.equal(other.address);
+    });
+
+    it("Should not change treasury immediately", async function () {
+      const { marketplace, treasury, other } =
+        await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.setTreasury(other.address);
+      expect(await marketplace.treasury()).to.equal(treasury.address);
+    });
+
+    it("Should confirm treasury after 24 hours", async function () {
+      const { marketplace, other } =
+        await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeTreasury(other.address);
+      await time.increase(24 * 60 * 60);
+      await marketplace.confirmTreasury();
+
       expect(await marketplace.treasury()).to.equal(other.address);
+      expect(await marketplace.pendingTreasury()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("Should emit TreasuryChangeProposed on propose", async function () {
+      const { marketplace, other } =
+        await loadFixture(deployMarketplaceFixture);
+
+      await expect(marketplace.proposeTreasury(other.address))
+        .to.emit(marketplace, "TreasuryChangeProposed");
+    });
+
+    it("Should emit TreasuryChangeConfirmed on confirm", async function () {
+      const { marketplace, treasury, other } =
+        await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeTreasury(other.address);
+      await time.increase(24 * 60 * 60);
+
+      await expect(marketplace.confirmTreasury())
+        .to.emit(marketplace, "TreasuryChangeConfirmed")
+        .withArgs(treasury.address, other.address);
+    });
+
+    it("Should revert confirmTreasury before 24 hours", async function () {
+      const { marketplace, other } =
+        await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeTreasury(other.address);
+      await time.increase(23 * 60 * 60);
+
+      await expect(marketplace.confirmTreasury())
+        .to.be.revertedWith("Timelock not elapsed");
+    });
+
+    it("Should revert confirmTreasury with no pending change", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await expect(marketplace.confirmTreasury())
+        .to.be.revertedWith("No pending treasury change");
     });
 
     it("Should revert setting treasury to zero address", async function () {
@@ -1003,6 +1064,126 @@ describe("GameMarketplace", function () {
       expect(
         await marketplace.getConsumableBalance(buyer.address, "item-001")
       ).to.equal(0);
+    });
+  });
+
+  // ================================================================
+  // MAX_ITEMS_PER_GAME
+  // ================================================================
+  describe("MAX_ITEMS_PER_GAME", function () {
+    it("Should have MAX_ITEMS_PER_GAME constant of 1000", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+      expect(await marketplace.MAX_ITEMS_PER_GAME()).to.equal(1000);
+    });
+
+    it("Should allow creating items up to the cap", async function () {
+      const { marketplace, creator } = await loadFixture(deployWithGameFixture);
+
+      // Create a few items, verify they succeed
+      for (let i = 0; i < 3; i++) {
+        await marketplace
+          .connect(creator)
+          .createItem(
+            `cap-item-${i}`,
+            "game-001",
+            ethers.parseEther("10"),
+            0,
+            0 // Cosmetic
+          );
+      }
+
+      const items = await marketplace.getGameItems("game-001");
+      expect(items.length).to.equal(3);
+    });
+  });
+
+  // ================================================================
+  // Emergency MBUCKS Recovery
+  // ================================================================
+  describe("Emergency MBUCKS Recovery", function () {
+    it("Should propose recovery", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      const amount = ethers.parseEther("1000");
+      await marketplace.proposeRecovery(amount);
+
+      expect(await marketplace.recoveryPending()).to.equal(true);
+      expect(await marketplace.pendingRecoveryAmount()).to.equal(amount);
+    });
+
+    it("Should emit RecoveryProposed event", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      const amount = ethers.parseEther("1000");
+      await expect(marketplace.proposeRecovery(amount))
+        .to.emit(marketplace, "RecoveryProposed");
+    });
+
+    it("Should execute recovery after 7 days", async function () {
+      const { token, marketplace, owner } =
+        await loadFixture(deployMarketplaceFixture);
+
+      const amount = ethers.parseEther("500");
+      await token.transfer(await marketplace.getAddress(), amount);
+
+      await marketplace.proposeRecovery(amount);
+      await time.increase(7 * 24 * 60 * 60);
+
+      const ownerBalBefore = await token.balanceOf(owner.address);
+      await marketplace.executeRecovery();
+
+      expect(await token.balanceOf(owner.address)).to.equal(ownerBalBefore + amount);
+      expect(await marketplace.recoveryPending()).to.equal(false);
+    });
+
+    it("Should revert execute before 7 days", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeRecovery(ethers.parseEther("100"));
+      await time.increase(6 * 24 * 60 * 60);
+
+      await expect(marketplace.executeRecovery())
+        .to.be.revertedWith("Recovery timelock not elapsed");
+    });
+
+    it("Should revert execute with no pending recovery", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await expect(marketplace.executeRecovery())
+        .to.be.revertedWith("No pending recovery");
+    });
+
+    it("Should cancel recovery", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeRecovery(ethers.parseEther("100"));
+      await marketplace.cancelRecovery();
+
+      expect(await marketplace.recoveryPending()).to.equal(false);
+    });
+
+    it("Should emit RecoveryCancelled event", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await marketplace.proposeRecovery(ethers.parseEther("100"));
+
+      await expect(marketplace.cancelRecovery())
+        .to.emit(marketplace, "RecoveryCancelled");
+    });
+
+    it("Should revert cancel with no pending recovery", async function () {
+      const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+      await expect(marketplace.cancelRecovery())
+        .to.be.revertedWith("No pending recovery");
+    });
+
+    it("Should revert when non-owner proposes recovery", async function () {
+      const { marketplace, other } = await loadFixture(deployMarketplaceFixture);
+
+      await expect(
+        marketplace.connect(other).proposeRecovery(ethers.parseEther("100"))
+      ).to.be.revertedWithCustomError(marketplace, "OwnableUnauthorizedAccount");
     });
   });
 });

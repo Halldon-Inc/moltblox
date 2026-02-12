@@ -77,6 +77,27 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     mapping(string => uint256) public participantEntryFees; // Total fees collected
     mapping(string => uint256) public originalPrizePool; // SC1: Track sponsor's original deposit
 
+    // Donation tracking for addToPrizePool refunds
+    mapping(string => mapping(address => uint256)) public contributions;
+    mapping(string => address[]) private contributorList;
+    mapping(string => mapping(address => bool)) private isContributor;
+
+    // Treasury timelock (2-step change)
+    address public pendingTreasury;
+    uint256 public treasuryChangeTime;
+
+    // Emergency MBUCKS recovery (7-day timelock)
+    uint256 public pendingRecoveryAmount;
+    uint256 public recoveryProposalTime;
+    bool public recoveryPending;
+
+    // Commit-reveal for tournament completion
+    struct ResultCommit {
+        bytes32 resultHash;
+        uint256 commitBlock;
+    }
+    mapping(string => ResultCommit) public resultCommits;
+
     // Events
     event TournamentCreated(
         string indexed tournamentId,
@@ -119,6 +140,22 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     event TournamentCancelled(string indexed tournamentId, string reason);
     event RefundIssued(string indexed tournamentId, address indexed participant, uint256 amount);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
+
+    // Donation tracking events
+    event PrizePoolContribution(string indexed tournamentId, address indexed donor, uint256 amount);
+    event DonationRefunded(string indexed tournamentId, address indexed donor, uint256 amount);
+
+    // Treasury timelock events
+    event TreasuryChangeProposed(address indexed newTreasury, uint256 effectiveTime);
+    event TreasuryChangeConfirmed(address indexed oldTreasury, address indexed newTreasury);
+
+    // Emergency recovery events
+    event RecoveryProposed(uint256 amount, uint256 effectiveTime);
+    event RecoveryExecuted(uint256 amount);
+    event RecoveryCancelled();
+
+    // Commit-reveal events
+    event ResultsCommitted(string indexed tournamentId, bytes32 resultHash, uint256 commitBlock);
 
     constructor(address _moltbucks, address _treasury) Ownable(msg.sender) {
         require(_moltbucks != address(0), "Invalid token address");
@@ -403,126 +440,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         address second,
         address third
     ) external nonReentrant whenNotPaused {
-        Tournament storage t = tournaments[tournamentId];
-        require(
-            t.sponsor == msg.sender || owner() == msg.sender,
-            "Not authorized"
-        );
-        require(t.status == TournamentStatus.Active, "Not active");
-        require(!t.prizesDistributed, "Already distributed");
-
-        // Verify winners are participants
-        require(isParticipant[tournamentId][first], "1st not participant");
-        require(isParticipant[tournamentId][second], "2nd not participant");
-
-        // Add entry fees to the total pool for non-community tournaments
-        uint256 totalPool = t.prizePool;
-        uint256 collectedFees = participantEntryFees[tournamentId];
-        if (t.tournamentType != TournamentType.CommunitySponsored && collectedFees > 0) {
-            totalPool += collectedFees;
-        }
-
-        uint256 numParticipants = t.currentParticipants;
-
-        if (numParticipants == 2) {
-            // 2-player tournament: third must be address(0)
-            require(third == address(0), "Use address(0) for 3rd in 2-player tournament");
-            require(first != second, "Duplicate winner");
-
-            t.winners = new address[](2);
-            t.winners[0] = first;
-            t.winners[1] = second;
-            t.status = TournamentStatus.Completed;
-
-            // 2-player split: 70% first, 30% second
-            uint256 firstPrize = (totalPool * 70) / 100;
-            uint256 secondPrize = totalPool - firstPrize;
-
-            moltbucks.safeTransfer(first, firstPrize);
-            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
-
-            moltbucks.safeTransfer(second, secondPrize);
-            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
-
-        } else if (numParticipants == 3) {
-            // 3-player tournament: all three must be valid participants, no participation pool
-            require(third != address(0), "3rd cannot be zero address");
-            require(first != second && first != third && second != third, "Duplicate winner");
-            require(isParticipant[tournamentId][third], "3rd not participant");
-
-            t.winners = new address[](3);
-            t.winners[0] = first;
-            t.winners[1] = second;
-            t.winners[2] = third;
-            t.status = TournamentStatus.Completed;
-
-            // 3-player split: use distribution but no participation pool
-            // Redistribute participation% proportionally: first gets 50+10*50/90, etc.
-            uint256 firstPrize = (totalPool * t.distribution.first) / (100 - t.distribution.participation);
-            uint256 secondPrize = (totalPool * t.distribution.second) / (100 - t.distribution.participation);
-            uint256 thirdPrize = totalPool - firstPrize - secondPrize;
-
-            moltbucks.safeTransfer(first, firstPrize);
-            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
-
-            moltbucks.safeTransfer(second, secondPrize);
-            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
-
-            moltbucks.safeTransfer(third, thirdPrize);
-            emit PrizeDistributed(tournamentId, third, 3, thirdPrize);
-
-        } else {
-            // 4+ player tournament: standard 3-winner + participation rewards
-            require(third != address(0), "3rd cannot be zero address");
-            require(first != second && first != third && second != third, "Duplicate winner");
-            require(isParticipant[tournamentId][third], "3rd not participant");
-
-            t.winners = new address[](3);
-            t.winners[0] = first;
-            t.winners[1] = second;
-            t.winners[2] = third;
-            t.status = TournamentStatus.Completed;
-
-            // Calculate prizes using distribution percentages
-            uint256 firstPrize = (totalPool * t.distribution.first) / 100;
-            uint256 secondPrize = (totalPool * t.distribution.second) / 100;
-            uint256 thirdPrize = (totalPool * t.distribution.third) / 100;
-            uint256 participationPool = totalPool - firstPrize - secondPrize - thirdPrize;
-
-            // AUTO-PAYOUT: Send prizes directly to winner wallets
-            moltbucks.safeTransfer(first, firstPrize);
-            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
-
-            moltbucks.safeTransfer(second, secondPrize);
-            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
-
-            moltbucks.safeTransfer(third, thirdPrize);
-            emit PrizeDistributed(tournamentId, third, 3, thirdPrize);
-
-            // Distribute participation rewards to non-winners
-            uint256 nonWinnerCount = numParticipants - 3;
-            if (nonWinnerCount > 0 && participationPool > 0) {
-                uint256 participationReward = participationPool / nonWinnerCount;
-
-                for (uint256 i = 0; i < t.participants.length; i++) {
-                    address participant = t.participants[i];
-                    if (participant != first && participant != second && participant != third) {
-                        moltbucks.safeTransfer(participant, participationReward);
-                        emit ParticipationRewardDistributed(tournamentId, participant, participationReward);
-                    }
-                }
-
-                // Send any remaining dust to the first winner
-                uint256 remaining = participationPool - (participationReward * nonWinnerCount);
-                if (remaining > 0) {
-                    moltbucks.safeTransfer(first, remaining);
-                }
-            }
-        }
-
-        t.prizesDistributed = true;
-
-        emit TournamentCompleted(tournamentId, first, second, third);
+        _distributePrizes(tournamentId, first, second, third);
     }
 
     /**
@@ -556,6 +474,18 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         uint256 sponsorRefund = originalPrizePool[tournamentId];
         if (sponsorRefund > 0) {
             moltbucks.safeTransfer(t.sponsor, sponsorRefund);
+        }
+
+        // Refund third-party donations
+        address[] storage donors = contributorList[tournamentId];
+        for (uint256 i = 0; i < donors.length; i++) {
+            address donor = donors[i];
+            uint256 donorAmount = contributions[tournamentId][donor];
+            if (donorAmount > 0) {
+                contributions[tournamentId][donor] = 0;
+                moltbucks.safeTransfer(donor, donorAmount);
+                emit DonationRefunded(tournamentId, donor, donorAmount);
+            }
         }
 
         emit TournamentCancelled(tournamentId, reason);
@@ -609,10 +539,24 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     // ============ Admin Functions ============
 
     function setTreasury(address _treasury) external onlyOwner {
-        require(_treasury != address(0), "Invalid treasury address");
+        proposeTreasury(_treasury);
+    }
+
+    function proposeTreasury(address _newTreasury) public onlyOwner {
+        require(_newTreasury != address(0), "Invalid treasury address");
+        pendingTreasury = _newTreasury;
+        treasuryChangeTime = block.timestamp;
+        emit TreasuryChangeProposed(_newTreasury, block.timestamp + 24 hours);
+    }
+
+    function confirmTreasury() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        require(block.timestamp >= treasuryChangeTime + 24 hours, "Timelock not elapsed");
         address oldTreasury = treasury;
-        treasury = _treasury;
-        emit TreasuryUpdated(oldTreasury, _treasury);
+        treasury = pendingTreasury;
+        pendingTreasury = address(0);
+        treasuryChangeTime = 0;
+        emit TreasuryChangeConfirmed(oldTreasury, treasury);
     }
 
     function pause() external onlyOwner {
@@ -635,6 +579,15 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
         moltbucks.safeTransferFrom(msg.sender, address(this), amount);
         t.prizePool += amount;
+
+        // Track contribution for refund on cancel
+        contributions[tournamentId][msg.sender] += amount;
+        if (!isContributor[tournamentId][msg.sender]) {
+            contributorList[tournamentId].push(msg.sender);
+            isContributor[tournamentId][msg.sender] = true;
+        }
+
+        emit PrizePoolContribution(tournamentId, msg.sender, amount);
     }
 
     /**
@@ -647,5 +600,193 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(address(token) != address(moltbucks), "Cannot recover MBUCKS");
         require(to != address(0), "Invalid recipient");
         token.safeTransfer(to, amount);
+    }
+
+    // ============ Emergency MBUCKS Recovery (7-day timelock) ============
+
+    function proposeRecovery(uint256 amount) external onlyOwner {
+        require(amount > 0, "Amount must be positive");
+        pendingRecoveryAmount = amount;
+        recoveryProposalTime = block.timestamp;
+        recoveryPending = true;
+        emit RecoveryProposed(amount, block.timestamp + 7 days);
+    }
+
+    function executeRecovery() external onlyOwner {
+        require(recoveryPending, "No pending recovery");
+        require(block.timestamp >= recoveryProposalTime + 7 days, "Recovery timelock not elapsed");
+        uint256 amount = pendingRecoveryAmount;
+        pendingRecoveryAmount = 0;
+        recoveryProposalTime = 0;
+        recoveryPending = false;
+        moltbucks.safeTransfer(owner(), amount);
+        emit RecoveryExecuted(amount);
+    }
+
+    function cancelRecovery() external onlyOwner {
+        require(recoveryPending, "No pending recovery");
+        pendingRecoveryAmount = 0;
+        recoveryProposalTime = 0;
+        recoveryPending = false;
+        emit RecoveryCancelled();
+    }
+
+    // ============ Commit-Reveal for Tournament Completion ============
+
+    function commitResults(string calldata tournamentId, bytes32 resultHash) external {
+        Tournament storage t = tournaments[tournamentId];
+        require(
+            t.sponsor == msg.sender || owner() == msg.sender,
+            "Not authorized"
+        );
+        require(t.status == TournamentStatus.Active, "Not active");
+        require(resultCommits[tournamentId].commitBlock == 0, "Already committed");
+
+        resultCommits[tournamentId] = ResultCommit({
+            resultHash: resultHash,
+            commitBlock: block.number
+        });
+
+        emit ResultsCommitted(tournamentId, resultHash, block.number);
+    }
+
+    function revealResults(
+        string calldata tournamentId,
+        address first,
+        address second,
+        address third,
+        bytes32 salt
+    ) external nonReentrant whenNotPaused {
+        ResultCommit storage commit = resultCommits[tournamentId];
+        require(commit.commitBlock > 0, "No committed results");
+        require(block.number > commit.commitBlock, "Must wait at least one block");
+
+        bytes32 expectedHash = keccak256(abi.encodePacked(tournamentId, first, second, third, salt));
+        require(expectedHash == commit.resultHash, "Hash mismatch");
+
+        // Clear commit
+        commit.resultHash = bytes32(0);
+        commit.commitBlock = 0;
+
+        // Proceed with existing prize distribution logic
+        _distributePrizes(tournamentId, first, second, third);
+    }
+
+    function _distributePrizes(
+        string calldata tournamentId,
+        address first,
+        address second,
+        address third
+    ) internal {
+        Tournament storage t = tournaments[tournamentId];
+        require(
+            t.sponsor == msg.sender || owner() == msg.sender,
+            "Not authorized"
+        );
+        require(t.status == TournamentStatus.Active, "Not active");
+        require(!t.prizesDistributed, "Already distributed");
+
+        // Verify winners are participants
+        require(isParticipant[tournamentId][first], "1st not participant");
+        require(isParticipant[tournamentId][second], "2nd not participant");
+
+        // Add entry fees to the total pool for non-community tournaments
+        uint256 totalPool = t.prizePool;
+        uint256 collectedFees = participantEntryFees[tournamentId];
+        if (t.tournamentType != TournamentType.CommunitySponsored && collectedFees > 0) {
+            totalPool += collectedFees;
+        }
+
+        uint256 numParticipants = t.currentParticipants;
+
+        if (numParticipants == 2) {
+            require(third == address(0), "Use address(0) for 3rd in 2-player tournament");
+            require(first != second, "Duplicate winner");
+
+            t.winners = new address[](2);
+            t.winners[0] = first;
+            t.winners[1] = second;
+            t.status = TournamentStatus.Completed;
+
+            uint256 firstPrize = (totalPool * 70) / 100;
+            uint256 secondPrize = totalPool - firstPrize;
+
+            moltbucks.safeTransfer(first, firstPrize);
+            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
+
+            moltbucks.safeTransfer(second, secondPrize);
+            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
+
+        } else if (numParticipants == 3) {
+            require(third != address(0), "3rd cannot be zero address");
+            require(first != second && first != third && second != third, "Duplicate winner");
+            require(isParticipant[tournamentId][third], "3rd not participant");
+
+            t.winners = new address[](3);
+            t.winners[0] = first;
+            t.winners[1] = second;
+            t.winners[2] = third;
+            t.status = TournamentStatus.Completed;
+
+            uint256 firstPrize = (totalPool * t.distribution.first) / (100 - t.distribution.participation);
+            uint256 secondPrize = (totalPool * t.distribution.second) / (100 - t.distribution.participation);
+            uint256 thirdPrize = totalPool - firstPrize - secondPrize;
+
+            moltbucks.safeTransfer(first, firstPrize);
+            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
+
+            moltbucks.safeTransfer(second, secondPrize);
+            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
+
+            moltbucks.safeTransfer(third, thirdPrize);
+            emit PrizeDistributed(tournamentId, third, 3, thirdPrize);
+
+        } else {
+            require(third != address(0), "3rd cannot be zero address");
+            require(first != second && first != third && second != third, "Duplicate winner");
+            require(isParticipant[tournamentId][third], "3rd not participant");
+
+            t.winners = new address[](3);
+            t.winners[0] = first;
+            t.winners[1] = second;
+            t.winners[2] = third;
+            t.status = TournamentStatus.Completed;
+
+            uint256 firstPrize = (totalPool * t.distribution.first) / 100;
+            uint256 secondPrize = (totalPool * t.distribution.second) / 100;
+            uint256 thirdPrize = (totalPool * t.distribution.third) / 100;
+            uint256 participationPool = totalPool - firstPrize - secondPrize - thirdPrize;
+
+            moltbucks.safeTransfer(first, firstPrize);
+            emit PrizeDistributed(tournamentId, first, 1, firstPrize);
+
+            moltbucks.safeTransfer(second, secondPrize);
+            emit PrizeDistributed(tournamentId, second, 2, secondPrize);
+
+            moltbucks.safeTransfer(third, thirdPrize);
+            emit PrizeDistributed(tournamentId, third, 3, thirdPrize);
+
+            uint256 nonWinnerCount = numParticipants - 3;
+            if (nonWinnerCount > 0 && participationPool > 0) {
+                uint256 participationReward = participationPool / nonWinnerCount;
+
+                for (uint256 i = 0; i < t.participants.length; i++) {
+                    address participant = t.participants[i];
+                    if (participant != first && participant != second && participant != third) {
+                        moltbucks.safeTransfer(participant, participationReward);
+                        emit ParticipationRewardDistributed(tournamentId, participant, participationReward);
+                    }
+                }
+
+                uint256 remaining = participationPool - (participationReward * nonWinnerCount);
+                if (remaining > 0) {
+                    moltbucks.safeTransfer(first, remaining);
+                }
+            }
+        }
+
+        t.prizesDistributed = true;
+
+        emit TournamentCompleted(tournamentId, first, second, third);
     }
 }

@@ -220,7 +220,7 @@ router.get(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -330,7 +330,7 @@ router.put(
       });
 
       if (!existing) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -410,6 +410,17 @@ router.put(
         throw err;
       }
 
+      // Reward reputation when a game is published
+      if (status === 'published') {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            reputationCreator: { increment: 5 },
+            reputationTotal: { increment: 5 },
+          },
+        });
+      }
+
       res.json({
         ...serializeGame(game),
         message: 'Game updated successfully',
@@ -443,18 +454,20 @@ router.get(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
-      // Rating distribution from GameRating model
-      const [rating1, rating2, rating3, rating4, rating5] = await Promise.all([
-        prisma.gameRating.count({ where: { gameId: id, rating: 1 } }),
-        prisma.gameRating.count({ where: { gameId: id, rating: 2 } }),
-        prisma.gameRating.count({ where: { gameId: id, rating: 3 } }),
-        prisma.gameRating.count({ where: { gameId: id, rating: 4 } }),
-        prisma.gameRating.count({ where: { gameId: id, rating: 5 } }),
-      ]);
+      // Rating distribution from GameRating model (single groupBy instead of N+1)
+      const ratingGroups = await prisma.gameRating.groupBy({
+        by: ['rating'],
+        where: { gameId: id },
+        _count: { id: true },
+      });
+      const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+      for (const g of ratingGroups) {
+        ratingDistribution[g.rating] = g._count.id;
+      }
 
       // Purchase/revenue aggregation
       const purchaseStats = await prisma.purchase.aggregate({
@@ -486,13 +499,7 @@ router.get(
         ratings: {
           average: game.averageRating,
           count: game.ratingCount,
-          distribution: {
-            1: rating1,
-            2: rating2,
-            3: rating3,
-            4: rating4,
-            5: rating5,
-          },
+          distribution: ratingDistribution,
         },
       });
     } catch (error) {
@@ -524,7 +531,7 @@ router.post(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -571,6 +578,16 @@ router.post(
         });
       });
 
+      // Reward reputation for rating a game
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          reputationPlayer: { increment: 1 },
+          reputationCommunity: { increment: 1 },
+          reputationTotal: { increment: 2 },
+        },
+      });
+
       res.json({
         gameId: id,
         rating,
@@ -607,7 +624,7 @@ router.post(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -683,7 +700,7 @@ router.get(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 

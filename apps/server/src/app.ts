@@ -44,6 +44,8 @@ app.use(
         styleSrc: ["'self'", "'unsafe-inline'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'wss:', 'https:'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       },
     },
   }),

@@ -32,7 +32,7 @@ router.get(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -80,7 +80,7 @@ router.post(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -95,7 +95,7 @@ router.post(
       if (userId === user.id) {
         res
           .status(400)
-          .json({ error: 'Validation error', message: 'Cannot add yourself as a collaborator' });
+          .json({ error: 'BadRequest', message: 'Cannot add yourself as a collaborator' });
         return;
       }
 
@@ -106,7 +106,7 @@ router.post(
       });
 
       if (!targetUser) {
-        res.status(404).json({ error: 'Not found', message: 'Target user not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Target user not found' });
         return;
       }
 
@@ -175,7 +175,7 @@ router.delete(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -192,7 +192,7 @@ router.delete(
       });
 
       if (!collaborator) {
-        res.status(404).json({ error: 'Not found', message: 'Collaborator not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Collaborator not found' });
         return;
       }
 
@@ -228,7 +228,7 @@ router.patch(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -246,7 +246,7 @@ router.patch(
       });
 
       if (!existing) {
-        res.status(404).json({ error: 'Not found', message: 'Collaborator not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Collaborator not found' });
         return;
       }
 

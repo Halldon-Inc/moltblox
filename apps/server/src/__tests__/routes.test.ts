@@ -92,6 +92,28 @@ vi.mock('../lib/redis.js', () => ({
   },
 }));
 
+vi.mock('rate-limit-redis', () => ({
+  RedisStore: class MockRedisStore {
+    constructor() {}
+    init() {}
+    increment() {
+      return Promise.resolve({ totalHits: 1, resetTime: new Date() });
+    }
+    decrement() {
+      return Promise.resolve();
+    }
+    resetKey() {
+      return Promise.resolve();
+    }
+    resetAll() {
+      return Promise.resolve();
+    }
+    get() {
+      return Promise.resolve({ totalHits: 0, resetTime: new Date() });
+    }
+  },
+}));
+
 // Import after mocks are set up
 import { signToken } from '../middleware/auth.js';
 import gamesRouter from '../routes/games.js';
@@ -230,7 +252,7 @@ describe('Games Routes', () => {
     it('should return a game list with pagination', async () => {
       const fakeGames = [
         {
-          id: '00000000-0000-0000-0000-000000000001',
+          id: 'clgame00000000000000000001',
           name: 'Test Game',
           totalRevenue: BigInt(1000),
           creator: { username: 'bot1', displayName: 'Bot One', walletAddress: '0xabc' },
@@ -296,7 +318,7 @@ describe('Games Routes', () => {
   // ── GET /games/:id ────────────────────────────────────────────────────
 
   describe('GET /games/:id', () => {
-    const validId = '00000000-0000-0000-0000-000000000001';
+    const validId = 'clgame00000000000000000001';
 
     it('should return a game by ID', async () => {
       const fakeGame = {
@@ -319,7 +341,7 @@ describe('Games Routes', () => {
 
       const res = await request(app, 'GET', `/games/${validId}`);
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Not found');
+      expect(res.body.error).toBe('NotFound');
     });
 
     it('should return 400 for invalid UUID', async () => {
@@ -364,7 +386,7 @@ describe('Games Routes', () => {
       (mockPrisma as any).user = { findUnique: vi.fn().mockResolvedValue(botUser) };
 
       const fakeGame = {
-        id: '00000000-0000-0000-0000-000000000099',
+        id: 'clgame00000000000000000099',
         name: 'New Game',
         slug: 'new-game',
         description: 'A test game',
@@ -430,7 +452,7 @@ describe('Marketplace Routes', () => {
     it('should return item list with pagination', async () => {
       const fakeItems = [
         {
-          id: '00000000-0000-0000-0000-000000000010',
+          id: 'clitem0000000000000000010',
           name: 'Cool Sword',
           price: BigInt(1000000000000000000),
           active: true,
@@ -473,7 +495,7 @@ describe('Marketplace Routes', () => {
   // ── GET /marketplace/items/:id ────────────────────────────────────────
 
   describe('GET /marketplace/items/:id', () => {
-    const validId = '00000000-0000-0000-0000-000000000010';
+    const validId = 'clitem0000000000000000010';
 
     it('should return item details', async () => {
       const fakeItem = {
@@ -496,7 +518,7 @@ describe('Marketplace Routes', () => {
 
       const res = await request(app, 'GET', `/marketplace/items/${validId}`);
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Not Found');
+      expect(res.body.error).toBe('NotFound');
     });
   });
 
@@ -506,7 +528,7 @@ describe('Marketplace Routes', () => {
     it('should require authentication', async () => {
       const res = await request(app, 'POST', '/marketplace/items', {
         body: {
-          gameId: '00000000-0000-0000-0000-000000000001',
+          gameId: 'clgame00000000000000000001',
           name: 'Item',
           description: 'An item',
           price: '100',
@@ -521,7 +543,7 @@ describe('Marketplace Routes', () => {
       const headers = authHeaderFor(humanUser.id, humanUser.walletAddress);
       const res = await request(app, 'POST', '/marketplace/items', {
         body: {
-          gameId: '00000000-0000-0000-0000-000000000001',
+          gameId: 'clgame00000000000000000001',
           name: 'Item',
           description: 'An item',
           price: '100',
@@ -534,14 +556,14 @@ describe('Marketplace Routes', () => {
     it('should allow bot to create items for their own game', async () => {
       (mockPrisma as any).user = { findUnique: vi.fn().mockResolvedValue(botUser) };
 
-      const gameId = '00000000-0000-0000-0000-000000000001';
+      const gameId = 'clgame00000000000000000001';
       mockPrisma.game.findUnique.mockResolvedValue({
         id: gameId,
         creatorId: botUser.id,
       });
 
       const fakeItem = {
-        id: '00000000-0000-0000-0000-000000000020',
+        id: 'clitem0000000000000000020',
         gameId,
         name: 'Cool Sword',
         description: 'A sword',
@@ -573,7 +595,7 @@ describe('Marketplace Routes', () => {
     it('should reject creating items for games you do not own', async () => {
       (mockPrisma as any).user = { findUnique: vi.fn().mockResolvedValue(botUser) };
 
-      const gameId = '00000000-0000-0000-0000-000000000001';
+      const gameId = 'clgame00000000000000000001';
       mockPrisma.game.findUnique.mockResolvedValue({
         id: gameId,
         creatorId: 'someone-else',
@@ -596,7 +618,7 @@ describe('Marketplace Routes', () => {
   // ── POST /marketplace/items/:id/purchase ──────────────────────────────
 
   describe('POST /marketplace/items/:id/purchase', () => {
-    const itemId = '00000000-0000-0000-0000-000000000010';
+    const itemId = 'clitem0000000000000000010';
 
     it('should require authentication', async () => {
       const res = await request(app, 'POST', `/marketplace/items/${itemId}/purchase`, {
@@ -683,7 +705,7 @@ describe('Tournament Routes', () => {
     it('should return tournament list with pagination', async () => {
       const fakeTournaments = [
         {
-          id: '00000000-0000-0000-0000-000000000030',
+          id: 'cltournament000000000030',
           name: 'Weekly Showdown',
           prizePool: BigInt(10000),
           entryFee: BigInt(100),
@@ -747,7 +769,7 @@ describe('Tournament Routes', () => {
   // ── GET /tournaments/:id ──────────────────────────────────────────────
 
   describe('GET /tournaments/:id', () => {
-    const validId = '00000000-0000-0000-0000-000000000030';
+    const validId = 'cltournament000000000030';
 
     it('should return tournament details', async () => {
       const fakeTournament = {
@@ -790,7 +812,7 @@ describe('Tournament Routes', () => {
 
       const res = await request(app, 'GET', `/tournaments/${validId}`);
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Not found');
+      expect(res.body.error).toBe('NotFound');
     });
 
     it('should return 400 for invalid UUID', async () => {
@@ -806,7 +828,7 @@ describe('Tournament Routes', () => {
     const validTournamentBody = {
       name: 'Weekly Showdown',
       description: 'A weekly tournament for all players',
-      gameId: '00000000-0000-0000-0000-000000000001',
+      gameId: 'clgame00000000000000000001',
       maxParticipants: 16,
       registrationStart: '2026-03-01T00:00:00Z',
       registrationEnd: '2026-03-05T00:00:00Z',
@@ -837,7 +859,7 @@ describe('Tournament Routes', () => {
       mockPrisma.game.findUnique.mockResolvedValue({ id: validTournamentBody.gameId });
 
       const fakeTournament = {
-        id: '00000000-0000-0000-0000-000000000040',
+        id: 'cltournament000000000040',
         ...validTournamentBody,
         prizePool: BigInt(0),
         entryFee: BigInt(0),
@@ -887,7 +909,7 @@ describe('Tournament Routes', () => {
   // ── POST /tournaments/:id/register ────────────────────────────────────
 
   describe('POST /tournaments/:id/register', () => {
-    const tournamentId = '00000000-0000-0000-0000-000000000030';
+    const tournamentId = 'cltournament000000000030';
 
     it('should require authentication', async () => {
       const res = await request(app, 'POST', `/tournaments/${tournamentId}/register`, {

@@ -28,10 +28,14 @@ const router: Router = Router();
  */
 router.get('/submolts', async (req: Request, res: Response, next: NextFunction) => {
   try {
+    const limit = Math.min(Math.max(1, parseInt(req.query.limit as string) || 50), 100);
+    const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+
     const submolts = await prisma.submolt.findMany({
       where: { active: true },
       orderBy: { memberCount: 'desc' },
-      take: 100,
+      take: limit,
+      skip: offset,
       include: {
         _count: {
           select: { posts: true, games: true },
@@ -66,7 +70,7 @@ router.get(
       });
 
       if (!submolt) {
-        res.status(404).json({ error: 'Not found', message: `Submolt "${slug}" does not exist` });
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
         return;
       }
 
@@ -126,14 +130,14 @@ router.post(
       const submolt = await prisma.submolt.findUnique({ where: { slug } });
 
       if (!submolt) {
-        res.status(404).json({ error: 'Not found', message: `Submolt "${slug}" does not exist` });
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
         return;
       }
 
       const { title, content, type, gameId, tournamentId } = req.body;
 
       if (!title || !content) {
-        res.status(400).json({ error: 'Bad request', message: 'title and content are required' });
+        res.status(400).json({ error: 'BadRequest', message: 'title and content are required' });
         return;
       }
 
@@ -152,6 +156,15 @@ router.post(
       await prisma.submolt.update({
         where: { id: submolt.id },
         data: { postCount: { increment: 1 } },
+      });
+
+      // Reward reputation for creating a post
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          reputationCommunity: { increment: 1 },
+          reputationTotal: { increment: 1 },
+        },
       });
 
       res.status(201).json(post);
@@ -188,7 +201,7 @@ router.get(
       });
 
       if (!post || post.deleted) {
-        res.status(404).json({ error: 'Not found', message: 'Post not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Post not found' });
         return;
       }
 
@@ -232,14 +245,14 @@ router.post(
       const { content, parentId } = req.body;
 
       if (!content) {
-        res.status(400).json({ error: 'Bad request', message: 'content is required' });
+        res.status(400).json({ error: 'BadRequest', message: 'content is required' });
         return;
       }
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
 
       if (!post || post.deleted) {
-        res.status(404).json({ error: 'Not found', message: 'Post not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Post not found' });
         return;
       }
 
@@ -282,14 +295,14 @@ router.post(
       const { value } = req.body;
 
       if (value !== 1 && value !== -1) {
-        res.status(400).json({ error: 'Bad request', message: 'value must be 1 or -1' });
+        res.status(400).json({ error: 'BadRequest', message: 'value must be 1 or -1' });
         return;
       }
 
       const post = await prisma.post.findUnique({ where: { id: postId } });
 
       if (!post || post.deleted) {
-        res.status(404).json({ error: 'Not found', message: 'Post not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Post not found' });
         return;
       }
 

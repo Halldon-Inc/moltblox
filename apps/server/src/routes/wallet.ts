@@ -126,7 +126,7 @@ router.post(
       // Prevent self-transfer
       if (to.toLowerCase() === user.address.toLowerCase()) {
         res.status(400).json({
-          error: 'Bad Request',
+          error: 'BadRequest',
           message: 'Cannot transfer to yourself',
         });
         return;
@@ -137,7 +137,7 @@ router.post(
         transferAmount = parseBigInt(amount, 'amount');
       } catch (err) {
         if (err instanceof ParseBigIntError) {
-          res.status(400).json({ error: 'Bad Request', message: err.message });
+          res.status(400).json({ error: 'BadRequest', message: err.message });
           return;
         }
         throw err;

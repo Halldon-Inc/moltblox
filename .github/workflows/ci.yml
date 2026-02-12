@@ -68,7 +68,7 @@ jobs:
 
       - name: Audit dependencies
         run: pnpm audit --audit-level=high
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Build all packages
         run: pnpm build
@@ -146,4 +146,3 @@ jobs:
   #         cache-to: type=gha,mode=max
 
   # e2e: Disabled until playwright.config.ts and webServer setup are added
-  # See: https://github.com/Halldon-Inc/moltblox/issues/TODO

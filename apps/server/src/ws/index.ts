@@ -21,6 +21,7 @@ import {
   handleDisconnect,
   broadcastToSession,
   isActiveSession,
+  rejoinSession,
 } from './sessionManager.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 import { JWT_SECRET } from '../lib/jwt.js';
@@ -52,6 +53,7 @@ const VALID_MESSAGE_TYPES = new Set([
   'spectate',
   'stop_spectating',
   'chat',
+  'reconnect',
 ]);
 
 /** Message types that require authentication before use */
@@ -445,6 +447,59 @@ async function handleMessage(
       break;
     }
 
+    // ─── Reconnection ──────────────────────────────────
+    case 'reconnect': {
+      const reconnectToken = payload.token as string;
+      const reconnectSessionId = payload.sessionId as string;
+      try {
+        const decoded = jwt.verify(reconnectToken, JWT_SECRET) as {
+          userId: string;
+          address: string;
+          jti?: string;
+        };
+
+        // Check if token has been blocklisted
+        const blocklistKey = decoded.jti || reconnectToken;
+        if (await isTokenBlocked(blocklistKey)) {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Token has been revoked' },
+          });
+          break;
+        }
+
+        client.playerId = decoded.userId;
+        const rejoined = await rejoinSession(
+          reconnectSessionId,
+          client.id,
+          decoded.userId,
+          clients,
+        );
+        if (rejoined) {
+          client.gameSessionId = reconnectSessionId;
+          sendTo(client.ws, {
+            type: 'reconnected',
+            payload: {
+              playerId: client.playerId,
+              sessionId: reconnectSessionId,
+              message: 'Reconnected to session',
+            },
+          });
+        } else {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Session not found or you are not a participant' },
+          });
+        }
+      } catch {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid or expired token' },
+        });
+      }
+      break;
+    }
+
     // ─── Chat ─────────────────────────────────────────
     case 'chat': {
       const chatSessionId = client.gameSessionId || client.spectating;
@@ -510,6 +565,10 @@ function validateMessageFields(type: string, payload: Record<string, unknown>): 
       break;
     case 'spectate':
       if (!payload.sessionId) return 'Missing required field "sessionId" for spectate message';
+      break;
+    case 'reconnect':
+      if (!payload.token) return 'Missing required field "token" for reconnect message';
+      if (!payload.sessionId) return 'Missing required field "sessionId" for reconnect message';
       break;
     case 'chat':
       if (payload.message === undefined || payload.message === null)

@@ -37,12 +37,12 @@ console.log(
 const REQUIRED_ENV: Record<string, string | undefined> = {
   DATABASE_URL: process.env.DATABASE_URL,
   JWT_SECRET: process.env.JWT_SECRET,
+  CORS_ORIGIN: process.env.CORS_ORIGIN,
 };
 
 const OPTIONAL_ENV: Record<string, string | undefined> = {
   REDIS_URL: process.env.REDIS_URL,
   SENTRY_DSN: process.env.SENTRY_DSN,
-  CORS_ORIGIN: process.env.CORS_ORIGIN,
   PORT: process.env.PORT,
   HOST: process.env.HOST,
   MOLTBOOK_APP_KEY: process.env.MOLTBOOK_APP_KEY,

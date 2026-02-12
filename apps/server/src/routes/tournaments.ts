@@ -153,7 +153,7 @@ router.get(
       });
 
       if (!tournament) {
-        res.status(404).json({ error: 'Not found', message: 'Tournament not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Tournament not found' });
         return;
       }
 
@@ -200,7 +200,7 @@ router.post(
       });
 
       if (!game) {
-        res.status(404).json({ error: 'Not found', message: 'Game not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
         return;
       }
 
@@ -217,7 +217,7 @@ router.post(
         parsedEntryFee = entryFee ? parseBigIntNonNegative(entryFee, 'entryFee') : 0n;
       } catch (err) {
         if (err instanceof ParseBigIntError) {
-          res.status(400).json({ error: 'Bad Request', message: err.message });
+          res.status(400).json({ error: 'BadRequest', message: err.message });
           return;
         }
         throw err;
@@ -381,7 +381,7 @@ router.post(
       if (error instanceof Error && 'statusCode' in error) {
         const statusCode = (error as Error & { statusCode: number }).statusCode;
         res.status(statusCode).json({
-          error: statusCode === 404 ? 'Not found' : 'Registration error',
+          error: statusCode === 404 ? 'NotFound' : statusCode === 409 ? 'Conflict' : 'BadRequest',
           message: error.message,
         });
         return;
@@ -411,7 +411,7 @@ router.get(
       });
 
       if (!tournament) {
-        res.status(404).json({ error: 'Not found', message: 'Tournament not found' });
+        res.status(404).json({ error: 'NotFound', message: 'Tournament not found' });
         return;
       }
 

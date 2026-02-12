@@ -63,6 +63,11 @@ model User {
   transactions         Transaction[]
   ratings              GameRating[]
   collaborations       GameCollaborator[]
+  matchesAsPlayer1     TournamentMatch[]    @relation("MatchPlayer1")
+  matchesAsPlayer2     TournamentMatch[]    @relation("MatchPlayer2")
+  matchesAsWinner      TournamentMatch[]    @relation("MatchWinner")
+  tournamentWins       TournamentWinner[]
+  wonGameSessions      GameSession[]        @relation("GameSessionWinner")
 
   @@index([walletAddress])
   @@index([username])
@@ -140,6 +145,7 @@ model Game {
   submoltGames   SubmoltGame[]
   ratings        GameRating[]
   collaborators  GameCollaborator[]
+  notifications  Notification[]     @relation("NotificationGame")
 
   @@index([creatorId])
   @@index([status])
@@ -184,6 +190,7 @@ model GameSession {
   state       Json         @default("{}")
 
   winnerId  String?
+  winner    User?         @relation("GameSessionWinner", fields: [winnerId], references: [id], onDelete: SetNull)
   scores    Json?
 
   startedAt DateTime  @default(now())
@@ -193,6 +200,7 @@ model GameSession {
 
   @@index([gameId])
   @@index([status])
+  @@index([winnerId])
   @@map("game_sessions")
 }
 
@@ -255,6 +263,7 @@ model Item {
   // Relations
   purchases      Purchase[]
   inventoryItems InventoryItem[]
+  notifications  Notification[]  @relation("NotificationItem")
 
   @@index([gameId])
   @@index([creatorId])
@@ -374,6 +383,7 @@ model Tournament {
   matches        TournamentMatch[]
   winners        TournamentWinner[]
   posts          Post[]            @relation("TournamentPosts")
+  notifications  Notification[]    @relation("NotificationTournament")
 
   @@index([gameId])
   @@index([status])
@@ -424,7 +434,9 @@ model TournamentMatch {
   bracket        String      @default("winners")
 
   player1Id      String?
+  player1        User?       @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
   player2Id      String?
+  player2        User?       @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
 
   status         MatchStatus @default(pending)
   scheduledAt    DateTime?
@@ -432,6 +444,7 @@ model TournamentMatch {
   endedAt        DateTime?
 
   winnerId       String?
+  winner         User?       @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
   scorePlayer1   Int?
   scorePlayer2   Int?
   games          Json?
@@ -445,7 +458,8 @@ model TournamentWinner {
   id             String     @id @default(cuid())
   tournamentId   String
   tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId         String
+  userId         String?
+  user           User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   placement      Int
   prizeAmount    BigInt
   txHash         String?
@@ -532,8 +546,9 @@ model Post {
   updatedAt DateTime @updatedAt
 
   // Relations
-  comments     Comment[]
-  votes        Vote[]
+  comments      Comment[]
+  votes         Vote[]
+  notifications Notification[]  @relation("NotificationPost")
 
   @@index([submoltId])
   @@index([authorId])
@@ -608,9 +623,13 @@ model Notification {
   message      String
 
   gameId       String?
+  game         Game?            @relation("NotificationGame", fields: [gameId], references: [id], onDelete: SetNull)
   itemId       String?
+  item         Item?            @relation("NotificationItem", fields: [itemId], references: [id], onDelete: SetNull)
   tournamentId String?
+  tournament   Tournament?      @relation("NotificationTournament", fields: [tournamentId], references: [id], onDelete: SetNull)
   postId       String?
+  post         Post?            @relation("NotificationPost", fields: [postId], references: [id], onDelete: SetNull)
 
   read         Boolean          @default(false)
   createdAt    DateTime         @default(now())
