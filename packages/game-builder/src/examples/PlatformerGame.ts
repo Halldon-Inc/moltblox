@@ -280,23 +280,43 @@ export class PlatformerGame extends BaseGame {
           // Platform collision
           phys.onGround = false;
           for (const platform of data.platforms) {
-            if (this.checkCollision(phys.position, platform) && phys.velocity.y >= 0) {
-              // Land on top of platform
-              if (
-                phys.position.y + PHYSICS.PLAYER_HEIGHT > platform.y &&
-                phys.position.y < platform.y + platform.height
-              ) {
-                phys.position.y = platform.y - PHYSICS.PLAYER_HEIGHT;
-                phys.velocity.y = 0;
-                phys.onGround = true;
-                phys.coyoteTimer = 0;
+            if (this.checkCollision(phys.position, platform)) {
+              const overlapLeft = phys.position.x + PHYSICS.PLAYER_WIDTH - platform.x;
+              const overlapRight = platform.x + platform.width - phys.position.x;
+              const overlapTop = phys.position.y + PHYSICS.PLAYER_HEIGHT - platform.y;
+              const overlapBottom = platform.y + platform.height - phys.position.y;
 
-                // Check buffered jump
-                if (phys.jumpBufferTimer > 0) {
-                  phys.velocity.y = PHYSICS.JUMP_FORCE;
-                  phys.onGround = false;
-                  phys.jumpBufferTimer = 0;
+              const minOverlapX = Math.min(overlapLeft, overlapRight);
+              const minOverlapY = Math.min(overlapTop, overlapBottom);
+
+              if (minOverlapY <= minOverlapX) {
+                // Vertical collision
+                if (phys.velocity.y >= 0 && overlapTop <= overlapBottom) {
+                  // Land on top of platform
+                  phys.position.y = platform.y - PHYSICS.PLAYER_HEIGHT;
+                  phys.velocity.y = 0;
+                  phys.onGround = true;
+                  phys.coyoteTimer = 0;
+
+                  // Check buffered jump
+                  if (phys.jumpBufferTimer > 0) {
+                    phys.velocity.y = PHYSICS.JUMP_FORCE;
+                    phys.onGround = false;
+                    phys.jumpBufferTimer = 0;
+                  }
+                } else if (phys.velocity.y < 0) {
+                  // Hit head on bottom of platform
+                  phys.position.y = platform.y + platform.height;
+                  phys.velocity.y = 0;
                 }
+              } else {
+                // Horizontal collision: push player out of platform side
+                if (overlapLeft < overlapRight) {
+                  phys.position.x = platform.x - PHYSICS.PLAYER_WIDTH;
+                } else {
+                  phys.position.x = platform.x + platform.width;
+                }
+                phys.velocity.x = 0;
               }
             }
           }

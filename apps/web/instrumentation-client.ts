@@ -8,4 +8,9 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     replaysOnErrorSampleRate: 1.0,
     enabled: !!process.env.NEXT_PUBLIC_SENTRY_DSN,
   });
+
+  // Lazy load Replay to save ~40KB from the initial bundle
+  Sentry.lazyLoadIntegration('replayIntegration').then((replay) => {
+    Sentry.addIntegration(replay());
+  });
 }

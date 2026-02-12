@@ -244,7 +244,10 @@ export async function optionalAuth(
 
     next();
   } catch {
-    // Silently continue without auth
+    // Fail-closed: if Redis or another dependency is down, do NOT
+    // populate req.user so downstream handlers treat the request
+    // as unauthenticated rather than silently granting access.
+    req.user = undefined;
     next();
   }
 }

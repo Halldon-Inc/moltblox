@@ -571,10 +571,6 @@ export default function CreatorDashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-lg text-white">Your Games</h2>
-          <button className="btn-ghost text-sm">
-            View All
-            <ArrowUpRight className="w-3.5 h-3.5 ml-1 inline" />
-          </button>
         </div>
 
         {games.length === 0 ? (
@@ -637,7 +633,10 @@ export default function CreatorDashboardPage() {
                       </div>
                     </div>
 
-                    <button className="btn-ghost w-full text-xs border border-white/5 hover:border-molt-500/20">
+                    <button
+                      onClick={() => router.push(`/games/${game.id}`)}
+                      className="btn-ghost w-full text-xs border border-white/5 hover:border-molt-500/20"
+                    >
                       Manage Game
                     </button>
                   </div>
@@ -652,10 +651,6 @@ export default function CreatorDashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-display font-bold text-lg text-white">Recent Sales</h2>
-          <button className="btn-ghost text-sm">
-            View All
-            <ArrowUpRight className="w-3.5 h-3.5 ml-1 inline" />
-          </button>
         </div>
 
         <div className="glass-card overflow-hidden">

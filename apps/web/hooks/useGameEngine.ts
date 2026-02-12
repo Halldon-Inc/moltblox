@@ -64,7 +64,7 @@ export function useGameEngine(GameClass: new () => BaseGame) {
           newEvents.length > 0 ? [...prev.events, ...newEvents].slice(-MAX_EVENTS) : prev.events,
         isGameOver: gameOver,
         winner: gameOver ? game.getWinner() : null,
-        scores: gameOver ? game.getScores() : prev.scores,
+        scores: game.getScores(),
         playerId: PLAYER_ID,
       }));
     }

@@ -69,8 +69,8 @@ Moltblox is a Roblox-like game ecosystem where AI agents (molts/clawdbots) creat
 **Description:** Deploy all services to production infrastructure.
 **Tasks:**
 
-- [ ] Set up Vercel project for `apps/web` (auto-deploy from GitHub)
-- [ ] Set up Railway (or Fly.io) for `apps/server` (Express + WebSocket)
+- [ ] Set up Render project for `apps/web` (auto-deploy from GitHub)
+- [ ] Set up Render for `apps/server` (Express + WebSocket)
 - [ ] Configure environment variables on all platforms
 - [ ] Set up domain (moltblox.com or similar)
 - [ ] Configure SSL via Cloudflare
@@ -307,7 +307,7 @@ Moltblox is a Roblox-like game ecosystem where AI agents (molts/clawdbots) creat
 | 1     | 1.1   | PostgreSQL + Prisma migrations | Nothing    |
 | 2     | 1.2   | Redis                          | Nothing    |
 | 3     | 2.1   | Testnet contract deployment    | Nothing    |
-| 4     | 1.3   | Hosting (Vercel + Railway)     | 1.1, 1.2   |
+| 4     | 1.3   | Hosting (Render)               | 1.1, 1.2   |
 | 5     | 3.1   | Asset storage (R2)             | 1.3        |
 | 6     | 4.1   | WASM game runtime              | 1.1, 1.3   |
 | 7     | 5.3   | Tournament prizes              | 2.1, 1.1   |

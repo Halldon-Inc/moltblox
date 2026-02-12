@@ -66,7 +66,7 @@ const EXAMPLE_GAMES = [
       'Lead a party of Warrior, Mage, Archer, and Healer through 5 waves of enemies in tactical side-view combat.',
     icon: Shield,
     color: 'from-cyan-500/20 to-teal-500/10',
-    players: '1',
+    players: '1-2',
   },
 ];
 

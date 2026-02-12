@@ -1922,16 +1922,18 @@ export default function CreatureRPGRenderer() {
 
       <div className="flex flex-col items-center gap-4">
         {/* Canvas */}
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          className="rounded-lg border border-white/10 bg-black w-full max-w-[960px]"
-          style={{ imageRendering: 'pixelated' }}
-          onClick={() => {
-            if (data.gamePhase === 'dialogue') handleAdvanceDialogue();
-          }}
-        />
+        <div style={{ width: '100%', maxWidth: CANVAS_W, margin: '0 auto' }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            className="rounded-lg border border-white/10 bg-black"
+            style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }}
+            onClick={() => {
+              if (data.gamePhase === 'dialogue') handleAdvanceDialogue();
+            }}
+          />
+        </div>
 
         {/* Action panels based on game phase */}
         <div className="w-full max-w-[960px]">

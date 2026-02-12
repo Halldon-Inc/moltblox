@@ -81,7 +81,15 @@ router.get(
           take,
           skip,
           include: {
-            game: true,
+            game: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                thumbnailUrl: true,
+                genre: true,
+              },
+            },
             sponsor: {
               select: {
                 id: true,

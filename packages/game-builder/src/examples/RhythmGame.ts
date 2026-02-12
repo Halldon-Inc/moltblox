@@ -266,6 +266,9 @@ export class RhythmGame extends BaseGame {
         }
 
         data.difficulty = newDifficulty as RhythmState['difficulty'];
+        // Regenerate note chart with the new difficulty
+        data.notes = this.generateNoteChart(newDifficulty);
+        data.nextNoteId = data.notes.length + 1;
         this.emitEvent('difficulty_changed', playerId, { difficulty: newDifficulty });
         this.setData(data);
         return { success: true, newState: this.getState() };

@@ -939,28 +939,45 @@ export class CreatureRPGGame extends BaseGame {
     const type = action.type;
     const payload = action.payload || {};
 
+    let result: ActionResult;
     switch (type) {
       case 'choose_starter':
-        return this.handleChooseStarter(data, payload);
+        result = this.handleChooseStarter(data, payload);
+        break;
       case 'move':
-        return this.handleMove(data, payload);
+        result = this.handleMove(data, payload);
+        break;
       case 'interact':
-        return this.handleInteract(data);
+        result = this.handleInteract(data);
+        break;
       case 'advance_dialogue':
-        return this.handleAdvanceDialogue(data);
+        result = this.handleAdvanceDialogue(data);
+        break;
       case 'fight':
-        return this.handleFight(data, payload);
+        result = this.handleFight(data, payload);
+        break;
       case 'switch_creature':
-        return this.handleSwitch(data, payload);
+        result = this.handleSwitch(data, payload);
+        break;
       case 'use_item':
-        return this.handleUseItem(data, payload);
+        result = this.handleUseItem(data, payload);
+        break;
       case 'catch':
-        return this.handleCatch(data);
+        result = this.handleCatch(data);
+        break;
       case 'flee':
-        return this.handleFlee(data);
+        result = this.handleFlee(data);
+        break;
       default:
         return { success: false, error: `Unknown action: ${type}` };
     }
+
+    // P15: Bound combatLog to prevent unbounded growth
+    if (data.combatLog.length > 50) {
+      data.combatLog.splice(0, data.combatLog.length - 50);
+    }
+
+    return result;
   }
 
   // --- Starter Selection ---
@@ -1132,10 +1149,10 @@ export class CreatureRPGGame extends BaseGame {
       // Check for sign
       if (map && map[lookY]?.[lookX] === T.SIGN) {
         const signTexts: Record<string, Record<string, string>> = {
-          route_1: { '13_9': 'Route 1 — Wild creatures ahead! Be prepared.' },
-          starter_town: { '20_8': 'Starter Town — A peaceful place to begin your journey.' },
+          route_1: { '13_9': 'Route 1: Wild creatures ahead! Be prepared.' },
+          starter_town: { '20_8': 'Starter Town: A peaceful place to begin your journey.' },
           verdant_city: {
-            '10_4': 'Verdant City Gym — Leader: Verdana',
+            '10_4': 'Verdant City Gym: Leader: Verdana',
             '13_9': 'Welcome to Verdant City!',
           },
         };

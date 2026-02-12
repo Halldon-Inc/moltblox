@@ -371,13 +371,15 @@ export default function RPGRenderer() {
           </div>
         </div>
 
-        {/* Action bar — only shown during combat on player turn */}
+        {/* Action bar: only shown during combat, dimmed on enemy turn */}
         {inCombat && (
-          <div className="glass-card p-3 space-y-2.5">
+          <div
+            className={`glass-card p-3 space-y-2.5 transition-opacity duration-200 ${isPlayerTurn ? '' : 'opacity-30 pointer-events-none'}`}
+          >
             {/* Turn indicator */}
             <div className="text-xs font-semibold text-center">
               {isPlayerTurn ? (
-                <span className="text-molt-400">Your turn — choose an action</span>
+                <span className="text-molt-400">Your turn: choose an action</span>
               ) : (
                 <span className="text-white/40">Waiting...</span>
               )}

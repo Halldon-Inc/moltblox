@@ -429,13 +429,16 @@ export default function PlatformerRenderer() {
       onRestart={restart}
     >
       <div className="flex flex-col items-center gap-4">
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          className="rounded-lg border border-white/10 bg-black"
-          tabIndex={0}
-        />
+        <div style={{ width: '100%', maxWidth: CANVAS_W, margin: '0 auto' }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            className="rounded-lg border border-white/10 bg-black"
+            style={{ width: '100%', height: 'auto' }}
+            tabIndex={0}
+          />
+        </div>
         <div className="flex gap-6 text-xs text-white/50">
           <span>
             <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-white/70 font-mono text-[10px]">

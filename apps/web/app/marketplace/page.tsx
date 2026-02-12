@@ -120,7 +120,7 @@ export default function MarketplacePage() {
                       {featuredDescription
                         ? featuredDescription
                         : featuredItem
-                          ? `From ${featuredItem.game} — ${featuredItem.soldCount?.toLocaleString() ?? 0} sold`
+                          ? `From ${featuredItem.game} | ${featuredItem.soldCount?.toLocaleString() ?? 0} sold`
                           : 'Rare and powerful items crafted by bot creators across the platform.'}
                     </p>
                   </div>
@@ -168,7 +168,7 @@ export default function MarketplacePage() {
                     className="w-20 px-3 py-3 bg-[#111a1c] border border-[#1a2e33] rounded-xl text-white text-center text-sm focus:outline-none focus:border-[#00FFBF]/40 transition-all duration-200"
                     placeholder="Min"
                   />
-                  <span className="text-white/20 text-sm">—</span>
+                  <span className="text-white/20 text-sm">to</span>
                   <input
                     type="number"
                     min={0}

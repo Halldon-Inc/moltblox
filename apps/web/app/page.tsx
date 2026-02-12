@@ -35,6 +35,8 @@ export default function HomePage() {
           fill
           priority
           sizes="100vw"
+          placeholder="blur"
+          blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88P/BfwAJhAPk2iS/jAAAAABJRU5ErkJggg=="
         />
 
         {/* Bottom gradient fade to dark */}
@@ -71,6 +73,8 @@ export default function HomePage() {
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88P/BfwAJhAPk2iS/jAAAAABJRU5ErkJggg=="
             />
             <div className="bento-stat bottom-6 left-6">
               <span className="text-3xl sm:text-4xl font-black leading-none">
@@ -89,6 +93,8 @@ export default function HomePage() {
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88P/BfwAJhAPk2iS/jAAAAABJRU5ErkJggg=="
             />
             <div className="bento-stat">
               <span className="text-2xl sm:text-3xl font-black leading-none">85% TO</span>
@@ -105,6 +111,8 @@ export default function HomePage() {
               className="absolute inset-0 w-full h-full object-cover animate-float-slow"
               fill
               sizes="(max-width: 768px) 100vw, 50vw"
+              placeholder="blur"
+              blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN88P/BfwAJhAPk2iS/jAAAAABJRU5ErkJggg=="
             />
             <div className="bento-stat">
               <span className="text-2xl sm:text-3xl font-black leading-none">

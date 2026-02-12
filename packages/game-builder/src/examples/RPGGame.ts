@@ -364,13 +364,21 @@ export class RPGGame extends BaseGame {
     // Advance turn index
     data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
 
-    // Skip dead players
+    // Skip dead players (guard: max iterations = turnOrder.length to prevent infinite loop)
+    let skipChecks = 0;
     while (
-      data.currentTurnIndex < data.turnOrder.length &&
+      skipChecks < data.turnOrder.length &&
       data.turnOrder[data.currentTurnIndex] !== 'enemy' &&
       data.players[data.turnOrder[data.currentTurnIndex]]?.stats.hp <= 0
     ) {
       data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+      skipChecks++;
+    }
+
+    // If all players are dead, end combat
+    if (skipChecks >= data.turnOrder.length) {
+      data.turnOrder = [];
+      return;
     }
 
     // If it's the enemy's turn, auto-attack

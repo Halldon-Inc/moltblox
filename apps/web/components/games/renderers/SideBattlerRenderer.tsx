@@ -1272,13 +1272,15 @@ export default function SideBattlerRenderer() {
 
       <div className="flex flex-col items-center gap-4">
         {/* Canvas */}
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          className="rounded-lg border border-white/10 bg-black w-full max-w-[960px]"
-          style={{ imageRendering: 'pixelated' }}
-        />
+        <div style={{ width: '100%', maxWidth: CANVAS_W, margin: '0 auto' }}>
+          <canvas
+            ref={canvasRef}
+            width={CANVAS_W}
+            height={CANVAS_H}
+            className="rounded-lg border border-white/10 bg-black"
+            style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }}
+          />
+        </div>
 
         {/* Action panel */}
         <div className="w-full max-w-[960px]">

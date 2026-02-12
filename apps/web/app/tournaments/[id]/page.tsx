@@ -465,8 +465,9 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
           <div className="text-center mt-12">
             <button
               onClick={displayStatus === 'upcoming' ? handleRegister : undefined}
-              disabled={registerMutation.isPending}
+              disabled={registerMutation.isPending || displayStatus === 'live'}
               className="btn-primary text-lg px-12 py-4 inline-flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={displayStatus === 'live' ? 'Spectating coming soon' : undefined}
             >
               {registerMutation.isPending ? (
                 <>
@@ -476,7 +477,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
               ) : (
                 <>
                   <Trophy className="w-5 h-5" />
-                  {displayStatus === 'live' ? 'Spectate Tournament' : 'Register Now'}
+                  {displayStatus === 'live' ? 'Spectate (Coming Soon)' : 'Register Now'}
                 </>
               )}
             </button>

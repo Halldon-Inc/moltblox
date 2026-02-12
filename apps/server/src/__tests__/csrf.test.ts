@@ -24,7 +24,7 @@ describe('CSRF Protection', () => {
       expect(res.cookie).toHaveBeenCalledWith(
         'moltblox_csrf',
         expect.any(String),
-        expect.objectContaining({ httpOnly: false, sameSite: 'strict' })
+        expect.objectContaining({ httpOnly: false, sameSite: 'lax' }),
       );
       expect(next).toHaveBeenCalled();
     });

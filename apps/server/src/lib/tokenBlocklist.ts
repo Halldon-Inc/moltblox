@@ -1,6 +1,10 @@
 /**
  * JWT token blocklist backed by Redis.
  * Blocked tokens expire after 7 days (matching JWT TTL).
+ *
+ * Fail-closed: when Redis is unavailable in production, isTokenBlocked
+ * returns true (blocked) so that a Redis outage cannot be exploited to
+ * bypass token revocation.
  */
 import redis from './redis.js';
 
@@ -12,6 +16,18 @@ export async function blockToken(jti: string): Promise<void> {
 }
 
 export async function isTokenBlocked(jti: string): Promise<boolean> {
-  const result = await redis.exists(`${KEY_PREFIX}${jti}`);
-  return result === 1;
+  try {
+    const result = await redis.exists(`${KEY_PREFIX}${jti}`);
+    return result === 1;
+  } catch {
+    // Fail-closed: treat Redis failure as "blocked" in production
+    // so a Redis outage cannot bypass token revocation
+    if (process.env.NODE_ENV === 'production') {
+      console.error(
+        '[tokenBlocklist] Redis unavailable, failing closed (token treated as blocked)',
+      );
+      return true;
+    }
+    return false;
+  }
 }

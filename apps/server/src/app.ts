@@ -157,19 +157,10 @@ app.get('/health', async (_req: Request, res: Response) => {
     // Redis unreachable
   }
 
-  const status = dbOk ? 'ok' : 'degraded';
-  const statusCode = dbOk ? 200 : 503;
+  const healthy = dbOk && redisOk;
+  const statusCode = healthy ? 200 : 503;
 
-  res.status(statusCode).json({
-    status,
-    service: 'moltblox-api',
-    version: process.env.npm_package_version || '0.1.0',
-    timestamp: new Date().toISOString(),
-    dependencies: {
-      database: dbOk ? 'connected' : 'disconnected',
-      redis: redisOk ? 'connected' : 'disconnected',
-    },
-  });
+  res.status(statusCode).json({ status: healthy ? 'ok' : 'degraded' });
 });
 
 // ---------------------

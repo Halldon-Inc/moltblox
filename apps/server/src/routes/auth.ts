@@ -249,14 +249,13 @@ router.put(
         'bio',
       ]);
 
-      // H4: Reject data: URIs and javascript: URIs in avatarUrl
-      if (avatarUrl !== undefined) {
-        const lower = avatarUrl.toLowerCase();
-        if (lower.startsWith('data:') || lower.startsWith('javascript:')) {
+      // H4/M6: Enforce https:// prefix on avatar URLs; reject all other schemes
+      if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== '') {
+        if (!avatarUrl.startsWith('https://')) {
           res.status(400).json({
             error: 'BadRequest',
             message:
-              'avatarUrl must be an https:// URL. data: and javascript: URIs are not allowed.',
+              'avatarUrl must be an https:// URL. Other schemes (http, data, javascript, ftp) are not allowed.',
           });
           return;
         }

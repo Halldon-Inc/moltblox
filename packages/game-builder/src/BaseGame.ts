@@ -135,10 +135,14 @@ export abstract class BaseGame implements UnifiedGameInterface {
       }
     }
 
+    // BUG-09/P16: Drain events to prevent unbounded accumulation
+    const events = this.events;
+    this.events = [];
+
     return {
       ...result,
       newState: this.state,
-      events: [...this.events],
+      events,
     };
   }
 

@@ -32,6 +32,8 @@ import {
   setSession,
   deleteSession,
   hasSession,
+  setPlayerSession,
+  deletePlayerSession,
   publishMatchFound,
   publishSessionUpdate,
 } from './redisSessionStore.js';
@@ -54,6 +56,9 @@ export interface WSMessage {
 
 /** Maximum number of actions to retain in session history for replay/audit */
 const MAX_ACTION_HISTORY = 500;
+
+/** CQ-05: Maximum number of events to retain per session */
+const MAX_EVENTS = 500;
 
 // ---- Public API ----
 
@@ -266,13 +271,29 @@ function applyActionToSession(
   };
 
   // If the action carries a state update from the authoritative client,
-  // merge it (clients send state diffs in action.payload.stateUpdate)
+  // merge only permitted fields (clients send state diffs in action.payload.stateUpdate).
+  // Protected fields must never be overwritten by client state mutations.
+  const PROTECTED_STATE_FIELDS = new Set([
+    'winner',
+    'scores',
+    'players',
+    'currentTurnIndex',
+    'status',
+    'createdAt',
+    'gameId',
+  ]);
+
   if (
     action.payload.stateUpdate &&
     typeof action.payload.stateUpdate === 'object' &&
     action.payload.stateUpdate !== null
   ) {
-    Object.assign(newData, action.payload.stateUpdate as Record<string, unknown>);
+    const update = action.payload.stateUpdate as Record<string, unknown>;
+    for (const key of Object.keys(update)) {
+      if (!PROTECTED_STATE_FIELDS.has(key)) {
+        newData[key] = update[key];
+      }
+    }
   }
 
   // Detect game-over signal from client
@@ -327,6 +348,10 @@ function applyActionToSession(
   }
 
   session.events.push(...events);
+  // CQ-05: Bound events array to prevent unbounded growth
+  if (session.events.length > MAX_EVENTS) {
+    session.events = session.events.slice(-MAX_EVENTS);
+  }
 
   return {
     success: true,
@@ -408,6 +433,11 @@ export async function endSession(
     }
   }
 
+  // CQ-02: Clear player-session mappings
+  for (const pid of session.playerIds) {
+    await deletePlayerSession(redis, pid);
+  }
+
   await deleteSession(redis, sessionId);
   console.log(`[WS] Session ${sessionId} completed. Winner: ${winnerId ?? 'none'}`);
 }
@@ -448,6 +478,11 @@ export async function leaveSession(
 
   sendTo(client.ws, { type: 'session_left', payload: { sessionId, message: 'Left game session' } });
 
+  // CQ-02: Clear player-session mapping on leave
+  if (client.playerId) {
+    await deletePlayerSession(redis, client.playerId);
+  }
+
   if (!session) return;
 
   // Remove player from active session
@@ -476,6 +511,11 @@ export async function handleDisconnect(
   clients: Map<string, ConnectedClient>,
 ): Promise<void> {
   await leaveQueue(client);
+
+  // CQ-02: Clear player-session mapping on disconnect
+  if (client.playerId) {
+    await deletePlayerSession(redis, client.playerId);
+  }
 
   if (client.gameSessionId) {
     broadcastToSession(
@@ -634,6 +674,11 @@ async function createSession(
     ended: false,
   };
   await setSession(redis, dbSession.id, activeSession);
+
+  // CQ-02: Wire player-session mapping for cross-instance discovery
+  for (const pid of playerIds) {
+    await setPlayerSession(redis, pid, dbSession.id);
+  }
 
   // Publish cross-instance match notification
   await publishMatchFound(redis, dbSession.id, gameId, playerIds);

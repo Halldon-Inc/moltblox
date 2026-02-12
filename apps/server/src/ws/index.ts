@@ -25,6 +25,8 @@ import {
 } from './sessionManager.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 import { JWT_SECRET } from '../lib/jwt.js';
+import { getSession, cleanupAllSessions } from './redisSessionStore.js';
+import redis from '../lib/redis.js';
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
@@ -126,24 +128,60 @@ function escapeHtml(str: string): string {
 /**
  * Initialize the WebSocket server on an existing HTTP server
  */
+/** P18: Maximum age for rateLimitMap entries before eviction */
+const RATE_LIMIT_CLEANUP_INTERVAL = 60_000; // 60 seconds
+const RATE_LIMIT_MAX_AGE = 300_000; // 5 minutes
+
 export function createWebSocketServer(server: HTTPServer): WebSocketServer {
   console.log('[BOOT] Creating WebSocket server...');
+
+  // CQ-04: Clean up stale Redis session/queue keys from previous instances
+  cleanupAllSessions(redis)
+    .then((count) => {
+      if (count > 0) console.log(`[BOOT] Cleaned up ${count} stale Redis keys`);
+    })
+    .catch((err) => {
+      console.error('[BOOT] Failed to clean up stale sessions:', err);
+    });
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
   console.log(`[BOOT] WebSocket allowed origins: ${allowedOrigins.join(', ')}`);
 
+  // M5: Track concurrent connections per IP; reject when above threshold
+  const MAX_CONNECTIONS_PER_IP = 5;
+  const connectionsPerIp = new Map<string, number>();
+
   const wss = new WebSocketServer({
     server,
+    maxPayload: 65_536, // M2: 64 KB max message size
     verifyClient: (info: { origin: string; req: IncomingMessage }, callback) => {
+      // H1: Require Origin header; non-browser clients should use API key auth
       const origin = info.origin || info.req.headers.origin;
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(true);
-      } else {
+      if (!origin) {
+        console.warn('[WS] Rejected connection with no Origin header');
+        callback(false, 403, 'Origin header required');
+        return;
+      }
+      if (!allowedOrigins.includes(origin)) {
         console.warn(`[WS] Rejected connection from disallowed origin: ${origin}`);
         callback(false, 403, 'Origin not allowed');
+        return;
       }
+
+      // M5: Enforce per-IP connection limit
+      const ip = info.req.headers['x-forwarded-for']
+        ? String(info.req.headers['x-forwarded-for']).split(',')[0].trim()
+        : info.req.socket.remoteAddress || 'unknown';
+      const current = connectionsPerIp.get(ip) || 0;
+      if (current >= MAX_CONNECTIONS_PER_IP) {
+        console.warn(`[WS] Rejected connection from ${ip}: per-IP limit reached (${current})`);
+        callback(false, 429, 'Too many connections from this IP');
+        return;
+      }
+
+      callback(true);
     },
   });
   const clients = new Map<string, ConnectedClient>();
@@ -168,7 +206,33 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     }
   }, HEARTBEAT_INTERVAL);
 
-  wss.on('connection', (ws: WebSocket) => {
+  // P18: Periodic cleanup of stale rateLimitMap entries
+  const rateLimitCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [key, state] of rateLimitMap) {
+      if (now - state.windowStart > RATE_LIMIT_MAX_AGE) {
+        rateLimitMap.delete(key);
+      }
+    }
+  }, RATE_LIMIT_CLEANUP_INTERVAL);
+
+  // M5: Helper to decrement IP connection counter on disconnect
+  function decrementIpCount(ip: string): void {
+    const count = connectionsPerIp.get(ip) || 0;
+    if (count <= 1) {
+      connectionsPerIp.delete(ip);
+    } else {
+      connectionsPerIp.set(ip, count - 1);
+    }
+  }
+
+  wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
+    // M5: Track per-IP connection count
+    const clientIp = req.headers['x-forwarded-for']
+      ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
+      : req.socket.remoteAddress || 'unknown';
+    connectionsPerIp.set(clientIp, (connectionsPerIp.get(clientIp) || 0) + 1);
+
     const clientId = uuidv4();
     const client: ConnectedClient = {
       id: clientId,
@@ -231,6 +295,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       clients.delete(clientId);
       rateLimitMap.delete(clientId);
       if (client.playerId) rateLimitMap.delete(client.playerId);
+      decrementIpCount(clientIp);
     });
 
     // Handle errors
@@ -240,11 +305,13 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       clients.delete(clientId);
       rateLimitMap.delete(clientId);
       if (client.playerId) rateLimitMap.delete(client.playerId);
+      decrementIpCount(clientIp);
     });
   });
 
   wss.on('close', () => {
     clearInterval(heartbeatTimer);
+    clearInterval(rateLimitCleanupTimer);
     console.log('[WS] WebSocket server closed');
   });
 
@@ -397,6 +464,33 @@ async function handleMessage(
       }
       const scores = (payload.scores as Record<string, number>) || {};
       const winnerId = (payload.winnerId as string) || null;
+
+      // M3: Validate winnerId and score keys reference actual session players
+      const session = await getSession(redis, sessionId);
+      if (!session) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Session not found' },
+        });
+        break;
+      }
+      const playerSet = new Set(session.playerIds);
+      if (winnerId && !playerSet.has(winnerId)) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'winnerId is not a player in this session' },
+        });
+        break;
+      }
+      const invalidScoreIds = Object.keys(scores).filter((id) => !playerSet.has(id));
+      if (invalidScoreIds.length > 0) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'scores contain player IDs not in this session' },
+        });
+        break;
+      }
+
       endSession(sessionId, scores, winnerId, clients).catch((err) => {
         console.error('[WS] Error ending session:', err);
         sendTo(client.ws, {

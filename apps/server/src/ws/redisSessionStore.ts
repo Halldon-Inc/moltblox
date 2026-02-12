@@ -6,9 +6,10 @@
  * is unavailable (development mode).
  *
  * Key patterns:
- *   mq:{gameId}            Redis List of JSON-serialized QueueEntry
- *   session:{sessionId}    Redis Hash with session fields (JSON values)
- *   player-sessions        Redis Hash: playerId -> sessionId
+ *   mq:{gameId}                Redis List of JSON-serialized QueueEntry
+ *   session:{sessionId}        Redis String (JSON) with 24h TTL
+ *   player-session:{playerId}  Redis String (sessionId) with 24h TTL
+ *   player-queues              Redis Hash: playerId -> gameId (queue index)
  *
  * TTL: Session keys expire after 24 hours for automatic cleanup.
  */
@@ -77,12 +78,33 @@ export async function pushToQueue(
   const len = await redis.rpush(`mq:${gameId}`, JSON.stringify(entry));
   // Set TTL on the queue key (refreshed on each push)
   await redis.expire(`mq:${gameId}`, QUEUE_TTL_SECONDS);
+  // P6: Maintain player-queues index for O(1) lookup
+  await redis.hset('player-queues', entry.playerId, gameId);
   return len;
 }
 
 /**
+ * Lua script that atomically checks queue length and pops N entries.
+ * Returns nil if the queue has fewer than `count` entries, preventing
+ * partial pops in a concurrent multi-instance environment.
+ */
+const SPLICE_QUEUE_LUA = `
+local key = KEYS[1]
+local count = tonumber(ARGV[1])
+local len = redis.call('LLEN', key)
+if len < count then return nil end
+local results = {}
+for i = 1, count do
+  local val = redis.call('LPOP', key)
+  if val then table.insert(results, val) end
+end
+return results
+`;
+
+/**
  * Splice `count` entries from the front of the queue (for match creation).
- * Uses a Redis transaction to pop atomically.
+ * Uses an atomic Lua script so concurrent instances cannot partially drain
+ * the queue and create incomplete matches.
  */
 export async function spliceQueueFront(
   redis: Redis | null,
@@ -92,16 +114,13 @@ export async function spliceQueueFront(
   if (!isRedisReady(redis)) {
     const q = memQueues.get(gameId);
     if (!q) return [];
+    if (q.length < count) return [];
     return q.splice(0, count);
   }
   const key = `mq:${gameId}`;
-  const results: QueueEntry[] = [];
-  for (let i = 0; i < count; i++) {
-    const raw = await redis.lpop(key);
-    if (!raw) break;
-    results.push(JSON.parse(raw) as QueueEntry);
-  }
-  return results;
+  const raw = (await redis.eval(SPLICE_QUEUE_LUA, 1, key, String(count))) as string[] | null;
+  if (!raw) return [];
+  return raw.map((item) => JSON.parse(item) as QueueEntry);
 }
 
 /**
@@ -118,22 +137,9 @@ export async function findPlayerInQueues(
     }
     return null;
   }
-  // Scan all queue keys
-  let cursor = '0';
-  do {
-    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', 'mq:*', 'COUNT', 100);
-    cursor = nextCursor;
-    for (const key of keys) {
-      const items = await redis.lrange(key, 0, -1);
-      for (const item of items) {
-        const entry = JSON.parse(item) as QueueEntry;
-        if (entry.playerId === playerId) {
-          return key.replace('mq:', '');
-        }
-      }
-    }
-  } while (cursor !== '0');
-  return null;
+  // P6: O(1) lookup via player-queues Hash index
+  const gameId = await redis.hget('player-queues', playerId);
+  return gameId ?? null;
 }
 
 /**
@@ -167,6 +173,8 @@ export async function removeFromQueues(
         if (entry.clientId === clientId) {
           await redis.lrem(key, 1, item);
           const gameId = key.replace('mq:', '');
+          // P6: Remove from player-queues index
+          await redis.hdel('player-queues', entry.playerId);
           // Clean up empty queue keys
           const remaining = await redis.llen(key);
           if (remaining === 0) await redis.del(key);
@@ -235,7 +243,8 @@ export async function setPlayerSession(
     memPlayerSessions.set(playerId, sessionId);
     return;
   }
-  await redis.hset('player-sessions', playerId, sessionId);
+  // CQ-14: Individual keys with TTL for automatic cleanup
+  await redis.set(`player-session:${playerId}`, sessionId, 'EX', SESSION_TTL_SECONDS);
 }
 
 export async function getPlayerSession(
@@ -245,7 +254,7 @@ export async function getPlayerSession(
   if (!isRedisReady(redis)) {
     return memPlayerSessions.get(playerId) ?? null;
   }
-  return await redis.hget('player-sessions', playerId);
+  return await redis.get(`player-session:${playerId}`);
 }
 
 export async function deletePlayerSession(redis: Redis | null, playerId: string): Promise<void> {
@@ -253,7 +262,7 @@ export async function deletePlayerSession(redis: Redis | null, playerId: string)
     memPlayerSessions.delete(playerId);
     return;
   }
-  await redis.hdel('player-sessions', playerId);
+  await redis.del(`player-session:${playerId}`);
 }
 
 // ======================================================================
@@ -325,8 +334,22 @@ export async function cleanupAllSessions(redis: Redis | null): Promise<number> {
     }
   } while (cursor !== '0');
 
-  // Clean player-sessions hash
+  // Clean player-session individual keys (CQ-14)
+  cursor = '0';
+  do {
+    const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', 'player-session:*', 'COUNT', 100);
+    cursor = nextCursor;
+    if (keys.length > 0) {
+      await redis.del(...keys);
+      deleted += keys.length;
+    }
+  } while (cursor !== '0');
+
+  // Clean legacy player-sessions hash (if any remain)
   await redis.del('player-sessions');
+
+  // Clean player-queues index (P6)
+  await redis.del('player-queues');
 
   return deleted;
 }

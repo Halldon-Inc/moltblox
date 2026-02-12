@@ -503,28 +503,42 @@ export class SideBattlerGame extends BaseGame {
   protected processAction(playerId: string, action: GameAction): ActionResult {
     const data = this.getData<SideBattlerState>();
 
+    let result: ActionResult;
     switch (action.type) {
       case 'start_wave':
-        return this.handleStartWave(playerId, data);
+        result = this.handleStartWave(playerId, data);
+        break;
 
       case 'select_target':
-        return this.handleSelectTarget(playerId, action, data);
+        result = this.handleSelectTarget(playerId, action, data);
+        break;
 
       case 'attack':
-        return this.handleAttack(playerId, data);
+        result = this.handleAttack(playerId, data);
+        break;
 
       case 'defend':
-        return this.handleDefend(playerId, data);
+        result = this.handleDefend(playerId, data);
+        break;
 
       case 'use_skill':
-        return this.handleUseSkill(playerId, action, data);
+        result = this.handleUseSkill(playerId, action, data);
+        break;
 
       case 'auto_tick':
-        return this.handleAutoTick(playerId, data);
+        result = this.handleAutoTick(playerId, data);
+        break;
 
       default:
         return { success: false, error: `Unknown action: ${action.type}` };
     }
+
+    // P15: Bound combatLog to prevent unbounded growth
+    if (data.combatLog.length > 50) {
+      data.combatLog.splice(0, data.combatLog.length - 50);
+    }
+
+    return result;
   }
 
   // -----------------------------------------------------------------------

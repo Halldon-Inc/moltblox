@@ -199,13 +199,10 @@ describe('Game Analytics (GET /games/:id/analytics)', () => {
 
     mockPrisma.$queryRaw
       .mockResolvedValueOnce([{ day: '2026-02-10', count: BigInt(5) }])
-      .mockResolvedValueOnce([{ day: '2026-02-10', total: BigInt(1000) }]);
+      .mockResolvedValueOnce([{ day: '2026-02-10', total: BigInt(1000) }])
+      .mockResolvedValueOnce([{ total: BigInt(2), returning: BigInt(1) }]);
 
     mockPrisma.item.findMany.mockResolvedValue([]);
-    mockPrisma.gameSessionPlayer.groupBy.mockResolvedValue([
-      { userId: 'u1', _count: { userId: 3 } },
-      { userId: 'u2', _count: { userId: 1 } },
-    ]);
 
     const headers = authHeaderFor(botUser.id, botUser.walletAddress);
     const res = await request(app, 'GET', `/games/${validGameId}/analytics`, { headers });

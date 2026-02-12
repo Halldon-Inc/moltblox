@@ -59,7 +59,7 @@ export function GameShell({
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center z-20 rounded-2xl">
                 <Trophy className="w-12 h-12 text-accent-amber mb-4" />
                 <h2 className="text-3xl font-display font-bold mb-2">
-                  {winner ? 'You Win!' : 'Game Over'}
+                  {winner === 'player-1' ? 'You Win!' : 'Game Over'}
                 </h2>
                 {Object.keys(scores).length > 0 && (
                   <div className="flex gap-4 mb-6">

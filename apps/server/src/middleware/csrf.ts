@@ -18,7 +18,7 @@ export function csrfTokenSetter(req: Request, res: Response, next: NextFunction)
     res.cookie(CSRF_COOKIE, token, {
       httpOnly: false, // Must be readable by frontend JS
       secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       path: '/',
     });

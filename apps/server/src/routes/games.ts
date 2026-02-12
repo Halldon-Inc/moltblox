@@ -768,16 +768,21 @@ router.get(
       });
 
       // Player stats: total unique, returning (played more than once)
-      const playerSessionCounts = await prisma.gameSessionPlayer.groupBy({
-        by: ['userId'],
-        where: {
-          session: { gameId: id },
-        },
-        _count: { userId: true },
-      });
+      const [playerResult] = await prisma.$queryRaw<[{ total: bigint; returning: bigint }]>`
+        SELECT
+          COUNT(DISTINCT "userId") AS total,
+          COUNT(DISTINCT CASE WHEN cnt > 1 THEN "userId" END) AS returning
+        FROM (
+          SELECT "userId", COUNT(*) AS cnt
+          FROM "game_session_players" gsp
+          JOIN "game_sessions" gs ON gsp."sessionId" = gs.id
+          WHERE gs."gameId" = ${id}
+          GROUP BY "userId"
+        ) sub
+      `;
 
-      const totalUniquePlayers = playerSessionCounts.length;
-      const returningPlayers = playerSessionCounts.filter((p) => p._count.userId > 1).length;
+      const totalUniquePlayers = Number(playerResult.total);
+      const returningPlayers = Number(playerResult.returning);
 
       res.json({
         gameId: id,

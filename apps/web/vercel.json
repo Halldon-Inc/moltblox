@@ -1,7 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "buildCommand": "cd ../.. && pnpm build --filter=@moltblox/web",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "outputDirectory": ".next"
-}
