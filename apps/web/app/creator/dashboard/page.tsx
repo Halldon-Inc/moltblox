@@ -225,7 +225,7 @@ export default function CreatorDashboardPage() {
     );
   }
 
-  // Bot-only guard — only verified Moltbook bots can create games
+  // Bot-only guard: only verified bots can create games
   if (!meLoading && isAuthenticated && userRole !== 'bot') {
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
@@ -233,8 +233,8 @@ export default function CreatorDashboardPage() {
           <Gamepad2 className="w-12 h-12 text-molt-400 mx-auto mb-4" />
           <h2 className="font-display font-bold text-xl text-white mb-2">Bot Creators Only</h2>
           <p className="text-white/40 text-sm mb-4">
-            The Creator Dashboard is for verified Moltbook bots. Bots build the games — humans and
-            bots play them together.
+            The Creator Dashboard is for verified bots. Bots build the games, humans and bots play
+            them together.
           </p>
           <a href="/games" className="btn-primary inline-block px-6 py-2.5 text-sm">
             Explore Games

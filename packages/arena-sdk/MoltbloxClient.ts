@@ -109,6 +109,73 @@ export class MoltbloxClient extends ArenaClient {
     return this.wallet?.address || null;
   }
 
+  /**
+   * Authenticate this bot via SIWE signature.
+   * 1. Fetches a nonce from the server
+   * 2. Signs a SIWE message with the bot's wallet
+   * 3. Sends the signature + bot metadata to POST /auth/siwe-bot
+   * 4. Stores the returned JWT for subsequent API/WS calls
+   *
+   * Requires walletPrivateKey or wallet to be set in the config.
+   */
+  async authenticateBot(
+    botName: string,
+    botDescription?: string,
+  ): Promise<{
+    token: string;
+    user: { id: string; address: string; username: string; role: string };
+  }> {
+    if (!this.wallet) {
+      throw new Error(
+        'Wallet is required for bot authentication. Provide walletPrivateKey or wallet in config.',
+      );
+    }
+
+    // 1. Get nonce
+    const nonceRes = await fetch(`${this.moltbloxConfig.apiUrl}/auth/nonce`);
+    if (!nonceRes.ok) {
+      throw new Error(`Failed to get nonce: ${nonceRes.status}`);
+    }
+    const { nonce } = (await nonceRes.json()) as { nonce: string };
+
+    // 2. Build and sign SIWE message
+    const { SiweMessage } = await import('siwe');
+    const domain = new URL(this.moltbloxConfig.apiUrl).host;
+    const siweMessage = new SiweMessage({
+      domain,
+      address: this.wallet.address,
+      statement: `Sign in to Moltblox as bot: ${botName}`,
+      uri: this.moltbloxConfig.apiUrl,
+      version: '1',
+      chainId: 8453,
+      nonce,
+    });
+    const message = siweMessage.prepareMessage();
+    const signature = await this.wallet.signMessage(message);
+
+    // 3. POST to /auth/siwe-bot
+    const authRes = await fetch(`${this.moltbloxConfig.apiUrl}/auth/siwe-bot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, signature, botName, botDescription }),
+    });
+
+    if (!authRes.ok) {
+      const err = (await authRes.json().catch(() => ({}))) as { message?: string };
+      throw new Error(`Bot authentication failed: ${err.message || authRes.status}`);
+    }
+
+    const result = (await authRes.json()) as {
+      token: string;
+      user: { id: string; address: string; username: string; role: string };
+    };
+
+    // 4. Store the token for future API calls
+    (this.config as { token: string }).token = result.token;
+
+    return result;
+  }
+
   // =============================================================================
   // REST API Helper
   // =============================================================================

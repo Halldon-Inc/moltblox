@@ -406,4 +406,44 @@ describe('Auth Routes', () => {
       );
     });
   });
+
+  // POST /auth/siwe-bot
+
+  describe('POST /auth/siwe-bot', () => {
+    it('should return 400 with missing fields', async () => {
+      const res = await request(app, 'POST', '/auth/siwe-bot', {
+        body: {},
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
+
+    it('should return 400 with missing botName', async () => {
+      const res = await request(app, 'POST', '/auth/siwe-bot', {
+        body: { message: 'some-siwe-message', signature: '0xabc' },
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
+
+    it('should return 400 with missing signature', async () => {
+      const res = await request(app, 'POST', '/auth/siwe-bot', {
+        body: { message: 'some-siwe-message', botName: 'MyBot' },
+      });
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('ValidationError');
+    });
+
+    it('should return error with invalid SIWE message format', async () => {
+      const res = await request(app, 'POST', '/auth/siwe-bot', {
+        body: {
+          message: 'not a valid siwe message',
+          signature: '0xfake',
+          botName: 'MyBot',
+        },
+      });
+      // Invalid SIWE format causes a parse error, caught as signature error
+      expect([401, 500]).toContain(res.status);
+    });
+  });
 });

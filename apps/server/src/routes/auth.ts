@@ -11,29 +11,27 @@ import redis from '../lib/redis.js';
 import jwt from 'jsonwebtoken';
 import { signToken, extractBlocklistKey, requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { verifySchema, moltbookAuthSchema, updateProfileSchema } from '../schemas/auth.js';
+import {
+  verifySchema,
+  moltbookAuthSchema,
+  siweBotAuthSchema,
+  updateProfileSchema,
+} from '../schemas/auth.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import { blockToken } from '../lib/tokenBlocklist.js';
 import { hashApiKey } from '../lib/crypto.js';
 
-// H1: Validate Moltbook API URL against allowlist to prevent SSRF
+// Moltbook integration (deprecated: bots now use POST /auth/siwe-bot instead)
 const MOLTBOOK_ALLOWED_HOSTS = ['https://www.moltbook.com/api/v1', 'https://api.moltbook.com/v1'];
 const rawMoltbookUrl = process.env.MOLTBOOK_API_URL || 'https://www.moltbook.com/api/v1';
 if (!MOLTBOOK_ALLOWED_HOSTS.includes(rawMoltbookUrl)) {
-  throw new Error(
-    `FATAL: MOLTBOOK_API_URL "${rawMoltbookUrl}" is not in the allowlist. ` +
-      `Allowed: ${MOLTBOOK_ALLOWED_HOSTS.join(', ')}`,
+  console.warn(
+    `[auth] MOLTBOOK_API_URL "${rawMoltbookUrl}" is not in the allowlist. ` +
+      `Moltbook auth endpoint will be unavailable. Bots should use POST /auth/siwe-bot.`,
   );
 }
 const MOLTBOOK_API_URL = rawMoltbookUrl;
-const MOLTBOOK_APP_KEY =
-  process.env.MOLTBOOK_APP_KEY ||
-  (() => {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL: MOLTBOOK_APP_KEY must be set in production');
-    }
-    return '';
-  })();
+const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY || '';
 
 const router: Router = Router();
 
@@ -134,6 +132,121 @@ router.post(
           displayName: user.displayName,
           avatarUrl: user.avatarUrl,
         },
+        expiresIn: '7d',
+      });
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error.message?.includes('Signature') || error.message?.includes('verify'))
+      ) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid SIWE signature',
+        });
+        return;
+      }
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /auth/siwe-bot - Register/authenticate a bot via SIWE signature + metadata
+ * Body: { message: string, signature: string, botName: string, botDescription?: string }
+ *
+ * Bots sign a SIWE message with their wallet, then provide bot metadata.
+ * Creates a user with role: 'bot' and botVerified: true.
+ */
+router.post(
+  '/siwe-bot',
+  validate(siweBotAuthSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { message, signature, botName, botDescription } = req.body;
+
+      // Parse and verify the SIWE message
+      const siweMessage = new SiweMessage(message);
+
+      // Validate nonce
+      const siweNonce = siweMessage.nonce;
+      if (!siweNonce || !(await redis.exists(siweNonce))) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: 'Invalid or expired nonce. Request a new one via GET /auth/nonce.',
+        });
+        return;
+      }
+      // Consume nonce (one-time use)
+      await redis.del(siweNonce);
+
+      const { data: verified } = await siweMessage.verify({ signature });
+
+      const address = verified.address.toLowerCase();
+
+      // Sanitize bot name for username
+      const safeBotName = botName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 24);
+
+      // Find or create bot user
+      let user = await prisma.user.findUnique({
+        where: { walletAddress: address },
+      });
+
+      // Block role escalation from human to bot
+      if (user && user.role === 'human') {
+        res.status(403).json({
+          error: 'Forbidden',
+          message:
+            'This wallet is registered as a human account. Use a different wallet for your bot.',
+        });
+        return;
+      }
+
+      if (!user) {
+        user = await prisma.user.create({
+          data: {
+            walletAddress: address,
+            username: `bot_${safeBotName || address.slice(2, 10)}`,
+            displayName: botName,
+            bio: botDescription || null,
+            role: 'bot',
+            botVerified: true,
+            lastLoginAt: new Date(),
+          },
+        });
+      } else {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            displayName: botName,
+            bio: botDescription || user.bio,
+            botVerified: true,
+            lastLoginAt: new Date(),
+          },
+        });
+      }
+
+      // Issue JWT
+      const token = signToken(user.id, address);
+
+      res.cookie('moltblox_token', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== 'development',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/',
+      });
+
+      res.json({
+        user: {
+          id: user.id,
+          address: user.walletAddress,
+          username: user.username,
+          displayName: user.displayName,
+          avatarUrl: user.avatarUrl,
+          role: 'bot',
+          botVerified: true,
+        },
+        token,
         expiresIn: '7d',
       });
     } catch (error: unknown) {

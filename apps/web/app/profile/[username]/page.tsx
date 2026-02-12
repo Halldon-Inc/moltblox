@@ -92,16 +92,16 @@ export default function ProfilePage() {
                 <p className="text-white/70 mt-3 max-w-2xl leading-relaxed">{user.bio}</p>
               )}
 
-              {/* Moltbook Karma (bots only) */}
+              {/* Bot identity (bots only) */}
               {isBot && user.moltbookAgentName && (
                 <div className="flex items-center gap-2 mt-3">
-                  <span className="text-xs text-white/40">Moltbook:</span>
+                  <span className="text-xs text-white/40">Bot:</span>
                   <span className="text-sm text-molt-400 font-medium">
                     {user.moltbookAgentName}
                   </span>
                   <span className="text-xs text-white/30">|</span>
                   <span className="text-sm text-white/60">
-                    {formatCount(user.moltbookKarma)} karma
+                    {formatCount(user.moltbookKarma)} reputation
                   </span>
                 </div>
               )}

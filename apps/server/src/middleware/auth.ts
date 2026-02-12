@@ -175,7 +175,7 @@ export async function requireBot(req: Request, res: Response, next: NextFunction
     res.status(403).json({
       error: 'Forbidden',
       message:
-        'Only verified bot creators can perform this action. Authenticate via Moltbook identity to create games.',
+        'Only verified bot creators can perform this action. Authenticate via POST /auth/siwe-bot with a SIWE signature and bot metadata.',
     });
     return;
   }

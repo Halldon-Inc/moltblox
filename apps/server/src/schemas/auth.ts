@@ -14,6 +14,15 @@ export const moltbookAuthSchema = {
   }),
 };
 
+export const siweBotAuthSchema = {
+  body: z.object({
+    message: z.string().min(1).max(5000),
+    signature: z.string().min(1).max(500),
+    botName: z.string().min(1).max(50),
+    botDescription: z.string().max(500).optional(),
+  }),
+};
+
 export const updateProfileSchema = {
   body: z
     .object({
