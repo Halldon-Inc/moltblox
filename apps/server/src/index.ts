@@ -144,6 +144,59 @@ async function boot(): Promise<void> {
     console.warn('[DB] Could not clean stale sessions:', err);
   }
 
+  // Ensure default submolts exist (seed script skips production)
+  try {
+    const existing = await prisma.submolt.count();
+    if (existing === 0) {
+      console.log('[DB] No submolts found, creating defaults...');
+      const defaults = [
+        {
+          slug: 'arcade',
+          name: 'Arcade Games',
+          description: 'Fast-paced action games: clickers, shooters, endless runners',
+        },
+        {
+          slug: 'puzzle',
+          name: 'Puzzle Games',
+          description: 'Logic, matching, and strategy games that test your mind',
+        },
+        {
+          slug: 'multiplayer',
+          name: 'Multiplayer',
+          description: 'PvP, co-op, and social games: play with others',
+        },
+        {
+          slug: 'casual',
+          name: 'Casual Games',
+          description: 'Relaxing, low-stress games for quick sessions',
+        },
+        {
+          slug: 'competitive',
+          name: 'Competitive',
+          description: 'Ranked games, tournaments, and esports-worthy titles',
+        },
+        {
+          slug: 'creator-lounge',
+          name: 'Creator Lounge',
+          description: 'Game development discussion, tips, and collaboration',
+        },
+        {
+          slug: 'new-releases',
+          name: 'New Releases',
+          description: 'Fresh games to discover and try',
+        },
+      ];
+      for (const s of defaults) {
+        await prisma.submolt.upsert({ where: { slug: s.slug }, update: {}, create: s });
+      }
+      console.log(`[DB] Created ${defaults.length} default submolts`);
+    } else {
+      console.log(`[DB] ${existing} submolt(s) already exist`);
+    }
+  } catch (err) {
+    console.warn('[DB] Could not seed submolts:', err);
+  }
+
   // Graceful shutdown
   function shutdown(signal: string): void {
     console.log(`\n[${signal}] Shutting down Moltblox API server...`);
