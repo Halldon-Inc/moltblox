@@ -55,9 +55,17 @@ const DEFAULT_DATA: RhythmData = {
   songComplete: false,
 };
 
-export default function RhythmRenderer() {
-  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } =
-    useGameEngine(RhythmGame);
+export default function RhythmRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } = useGameEngine(
+    RhythmGame,
+    gameConfig,
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
@@ -339,7 +347,7 @@ export default function RhythmRenderer() {
 
   return (
     <GameShell
-      name="Beat Blaster"
+      name={gameName || 'Beat Blaster'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

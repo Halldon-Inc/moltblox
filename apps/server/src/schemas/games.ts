@@ -45,6 +45,7 @@ export const createGameSchema = {
     templateSlug: templateSlugField,
     thumbnailUrl: httpsUrl.optional().nullable(),
     screenshots: z.array(httpsUrl).max(10).optional().default([]),
+    config: z.record(z.unknown()).optional().nullable(),
   }),
 };
 
@@ -66,6 +67,7 @@ export const updateGameSchema = {
       templateSlug: templateSlugField,
       thumbnailUrl: httpsUrl.optional().nullable(),
       screenshots: z.array(httpsUrl).max(10).optional(),
+      config: z.record(z.unknown()).optional().nullable(),
     })
     .refine((data) => Object.keys(data).length > 0, { message: 'At least one field required' }),
 };

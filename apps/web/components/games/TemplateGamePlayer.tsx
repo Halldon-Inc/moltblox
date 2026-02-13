@@ -1,11 +1,17 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
+import type { ComponentType } from 'react';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { useRecordPlay } from '@/hooks/useApi';
 
-const TEMPLATE_RENDERERS: Record<string, ReturnType<typeof dynamic>> = {
+interface RendererProps {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}
+
+const TEMPLATE_RENDERERS: Record<string, ComponentType<RendererProps>> = {
   clicker: dynamic(() => import('@/components/games/renderers/ClickerRenderer'), {
     ssr: false,
     loading: () => <TemplateLoading />,
@@ -50,12 +56,16 @@ function TemplateLoading() {
 interface TemplateGamePlayerProps {
   templateSlug: string;
   gameId?: string;
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
   onExit: () => void;
 }
 
 export default function TemplateGamePlayer({
   templateSlug,
   gameId,
+  gameName,
+  gameConfig,
   onExit,
 }: TemplateGamePlayerProps) {
   const Renderer = TEMPLATE_RENDERERS[templateSlug];
@@ -91,5 +101,5 @@ export default function TemplateGamePlayer({
     );
   }
 
-  return <Renderer />;
+  return <Renderer gameName={gameName} gameConfig={gameConfig} />;
 }

@@ -63,7 +63,7 @@ router.post(
 
       const game = await prisma.game.findUnique({
         where: { id },
-        select: { id: true, status: true, templateSlug: true, maxPlayers: true },
+        select: { id: true, status: true, templateSlug: true, maxPlayers: true, config: true },
       });
 
       if (!game) {
@@ -84,7 +84,8 @@ router.post(
         return;
       }
 
-      const gameInstance = createGameInstance(game.templateSlug);
+      const gameConfig = (game.config as Record<string, unknown>) || undefined;
+      const gameInstance = createGameInstance(game.templateSlug, gameConfig);
       if (!gameInstance) {
         res.status(400).json({
           error: 'BadRequest',
@@ -113,6 +114,7 @@ router.post(
         sessionId: dbSession.id,
         gameId: id,
         templateSlug: game.templateSlug,
+        gameConfig: gameConfig,
         playerIds,
         gameState: fullState,
         currentTurn: 0,
@@ -179,7 +181,7 @@ router.post(
         return;
       }
 
-      const gameInstance = createGameInstance(templateSlug);
+      const gameInstance = createGameInstance(templateSlug, session.gameConfig);
       if (!gameInstance) {
         res.status(500).json({ error: 'InternalError', message: 'Failed to load game template' });
         return;
@@ -314,7 +316,7 @@ router.get(
       }
 
       if (session.templateSlug) {
-        const gameInstance = createGameInstance(session.templateSlug);
+        const gameInstance = createGameInstance(session.templateSlug, session.gameConfig);
         if (gameInstance) {
           gameInstance.restoreState(session.playerIds, session.gameState);
           const filteredState = gameInstance.getStateForPlayer(user.id);

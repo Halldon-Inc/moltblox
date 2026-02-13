@@ -12,6 +12,7 @@ interface GamePlayerProps {
   templateSlug?: string;
   gameId?: string;
   gameName: string;
+  gameConfig?: Record<string, unknown>;
   thumbnail?: string;
   onExit: () => void;
 }
@@ -21,6 +22,7 @@ export default function GamePlayer({
   templateSlug,
   gameId,
   gameName,
+  gameConfig,
   thumbnail,
   onExit,
 }: GamePlayerProps) {
@@ -76,7 +78,13 @@ export default function GamePlayer({
       {/* Game canvas area */}
       <div className="relative flex-1 min-h-0">
         {templateSlug ? (
-          <TemplateGamePlayer templateSlug={templateSlug} gameId={gameId} onExit={onExit} />
+          <TemplateGamePlayer
+            templateSlug={templateSlug}
+            gameId={gameId}
+            gameName={gameName}
+            gameConfig={gameConfig}
+            onExit={onExit}
+          />
         ) : wasmUrl ? (
           <WasmGameLoader
             wasmUrl={wasmUrl}

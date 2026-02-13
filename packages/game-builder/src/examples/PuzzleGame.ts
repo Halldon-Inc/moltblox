@@ -12,15 +12,19 @@
 import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
+export interface PuzzleConfig {
+  gridSize?: number;
+}
+
 interface PuzzleState {
   [key: string]: unknown;
-  grid: number[];           // Flattened grid of values (pairs of 1-8)
-  revealed: boolean[];      // Which cells are revealed
-  matched: boolean[];       // Which cells are matched
-  selected: number | null;  // Currently selected cell
-  moves: number;            // Total moves made
-  matches: number;          // Pairs found
-  gridSize: number;         // Width/height of grid
+  grid: number[]; // Flattened grid of values (pairs of 1-8)
+  revealed: boolean[]; // Which cells are revealed
+  matched: boolean[]; // Which cells are matched
+  selected: number | null; // Currently selected cell
+  moves: number; // Total moves made
+  matches: number; // Pairs found
+  gridSize: number; // Width/height of grid
 }
 
 export class PuzzleGame extends BaseGame {
@@ -28,12 +32,19 @@ export class PuzzleGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 1;
 
-  private readonly GRID_SIZE = 4; // 4x4 grid = 16 cells = 8 pairs
-
   protected initializeState(_playerIds: string[]): PuzzleState {
+    const cfg = this.config as PuzzleConfig;
+    // Grid size must be even so we can form pairs; default 4
+    let gridSize = cfg.gridSize ?? 4;
+    if (gridSize % 2 !== 0) gridSize++;
+    gridSize = Math.max(2, Math.min(gridSize, 8));
+
+    const totalCells = gridSize * gridSize;
+    const numPairs = totalCells / 2;
+
     // Create pairs
     const pairs: number[] = [];
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= numPairs; i++) {
       pairs.push(i, i);
     }
 
@@ -42,12 +53,12 @@ export class PuzzleGame extends BaseGame {
 
     return {
       grid,
-      revealed: new Array(16).fill(false),
-      matched: new Array(16).fill(false),
+      revealed: new Array(totalCells).fill(false),
+      matched: new Array(totalCells).fill(false),
       selected: null,
       moves: 0,
       matches: 0,
-      gridSize: this.GRID_SIZE,
+      gridSize,
     };
   }
 
@@ -127,7 +138,8 @@ export class PuzzleGame extends BaseGame {
   protected checkGameOver(): boolean {
     const data = this.getData<PuzzleState>();
     // Game over when all pairs are matched
-    return data.matches >= 8;
+    const numPairs = (data.gridSize * data.gridSize) / 2;
+    return data.matches >= numPairs;
   }
 
   protected determineWinner(): string | null {
@@ -140,9 +152,9 @@ export class PuzzleGame extends BaseGame {
     const playerId = this.getPlayers()[0];
 
     // Score based on efficiency (fewer moves = higher score)
-    // Perfect game = 8 moves (one for each pair)
-    // Score formula: 1000 - (moves - 8) * 50
-    const score = Math.max(0, 1000 - (data.moves - 8) * 50);
+    // Perfect game = numPairs moves (one for each pair)
+    const numPairs = (data.gridSize * data.gridSize) / 2;
+    const score = Math.max(0, 1000 - (data.moves - numPairs) * 50);
 
     return { [playerId]: score };
   }
@@ -164,7 +176,7 @@ export class PuzzleGame extends BaseGame {
 
     // Only show values for revealed or matched cells
     const visibleGrid = data.grid.map((value, i) =>
-      data.revealed[i] || data.matched[i] ? value : 0
+      data.revealed[i] || data.matched[i] ? value : 0,
     );
 
     return {

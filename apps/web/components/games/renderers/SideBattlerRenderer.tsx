@@ -430,9 +430,17 @@ function getEnemyPositions(count: number): { x: number; y: number }[] {
 
 // --- Main Component ---
 
-export default function SideBattlerRenderer() {
-  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } =
-    useGameEngine(SideBattlerGame);
+export default function SideBattlerRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } = useGameEngine(
+    SideBattlerGame,
+    gameConfig,
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -1144,7 +1152,7 @@ export default function SideBattlerRenderer() {
   if (!data) {
     return (
       <GameShell
-        name="Molt Arena"
+        name={gameName || 'Molt Arena'}
         scores={scores}
         events={events}
         isGameOver={isGameOver}
@@ -1161,7 +1169,7 @@ export default function SideBattlerRenderer() {
 
   return (
     <GameShell
-      name="Molt Arena"
+      name={gameName || 'Molt Arena'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

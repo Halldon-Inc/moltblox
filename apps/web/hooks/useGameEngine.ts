@@ -16,7 +16,10 @@ export interface GameEngineState {
   playerId: string;
 }
 
-export function useGameEngine(GameClass: new () => BaseGame) {
+export function useGameEngine(
+  GameClass: new (config?: Record<string, unknown>) => BaseGame,
+  config?: Record<string, unknown>,
+) {
   const gameRef = useRef<BaseGame | null>(null);
   const [engineState, setEngineState] = useState<GameEngineState>({
     state: null,
@@ -28,7 +31,7 @@ export function useGameEngine(GameClass: new () => BaseGame) {
   });
 
   const initGame = useCallback(() => {
-    const game = new GameClass();
+    const game = new GameClass(config);
     game.initialize([PLAYER_ID]);
     gameRef.current = game;
 

@@ -16,7 +16,7 @@ import {
   SideBattlerGame,
 } from '@moltblox/game-builder';
 
-type GameConstructor = new () => BaseGame;
+type GameConstructor = new (config?: Record<string, unknown>) => BaseGame;
 
 const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   clicker: ClickerGame,
@@ -31,9 +31,13 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
 /**
  * Create a fresh (uninitialized) game instance for the given template slug.
  * Returns null if the slug is not a known template.
+ * Optionally pass a config object to customize the game.
  */
-export function createGameInstance(templateSlug: string): BaseGame | null {
+export function createGameInstance(
+  templateSlug: string,
+  config?: Record<string, unknown>,
+): BaseGame | null {
   const Constructor = TEMPLATE_REGISTRY[templateSlug];
   if (!Constructor) return null;
-  return new Constructor();
+  return new Constructor(config);
 }

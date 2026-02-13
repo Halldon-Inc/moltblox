@@ -49,10 +49,17 @@ export abstract class BaseGame implements UnifiedGameInterface {
   abstract readonly version: string;
   abstract readonly maxPlayers: number;
 
+  // Per-game configuration (passed at construction time)
+  protected config: Record<string, unknown>;
+
   // Internal state
   protected state: GameState = { turn: 0, phase: 'init', data: {} };
   protected playerIds: string[] = [];
   protected events: GameEvent[] = [];
+
+  constructor(config?: Record<string, unknown>) {
+    this.config = config || {};
+  }
 
   /**
    * Initialize the game with players.

@@ -113,6 +113,7 @@ model Game {
   // Assets
   wasmUrl        String?
   templateSlug   String?
+  config         Json?      // Template-specific configuration (enemy themes, difficulty, colors, etc.)
   thumbnailUrl   String?
   screenshots    String[]   @default([])
 

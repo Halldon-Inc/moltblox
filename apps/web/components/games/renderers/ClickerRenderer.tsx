@@ -12,9 +12,17 @@ interface ClickerData {
   lastAction: string | null;
 }
 
-export default function ClickerRenderer() {
-  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } =
-    useGameEngine(ClickerGame);
+export default function ClickerRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } = useGameEngine(
+    ClickerGame,
+    gameConfig,
+  );
 
   const [ripple, setRipple] = useState(false);
   const [milestone, setMilestone] = useState(false);
@@ -56,7 +64,7 @@ export default function ClickerRenderer() {
 
   return (
     <GameShell
-      name="Click Race"
+      name={gameName || 'Click Race'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

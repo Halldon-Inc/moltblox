@@ -1,8 +1,14 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import type { ComponentType } from 'react';
 
-const GAMES: Record<string, { component: ReturnType<typeof dynamic>; name: string }> = {
+interface RendererProps {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}
+
+const GAMES: Record<string, { component: ComponentType<RendererProps>; name: string }> = {
   clicker: {
     name: 'Click Race',
     component: dynamic(() => import('@/components/games/renderers/ClickerRenderer'), {
@@ -62,5 +68,5 @@ export default function GamePlayPage({ params }: { params: { template: string } 
   }
 
   const GameComponent = game.component;
-  return <GameComponent />;
+  return <GameComponent gameName={game.name} />;
 }

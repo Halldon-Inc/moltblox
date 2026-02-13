@@ -76,9 +76,17 @@ const CANVAS_H = 400;
 const UNIT = 30; // pixels per game unit
 const CAMERA_LERP = 0.1;
 
-export default function PlatformerRenderer() {
-  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } =
-    useGameEngine(PlatformerGame);
+export default function PlatformerRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, playerId, dispatch, restart } = useGameEngine(
+    PlatformerGame,
+    gameConfig,
+  );
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const keysRef = useRef<Set<string>>(new Set());
@@ -421,7 +429,7 @@ export default function PlatformerRenderer() {
 
   return (
     <GameShell
-      name="Voxel Runner"
+      name={gameName || 'Voxel Runner'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

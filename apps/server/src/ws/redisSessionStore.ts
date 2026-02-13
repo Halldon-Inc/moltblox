@@ -28,6 +28,7 @@ export interface ActiveSessionData {
   sessionId: string;
   gameId: string;
   templateSlug?: string;
+  gameConfig?: Record<string, unknown>;
   playerIds: string[];
   gameState: GameState;
   currentTurn: number;

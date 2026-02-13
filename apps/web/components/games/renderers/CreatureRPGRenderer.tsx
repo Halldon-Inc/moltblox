@@ -733,9 +733,17 @@ function moveTypeColor(type: string): string {
 // Main Component
 // ---------------------------------------------------------------------------
 
-export default function CreatureRPGRenderer() {
-  const { state, events, isGameOver, winner, scores, dispatch, restart } =
-    useGameEngine(CreatureRPGGame);
+export default function CreatureRPGRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, dispatch, restart } = useGameEngine(
+    CreatureRPGGame,
+    gameConfig,
+  );
 
   const data = state?.data as CreatureRPGState | undefined;
 
@@ -1775,7 +1783,7 @@ export default function CreatureRPGRenderer() {
   if (!data) {
     return (
       <GameShell
-        name="Creature Quest"
+        name={gameName || 'Creature Quest'}
         scores={scores}
         events={events}
         isGameOver={isGameOver}
@@ -1792,7 +1800,7 @@ export default function CreatureRPGRenderer() {
 
   return (
     <GameShell
-      name="Creature Quest"
+      name={gameName || 'Creature Quest'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

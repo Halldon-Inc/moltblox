@@ -53,6 +53,15 @@ export { RhythmGame } from './examples/RhythmGame.js';
 export { PlatformerGame } from './examples/PlatformerGame.js';
 export { SideBattlerGame } from './examples/SideBattlerGame.js';
 
+// Game config types
+export type { ClickerConfig } from './examples/ClickerGame.js';
+export type { PuzzleConfig } from './examples/PuzzleGame.js';
+export type { CreatureRPGConfig } from './examples/CreatureRPGGame.js';
+export type { RPGConfig } from './examples/RPGGame.js';
+export type { RhythmConfig } from './examples/RhythmGame.js';
+export type { PlatformerConfig } from './examples/PlatformerGame.js';
+export type { SideBattlerConfig } from './examples/SideBattlerGame.js';
+
 // Re-export types from protocol
 export type {
   UnifiedGameInterface,

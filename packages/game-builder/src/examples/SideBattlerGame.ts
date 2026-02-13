@@ -34,6 +34,22 @@ import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 // ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+export interface SideBattlerConfig {
+  partyNames?: {
+    warrior?: string;
+    mage?: string;
+    archer?: string;
+    healer?: string;
+  };
+  enemyTheme?: 'fantasy' | 'undead' | 'demons' | 'beasts' | 'sci-fi';
+  maxWaves?: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
+}
+
+// ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
@@ -397,6 +413,28 @@ const WAVE_TEMPLATES: WaveTemplate[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Enemy theme name sets
+// ---------------------------------------------------------------------------
+
+const ENEMY_THEME_NAMES: Record<string, string[]> = {
+  fantasy: ['Slime', 'Goblin', 'Skeleton', 'Shadow Assassin', 'Dragon Lord'],
+  undead: ['Zombie', 'Wraith', 'Bone Golem', 'Lich', 'Death Knight'],
+  demons: ['Imp', 'Hellhound', 'Succubus', 'Pit Fiend', 'Demon Lord'],
+  beasts: ['Wolf', 'Bear', 'Giant Spider', 'Wyvern', 'Hydra'],
+  'sci-fi': ['Drone', 'Cyborg', 'Mech Walker', 'AI Core', 'Overlord'],
+};
+
+// ---------------------------------------------------------------------------
+// Difficulty stat multipliers
+// ---------------------------------------------------------------------------
+
+const DIFFICULTY_MULTIPLIERS: Record<string, number> = {
+  easy: 0.7,
+  normal: 1.0,
+  hard: 1.4,
+};
+
+// ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
@@ -466,11 +504,14 @@ export class SideBattlerGame extends BaseGame {
       playerScores[pid] = 0;
     }
 
+    const cfg = this.config as SideBattlerConfig;
+    const maxWaves = Math.max(1, Math.min(cfg.maxWaves ?? 5, WAVE_TEMPLATES.length));
+
     return {
       party,
       enemies: [],
       currentWave: 0,
-      maxWaves: 5,
+      maxWaves,
       battlePhase: 'prep' as const,
       turnOrder: [],
       currentTurnIndex: 0,
@@ -484,6 +525,10 @@ export class SideBattlerGame extends BaseGame {
   }
 
   private getCharacterName(cls: CharacterClass): string {
+    const cfg = this.config as SideBattlerConfig;
+    const custom = cfg.partyNames?.[cls];
+    if (custom) return custom;
+
     switch (cls) {
       case 'warrior':
         return 'Bron the Warrior';
@@ -568,25 +613,37 @@ export class SideBattlerGame extends BaseGame {
     const template = WAVE_TEMPLATES[waveIndex];
     const scale = 1 + (data.currentWave - 1) * 0.1;
 
-    // Spawn enemies from template with scaling
-    data.enemies = template.enemies.map((e, i) => ({
-      id: `enemy_w${data.currentWave}_${i}`,
-      name: e.name,
-      stats: {
-        hp: Math.floor(e.hp * scale),
-        maxHp: Math.floor(e.hp * scale),
-        mp: 0,
-        maxMp: 0,
-        atk: Math.floor(e.atk * scale),
-        def: Math.floor(e.def * scale),
-        spd: Math.floor(e.spd * scale),
-        matk: Math.floor(e.matk * scale),
-        mdef: Math.floor(e.mdef * scale),
-      },
-      statusEffects: [],
-      isBoss: e.isBoss,
-      alive: true,
-    }));
+    // Apply difficulty and theme from config
+    const cfg = this.config as SideBattlerConfig;
+    const diffMult = DIFFICULTY_MULTIPLIERS[cfg.difficulty ?? 'normal'] ?? 1.0;
+    const themeNames = ENEMY_THEME_NAMES[cfg.enemyTheme ?? 'fantasy'] ?? ENEMY_THEME_NAMES.fantasy;
+
+    // Spawn enemies from template with scaling and difficulty
+    data.enemies = template.enemies.map((e, i) => {
+      // Map the enemy name to the themed name set based on the wave position
+      const nameIndex = Math.min(waveIndex, themeNames.length - 1);
+      const themedName =
+        cfg.enemyTheme && cfg.enemyTheme !== 'fantasy' ? themeNames[nameIndex] : e.name;
+
+      return {
+        id: `enemy_w${data.currentWave}_${i}`,
+        name: e.isBoss ? themeNames[themeNames.length - 1] : themedName,
+        stats: {
+          hp: Math.floor(e.hp * scale * diffMult),
+          maxHp: Math.floor(e.hp * scale * diffMult),
+          mp: 0,
+          maxMp: 0,
+          atk: Math.floor(e.atk * scale * diffMult),
+          def: Math.floor(e.def * scale * diffMult),
+          spd: Math.floor(e.spd * scale),
+          matk: Math.floor(e.matk * scale * diffMult),
+          mdef: Math.floor(e.mdef * scale * diffMult),
+        },
+        statusEffects: [],
+        isBoss: e.isBoss,
+        alive: true,
+      };
+    });
 
     data.battlePhase = 'combat';
     data.selectedTarget = null;

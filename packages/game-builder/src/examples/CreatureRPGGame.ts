@@ -43,6 +43,17 @@ import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 // ---------------------------------------------------------------------------
+// Config
+// ---------------------------------------------------------------------------
+
+export interface CreatureRPGConfig {
+  starterLevel?: number;
+  startingPotions?: number;
+  startingCaptureOrbs?: number;
+  encounterRate?: number;
+}
+
+// ---------------------------------------------------------------------------
 // Type System
 // ---------------------------------------------------------------------------
 
@@ -700,9 +711,10 @@ const ENCOUNTER_TABLES: Record<string, EncounterEntry[]> = {
 
 const ENCOUNTER_RATE = 0.15;
 
-function rollEncounter(mapId: string): Creature | null {
+function rollEncounter(mapId: string, encounterRate?: number): Creature | null {
   const table = ENCOUNTER_TABLES[mapId];
-  if (!table || Math.random() > ENCOUNTER_RATE) return null;
+  const rate = encounterRate ?? ENCOUNTER_RATE;
+  if (!table || Math.random() > rate) return null;
 
   const totalWeight = table.reduce((s, e) => s + e.weight, 0);
   let roll = Math.random() * totalWeight;
@@ -905,11 +917,15 @@ export class CreatureRPGGame extends BaseGame {
   readonly maxPlayers = 1;
 
   protected initializeState(playerIds: string[]): Record<string, unknown> {
+    const cfg = this.config as CreatureRPGConfig;
     const state: CreatureRPGState = {
       gamePhase: 'starter_select',
       party: [],
       activeCreatureIndex: 0,
-      inventory: { potions: 5, captureOrbs: 10 },
+      inventory: {
+        potions: cfg.startingPotions ?? 5,
+        captureOrbs: cfg.startingCaptureOrbs ?? 10,
+      },
       playerPos: { x: 14, y: 6 },
       playerDirection: 'down',
       mapId: 'starter_town',
@@ -994,7 +1010,8 @@ export class CreatureRPGGame extends BaseGame {
       return { success: false, error: `Invalid starter. Choose: ${VALID_STARTERS.join(', ')}` };
     }
 
-    const starter = createCreature(species, 5, `starter_${species}`);
+    const cfg = this.config as CreatureRPGConfig;
+    const starter = createCreature(species, cfg.starterLevel ?? 5, `starter_${species}`);
     data.party = [starter];
     data.activeCreatureIndex = 0;
     data.starterChosen = true;
@@ -1067,7 +1084,8 @@ export class CreatureRPGGame extends BaseGame {
 
     // Check for tall grass encounter
     if (tile === T.TALL_GRASS) {
-      const wildCreature = rollEncounter(data.mapId);
+      const cfgEnc = this.config as CreatureRPGConfig;
+      const wildCreature = rollEncounter(data.mapId, cfgEnc.encounterRate);
       if (wildCreature) {
         data.battleState = {
           type: 'wild',

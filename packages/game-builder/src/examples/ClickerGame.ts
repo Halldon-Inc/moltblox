@@ -14,11 +14,16 @@
 import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
+export interface ClickerConfig {
+  targetClicks?: number;
+  clickValue?: number;
+}
+
 interface ClickerState {
   [key: string]: unknown;
-  clicks: Record<string, number>;   // Player ID -> click count
-  targetClicks: number;             // First to reach this wins
-  lastAction: string | null;        // Last player who acted
+  clicks: Record<string, number>; // Player ID -> click count
+  targetClicks: number; // First to reach this wins
+  lastAction: string | null; // Last player who acted
 }
 
 export class ClickerGame extends BaseGame {
@@ -27,13 +32,13 @@ export class ClickerGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
 
-  // Game config
-  private readonly TARGET_CLICKS = 100;
-
   /**
    * Initialize game state
    */
   protected initializeState(playerIds: string[]): ClickerState {
+    const cfg = this.config as ClickerConfig;
+    const targetClicks = cfg.targetClicks ?? 100;
+
     // Create click counters for each player
     const clicks: Record<string, number> = {};
     for (const playerId of playerIds) {
@@ -42,7 +47,7 @@ export class ClickerGame extends BaseGame {
 
     return {
       clicks,
-      targetClicks: this.TARGET_CLICKS,
+      targetClicks,
       lastAction: null,
     };
   }
@@ -55,8 +60,9 @@ export class ClickerGame extends BaseGame {
 
     switch (action.type) {
       case 'click': {
-        // Increment click count
-        data.clicks[playerId]++;
+        // Increment click count by configured value
+        const cfg = this.config as ClickerConfig;
+        data.clicks[playerId] += cfg.clickValue ?? 1;
         data.lastAction = playerId;
 
         // Emit event for click milestones

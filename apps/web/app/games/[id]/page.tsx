@@ -276,6 +276,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
               templateSlug={game.templateSlug || undefined}
               gameId={game.id}
               gameName={gameName}
+              gameConfig={(game.config as Record<string, unknown>) || undefined}
               thumbnail={game.thumbnailUrl || undefined}
               onExit={handleExit}
             />

@@ -27,9 +27,17 @@ const VALUE_COLORS: Record<number, string> = {
   8: 'text-molt-300',
 };
 
-export default function PuzzleRenderer() {
-  const { state, events, isGameOver, winner, scores, dispatch, restart } =
-    useGameEngine(PuzzleGame);
+export default function PuzzleRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, dispatch, restart } = useGameEngine(
+    PuzzleGame,
+    gameConfig,
+  );
 
   // Track temporarily revealed cards for flip animation on mismatch.
   // The engine immediately hides non-matching pairs, so we hold them
@@ -123,7 +131,7 @@ export default function PuzzleRenderer() {
 
   return (
     <GameShell
-      name="Match Pairs"
+      name={gameName || 'Match Pairs'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}

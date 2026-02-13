@@ -28,6 +28,13 @@
 import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
+export interface RPGConfig {
+  maxEncounters?: number;
+  startingHp?: number;
+  startingAtk?: number;
+  startingDef?: number;
+}
+
 interface CharacterStats {
   hp: number;
   maxHp: number;
@@ -107,14 +114,26 @@ export class RPGGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
 
-  private readonly MAX_ENCOUNTERS = 10;
-
   protected initializeState(playerIds: string[]): RPGState {
+    const cfg = this.config as RPGConfig;
+    const maxEncounters = cfg.maxEncounters ?? 10;
+    const startingHp = cfg.startingHp ?? 100;
+    const startingAtk = cfg.startingAtk ?? 12;
+    const startingDef = cfg.startingDef ?? 8;
+
     const players: RPGState['players'] = {};
 
     for (const pid of playerIds) {
       players[pid] = {
-        stats: { hp: 100, maxHp: 100, atk: 12, def: 8, spd: 5, mp: 30, maxMp: 30 },
+        stats: {
+          hp: startingHp,
+          maxHp: startingHp,
+          atk: startingAtk,
+          def: startingDef,
+          spd: 5,
+          mp: 30,
+          maxMp: 30,
+        },
         level: 1,
         xp: 0,
         xpToLevel: 50,
@@ -128,7 +147,7 @@ export class RPGGame extends BaseGame {
       players,
       currentEnemy: null,
       encounter: 0,
-      maxEncounters: this.MAX_ENCOUNTERS,
+      maxEncounters,
       turnOrder: [],
       currentTurnIndex: 0,
       combatLog: [],

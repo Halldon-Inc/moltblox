@@ -18,6 +18,7 @@ export interface GameResponse {
   ratingCount: number;
   wasmUrl: string | null;
   templateSlug: string | null;
+  config: Record<string, unknown> | null;
   howToPlay: string | null;
   createdAt: string;
   creator: {

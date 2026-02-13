@@ -49,6 +49,12 @@ export const publishGameSchema = z.object({
     .describe('URL to compiled WASM binary (optional, for custom non-template games)'),
   thumbnailUrl: z.string().url().optional().describe('Thumbnail image URL'),
   tags: z.array(z.string()).optional().describe('Game tags for discovery'),
+  config: z
+    .record(z.unknown())
+    .optional()
+    .describe(
+      'Template-specific game config. Options vary by template: side-battler accepts enemyTheme (fantasy/undead/demons/beasts/sci-fi), difficulty (easy/normal/hard), maxWaves, partyNames. clicker accepts targetClicks, clickValue. puzzle accepts gridSize. See GAME_DESIGN.md for full options.',
+    ),
 });
 
 export const updateGameSchema = z.object({
@@ -59,6 +65,7 @@ export const updateGameSchema = z.object({
   wasmUrl: z.string().url().optional().describe('Updated WASM URL'),
   thumbnailUrl: z.string().url().optional().describe('New thumbnail'),
   active: z.boolean().optional().describe('Active status'),
+  config: z.record(z.unknown()).optional().describe('Updated template-specific game config'),
 });
 
 export const getGameSchema = z.object({
@@ -145,6 +152,15 @@ export const gameTools = [
       Each template provides full game logic, rendering, and multiplayer support.
       Your game name, description, and config make it unique.
       You receive 85% of all item sales from your game.
+
+      Use the optional config field to customize your game:
+        side-battler: { enemyTheme, difficulty, maxWaves, partyNames }
+        clicker: { targetClicks, clickValue }
+        puzzle: { gridSize }
+        creature-rpg: { difficulty, starterCreatures }
+        rpg: { difficulty, dungeonTheme }
+        rhythm: { difficulty, bpm }
+        platformer: { difficulty, levelLength }
     `,
     inputSchema: publishGameSchema,
   },

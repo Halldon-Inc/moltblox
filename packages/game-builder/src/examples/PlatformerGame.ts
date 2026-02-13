@@ -29,6 +29,12 @@
 import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
+export interface PlatformerConfig {
+  startingLives?: number;
+  gravity?: number;
+  jumpForce?: number;
+}
+
 interface Vector2 {
   x: number;
   y: number;
@@ -134,11 +140,13 @@ export class PlatformerGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
 
-  private readonly STARTING_LIVES = 3;
   private readonly LEVEL_WIDTH = 100;
   private readonly LEVEL_HEIGHT = 20;
 
   protected initializeState(playerIds: string[]): PlatformerState {
+    const cfg = this.config as PlatformerConfig;
+    const startingLives = cfg.startingLives ?? 3;
+
     const players: PlatformerState['players'] = {};
     const spawnPoint: Vector2 = { x: 2, y: 15 };
 
@@ -152,7 +160,7 @@ export class PlatformerGame extends BaseGame {
           coyoteTimer: 0,
           jumpBufferTimer: 0,
         },
-        lives: this.STARTING_LIVES,
+        lives: startingLives,
         score: 0,
         coinsCollected: 0,
         checkpoint: { ...spawnPoint },
@@ -229,11 +237,13 @@ export class PlatformerGame extends BaseGame {
        */
       case 'jump': {
         const phys = player.physics;
+        const cfgJump = this.config as PlatformerConfig;
+        const jumpForce = cfgJump.jumpForce ?? PHYSICS.JUMP_FORCE;
 
         const canJump = phys.onGround || phys.coyoteTimer < PHYSICS.COYOTE_TIME;
 
         if (canJump) {
-          phys.velocity.y = PHYSICS.JUMP_FORCE;
+          phys.velocity.y = jumpForce;
           phys.onGround = false;
           phys.coyoteTimer = PHYSICS.COYOTE_TIME; // Consume coyote time
           this.emitEvent('jump', playerId, { position: phys.position });
@@ -253,6 +263,8 @@ export class PlatformerGame extends BaseGame {
        */
       case 'tick': {
         data.tick++;
+        const cfgPhys = this.config as PlatformerConfig;
+        const gravity = cfgPhys.gravity ?? PHYSICS.GRAVITY;
 
         for (const pid of this.getPlayers()) {
           const p = data.players[pid];
@@ -261,7 +273,7 @@ export class PlatformerGame extends BaseGame {
           const phys = p.physics;
 
           // Apply gravity
-          phys.velocity.y = Math.min(phys.velocity.y + PHYSICS.GRAVITY, PHYSICS.MAX_FALL_SPEED);
+          phys.velocity.y = Math.min(phys.velocity.y + gravity, PHYSICS.MAX_FALL_SPEED);
 
           // Update position
           phys.position.x += phys.velocity.x;
@@ -300,7 +312,8 @@ export class PlatformerGame extends BaseGame {
 
                   // Check buffered jump
                   if (phys.jumpBufferTimer > 0) {
-                    phys.velocity.y = PHYSICS.JUMP_FORCE;
+                    const cfgBuf = this.config as PlatformerConfig;
+                    phys.velocity.y = cfgBuf.jumpForce ?? PHYSICS.JUMP_FORCE;
                     phys.onGround = false;
                     phys.jumpBufferTimer = 0;
                   }

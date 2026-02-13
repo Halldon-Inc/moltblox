@@ -253,6 +253,7 @@ router.post(
         templateSlug,
         thumbnailUrl,
         screenshots,
+        config,
       } = req.body;
 
       const sanitized = sanitizeObject({ name, description } as Record<string, unknown>, [
@@ -277,6 +278,7 @@ router.post(
             templateSlug: templateSlug || null,
             thumbnailUrl: thumbnailUrl || null,
             screenshots: screenshots || [],
+            config: config || undefined,
             status: 'draft',
           },
           include: {
@@ -350,6 +352,7 @@ router.put(
         templateSlug,
         thumbnailUrl,
         screenshots,
+        config,
       } = req.body;
 
       // Sanitize name and description if provided
@@ -384,6 +387,7 @@ router.put(
       if (templateSlug !== undefined) data.templateSlug = templateSlug;
       if (thumbnailUrl !== undefined) data.thumbnailUrl = thumbnailUrl;
       if (screenshots !== undefined) data.screenshots = screenshots;
+      if (config !== undefined) data.config = config;
 
       let game;
       try {

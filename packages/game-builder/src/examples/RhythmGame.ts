@@ -28,6 +28,12 @@
 import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
+export interface RhythmConfig {
+  songLengthBeats?: number;
+  bpm?: number;
+  difficulty?: 'easy' | 'normal' | 'hard';
+}
+
 /**
  * Note lanes (like Guitar Hero's colored frets).
  * WHY 4 lanes: Fewer than 3 feels trivial. More than 5 becomes overwhelming.
@@ -106,12 +112,12 @@ export class RhythmGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
 
-  private readonly SONG_LENGTH_BEATS = 64; // ~32 seconds at 120 BPM
-  private readonly DEFAULT_BPM = 120;
-
   protected initializeState(playerIds: string[]): RhythmState {
-    const difficulty = 'normal';
-    const notes = this.generateNoteChart(difficulty);
+    const cfg = this.config as RhythmConfig;
+    const songLengthBeats = cfg.songLengthBeats ?? 64;
+    const bpm = cfg.bpm ?? 120;
+    const difficulty = cfg.difficulty ?? 'normal';
+    const notes = this.generateNoteChart(difficulty, songLengthBeats);
 
     const scores: Record<string, number> = {};
     const combos: Record<string, number> = {};
@@ -130,8 +136,8 @@ export class RhythmGame extends BaseGame {
     return {
       notes,
       currentBeat: 0,
-      totalBeats: this.SONG_LENGTH_BEATS,
-      bpm: this.DEFAULT_BPM,
+      totalBeats: songLengthBeats,
+      bpm,
       scores,
       combos,
       maxCombos,
@@ -267,7 +273,7 @@ export class RhythmGame extends BaseGame {
 
         data.difficulty = newDifficulty as RhythmState['difficulty'];
         // Regenerate note chart with the new difficulty
-        data.notes = this.generateNoteChart(newDifficulty);
+        data.notes = this.generateNoteChart(newDifficulty, data.totalBeats);
         data.nextNoteId = data.notes.length + 1;
         this.emitEvent('difficulty_changed', playerId, { difficulty: newDifficulty });
         this.setData(data);
@@ -338,12 +344,13 @@ export class RhythmGame extends BaseGame {
    * A well-tuned generator respects musical principles: notes cluster in
    * patterns, leave breathing room, and vary density to create dynamics.
    */
-  private generateNoteChart(difficulty: string): Note[] {
+  private generateNoteChart(difficulty: string, songLengthBeats?: number): Note[] {
+    const totalBeats = songLengthBeats ?? 64;
     const notes: Note[] = [];
     const density = DIFFICULTY_NOTE_DENSITY[difficulty] || 0.5;
     let noteId = 1;
 
-    for (let beat = 1; beat <= this.SONG_LENGTH_BEATS; beat++) {
+    for (let beat = 1; beat <= totalBeats; beat++) {
       // Use a deterministic pattern based on beat number for reproducibility
       // WHY deterministic: Random notes feel chaotic. Patterns based on beat
       // position create musical structure that feels intentional.

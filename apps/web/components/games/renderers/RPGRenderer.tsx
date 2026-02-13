@@ -122,9 +122,17 @@ function XPBar({ xp, xpToLevel }: { xp: number; xpToLevel: number }) {
   );
 }
 
-export default function RPGRenderer() {
-  const { state, events, isGameOver, winner, scores, dispatch, playerId, restart } =
-    useGameEngine(RPGGame);
+export default function RPGRenderer({
+  gameName,
+  gameConfig,
+}: {
+  gameName?: string;
+  gameConfig?: Record<string, unknown>;
+}) {
+  const { state, events, isGameOver, winner, scores, dispatch, playerId, restart } = useGameEngine(
+    RPGGame,
+    gameConfig,
+  );
 
   const logEndRef = useRef<HTMLDivElement>(null);
   const [lastReward, setLastReward] = useState<{ enemy: string; xp: number } | null>(null);
@@ -182,7 +190,7 @@ export default function RPGRenderer() {
   if (!player) {
     return (
       <GameShell
-        name="Dungeon Crawl"
+        name={gameName || 'Dungeon Crawl'}
         scores={scores}
         events={events}
         isGameOver={isGameOver}
@@ -201,7 +209,7 @@ export default function RPGRenderer() {
 
   return (
     <GameShell
-      name="Dungeon Crawl"
+      name={gameName || 'Dungeon Crawl'}
       scores={scores}
       events={events}
       isGameOver={isGameOver}
