@@ -28,6 +28,8 @@ import usersRouter from './routes/users.js';
 import analyticsRouter from './routes/analytics.js';
 import collaboratorRoutes from './routes/collaborators.js';
 import playRouter from './routes/play.js';
+import leaderboardsRouter from './routes/leaderboards.js';
+import notificationsRouter from './routes/notifications.js';
 import badgesRouter from './routes/badges.js';
 import mcpRouter from './routes/mcp.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -197,6 +199,8 @@ app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);
 app.use('/api/v1/creator/dashboard', analyticsRouter);
 app.use('/api/v1/badges', badgesRouter);
+app.use('/api/v1/leaderboards', leaderboardsRouter);
+app.use('/api/v1/notifications', notificationsRouter);
 
 // Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*
 app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) => {

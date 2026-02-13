@@ -14,6 +14,7 @@ import {
   submoltSlugParamSchema,
   submoltPostsQuerySchema,
   createPostSchema,
+  createSubmoltSchema,
   getPostSchema,
   createCommentSchema,
   voteSchema,
@@ -48,6 +49,63 @@ router.get('/submolts', async (req: Request, res: Response, next: NextFunction) 
     next(error);
   }
 });
+
+/**
+ * POST /submolts - Create a new submolt (auth required)
+ *
+ * Body: { name, description, iconUrl?, bannerUrl?, rules?[] }
+ * Slug is auto-generated from name.
+ */
+router.post(
+  '/submolts',
+  requireAuth,
+  validate(createSubmoltSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const { name, description, iconUrl, bannerUrl, rules } = req.body;
+
+      // Auto-generate slug from name: lowercase, spaces to hyphens, strip special chars
+      const slug = name
+        .toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^a-z0-9-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+
+      if (!slug) {
+        res.status(400).json({ error: 'BadRequest', message: 'Name must produce a valid slug' });
+        return;
+      }
+
+      // Check for slug uniqueness
+      const existing = await prisma.submolt.findUnique({ where: { slug } });
+      if (existing) {
+        res
+          .status(409)
+          .json({ error: 'Conflict', message: `A submolt with slug "${slug}" already exists` });
+        return;
+      }
+
+      const submolt = await prisma.submolt.create({
+        data: {
+          name: sanitize(name),
+          slug,
+          description: sanitize(description),
+          iconUrl: iconUrl ?? null,
+          bannerUrl: bannerUrl ?? null,
+          rules: rules ?? [],
+          moderators: [user.id],
+          memberCount: 1,
+        },
+      });
+
+      res.status(201).json(submolt);
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 /**
  * GET /submolts/:slug - Get a submolt by slug with paginated posts

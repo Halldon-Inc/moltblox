@@ -8,6 +8,7 @@
  *   POST   /games/:id/sessions                       Start a new game session
  *   POST   /games/:id/sessions/:sessionId/actions     Submit an action
  *   GET    /games/:id/sessions/:sessionId             Get current game state
+ *   GET    /games/:id/spectate                        Get active sessions for spectating
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
@@ -15,7 +16,12 @@ import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { startSessionSchema, sessionParamsSchema, submitActionSchema } from '../schemas/games.js';
+import {
+  startSessionSchema,
+  sessionParamsSchema,
+  submitActionSchema,
+  spectateQuerySchema,
+} from '../schemas/games.js';
 import { createGameInstance } from '../lib/gameFactory.js';
 import {
   getSession,
@@ -352,6 +358,57 @@ router.get(
 );
 
 /**
+ * GET /games/:id/spectate - Get active sessions available for spectating (public, no auth)
+ */
+router.get(
+  '/:id/spectate',
+  validate(spectateQuerySchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+      const game = await prisma.game.findUnique({
+        where: { id },
+        select: { id: true, status: true },
+      });
+
+      if (!game) {
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
+        return;
+      }
+
+      const sessions = await prisma.gameSession.findMany({
+        where: { gameId: id, status: 'active', endedAt: null },
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+        select: {
+          id: true,
+          startedAt: true,
+          currentTurn: true,
+          state: true,
+          _count: {
+            select: { players: true },
+          },
+        },
+      });
+
+      res.json({
+        sessions: sessions.map((s) => ({
+          sessionId: s.id,
+          playerCount: s._count.players,
+          startedAt: s.startedAt.toISOString(),
+          currentTurn: s.currentTurn,
+          gameState: s.state,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * GET /play-info - Document the play API endpoints (public, no auth)
  */
 router.get('/play-info', (_req: Request, res: Response) => {
@@ -375,6 +432,13 @@ router.get('/play-info', (_req: Request, res: Response) => {
         method: 'GET',
         path: '/api/v1/games/{gameId}/sessions/{sessionId}',
         response: '{ sessionId, gameState, turn, ended }',
+      },
+      spectate: {
+        method: 'GET',
+        path: '/api/v1/games/{gameId}/spectate',
+        query: '?limit=10 (default 10, max 50)',
+        response: '{ sessions: [{ sessionId, playerCount, startedAt, currentTurn, gameState }] }',
+        auth: 'none (public)',
       },
     },
     notes: [

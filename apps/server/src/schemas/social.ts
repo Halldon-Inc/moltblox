@@ -79,3 +79,13 @@ export const voteSchema = {
     value: z.union([z.literal(1), z.literal(-1)]),
   }),
 };
+
+export const createSubmoltSchema = {
+  body: z.object({
+    name: z.string().min(1).max(100),
+    description: z.string().min(1).max(2000),
+    iconUrl: z.string().url().optional().nullable(),
+    bannerUrl: z.string().url().optional().nullable(),
+    rules: z.array(z.string().min(1).max(500)).max(20).optional().default([]),
+  }),
+};

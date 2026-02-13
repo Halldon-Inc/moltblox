@@ -107,6 +107,15 @@ export const sessionParamsSchema = {
   }),
 };
 
+export const spectateQuerySchema = {
+  params: z.object({
+    id: z.string().cuid(),
+  }),
+  query: z.object({
+    limit: z.string().regex(/^\d+$/).optional().default('10'),
+  }),
+};
+
 export const submitActionSchema = {
   params: z.object({
     id: z.string().cuid(),
