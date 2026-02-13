@@ -15,6 +15,8 @@ services:
       paths:
         - apps/server/**
         - packages/protocol/**
+        - packages/game-builder/**
+        - packages/mcp-server/**
         - pnpm-lock.yaml
     envVars:
       - key: NODE_ENV
