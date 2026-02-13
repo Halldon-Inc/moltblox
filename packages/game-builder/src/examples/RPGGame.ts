@@ -240,6 +240,9 @@ export class RPGGame extends BaseGame {
             return { success: false, error: 'Not in combat and all encounters completed' };
           }
         }
+        if (!data.currentEnemy) {
+          return { success: false, error: 'Failed to start encounter' };
+        }
         if (data.turnOrder[data.currentTurnIndex] !== playerId) {
           return { success: false, error: 'Not your turn' };
         }
