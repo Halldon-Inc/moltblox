@@ -8,9 +8,12 @@ if (!process.env.NEXT_PUBLIC_WC_PROJECT_ID) {
   );
 }
 
+// The first chain in the array is the default. Switch to `base` for mainnet launch.
+export const defaultChain = baseSepolia;
+
 export const config = getDefaultConfig({
   appName: 'Moltblox',
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || 'moltblox-dev',
-  chains: [baseSepolia, base],
+  chains: [defaultChain, base],
   ssr: true,
 });

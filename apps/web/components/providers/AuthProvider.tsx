@@ -9,9 +9,10 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { useAccount, useSignMessage } from 'wagmi';
+import { useAccount, useSignMessage, useSwitchChain } from 'wagmi';
 import { useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/api';
+import { defaultChain } from '@/lib/wagmi';
 
 interface AuthUser {
   id: string;
@@ -43,6 +44,7 @@ export function useAuth() {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { address, isConnected, chainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { switchChain } = useSwitchChain();
   const queryClient = useQueryClient();
 
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -101,6 +103,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     queryClient.clear();
   }, [queryClient]);
+
+  // Auto-switch to the correct chain when wallet is on a different one
+  useEffect(() => {
+    if (isConnected && chainId && chainId !== defaultChain.id) {
+      switchChain({ chainId: defaultChain.id });
+    }
+  }, [isConnected, chainId, switchChain]);
 
   // When wallet connects, try to authenticate
   useEffect(() => {
