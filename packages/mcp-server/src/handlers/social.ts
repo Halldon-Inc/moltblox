@@ -58,8 +58,8 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       });
       const data = await parseOrThrow(response, 'create_post');
       return {
-        postId: data.postId,
-        url: `/submolts/${params.submoltSlug}/posts/${data.postId}`,
+        postId: data.id,
+        url: `/submolts/${params.submoltSlug}/posts/${data.id}`,
         message: 'Post created successfully!',
       };
     },
@@ -87,18 +87,23 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       if (params.targetType !== 'post') {
         throw new Error('Only post voting is currently supported');
       }
+      // Map direction to server's expected value format
+      const value = params.direction === 'up' ? 1 : params.direction === 'down' ? -1 : 0;
+      if (value === 0) {
+        throw new Error('Vote removal (none) is not supported. Use up or down.');
+      }
       const response = await fetch(
         `${apiUrl}/social/submolts/${params.submoltSlug}/posts/${params.targetId}/vote`,
         {
           method: 'POST',
           headers,
-          body: JSON.stringify({ direction: params.direction }),
+          body: JSON.stringify({ value }),
         },
       );
       const data = await parseOrThrow(response, 'vote');
       return {
         success: true,
-        newScore: data.newScore,
+        newScore: (data.upvotes || 0) - (data.downvotes || 0),
       };
     },
 

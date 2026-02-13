@@ -213,10 +213,12 @@ console.log('[BOOT] All API routes mounted');
 // 404 Handler
 // ---------------------
 
-app.use((_req: Request, res: Response) => {
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
+    path: req.originalUrl,
+    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /mcp. Play API: GET /api/v1/games/play-info',
   });
 });
 

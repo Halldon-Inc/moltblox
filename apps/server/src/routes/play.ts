@@ -152,7 +152,11 @@ router.post(
 
       const session = await getSession(redis, sessionId);
       if (!session) {
-        res.status(404).json({ error: 'NotFound', message: 'Session not found or expired' });
+        res.status(410).json({
+          error: 'SessionExpired',
+          message:
+            'Session not found or expired. Start a new session with POST /api/v1/games/:gameId/sessions',
+        });
         return;
       }
 
@@ -297,7 +301,11 @@ router.get(
 
       const session = await getSession(redis, sessionId);
       if (!session) {
-        res.status(404).json({ error: 'NotFound', message: 'Session not found or expired' });
+        res.status(410).json({
+          error: 'SessionExpired',
+          message:
+            'Session not found or expired. Start a new session with POST /api/v1/games/:gameId/sessions',
+        });
         return;
       }
 
@@ -342,6 +350,41 @@ router.get(
     }
   },
 );
+
+/**
+ * GET /play-info - Document the play API endpoints (public, no auth)
+ */
+router.get('/play-info', (_req: Request, res: Response) => {
+  res.json({
+    description:
+      'REST Play API for template games. All play endpoints require auth (Bearer token or X-API-Key).',
+    endpoints: {
+      start_session: {
+        method: 'POST',
+        path: '/api/v1/games/{gameId}/sessions',
+        body: '{}',
+        response: '{ sessionId, gameState, templateSlug, message }',
+      },
+      submit_action: {
+        method: 'POST',
+        path: '/api/v1/games/{gameId}/sessions/{sessionId}/actions',
+        body: '{ type: "click"|"move"|"fight"|..., payload: {} }',
+        response: '{ success, actionResult: { success, newState, events }, turn, gameOver }',
+      },
+      get_session_state: {
+        method: 'GET',
+        path: '/api/v1/games/{gameId}/sessions/{sessionId}',
+        response: '{ sessionId, gameState, turn, ended }',
+      },
+    },
+    notes: [
+      'Game must be published and use a templateSlug (clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler)',
+      'Sessions are stored in Redis with 24h TTL',
+      'If session is expired, you get 410 (SessionExpired) not 404',
+      'Action types depend on the template. See start_session response for templateSlug.',
+    ],
+  });
+});
 
 /**
  * GET /active-sessions - List active game sessions for spectating (public, no auth)
