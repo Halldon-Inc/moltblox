@@ -82,7 +82,7 @@ export class ClickerGame extends BaseGame {
 
       case 'multi_click': {
         // Power-up: multiple clicks at once (if purchased)
-        const amount = Number(action.payload.amount) || 1;
+        const amount = Number(action.payload.amount || action.payload.count) || 1;
         data.clicks[playerId] += Math.min(amount, 5); // Max 5 per action
         data.lastAction = playerId;
         this.setData(data);

@@ -194,9 +194,31 @@ export class RhythmGame extends BaseGame {
        * score differentiation from skill, not luck.
        */
       case 'hit_note': {
+        // Auto-advance beat so testers don't need separate advance_beat calls
+        data.currentBeat++;
+
+        // Check for missed notes (past the OK window) on beat advance
+        for (const note of data.notes) {
+          if (!note.hit && !note.missed && data.currentBeat - note.beatTime > TIMING_WINDOWS.ok) {
+            note.missed = true;
+            for (const pid of this.getPlayers()) {
+              data.hitCounts[pid].miss++;
+              data.combos[pid] = 0;
+              data.multipliers[pid] = 1;
+            }
+            this.emitEvent('note_missed', undefined, { noteId: note.id, lane: note.lane });
+          }
+        }
+
+        // Check if song is complete
+        if (data.currentBeat >= data.totalBeats) {
+          data.songComplete = true;
+        }
+
         const lane = Number(action.payload.lane) as Lane;
 
         if (lane < 0 || lane > 3) {
+          this.setData(data);
           return { success: false, error: 'Invalid lane (must be 0-3)' };
         }
 

@@ -1294,8 +1294,9 @@ export class SideBattlerGame extends BaseGame {
 
   /**
    * Advance to the next living unit in turn order.
-   * After each player action, we advance the index. If the next unit is an
-   * enemy, the client should call auto_tick to let the enemy act.
+   * After each player action, we advance the index. If the next unit(s) are
+   * enemies, we auto-process their turns so the client does not need to call
+   * auto_tick separately. This prevents the "No active character" stall.
    */
   private advanceTurn(data: SideBattlerState): void {
     // Check if all enemies are dead (wave clear)
@@ -1327,8 +1328,85 @@ export class SideBattlerGame extends BaseGame {
     // If we've looped back to the start, it's a new round
     if (data.currentTurnIndex === 0) {
       this.processRoundEnd(data);
+      if (data.enemies.every((e) => !e.alive)) {
+        this.handleWaveClear(data, this.getPlayers()[0]);
+        return;
+      }
       // Rebuild turn order (in case units died mid-round)
       this.buildTurnOrder(data);
+    }
+
+    // Auto-resolve consecutive enemy turns so the client gets back control
+    // at the next party member's turn (no separate auto_tick needed)
+    this.autoResolveEnemyTurns(data);
+  }
+
+  /**
+   * Process all consecutive enemy turns until a living party member's turn
+   * comes up or the wave/battle ends.
+   */
+  private autoResolveEnemyTurns(data: SideBattlerState): void {
+    let safetyLimit = data.turnOrder.length * 2;
+    while (safetyLimit > 0) {
+      safetyLimit--;
+      if (data.battlePhase !== 'combat') return;
+
+      const entry = data.turnOrder[data.currentTurnIndex];
+      if (!entry) return;
+
+      // Stop at a living party member's turn
+      if (entry.type === 'party') {
+        const char = data.party.find((c) => c.id === entry.id && c.alive);
+        if (char) return;
+        // Dead party member: skip
+        data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+        if (data.currentTurnIndex === 0) {
+          this.processRoundEnd(data);
+          if (data.enemies.every((e) => !e.alive)) {
+            this.handleWaveClear(data, this.getPlayers()[0]);
+            return;
+          }
+          this.buildTurnOrder(data);
+        }
+        continue;
+      }
+
+      // Enemy turn
+      const enemy = data.enemies.find((e) => e.id === entry.id && e.alive);
+      if (!enemy) {
+        data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+        if (data.currentTurnIndex === 0) {
+          this.processRoundEnd(data);
+          if (data.enemies.every((e) => !e.alive)) {
+            this.handleWaveClear(data, this.getPlayers()[0]);
+            return;
+          }
+          this.buildTurnOrder(data);
+        }
+        continue;
+      }
+
+      this.processEnemyTurn(enemy, data);
+      data.totalTurns++;
+
+      // Check if party wiped
+      if (data.party.every((c) => !c.alive)) {
+        data.battlePhase = 'defeat';
+        data.combatLog.push('All party members have fallen!');
+        this.emitEvent('party_wiped', undefined, { wave: data.currentWave });
+        return;
+      }
+
+      data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+
+      if (data.currentTurnIndex === 0) {
+        this.processRoundEnd(data);
+        if (data.enemies.every((e) => !e.alive)) {
+          this.handleWaveClear(data, this.getPlayers()[0]);
+          return;
+        }
+        this.buildTurnOrder(data);
+      }
     }
   }
 

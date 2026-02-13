@@ -574,6 +574,7 @@ const PASSABLE: Set<number> = new Set([
   T.DOOR,
   T.HEAL,
   T.GYM_DOOR,
+  T.SIGN,
 ]);
 
 /**
@@ -1065,9 +1066,14 @@ export class CreatureRPGGame extends BaseGame {
 
     // Check if tile is passable
     const tile = map[newY][newX];
-    // Check for NPC blocking
+    // Check for NPC blocking (only undefeated trainers with blocksPath block movement)
     const blockingNpc = NPC_DEFS.find(
-      (n) => n.mapId === data.mapId && n.x === newX && n.y === newY,
+      (n) =>
+        n.mapId === data.mapId &&
+        n.x === newX &&
+        n.y === newY &&
+        n.blocksPath &&
+        !data.defeatedTrainers.includes(n.id),
     );
     if (blockingNpc) {
       this.setData(data as Record<string, unknown>);
