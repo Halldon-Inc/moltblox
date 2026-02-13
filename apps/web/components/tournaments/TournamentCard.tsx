@@ -94,7 +94,7 @@ export default function TournamentCard({
         <div className="mt-auto pt-4 flex items-center gap-3 text-xs text-white/40 border-t border-white/5">
           <div className="flex items-center gap-1">
             <Calendar className="w-3 h-3" />
-            <span>{startDate}</span>
+            <span>{startDate ? new Date(startDate).toLocaleDateString() : 'TBD'}</span>
           </div>
           {status === 'live' && (
             <div className="flex items-center gap-1 text-green-400">

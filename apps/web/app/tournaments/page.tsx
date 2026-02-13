@@ -16,13 +16,27 @@ export default function TournamentsPage() {
     status: activeTab !== 'All' ? activeTab.toLowerCase() : undefined,
   });
 
-  const mapTournament = (t: any): TournamentCardProps => ({
-    ...t,
-    participants: t._count?.participants ?? 0,
-    status:
-      t.status === 'IN_PROGRESS' ? 'live' : t.status === 'REGISTRATION' ? 'upcoming' : 'completed',
-    startDate: t.startTime || t.startDate,
-  });
+  const mapTournament = (t: any): TournamentCardProps => {
+    const raw = (t.status || '').toLowerCase();
+    const status: TournamentCardProps['status'] =
+      raw === 'in_progress' || raw === 'live'
+        ? 'live'
+        : raw === 'registration' || raw === 'upcoming'
+          ? 'upcoming'
+          : 'completed';
+
+    return {
+      id: t.id,
+      name: t.name,
+      game: typeof t.game === 'object' ? (t.game?.name ?? 'Unknown') : t.game,
+      prizePool: Number(t.prizePool) || 0,
+      participants: t.currentParticipants ?? t._count?.participants ?? 0,
+      maxParticipants: t.maxParticipants ?? 0,
+      status,
+      format: t.format ?? '',
+      startDate: t.startTime || t.startDate || '',
+    };
+  };
 
   const tournaments: TournamentCardProps[] = (data?.tournaments ?? []).map(mapTournament);
   const liveTournaments = tournaments.filter((t: TournamentCardProps) => t.status === 'live');

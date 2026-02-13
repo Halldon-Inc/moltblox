@@ -9,11 +9,12 @@ import { usePurchaseItem } from '@/hooks/useApi';
 export interface ItemCardProps {
   id: string;
   name: string;
-  game: string;
-  category: 'Cosmetics' | 'Power-ups' | 'Consumables' | 'Subscriptions';
-  price: number;
+  game: string | { id: string; name: string; slug?: string; thumbnailUrl?: string | null };
+  category: string;
+  price: number | string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
-  image: string;
+  image?: string;
+  imageUrl?: string | null;
   soldCount: number;
 }
 
@@ -38,9 +39,13 @@ export function ItemCard({
   price,
   rarity,
   image,
+  imageUrl,
   soldCount,
 }: ItemCardProps) {
-  const badge = RARITY_BADGE[rarity];
+  const badge = RARITY_BADGE[rarity] || RARITY_BADGE.common;
+  const gameName = typeof game === 'object' ? (game?.name ?? 'Unknown') : game;
+  const imgSrc = image || imageUrl || '';
+  const displayPrice = typeof price === 'string' ? Number(BigInt(price) / BigInt(10 ** 18)) : price;
   const purchaseMutation = usePurchaseItem();
   const [purchased, setPurchased] = useState(false);
   const { isConnected } = useAccount();
@@ -95,7 +100,7 @@ export function ItemCard({
         <div
           className="w-full h-full rounded-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3"
           style={{
-            background: `linear-gradient(135deg, ${safeCssValue(image || '#1a2e33')} 0%, #0d1112 100%)`,
+            background: `linear-gradient(135deg, ${safeCssValue(imgSrc || '#1a2e33')} 0%, #0d1112 100%)`,
           }}
         />
         {/* Center icon */}
@@ -110,12 +115,12 @@ export function ItemCard({
           <h3 className="text-white font-bold text-base tracking-wide truncate group-hover:text-[#00FFBF] transition-colors duration-200">
             {name}
           </h3>
-          <p className="text-gray-500 text-xs uppercase tracking-wider truncate">{game}</p>
+          <p className="text-gray-500 text-xs uppercase tracking-wider truncate">{gameName}</p>
         </div>
 
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
-            <span className="text-[#00FFBF] font-mono text-xl font-bold">{price}</span>
+            <span className="text-[#00FFBF] font-mono text-xl font-bold">{displayPrice}</span>
             <span className="text-gray-600 text-xs">{soldCount.toLocaleString()} sold</span>
           </div>
 

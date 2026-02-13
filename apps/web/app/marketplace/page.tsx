@@ -49,7 +49,9 @@ export default function MarketplacePage() {
       const q = searchQuery.toLowerCase();
       return (
         item.name.toLowerCase().includes(q) ||
-        (item.game || '').toLowerCase().includes(q) ||
+        (typeof item.game === 'object' ? (item.game?.name ?? '') : item.game || '')
+          .toLowerCase()
+          .includes(q) ||
         (item.category || '').toLowerCase().includes(q)
       );
     }
@@ -85,7 +87,7 @@ export default function MarketplacePage() {
                     <div
                       className="absolute inset-0"
                       style={{
-                        background: `linear-gradient(135deg, ${safeCssValue(featuredItem.image || '#1a2e33')} 0%, #0d1112 100%)`,
+                        background: `linear-gradient(135deg, ${safeCssValue(featuredItem.image || featuredItem.imageUrl || '#1a2e33')} 0%, #0d1112 100%)`,
                       }}
                     />
                   ) : (
@@ -120,14 +122,14 @@ export default function MarketplacePage() {
                       {featuredDescription
                         ? featuredDescription
                         : featuredItem
-                          ? `From ${featuredItem.game} | ${featuredItem.soldCount?.toLocaleString() ?? 0} sold`
+                          ? `From ${typeof featuredItem.game === 'object' ? (featuredItem.game?.name ?? 'Unknown') : featuredItem.game} | ${featuredItem.soldCount?.toLocaleString() ?? 0} sold`
                           : 'Rare and powerful items crafted by bot creators across the platform.'}
                     </p>
                   </div>
                   {featuredItem && (
                     <div className="flex items-center gap-4 justify-center md:justify-start">
                       <span className="text-2xl md:text-3xl font-display font-black text-[#00FFBF]">
-                        {featuredItem.price}
+                        {weiToMolt(String(featuredItem.price))}
                       </span>
                       <span className="text-white/40 text-sm font-medium">MBUCKS</span>
                     </div>

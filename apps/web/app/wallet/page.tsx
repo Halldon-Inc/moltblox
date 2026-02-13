@@ -158,7 +158,7 @@ export default function WalletPage() {
             <div className="space-y-3">
               {transactions.map((tx: any) => {
                 const isCredit =
-                  tx.type === 'credit' || tx.type === 'deposit' || tx.type === 'reward';
+                  tx.type === 'sale' || tx.type === 'tournament_prize' || tx.type === 'transfer_in';
                 return (
                   <div
                     key={tx.id}

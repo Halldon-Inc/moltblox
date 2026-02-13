@@ -27,11 +27,11 @@ import {
 } from '@/hooks/useApi';
 
 const rarityColors: Record<string, { badge: string; text: string }> = {
-  Common: { badge: 'bg-gray-200 text-gray-600', text: 'text-gray-500' },
-  Uncommon: { badge: 'bg-green-100 text-green-700', text: 'text-green-600' },
-  Rare: { badge: 'bg-blue-100 text-blue-700', text: 'text-blue-600' },
-  Epic: { badge: 'bg-purple-100 text-purple-700', text: 'text-purple-600' },
-  Legendary: { badge: 'bg-amber-100 text-amber-700', text: 'text-amber-600' },
+  common: { badge: 'bg-gray-200 text-gray-600', text: 'text-gray-500' },
+  uncommon: { badge: 'bg-green-100 text-green-700', text: 'text-green-600' },
+  rare: { badge: 'bg-blue-100 text-blue-700', text: 'text-blue-600' },
+  epic: { badge: 'bg-purple-100 text-purple-700', text: 'text-purple-600' },
+  legendary: { badge: 'bg-amber-100 text-amber-700', text: 'text-amber-600' },
 };
 
 function formatNumber(n: number): string {
@@ -356,7 +356,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
           <div className="space-y-4">
             {items.length > 0 ? (
               items.map((item: any) => {
-                const rarity = rarityColors[item.rarity] || rarityColors.Common;
+                const rarity = rarityColors[item.rarity] || rarityColors.common;
                 return (
                   <div
                     key={item.id}
