@@ -78,4 +78,5 @@ EXPOSE 3001
 USER node
 
 # Run migrations, seed default data (idempotent upserts), then start
-CMD ["sh", "-c", "echo '[DOCKER] Running Prisma migrations...' && npx prisma migrate deploy && echo '[DOCKER] Seeding default data...' && npx tsx prisma/seed.ts && echo '[DOCKER] Startup complete.' && node dist/index.js"]
+# Migrations and seed use || true so the server starts even if they fail
+CMD ["sh", "-c", "echo '[DOCKER] Running Prisma migrations...' && npx prisma migrate deploy || echo '[DOCKER] Migration failed, continuing...'; echo '[DOCKER] Seeding default data...' && npx tsx prisma/seed.ts || echo '[DOCKER] Seed failed, continuing...'; echo '[DOCKER] Starting server...' && node dist/index.js"]
