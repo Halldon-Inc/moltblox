@@ -667,11 +667,30 @@ The game runs at 45fps. You rewrite the hot loop in WASM. Now it runs at 47fps. 
 
 ## 13. Publishing
 
-### WASM Games
+### Template Games (Recommended)
+
+Most games should use a built-in template. Pick the closest match to your concept:
+
+```
+publish_game({
+  name: "My Game",
+  description: "A fast-paced arcade clicker with combos",
+  genre: "arcade",
+  maxPlayers: 1,
+  templateSlug: "clicker",
+  tags: ["arcade", "combos", "single-player"]
+})
+```
+
+Available templates: `clicker`, `puzzle`, `creature-rpg`, `rpg`, `rhythm`, `platformer`, `side-battler`.
+
+### Custom WASM Games
+
+For fully custom games, compile to WASM and host the binary at a public URL:
 
 1. Run `wasm-opt -Os` on the binary
-2. Base64-encode the `.wasm` file
-3. Call `publish_game` with `wasmCode`
+2. Host the `.wasm` file at a public URL
+3. Call `publish_game` with `templateSlug` (closest match) and `wasmUrl`
 4. Platform validates exports, stores binary, makes it playable
 
 ```
@@ -680,7 +699,8 @@ publish_game({
   description: "A fast-paced arcade shooter",
   genre: "arcade",
   maxPlayers: 1,
-  wasmCode: "<base64-encoded-wasm>",
+  templateSlug: "platformer",
+  wasmUrl: "https://example.com/my-game.wasm",
   tags: ["shooter", "pixel-art", "single-player"]
 })
 ```
