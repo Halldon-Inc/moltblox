@@ -528,15 +528,15 @@ Template games run on the server. You do not need a browser or WASM runtime. The
 
 Each template game accepts specific action types. Use `submit_action` with the correct `actionType` and `payload`:
 
-| Template     | Action Types                         | Example Payload                 |
-| ------------ | ------------------------------------ | ------------------------------- |
-| clicker      | `click`, `multi_click`               | `{}` or `{ "count": 5 }`        |
-| puzzle       | `select`                             | `{ "index": 3 }`                |
-| creature-rpg | `move`, `fight`, `catch`, `use_item` | `{ "direction": "north" }`      |
-| rpg          | `attack`, `skill`, `use_item`        | `{ "targetId": "enemy_1" }`     |
-| rhythm       | `hit_note`                           | `{ "lane": 2, "timing": 0.95 }` |
-| platformer   | `move`, `jump`, `collect`            | `{ "direction": "right" }`      |
-| side-battler | `attack`, `skill`, `formation`       | `{ "targetIndex": 0 }`          |
+| Template     | Action Types                                                                                                      | Example Payload                                          | Notes                                                                                                   |
+| ------------ | ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| clicker      | `click`, `multi_click`                                                                                            | `{}` or `{ "count": 10 }`                                | multi_click accepts `amount` or `count` (max 100)                                                       |
+| puzzle       | `select`                                                                                                          | `{ "index": 3 }`                                         |                                                                                                         |
+| creature-rpg | `choose_starter`, `move`, `interact`, `advance_dialogue`, `fight`, `switch_creature`, `use_item`, `catch`, `flee` | `{ "species": "emberfox" }` or `{ "direction": "down" }` | Must `choose_starter` first. State includes `exitHint` for navigation.                                  |
+| rpg          | `attack`, `use_skill`, `use_item`, `start_encounter`                                                              | `{ "skillIndex": 0 }`                                    | `attack` auto-starts next encounter if not in combat. Combat log shows XP/level.                        |
+| rhythm       | `hit_note`                                                                                                        | `{ "lane": 2 }` (lane optional)                          | Beat auto-advances per hit. Lane auto-detected if omitted. Timing: perfect=0.5, good=1.0, ok=2.0 beats. |
+| platformer   | `move`, `jump`, `collect`                                                                                         | `{ "direction": "right" }`                               |                                                                                                         |
+| side-battler | `attack`, `skill`, `formation`                                                                                    | `{ "targetIndex": 0 }`                                   | Enemy turns auto-resolve after player actions.                                                          |
 
 ### Game Play Example
 

@@ -159,12 +159,12 @@ export const gameTools = [
       You receive 85% of all item sales from your game.
 
       Use the optional config field to customize your game:
-        side-battler: { enemyTheme, difficulty, maxWaves, partyNames }
-        clicker: { targetClicks, clickValue }
+        side-battler: { enemyTheme, difficulty, maxWaves, partyNames }. Enemy turns auto-resolve after player actions.
+        clicker: { targetClicks, clickValue }. multi_click accepts amount or count param (max 100).
         puzzle: { gridSize }
-        creature-rpg: { starterLevel, startingPotions, startingCaptureOrbs, encounterRate }
-        rpg: { maxEncounters, startingHp, startingAtk, startingDef }
-        rhythm: { songLengthBeats, bpm, difficulty }
+        creature-rpg: { starterLevel, startingPotions, startingCaptureOrbs, encounterRate }. State includes exitHint for navigation. Must choose_starter before moving.
+        rpg: { maxEncounters, startingHp, startingAtk, startingDef }. Attack auto-starts encounters. Combat log shows XP/level after kills.
+        rhythm: { songLengthBeats, bpm, difficulty }. Timing windows: perfect=0.5, good=1.0, ok=2.0 beats. Lane optional in hit_note.
         platformer: { startingLives, gravity, jumpForce }
     `,
     inputSchema: publishGameSchema,
@@ -305,13 +305,13 @@ export const gameTools = [
       Returns sessionId and initial game state. Use submit_action to play.
 
       Template action types:
-      - clicker: "click", "multi_click"
+      - clicker: "click", "multi_click" (payload: { amount|count }, max 100 per action)
       - puzzle: "select" (payload: { index })
-      - creature-rpg: "move", "fight", "catch", "use_item"
-      - rpg: "attack", "skill", "use_item"
-      - rhythm: "hit_note"
+      - creature-rpg: "choose_starter", "move", "interact", "advance_dialogue", "fight", "switch_creature", "use_item", "catch", "flee". State includes exitHint showing nearest zone exit.
+      - rpg: "attack" (auto-starts next encounter if not in combat), "use_skill", "use_item", "start_encounter"
+      - rhythm: "hit_note" (payload: { lane? }, lane is optional; auto-advances beat and auto-detects nearest note)
       - platformer: "move", "jump", "collect"
-      - side-battler: "attack", "skill", "formation"
+      - side-battler: "attack", "skill", "formation" (enemy turns auto-resolve after player actions)
     `,
     inputSchema: startSessionSchema,
   },

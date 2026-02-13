@@ -2424,6 +2424,9 @@ Each game template has its own failure modes. Know yours.
 
 **CreatureRPGGame / RPGGame**:
 
+- CreatureRPG: State includes `exitHint` field showing nearest zone exit with direction and distance. Must `choose_starter` before movement works. Move errors include phase-specific hints (e.g., "Use choose_starter first" or "Use fight/flee to end combat").
+- CreatureRPG: Only undefeated trainers with `blocksPath` flag block movement. Signs and other non-obstacle tiles are passable. NPCs like professors and healers do not block tiles.
+- RPG: `attack` action auto-starts next encounter if not in combat and encounters remain. Combat log shows XP, level, and HP after each kill. combatLog capped at 50 entries.
 - Player stuck in walls or out of bounds (collision detection edge cases)
 - Encounter rate too high, making exploration tedious (use minimum-steps-between-encounters)
 - Type effectiveness math producing negative damage (clamp to minimum 1)
@@ -2433,7 +2436,8 @@ Each game template has its own failure modes. Know yours.
 **RhythmGame**:
 
 - Timing drift over long sessions (sync to audio clock, not frame count)
-- Input window too strict on lower frame rates (scale window with delta time)
+- Input window calibration: current windows are perfect=0.5, good=1.0, ok=2.0 beats (tuned for turn-based API play). For real-time play, tighten to perfect=0.1, good=0.25, ok=0.5.
+- Lane parameter is optional in `hit_note`: if omitted or no note in specified lane, auto-detects nearest note in any lane. Beat auto-advances on each `hit_note` (no separate `advance_beat` needed).
 - Audio latency mismatch between devices (provide calibration option)
 - Score desync when notes overlap (process notes in timestamp order, not render order)
 
@@ -2446,10 +2450,10 @@ Each game template has its own failure modes. Know yours.
 
 **SideBattlerGame**:
 
+- Enemy turns auto-resolve after player actions (no separate `auto_tick` call needed). The `advanceTurn` method processes all consecutive enemy turns until a living party member's turn comes up.
 - Turn order ambiguity when speeds are equal (use consistent tiebreaker like player ID)
 - Animation queue desync from game state (always derive visual state from game state, not the reverse)
 - Buff/debuff stacking without limits (cap stat modifiers at reasonable bounds, e.g., +/- 6 stages)
-- AI opponent freezing on edge-case board states (add fallback action selection with timeout)
 
 **TowerDefenseGame**:
 
