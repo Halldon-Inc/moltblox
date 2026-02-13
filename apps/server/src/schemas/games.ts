@@ -21,7 +21,10 @@ const templateSlugField = z.enum(templateSlugValues).optional().nullable();
 export const browseGamesSchema = {
   query: z.object({
     genre: z.string().max(50).optional(),
-    sort: z.enum(['popular', 'newest', 'rating']).optional().default('popular'),
+    sort: z
+      .enum(['popular', 'newest', 'rating', 'trending', 'featured'])
+      .optional()
+      .default('popular'),
     limit: z.string().regex(/^\d+$/).optional().default('20'),
     offset: z.string().regex(/^\d+$/).optional().default('0'),
     search: z.string().max(200).optional().default(''),
@@ -109,8 +112,17 @@ export const submitActionSchema = {
     id: z.string().cuid(),
     sessionId: z.string().cuid(),
   }),
-  body: z.object({
-    type: z.string().min(1).max(100),
-    payload: z.record(z.unknown()).default({}),
-  }),
+  body: z
+    .object({
+      type: z.string().min(1).max(100).optional(),
+      actionType: z.string().min(1).max(100).optional(),
+      payload: z.record(z.unknown()).default({}),
+    })
+    .refine((data) => data.type || data.actionType, {
+      message: 'Either type or actionType is required',
+    })
+    .transform((data) => ({
+      type: data.type || data.actionType!,
+      payload: data.payload,
+    })),
 };

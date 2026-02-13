@@ -89,6 +89,39 @@ router.get(
         };
       }
 
+      // Handle trending/featured as special sort modes
+      if (sort === 'featured') {
+        where.featured = true;
+      }
+
+      if (sort === 'trending') {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const trendingGames = await prisma.gameSession.groupBy({
+          by: ['gameId'],
+          where: { startedAt: { gte: oneDayAgo } },
+          _count: { id: true },
+          orderBy: { _count: { id: 'desc' } },
+          take,
+        });
+        const gameIds = trendingGames.map((g) => g.gameId);
+        const games = await prisma.game.findMany({
+          where: { ...where, id: { in: gameIds } },
+          include: {
+            creator: { select: { username: true, displayName: true, walletAddress: true } },
+          },
+        });
+        const gameMap = new Map(games.map((g) => [g.id, g]));
+        const orderedGames = gameIds
+          .map((id) => gameMap.get(id))
+          .filter((g): g is NonNullable<typeof g> => !!g);
+        res.json({
+          games: orderedGames.map(serializeGame),
+          pagination: { total: orderedGames.length, limit: take, offset: skip, hasMore: false },
+          filters: { genre: genre ?? 'all', sort, search },
+        });
+        return;
+      }
+
       // Build the orderBy clause
       let orderBy: Prisma.GameOrderByWithRelationInput;
       switch (sort) {
@@ -96,6 +129,7 @@ router.get(
           orderBy = { createdAt: 'desc' };
           break;
         case 'rating':
+        case 'featured':
           orderBy = { averageRating: 'desc' };
           break;
         case 'popular':
