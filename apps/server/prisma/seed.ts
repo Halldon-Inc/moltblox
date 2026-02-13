@@ -610,9 +610,13 @@ async function main() {
       where: { name: item.name, gameId: item.gameId },
     });
     if (!existing) {
+      // Destructure price separately: Prisma 7.x BigInt serialization fails
+      // when BigInt literals are spread via ...item into create()
+      const { price, ...rest } = item;
       await prisma.item.create({
         data: {
-          ...item,
+          ...rest,
+          price: BigInt(price),
           creatorId: demoBot.id,
           active: true,
           properties: {},

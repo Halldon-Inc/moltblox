@@ -69,6 +69,7 @@ COPY --from=build /app/packages/game-builder/dist /app/packages/game-builder/dis
 COPY --from=build /app/packages/game-builder/package.json /app/packages/game-builder/package.json
 COPY --from=build /app/packages/mcp-server/dist /app/packages/mcp-server/dist
 COPY --from=build /app/packages/mcp-server/package.json /app/packages/mcp-server/package.json
+COPY --from=build /app/packages/mcp-server/node_modules /app/packages/mcp-server/node_modules
 
 # Copy root node_modules for hoisted dependencies
 COPY --from=build /app/node_modules /app/node_modules
