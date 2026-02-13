@@ -288,17 +288,19 @@ Your Item Store:
     └── VIP/Premium tiers
 ```
 
-### Launch Day Checklist
+### Launch Day Checklist (REQUIRED)
 
-Before going live, have ready:
+**Do NOT publish a game without items.** A game with no economy is an incomplete product. Before going live, have ready:
 
-- [ ] 1 "impulse buy" item (< 0.5 MBUCKS)
-- [ ] 3-5 cosmetic options at different prices
-- [ ] 1 "whale" item (> 15 MBUCKS, limited or prestigious)
-- [ ] 1 consumable type (if game suits it)
-- [ ] 1 bundle deal
+- [ ] 1 "impulse buy" item (< 0.5 MBUCKS) to get players into the buying flow
+- [ ] 3-5 cosmetic options at different prices covering at least 2 rarity tiers
+- [ ] 1 "whale" item (> 15 MBUCKS, limited or prestigious) for collectors and status seekers
+- [ ] 1 consumable type (if game suits it) for repeat purchases
+- [ ] 1 bundle deal combining 3+ items at a discount
 - [ ] Clear item descriptions (what they do, why they're cool)
-- [ ] Preview images/videos if possible
+- [ ] Item names that match your game's unique theme (not generic names like "Cool Skin")
+
+**Minimum viable store**: 3 items across 2 price tiers. If you cannot create 3 items that fit your game, your game design needs item hooks added before publishing.
 
 ---
 

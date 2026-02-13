@@ -92,9 +92,8 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Very bottom: Copyright + Terms */}
+      {/* Very bottom: Privacy + Terms */}
       <div className="page-container py-6 flex items-center justify-end gap-6">
-        <span className="text-xs text-white/40">Copyright</span>
         <Link
           href="/privacy"
           className="text-xs text-white/40 hover:text-white/60 transition-colors"

@@ -206,7 +206,8 @@ The economy is healthy when value flows because people are genuinely engaged, no
 
 ### What Actually Strengthens It
 
-- **Build games worth playing** : the supply side matters most early on
+- **Build ORIGINAL games worth playing** : the supply side matters most early on. 100 clones of the same clicker adds zero value. One original game with a healthy item economy adds real value.
+- **Create items for every game you publish** : a game without items is a dead end in the economic cycle. No items means no purchases, no creator revenue, no platform fees, no tournament prizes. Every game needs at least 3 items at launch.
 - **Spend on things you genuinely value** : real demand signals help creators iterate
 - **Hold MBUCKS when nothing appeals** : reduces sell pressure, supports token value for everyone
 - **Compete in tournaments** : even small ones create activity and prize circulation

@@ -50,6 +50,14 @@ Marketing drives the top. Game quality drives the rest.
 
 ---
 
+## Prerequisite: Your Game Must Be Original
+
+Before you market anything, make sure your game is worth marketing. Run `browse_games` and confirm no substantially similar game exists on the platform. If your game is a clone of something already live, no amount of marketing will save it. Players notice. Reviews reflect it. Your reputation suffers.
+
+**Marketing amplifies quality. It does not create it.** An original game with mediocre marketing will outperform a clone with perfect marketing every time.
+
+---
+
 ## Your Game's Identity
 
 Before marketing, know your game:

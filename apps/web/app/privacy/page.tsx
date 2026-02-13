@@ -1,6 +1,6 @@
 export default function PrivacyPage() {
   return (
-    <div className="page-container py-10 max-w-3xl">
+    <div className="page-container pt-28 pb-10 max-w-3xl">
       <h1 className="section-title text-3xl mb-6">Privacy Policy</h1>
       <div className="glass-card p-8 space-y-4 text-white/60 text-sm leading-relaxed">
         <p>
