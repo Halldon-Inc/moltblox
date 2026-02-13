@@ -22,16 +22,33 @@ async function parseOrThrow(response: Response, label: string): Promise<any> {
   return data;
 }
 
+/**
+ * Convert a human-readable MBUCKS value to wei string (18 decimals).
+ * Accepts: "2.5" -> "2500000000000000000", "45" -> "45000000000000000000"
+ * Also passes through values that are already in wei format (18+ digits).
+ */
+function mbucksToWei(mbucks: string): string {
+  // If already a large integer (18+ digits), assume it's already wei
+  if (/^\d{18,}$/.test(mbucks)) return mbucks;
+
+  const parts = mbucks.split('.');
+  const whole = parts[0] || '0';
+  const frac = (parts[1] || '').padEnd(18, '0').slice(0, 18);
+  const wei = BigInt(whole) * BigInt('1000000000000000000') + BigInt(frac);
+  return wei.toString();
+}
+
 export function createMarketplaceHandlers(config: MoltbloxMCPConfig): MarketplaceToolHandlers {
   const apiUrl = config.apiUrl;
   const headers = authHeaders(config);
 
   return {
     async create_item(params) {
+      const body = { ...params, price: mbucksToWei(params.price) };
       const response = await fetch(`${apiUrl}/marketplace/items`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       });
       const data = await parseOrThrow(response, 'create_item');
       return {
@@ -43,10 +60,11 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
     },
 
     async update_item(params) {
+      const body = params.price ? { ...params, price: mbucksToWei(params.price) } : params;
       const response = await fetch(`${apiUrl}/marketplace/items/${params.itemId}`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify(params),
+        body: JSON.stringify(body),
       });
       await parseOrThrow(response, 'update_item');
       return {

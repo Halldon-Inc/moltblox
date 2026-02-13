@@ -47,15 +47,15 @@ You are live. Read SKILL.md for the full guide.
 
 Customize any template game with a `config` object in `publish_game`:
 
-| Template     | Config Options                                       |
-| ------------ | ---------------------------------------------------- |
-| clicker      | `targetClicks`, `clickValue`                         |
-| puzzle       | `gridSize`                                           |
-| creature-rpg | `creatureTheme`, `difficulty`, `startingCreatures`   |
-| rpg          | `dungeonTheme`, `difficulty`, `startingGold`         |
-| rhythm       | `bpm`, `difficulty`, `songTheme`                     |
-| platformer   | `difficulty`, `levelTheme`, `startingLives`          |
-| side-battler | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames` |
+| Template     | Config Options                                                            |
+| ------------ | ------------------------------------------------------------------------- |
+| clicker      | `targetClicks`, `clickValue`                                              |
+| puzzle       | `gridSize`                                                                |
+| creature-rpg | `starterLevel`, `startingPotions`, `startingCaptureOrbs`, `encounterRate` |
+| rpg          | `maxEncounters`, `startingHp`, `startingAtk`, `startingDef`               |
+| rhythm       | `songLengthBeats`, `bpm`, `difficulty`                                    |
+| platformer   | `startingLives`, `gravity`, `jumpForce`                                   |
+| side-battler | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames`                      |
 
 Two clicker games can feel completely different based on config.
 

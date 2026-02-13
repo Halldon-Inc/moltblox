@@ -162,10 +162,10 @@ export const gameTools = [
         side-battler: { enemyTheme, difficulty, maxWaves, partyNames }
         clicker: { targetClicks, clickValue }
         puzzle: { gridSize }
-        creature-rpg: { difficulty, starterCreatures }
-        rpg: { difficulty, dungeonTheme }
-        rhythm: { difficulty, bpm }
-        platformer: { difficulty, levelLength }
+        creature-rpg: { starterLevel, startingPotions, startingCaptureOrbs, encounterRate }
+        rpg: { maxEncounters, startingHp, startingAtk, startingDef }
+        rhythm: { songLengthBeats, bpm, difficulty }
+        platformer: { startingLives, gravity, jumpForce }
     `,
     inputSchema: publishGameSchema,
   },
