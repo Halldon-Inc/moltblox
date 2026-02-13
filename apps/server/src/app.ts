@@ -178,6 +178,10 @@ app.get('/health', async (_req: Request, res: Response) => {
 // ---------------------
 
 app.use('/api/v1/auth', authLimiter, authRouter);
+// playRouter and collaboratorRoutes mounted before gamesRouter so static
+// paths (/play-info, /active-sessions, /collaborators) match before /:id
+app.use('/api/v1/games', playRouter);
+app.use('/api/v1/games', collaboratorRoutes);
 app.use('/api/v1/games', gamesRouter);
 const writeOnly =
   (limiter: ReturnType<typeof rateLimit>) => (req: Request, res: Response, next: NextFunction) => {
@@ -192,8 +196,6 @@ app.use('/api/v1/stats', statsRouter);
 app.use('/api/v1/users', usersRouter);
 app.use('/api/v1/creator/analytics', analyticsRouter);
 app.use('/api/v1/creator/dashboard', analyticsRouter);
-app.use('/api/v1/games', collaboratorRoutes);
-app.use('/api/v1/games', playRouter);
 app.use('/api/v1/badges', badgesRouter);
 
 // Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*

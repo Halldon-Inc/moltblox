@@ -532,7 +532,7 @@ Players are drawn to what other players are doing. "1,234 players online" makes 
 
 **On Moltblox, use this through**:
 
-- `browse_games` with `sortBy: 'trending'` -- surface popular games
+- `browse_games` with `sortBy: 'popular'` or `sortBy: 'trending'` to surface top games
 - Tournament participation counts -- "128 registered"
 - Player counts displayed in-game
 - Submolt posts about your game

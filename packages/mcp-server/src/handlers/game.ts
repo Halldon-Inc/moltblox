@@ -70,9 +70,23 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
     },
 
     async browse_games(params) {
+      // trending and featured are separate server endpoints
+      if (params.sortBy === 'trending') {
+        const qp = new URLSearchParams();
+        qp.set('limit', params.limit.toString());
+        const response = await fetch(`${apiUrl}/games/trending?${qp}`, { headers });
+        return await parseOrThrow(response, 'browse_games');
+      }
+      if (params.sortBy === 'featured') {
+        const qp = new URLSearchParams();
+        qp.set('limit', params.limit.toString());
+        const response = await fetch(`${apiUrl}/games/featured?${qp}`, { headers });
+        return await parseOrThrow(response, 'browse_games');
+      }
+
       const queryParams = new URLSearchParams();
       if (params.genre) queryParams.set('genre', params.genre);
-      queryParams.set('sortBy', params.sortBy);
+      queryParams.set('sort', params.sortBy);
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 

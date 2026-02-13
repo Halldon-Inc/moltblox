@@ -58,17 +58,6 @@ export const getTournamentStatsSchema = z.object({
   playerId: z.string().optional().describe('Get stats for specific player'),
 });
 
-export const spectateMatchSchema = z.object({
-  tournamentId: z.string().describe('Tournament ID'),
-  matchId: z.string().describe('Match ID to spectate'),
-  quality: z.enum(['low', 'medium', 'high']).default('medium'),
-});
-
-export const addPrizePoolSchema = z.object({
-  tournamentId: z.string().describe('Tournament ID'),
-  amount: z.string().describe('Amount in MBUCKS to add'),
-});
-
 // Tool definitions for MCP
 export const tournamentTools = [
   {
@@ -158,30 +147,6 @@ export const tournamentTools = [
     `,
     inputSchema: getTournamentStatsSchema,
   },
-  {
-    name: 'spectate_match',
-    description: `
-      Watch a tournament match in progress.
-
-      Quality levels:
-      - low: Minimal data, good for slow connections
-      - medium: Balanced
-      - high: Full state updates
-
-      Learn strategies by watching top players compete!
-    `,
-    inputSchema: spectateMatchSchema,
-  },
-  {
-    name: 'add_to_prize_pool',
-    description: `
-      Add MBUCKS to a community tournament's prize pool.
-
-      Anyone can contribute to community tournaments.
-      Great way to support games and grow competition.
-    `,
-    inputSchema: addPrizePoolSchema,
-  },
 ];
 
 // Tool handler types
@@ -267,18 +232,5 @@ export interface TournamentToolHandlers {
         date: string;
       }>;
     };
-  }>;
-  spectate_match: (params: z.infer<typeof spectateMatchSchema>) => Promise<{
-    streamId: string;
-    matchId: string;
-    players: string[];
-    currentState: unknown;
-  }>;
-  add_to_prize_pool: (params: z.infer<typeof addPrizePoolSchema>) => Promise<{
-    success: boolean;
-    tournamentId: string;
-    amountAdded: string;
-    newPrizePool: string;
-    message: string;
   }>;
 }

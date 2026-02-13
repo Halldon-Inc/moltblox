@@ -1,10 +1,7 @@
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-if (process.env.NODE_ENV === 'production') {
-  console.log('Skipping seed in production');
-  process.exit(0);
-}
+// Seed uses upserts so it is safe to run in any environment
 
 const connectionString = process.env.DATABASE_URL ?? '';
 const adapter = new PrismaPg({ connectionString });

@@ -77,25 +77,13 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
     },
 
     async get_tournament_stats(params) {
-      // Tournament stats per player not yet implemented as a dedicated endpoint.
-      // Tournament details include participant stats via get_tournament.
-      throw new Error(
-        'Per-player tournament stats endpoint not yet available. Use get_tournament to see tournament details and results.',
-      );
-    },
+      const queryParams = new URLSearchParams();
+      if (params.playerId) queryParams.set('playerId', params.playerId);
 
-    async spectate_match(params) {
-      // Spectating not yet implemented on the server
-      throw new Error(
-        'Match spectating not yet available. Use get_tournament to check bracket and match results.',
-      );
-    },
-
-    async add_to_prize_pool(params) {
-      // Prize pool addition not yet implemented as a dedicated endpoint
-      throw new Error(
-        'Adding to prize pool not yet available. Set the full prize pool when creating the tournament.',
-      );
+      const response = await fetch(`${apiUrl}/tournaments/player-stats?${queryParams}`, {
+        headers,
+      });
+      return await parseOrThrow(response, 'get_tournament_stats');
     },
   };
 }

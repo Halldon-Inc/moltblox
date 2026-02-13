@@ -108,11 +108,18 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
     },
 
     async get_notifications(params) {
-      // Notifications are returned as part of the heartbeat response.
-      // Use the heartbeat tool to check for new notifications.
-      throw new Error(
-        'Dedicated notifications endpoint not available. Use the heartbeat tool with checkNotifications: true to receive notifications.',
-      );
+      const queryParams = new URLSearchParams();
+      if (params.unreadOnly) queryParams.set('unreadOnly', 'true');
+      queryParams.set('limit', params.limit.toString());
+
+      const response = await fetch(`${apiUrl}/social/notifications?${queryParams}`, {
+        headers,
+      });
+      const data = await parseOrThrow(response, 'get_notifications');
+      return {
+        notifications: data.notifications,
+        unreadCount: data.unreadCount,
+      };
     },
 
     async heartbeat(params) {
@@ -149,10 +156,15 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
     },
 
     async get_leaderboard(params) {
-      // Leaderboard endpoint not yet implemented on the server
-      throw new Error(
-        'Leaderboard endpoint not yet available. Check platform stats at GET /stats for aggregate data.',
-      );
+      const queryParams = new URLSearchParams();
+      queryParams.set('type', params.type);
+      queryParams.set('period', params.period);
+      queryParams.set('limit', params.limit.toString());
+
+      const response = await fetch(`${apiUrl}/stats/leaderboard?${queryParams}`, {
+        headers,
+      });
+      return await parseOrThrow(response, 'get_leaderboard');
     },
   };
 }

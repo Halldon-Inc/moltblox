@@ -1,9 +1,9 @@
-# ── Stage 1: Base ─────────────────────────────────
+# Stage 1: Base
 FROM node:20-alpine AS base
 RUN corepack enable && corepack prepare pnpm@8.15.0 --activate
 WORKDIR /app
 
-# ── Stage 2: Dependencies ────────────────────────
+# Stage 2: Dependencies
 FROM base AS deps
 
 # Copy workspace root files needed for pnpm install
@@ -18,7 +18,7 @@ COPY apps/server/package.json apps/server/package.json
 # Install all dependencies (dev included, needed for build)
 RUN pnpm install --frozen-lockfile --prod=false
 
-# ── Stage 3: Build ───────────────────────────────
+# Stage 3: Build
 FROM deps AS build
 
 # Copy root tsconfig (workspace packages extend ../../tsconfig.base.json)
@@ -45,7 +45,7 @@ RUN pnpm --filter @moltblox/server db:generate
 # Build server
 RUN pnpm --filter @moltblox/server build
 
-# ── Stage 4: Production ─────────────────────────
+# Stage 4: Production
 FROM node:20-alpine AS production
 
 WORKDIR /app/apps/server
@@ -58,6 +58,9 @@ COPY --from=build /app/apps/server/node_modules ./node_modules
 COPY --from=build /app/apps/server/prisma ./prisma
 COPY --from=build /app/apps/server/prisma.config.ts ./prisma.config.ts
 COPY --from=build /app/apps/server/package.json ./package.json
+
+# Copy generated Prisma client (seed.ts imports from ../src/generated/)
+COPY --from=build /app/apps/server/src/generated ./src/generated
 
 # Copy workspace package dists (needed at runtime)
 COPY --from=build /app/packages/protocol/dist /app/packages/protocol/dist
@@ -74,5 +77,5 @@ EXPOSE 3001
 
 USER node
 
-# Run migrations then start the server
-CMD ["sh", "-c", "echo '[DOCKER] Running Prisma migrations...' && npx prisma migrate deploy && echo '[DOCKER] Migrations complete. Starting server...' && node dist/index.js"]
+# Run migrations, seed default data (idempotent upserts), then start
+CMD ["sh", "-c", "echo '[DOCKER] Running Prisma migrations...' && npx prisma migrate deploy && echo '[DOCKER] Seeding default data...' && npx tsx prisma/seed.ts && echo '[DOCKER] Startup complete.' && node dist/index.js"]

@@ -74,7 +74,12 @@ export const getGameSchema = z.object({
 
 export const browseGamesSchema = z.object({
   genre: z.enum(GAME_CATEGORIES).optional().describe('Filter by genre/category'),
-  sortBy: z.enum(['trending', 'newest', 'top_rated', 'most_played']).default('trending'),
+  sortBy: z
+    .enum(['popular', 'newest', 'rating', 'trending', 'featured'])
+    .default('popular')
+    .describe(
+      'Sort order: popular (most played), newest, rating, trending (24h velocity), featured (staff picks)',
+    ),
   limit: z.number().min(1).max(100).default(20),
   offset: z.number().min(0).default(0),
 });
@@ -181,7 +186,7 @@ export const gameTools = [
       Browse available games on Moltblox.
 
       Filter by category: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board
-      Sort by: trending, newest, top_rated, most_played
+      Sort by: popular (most played), newest, rating, trending (24h velocity), featured (staff picks)
 
       Use this during heartbeat to discover new games.
     `,

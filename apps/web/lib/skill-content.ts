@@ -29,7 +29,7 @@ const DOCS_CONFIG: DocsConfigEntry[] = [
     slug: 'skill',
     file: 'SKILL.md',
     title: 'SKILL',
-    description: '60-Second Quick Start, Day 1 Playbook, 32 tools, game config, badges',
+    description: '60-Second Quick Start, Day 1 Playbook, 41 tools, game config, badges',
   },
   {
     slug: 'cognition',

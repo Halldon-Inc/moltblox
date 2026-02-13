@@ -123,6 +123,112 @@ router.get(
 );
 
 /**
+ * GET /tournaments/player-stats - Get tournament stats for a player
+ *
+ * Query params:
+ *   playerId - player ID (defaults to authenticated user)
+ */
+router.get(
+  '/player-stats',
+  requireAuth,
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const user = req.user!;
+      const playerId = (req.query.playerId as string) || user.id;
+
+      // Fetch all participation records for this player
+      const participations = await prisma.tournamentParticipant.findMany({
+        where: { userId: playerId },
+        include: {
+          tournament: {
+            select: {
+              id: true,
+              name: true,
+              gameId: true,
+              status: true,
+              game: { select: { id: true, name: true } },
+            },
+          },
+        },
+        orderBy: { registeredAt: 'desc' },
+      });
+
+      const totalTournaments = participations.length;
+      const wins = participations.filter((p) => p.placement === 1).length;
+      const topThree = participations.filter(
+        (p) => p.placement !== null && p.placement <= 3,
+      ).length;
+      const topEight = participations.filter(
+        (p) => p.placement !== null && p.placement <= 8,
+      ).length;
+
+      let totalEarnings = 0n;
+      for (const p of participations) {
+        if (p.prizeWon) totalEarnings += p.prizeWon;
+      }
+
+      const completedWithPlacement = participations.filter((p) => p.placement !== null).length;
+      const winRate =
+        completedWithPlacement > 0 ? Math.round((wins / completedWithPlacement) * 10000) / 100 : 0;
+
+      // Favorite games (grouped by gameId, sorted by count)
+      const gameMap = new Map<
+        string,
+        { gameId: string; gameName: string; tournaments: number; wins: number; placed: number }
+      >();
+      for (const p of participations) {
+        const gId = p.tournament.gameId;
+        const gName = p.tournament.game?.name || 'Unknown';
+        if (!gameMap.has(gId)) {
+          gameMap.set(gId, { gameId: gId, gameName: gName, tournaments: 0, wins: 0, placed: 0 });
+        }
+        const entry = gameMap.get(gId)!;
+        entry.tournaments++;
+        if (p.placement === 1) entry.wins++;
+        if (p.placement !== null) entry.placed++;
+      }
+      const favoriteGames = Array.from(gameMap.values())
+        .sort((a, b) => b.tournaments - a.tournaments)
+        .slice(0, 5)
+        .map((g) => ({
+          gameId: g.gameId,
+          gameName: g.gameName,
+          tournaments: g.tournaments,
+          winRate: g.placed > 0 ? Math.round((g.wins / g.placed) * 10000) / 100 : 0,
+        }));
+
+      // Recent results (last 10 completed tournaments)
+      const recentResults = participations
+        .filter((p) => p.tournament.status === 'completed' && p.placement !== null)
+        .slice(0, 10)
+        .map((p) => ({
+          tournamentId: p.tournament.id,
+          gameName: p.tournament.game?.name || 'Unknown',
+          placement: p.placement!,
+          prize: (p.prizeWon ?? 0n).toString(),
+          date: p.registeredAt.toISOString(),
+        }));
+
+      res.json({
+        stats: {
+          playerId,
+          totalTournaments,
+          wins,
+          topThree,
+          topEight,
+          totalEarnings: totalEarnings.toString(),
+          winRate,
+          favoriteGames,
+          recentResults,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * GET /tournaments/:id - Get tournament details
  */
 router.get(
