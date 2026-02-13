@@ -54,12 +54,15 @@ export function createWalletHandlers(config: MoltbloxMCPConfig): WalletToolHandl
       const response = await fetch(`${apiUrl}/wallet/transfer`, {
         method: 'POST',
         headers,
-        body: JSON.stringify(params),
+        body: JSON.stringify({
+          to: params.toAddress,
+          amount: params.amount,
+        }),
       });
       const data = await parseOrThrow(response, 'transfer');
       return {
         success: true,
-        txHash: data.txHash,
+        txHash: data.transfer?.id || '',
         amount: params.amount,
         toAddress: params.toAddress,
         message: `Transferred ${params.amount} MBUCKS successfully!`,

@@ -314,6 +314,315 @@ async function main() {
     },
   ];
 
+  // ── Demo Marketplace Items (showcase monetization for each template) ──
+  // Look up Creature Quest and Click Race games for item creation
+  const creatureQuest = await prisma.game.findUnique({ where: { slug: 'creature-quest' } });
+  const clickRace = await prisma.game.findUnique({ where: { slug: 'click-race' } });
+  const moltArena = await prisma.game.findUnique({ where: { slug: 'molt-arena' } });
+  const voxelRunner = await prisma.game.findUnique({ where: { slug: 'voxel-runner' } });
+  const matchPairs = await prisma.game.findUnique({ where: { slug: 'match-pairs' } });
+  const beatBlaster = await prisma.game.findUnique({ where: { slug: 'beat-blaster' } });
+  const dungeonCrawl = await prisma.game.findUnique({ where: { slug: 'dungeon-crawl' } });
+
+  const demoItems: {
+    gameId: string;
+    name: string;
+    description: string;
+    category: 'cosmetic' | 'consumable' | 'power_up' | 'access' | 'subscription';
+    rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+    price: bigint;
+    maxSupply: number | null;
+  }[] = [];
+
+  // Creature Quest items (richest cosmetic surface area)
+  if (creatureQuest) {
+    demoItems.push(
+      {
+        gameId: creatureQuest.id,
+        name: 'Frostfox Skin',
+        description: 'Ice-blue Emberfox variant. Your fire starter gets a cool new look.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Shadow Aquaphin',
+        description: 'Dark water variant with purple highlights. Collect all starter skins.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Shiny Emberfox',
+        description:
+          'Sparkle particle effect on your fire starter. Visible in battles and overworld.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 1500000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Trainer Backpack',
+        description: 'Visible backpack accessory in the overworld. Shows your explorer spirit.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 1000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Inferno Aura',
+        description: 'Animated flame trail on all Fire-type attacks. Visible in tournaments.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 3500000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Capture Orb: Galaxy',
+        description:
+          'Cosmic throwing animation when catching creatures. Stardust trails on release.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 2500000000000000000n,
+        maxSupply: 500,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Battle Background: Volcano',
+        description: 'Lava and magma background during all your battles. Feel the heat.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 3000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Victory Dance',
+        description: 'Your creatures dance and celebrate after winning battles. Pure flex.',
+        category: 'cosmetic',
+        rarity: 'epic',
+        price: 8000000000000000000n,
+        maxSupply: 200,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Legendary Trainer Outfit',
+        description: 'Complete outfit set: hat, jacket, boots, and trail effect. Champion style.',
+        category: 'cosmetic',
+        rarity: 'epic',
+        price: 15000000000000000000n,
+        maxSupply: 150,
+      },
+      {
+        gameId: creatureQuest.id,
+        name: 'Void Creatures Set',
+        description:
+          'Shadow particle effects on ALL creatures. Dark battle backgrounds. 100 exist. Ever.',
+        category: 'cosmetic',
+        rarity: 'legendary',
+        price: 45000000000000000000n,
+        maxSupply: 100,
+      },
+    );
+  }
+
+  // Click Race items
+  if (clickRace) {
+    demoItems.push(
+      {
+        gameId: clickRace.id,
+        name: 'Neon Click Effect',
+        description: 'Rainbow particle burst on every click. Stand out in multiplayer races.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 200000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: clickRace.id,
+        name: 'Golden Cursor Skin',
+        description: 'Shiny golden click animation. Your clicks look premium.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 1000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: clickRace.id,
+        name: 'Click Streak Trail',
+        description: 'Animated trail that grows with your combo. Opponents see your momentum.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 3000000000000000000n,
+        maxSupply: null,
+      },
+    );
+  }
+
+  // Molt Arena (side-battler) items
+  if (moltArena) {
+    demoItems.push(
+      {
+        gameId: moltArena.id,
+        name: 'War Paint',
+        description: 'Face paint on your party members. Four unique designs per class.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: moltArena.id,
+        name: 'Formation Glow',
+        description: 'Glowing aura around your front and back row positions during combat.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 3500000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: moltArena.id,
+        name: 'Dragon Fire Slash',
+        description: 'Fire animations on all attack moves. Your strikes leave burning trails.',
+        category: 'cosmetic',
+        rarity: 'epic',
+        price: 10000000000000000000n,
+        maxSupply: 200,
+      },
+    );
+  }
+
+  // Voxel Runner (platformer) items
+  if (voxelRunner) {
+    demoItems.push(
+      {
+        gameId: voxelRunner.id,
+        name: 'Fire Footsteps',
+        description: 'Flame prints appear where you walk. Leave a trail of fire behind you.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 200000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: voxelRunner.id,
+        name: 'Rainbow Jump Trail',
+        description: 'Rainbow arc follows every jump. Beautiful in side-scroll view.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 1000000000000000000n,
+        maxSupply: null,
+      },
+    );
+  }
+
+  // Match Pairs (puzzle) items
+  if (matchPairs) {
+    demoItems.push(
+      {
+        gameId: matchPairs.id,
+        name: 'Ocean Tile Theme',
+        description: 'Underwater card backs with bubble animations. Fresh visual for every game.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: matchPairs.id,
+        name: 'Match Celebration FX',
+        description: 'Custom confetti explosion when pairs are matched. Satisfying feedback.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 3500000000000000000n,
+        maxSupply: null,
+      },
+    );
+  }
+
+  // Beat Blaster (rhythm) items
+  if (beatBlaster) {
+    demoItems.push(
+      {
+        gameId: beatBlaster.id,
+        name: 'Rainbow Note Trail',
+        description: 'Colorful trails behind notes as they fall. Every hit looks spectacular.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: beatBlaster.id,
+        name: 'Custom Hit Sound Pack',
+        description: 'Unique chime sounds on perfect hits. Hear the difference.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 2500000000000000000n,
+        maxSupply: null,
+      },
+    );
+  }
+
+  // Dungeon Crawl (RPG) items
+  if (dungeonCrawl) {
+    demoItems.push(
+      {
+        gameId: dungeonCrawl.id,
+        name: 'Iron Warrior Skin',
+        description: 'Full plate armor look for the Warrior class. Heavy metal aesthetic.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 300000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: dungeonCrawl.id,
+        name: 'Arcane Mage Robe',
+        description: 'Glowing rune patterns on the Mage outfit. Mystical and imposing.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 1500000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: dungeonCrawl.id,
+        name: 'Dragon Slayer Aura',
+        description: 'Fire particle effects after defeating bosses. The ultimate victory flair.',
+        category: 'cosmetic',
+        rarity: 'epic',
+        price: 12000000000000000000n,
+        maxSupply: 150,
+      },
+    );
+  }
+
+  for (const item of demoItems) {
+    // Use name + gameId as unique key (upsert by checking if exists)
+    const existing = await prisma.item.findFirst({
+      where: { name: item.name, gameId: item.gameId },
+    });
+    if (!existing) {
+      await prisma.item.create({
+        data: {
+          ...item,
+          creatorId: demoBot.id,
+          active: true,
+          properties: {},
+          currentSupply: item.maxSupply ?? 0,
+        },
+      });
+    }
+  }
+  console.log(`  Created ${demoItems.length} demo marketplace items`);
+
   for (const badge of badges) {
     await prisma.badge.upsert({
       where: { name: badge.name },

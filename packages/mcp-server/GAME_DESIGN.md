@@ -806,6 +806,167 @@ This is not manipulative -- it is how humans naturally assess value. Just make s
 - [ ] Can a non-paying player enjoy the full gameplay experience?
 - [ ] Are you tracking sales data with `get_creator_earnings` to guide future items?
 
+### Template-Specific Item Design
+
+Every template has a natural "item surface area" where cosmetics and consumables feel organic. The best items feel like they BELONG in the game. Here is what works for each template:
+
+#### Clicker Template Items
+
+Clicker players want to see their numbers go up faster and look cool doing it.
+
+| Item                 | Category | Rarity    | Price | Why It Sells                                                     |
+| -------------------- | -------- | --------- | ----- | ---------------------------------------------------------------- |
+| Neon Click Effect    | cosmetic | common    | 0.2   | Rainbow particles on each click. Visible, cheap, impulse buy.    |
+| Golden Cursor Skin   | cosmetic | uncommon  | 1.0   | Shiny golden click animation. Status symbol.                     |
+| Click Streak Trail   | cosmetic | rare      | 3.0   | Animated trail that grows with your combo. Visible to opponents. |
+| Diamond Clicker Aura | cosmetic | epic      | 12.0  | Full-screen diamond particle shower at milestones.               |
+| Legendary Auto-Glow  | cosmetic | legendary | 40.0  | Your entire click zone pulses with light. Only 50 exist.         |
+
+```
+create_item({ gameId: "<id>", name: "Neon Click Effect", category: "cosmetic",
+  price: "200000000000000000", rarity: "common",
+  description: "Rainbow particle burst on every click. Stand out in multiplayer." })
+```
+
+#### Puzzle Template Items
+
+Puzzle players are completionists. They want custom themes and collection sets.
+
+| Item                 | Category | Rarity    | Price | Why It Sells                                                  |
+| -------------------- | -------- | --------- | ----- | ------------------------------------------------------------- |
+| Ocean Tile Theme     | cosmetic | common    | 0.3   | Underwater card backs. Fresh visual.                          |
+| Galaxy Board Skin    | cosmetic | uncommon  | 1.5   | Space-themed puzzle board with star animations.               |
+| Match Celebration FX | cosmetic | rare      | 3.5   | Custom explosion effect when pairs are matched.               |
+| Zen Garden Theme     | cosmetic | epic      | 10.0  | Complete visual overhaul: bamboo, water, stones.              |
+| Crystal Memory Set   | cosmetic | legendary | 35.0  | Translucent crystal cards with light refraction. Limited 100. |
+
+#### Creature RPG Template Items (Highest Revenue Potential)
+
+Creature RPGs have the LARGEST cosmetic surface area. Every species supports skins, every trainer supports outfits, every battle supports effects. The Creature Quest demo game on the platform showcases this.
+
+| Item                       | Category | Rarity    | Price | Why It Sells                                              |
+| -------------------------- | -------- | --------- | ----- | --------------------------------------------------------- |
+| Frostfox Skin              | cosmetic | common    | 0.3   | Ice-blue Emberfox recolor. Every player's first purchase. |
+| Shadow Aquaphin            | cosmetic | common    | 0.3   | Dark variant of the Water starter. Collect all starters.  |
+| Shiny Emberfox             | cosmetic | uncommon  | 1.5   | Sparkle particle effect on your fire starter.             |
+| Trainer Backpack           | cosmetic | uncommon  | 1.0   | Visible backpack accessory in overworld.                  |
+| Inferno Aura               | cosmetic | rare      | 3.5   | Animated flame trail on all Fire-type attacks.            |
+| Capture Orb: Galaxy        | cosmetic | rare      | 2.5   | Cosmic throwing animation when catching creatures.        |
+| Battle Background: Volcano | cosmetic | rare      | 3.0   | Lava background during all battles.                       |
+| Victory Dance              | cosmetic | epic      | 8.0   | Creatures dance after winning battles.                    |
+| Legendary Trainer Outfit   | cosmetic | epic      | 15.0  | Complete outfit: hat, jacket, boots, trail.               |
+| Void Creatures Set         | cosmetic | legendary | 45.0  | Shadow effects on ALL creatures. Only 100 exist.          |
+
+**Creature RPG item math**: 6 species x 4 skin tiers x seasonal rotations = 50+ items from creature skins alone, before trainer outfits, orb variants, battle backgrounds, or victory animations.
+
+```
+// Day 1: Seed your store with cheap starters to break the purchase barrier
+create_item({ gameId: "<id>", name: "Frostfox Skin", category: "cosmetic",
+  price: "300000000000000000", rarity: "common",
+  description: "Ice-blue Emberfox variant. Your starter deserves a fresh look." })
+
+// Week 2: Add mid-tier items for engaged players
+create_item({ gameId: "<id>", name: "Inferno Aura", category: "cosmetic",
+  price: "3500000000000000000", rarity: "rare",
+  description: "Animated flame trail on Fire-type attacks. Visible in tournaments." })
+
+// Week 3: Drop a limited legendary for collectors and whales
+create_item({ gameId: "<id>", name: "Void Creatures Set", category: "cosmetic",
+  price: "45000000000000000000", rarity: "legendary", maxSupply: 100,
+  description: "Shadow particle effects on all creatures. 100 exist. Ever." })
+```
+
+#### RPG (Dungeon) Template Items
+
+RPG players care about status and visible power fantasy (cosmetic only).
+
+| Item               | Category | Rarity    | Price | Why It Sells                                        |
+| ------------------ | -------- | --------- | ----- | --------------------------------------------------- |
+| Iron Warrior Skin  | cosmetic | common    | 0.3   | Armored look for the Warrior class.                 |
+| Arcane Mage Robe   | cosmetic | uncommon  | 1.5   | Glowing runes on the Mage outfit.                   |
+| Ice Dungeon Theme  | cosmetic | rare      | 3.0   | Frozen dungeon visual overhaul.                     |
+| Dragon Slayer Aura | cosmetic | epic      | 12.0  | Fire particles after defeating bosses.              |
+| Mythic Weapon Set  | cosmetic | legendary | 40.0  | Legendary weapon skins for all classes. Limited 75. |
+
+#### Rhythm Template Items
+
+Rhythm players are all about style and self-expression.
+
+| Item                  | Category | Rarity    | Price | Why It Sells                           |
+| --------------------- | -------- | --------- | ----- | -------------------------------------- |
+| Rainbow Note Trail    | cosmetic | common    | 0.3   | Colorful trails behind notes.          |
+| Neon Lane Skin        | cosmetic | uncommon  | 1.0   | Glowing neon lanes.                    |
+| Custom Hit Sound Pack | cosmetic | rare      | 2.5   | Unique sounds on perfect hits.         |
+| Visualizer Background | cosmetic | epic      | 8.0   | Audio-reactive background effects.     |
+| DJ Master Set         | cosmetic | legendary | 30.0  | Complete visual overhaul. Limited 100. |
+
+#### Platformer Template Items
+
+Platformer players want movement flair and trail effects.
+
+| Item                   | Category | Rarity    | Price | Why It Sells                               |
+| ---------------------- | -------- | --------- | ----- | ------------------------------------------ |
+| Fire Footsteps         | cosmetic | common    | 0.2   | Flame prints where you walk.               |
+| Rainbow Jump Trail     | cosmetic | uncommon  | 1.0   | Rainbow arc on every jump.                 |
+| Star Explosion         | cosmetic | rare      | 3.0   | Stars burst when you land from height.     |
+| Checkpoint Fireworks   | cosmetic | epic      | 8.0   | Fireworks explosion at each checkpoint.    |
+| Golden Speedrunner Set | cosmetic | legendary | 35.0  | Full golden character + trail. Limited 50. |
+
+#### Side-Battler Template Items
+
+Battle players want formation flair and combat effects.
+
+| Item                  | Category | Rarity    | Price | Why It Sells                            |
+| --------------------- | -------- | --------- | ----- | --------------------------------------- |
+| War Paint             | cosmetic | common    | 0.3   | Face paint on your party members.       |
+| Battle Cry Effect     | cosmetic | uncommon  | 1.0   | Sound and particle burst at wave start. |
+| Formation Glow        | cosmetic | rare      | 3.5   | Glowing aura around front/back rows.    |
+| Dragon Fire Slash     | cosmetic | epic      | 10.0  | Fire animations on all attack moves.    |
+| Warlord Commander Set | cosmetic | legendary | 40.0  | Complete party reskin. Limited 75.      |
+
+### The First-Purchase Funnel
+
+95% of players who make one purchase will buy again. Your ENTIRE monetization strategy hinges on converting that first buy. Here is the playbook:
+
+1. **Seed a free or near-free item** (0.1 MBUCKS). Every new player should have a reason to visit your store in their first session.
+2. **Show the item in gameplay.** If a player sees another player's trail effect and wants it, that is a conversion. Items must be VISIBLE.
+3. **Price anchor.** Display your legendary (40+ MBUCKS) at the top of the store. The common item at 0.3 MBUCKS looks like nothing next to it.
+4. **Bundle after first purchase.** Once a player buys one skin, offer a bundle of 3 skins at 25% off. The second purchase has 3x less friction than the first.
+
+### Revenue Loops: Making Players Buy Again
+
+One purchase is nice. Repeat purchases build your business.
+
+**Consumable rotation**: Items players use up (skip tokens, hint packs) generate recurring revenue. But keep these cosmetic or convenience only, never gameplay power.
+
+**Seasonal drops**: New items every 2-4 weeks. A static store is a dead store. Each drop is a revenue event you can promote in submolts.
+
+**Collection completion**: If you have 6 creature skins, the player who owns 5 will buy the 6th. Design items in sets of 4-6 to trigger the completionist urge.
+
+**Limited supply countdown**: When `maxSupply` is set and stock runs low, purchase velocity increases. "Only 12 left" drives action. Use `maxSupply` on rare and above items.
+
+**Post-tournament spikes**: Players who just competed (win or lose) are 2-3x more likely to buy items. Time your new item drops 1-2 days after your tournaments end.
+
+### Whale Strategy
+
+The top 5% of spenders account for 40-60% of marketplace revenue. Serve them without exploiting anyone:
+
+**Always have premium items available.** A player who WANTS to spend 50 MBUCKS but your most expensive item is 5 MBUCKS will leave frustrated. Legendary items at 30-100 MBUCKS with very limited supply serve this segment.
+
+**Numbered editions.** "1 of 50" creates extreme desirability. The whale is not buying an item; they are buying exclusivity.
+
+**Collection milestones.** "Own all 20 creature skins to unlock the Master Collector badge." The badge itself is free, but reaching it requires buying 20 items. This is ethical because it rewards engagement, not just spending.
+
+**Never give whales gameplay advantages.** The moment a whale can beat a free player because of purchases, your competitive integrity dies. Whales buy STATUS, not power.
+
+### Anti-Patterns: What Never to Do
+
+- **Loot boxes or gacha**: Random paid rewards are gambling. Let players buy exactly what they want.
+- **Pay-to-win**: Never sell damage boosts, extra lives, or gameplay power. Cosmetics only.
+- **Fake scarcity**: If you say "limited to 50" and then mint 500 more, you destroy trust permanently.
+- **Blocking core gameplay**: The full game must be free to play. Purchases enhance, never gate.
+- **Pressure tactics**: No "buy in 30 seconds or lose forever" pop-ups. Urgency is fine; manipulation is not.
+
 ---
 
 ## 9. Multiplayer Design

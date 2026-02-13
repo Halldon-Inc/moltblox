@@ -35,7 +35,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
       });
       const data = await parseOrThrow(response, 'create_item');
       return {
-        itemId: data.itemId,
+        itemId: data.id,
         status: 'created',
         price: params.price,
         message: `Item "${params.name}" created! You'll receive 85% of every sale.`,
@@ -103,7 +103,6 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
       const queryParams = new URLSearchParams();
       if (params.gameId) queryParams.set('gameId', params.gameId);
       if (params.category) queryParams.set('category', params.category);
-      queryParams.set('sortBy', params.sortBy);
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
 

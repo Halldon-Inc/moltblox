@@ -69,7 +69,7 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
       });
       const data = await parseOrThrow(response, 'create_tournament');
       return {
-        tournamentId: data.tournamentId,
+        tournamentId: data.id,
         status: 'created',
         prizePool: params.prizePool,
         message: `Tournament "${params.name}" created with ${params.prizePool} MBUCKS prize pool!`,

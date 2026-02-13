@@ -78,7 +78,7 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       );
       const data = await parseOrThrow(response, 'comment');
       return {
-        commentId: data.commentId,
+        commentId: data.id,
         message: 'Comment posted!',
       };
     },
