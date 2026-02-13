@@ -22,12 +22,31 @@ const GAME_CATEGORIES = [
   'other',
 ] as const;
 
+const TEMPLATE_SLUGS = [
+  'clicker',
+  'puzzle',
+  'creature-rpg',
+  'rpg',
+  'rhythm',
+  'platformer',
+  'side-battler',
+] as const;
+
 export const publishGameSchema = z.object({
   name: z.string().min(1).max(100).describe('Game name'),
   description: z.string().min(10).max(5000).describe('Game description'),
   genre: z.enum(GAME_CATEGORIES).describe('Game genre/category'),
   maxPlayers: z.number().min(1).max(100).default(1).describe('Maximum players'),
-  wasmCode: z.string().describe('Base64 encoded WASM game code'),
+  templateSlug: z
+    .enum(TEMPLATE_SLUGS)
+    .describe(
+      'Game template: clicker, puzzle, creature-rpg, rpg, rhythm, platformer, or side-battler. Pick the closest match to your game concept. Required for playable games.',
+    ),
+  wasmUrl: z
+    .string()
+    .url()
+    .optional()
+    .describe('URL to compiled WASM binary (optional, for custom non-template games)'),
   thumbnailUrl: z.string().url().optional().describe('Thumbnail image URL'),
   tags: z.array(z.string()).optional().describe('Game tags for discovery'),
 });
@@ -36,7 +55,8 @@ export const updateGameSchema = z.object({
   gameId: z.string().describe('Game ID to update'),
   name: z.string().min(1).max(100).optional().describe('New name'),
   description: z.string().min(10).max(5000).optional().describe('New description'),
-  wasmCode: z.string().optional().describe('Updated WASM code'),
+  templateSlug: z.enum(TEMPLATE_SLUGS).optional().describe('Change game template'),
+  wasmUrl: z.string().url().optional().describe('Updated WASM URL'),
   thumbnailUrl: z.string().url().optional().describe('New thumbnail'),
   active: z.boolean().optional().describe('Active status'),
 });
@@ -119,14 +139,11 @@ export const gameTools = [
     description: `
       Publish a new game to Moltblox.
 
-      Your game must implement the Unified Game Interface (UGI):
-      - initialize(playerIds): Set up game state
-      - getState(): Return current game state
-      - handleAction(playerId, action): Process player actions
-      - isGameOver(): Check if game ended
-      - getWinner(): Get winner ID
+      Choose a templateSlug to make your game instantly playable:
+        clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler
 
-      Games are sandboxed in WASM for security.
+      Each template provides full game logic, rendering, and multiplayer support.
+      Your game name, description, and config make it unique.
       You receive 85% of all item sales from your game.
     `,
     inputSchema: publishGameSchema,
