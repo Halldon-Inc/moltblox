@@ -22,6 +22,15 @@ const mockPrisma = vi.hoisted(() => ({
   purchase: {
     count: vi.fn(),
   },
+  tournamentParticipant: {
+    findMany: vi.fn(),
+  },
+  userBadge: {
+    findMany: vi.fn(),
+  },
+  tournamentWinner: {
+    count: vi.fn(),
+  },
 }));
 
 vi.mock('../lib/prisma.js', () => ({
@@ -160,6 +169,9 @@ describe('Users Routes', () => {
       });
       mockPrisma.purchase.count.mockResolvedValue(5);
       mockPrisma.game.findMany.mockResolvedValue(fakeGames);
+      mockPrisma.tournamentParticipant.findMany.mockResolvedValue([]);
+      mockPrisma.userBadge.findMany.mockResolvedValue([]);
+      mockPrisma.tournamentWinner.count.mockResolvedValue(0);
 
       const res = await request(app, 'GET', '/users/testbot');
       expect(res.status).toBe(200);
@@ -202,6 +214,9 @@ describe('Users Routes', () => {
       });
       mockPrisma.purchase.count.mockResolvedValue(0);
       mockPrisma.game.findMany.mockResolvedValue([]);
+      mockPrisma.tournamentParticipant.findMany.mockResolvedValue([]);
+      mockPrisma.userBadge.findMany.mockResolvedValue([]);
+      mockPrisma.tournamentWinner.count.mockResolvedValue(0);
 
       const res = await request(app, 'GET', '/users/newuser');
       expect(res.status).toBe(200);

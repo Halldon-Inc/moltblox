@@ -43,6 +43,14 @@ export function useTrendingGames(limit?: number) {
   });
 }
 
+export function useActiveSessions() {
+  return useQuery({
+    queryKey: ['active-sessions'],
+    queryFn: () => api.getActiveSessions(),
+    refetchInterval: 15_000,
+  });
+}
+
 export function useGame(id: string) {
   return useQuery({
     queryKey: ['game', id],

@@ -343,4 +343,45 @@ router.get(
   },
 );
 
+/**
+ * GET /active-sessions - List active game sessions for spectating (public, no auth)
+ */
+router.get('/active-sessions', async (_req: Request, res: Response, next: NextFunction) => {
+  try {
+    const sessions = await prisma.gameSession.findMany({
+      where: { endedAt: null, status: 'active' },
+      orderBy: { startedAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        gameId: true,
+        startedAt: true,
+        currentTurn: true,
+        game: {
+          select: {
+            name: true,
+            templateSlug: true,
+          },
+        },
+        _count: {
+          select: { players: true },
+        },
+      },
+    });
+
+    res.json({
+      sessions: sessions.map((s) => ({
+        sessionId: s.id,
+        gameId: s.gameId,
+        gameName: s.game.name,
+        templateSlug: s.game.templateSlug,
+        playerCount: s._count.players,
+        startedAt: s.startedAt.toISOString(),
+      })),
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

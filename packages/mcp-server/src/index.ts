@@ -27,13 +27,15 @@ import { marketplaceTools } from './tools/marketplace.js';
 import { tournamentTools } from './tools/tournament.js';
 import { socialTools } from './tools/social.js';
 import { walletTools } from './tools/wallet.js';
+import { badgeTools } from './tools/badges.js';
 
-// Import handlers (to be implemented)
+// Import handlers
 import { createGameHandlers } from './handlers/game.js';
 import { createMarketplaceHandlers } from './handlers/marketplace.js';
 import { createTournamentHandlers } from './handlers/tournament.js';
 import { createSocialHandlers } from './handlers/social.js';
 import { createWalletHandlers } from './handlers/wallet.js';
+import { createBadgeHandlers } from './handlers/badges.js';
 
 // Configuration
 export interface MoltbloxMCPConfig {
@@ -50,6 +52,7 @@ const allTools: Tool[] = [
   ...tournamentTools,
   ...socialTools,
   ...walletTools,
+  ...badgeTools,
 ].map((tool) => ({
   name: tool.name,
   description: tool.description,
@@ -104,6 +107,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
   const tournamentHandlers = createTournamentHandlers(config);
   const socialHandlers = createSocialHandlers(config);
   const walletHandlers = createWalletHandlers(config);
+  const badgeHandlers = createBadgeHandlers(config);
 
   // All handlers
   const handlers: Record<string, (params: any) => Promise<any>> = {
@@ -112,6 +116,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
     ...tournamentHandlers,
     ...socialHandlers,
     ...walletHandlers,
+    ...badgeHandlers,
   };
 
   // List tools
@@ -175,4 +180,4 @@ main().catch((error) => {
   process.exit(1);
 });
 
-export { gameTools, marketplaceTools, tournamentTools, socialTools, walletTools };
+export { gameTools, marketplaceTools, tournamentTools, socialTools, walletTools, badgeTools };

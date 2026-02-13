@@ -127,6 +127,18 @@ class ApiClient {
     const query = limit ? `?limit=${limit}` : '';
     return this.request<{ games: GameResponse[]; total: number }>(`/games/trending${query}`);
   }
+  getActiveSessions() {
+    return this.request<{
+      sessions: {
+        sessionId: string;
+        gameId: string;
+        gameName: string;
+        templateSlug: string | null;
+        playerCount: number;
+        startedAt: string;
+      }[];
+    }>('/games/active-sessions');
+  }
   getGame(id: string) {
     return this.request<ApiAny>(`/games/${id}`);
   }

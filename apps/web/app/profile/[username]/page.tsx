@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Calendar, Gamepad2, Eye, ShoppingBag } from 'lucide-react';
+import { Calendar, Gamepad2, Eye, ShoppingBag, Trophy, Award } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
 import { useUserProfile } from '@/hooks/useApi';
 import { formatCount, formatDate } from '@/lib/format';
@@ -16,6 +16,8 @@ export default function ProfilePage() {
   const profile = data as UserProfileResponse | undefined;
   const user = profile?.user;
   const games = profile?.games ?? [];
+  const tournamentResults = profile?.tournamentResults ?? [];
+  const badges = profile?.badges ?? [];
 
   if (isLoading) {
     return (
@@ -139,15 +141,121 @@ export default function ProfilePage() {
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-1.5 text-white/40 mb-1">
-                <Calendar className="w-4 h-4" />
-                <span className="text-xs uppercase tracking-wider">Joined</span>
+                <Trophy className="w-4 h-4" />
+                <span className="text-xs uppercase tracking-wider">Wins</span>
               </div>
-              <p className="text-lg font-display font-bold text-white">
-                {formatDate(user.createdAt)}
+              <p className="text-2xl font-display font-black text-white">
+                {formatCount(user.stats.tournamentWins)}
               </p>
             </div>
           </div>
         </div>
+
+        {/* Badges Section */}
+        {badges.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-display font-black text-white uppercase tracking-tight mb-6">
+              <Award className="w-6 h-6 inline-block mr-2 text-molt-400" />
+              Badges
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              {badges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="group relative glass-card px-4 py-3 flex items-center gap-3 hover:border-molt-500/40 transition-colors"
+                  title={badge.description}
+                >
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-molt-500/30 to-molt-700/30 border border-molt-500/20 flex items-center justify-center text-lg">
+                    {badge.category === 'creator' && '🎮'}
+                    {badge.category === 'player' && '🕹️'}
+                    {badge.category === 'competitor' && '🏆'}
+                    {badge.category === 'trader' && '💰'}
+                    {badge.category === 'community' && '💬'}
+                    {badge.category === 'explorer' && '🧭'}
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{badge.name}</p>
+                    <p className="text-xs text-white/40">{badge.category}</p>
+                  </div>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/90 rounded-lg text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 border border-white/10">
+                    {badge.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Tournament History */}
+        {tournamentResults.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-display font-black text-white uppercase tracking-tight mb-6">
+              <Trophy className="w-6 h-6 inline-block mr-2 text-yellow-400" />
+              Tournament History
+            </h2>
+            <div className="glass-card overflow-hidden">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-white/5">
+                    <th className="px-4 py-3 text-xs text-white/40 uppercase tracking-wider">
+                      Tournament
+                    </th>
+                    <th className="px-4 py-3 text-xs text-white/40 uppercase tracking-wider">
+                      Game
+                    </th>
+                    <th className="px-4 py-3 text-xs text-white/40 uppercase tracking-wider text-center">
+                      Placement
+                    </th>
+                    <th className="px-4 py-3 text-xs text-white/40 uppercase tracking-wider text-right">
+                      Prize
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tournamentResults.map((tr) => (
+                    <tr
+                      key={tr.tournamentId}
+                      className="border-b border-white/5 last:border-0 hover:bg-white/[0.02]"
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/tournaments/${tr.tournamentId}`}
+                          className="text-sm text-white hover:text-molt-400 transition-colors"
+                        >
+                          {tr.tournamentName}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-white/60">{tr.gameName}</td>
+                      <td className="px-4 py-3 text-center">
+                        {tr.placement ? (
+                          <span
+                            className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold ${
+                              tr.placement === 1
+                                ? 'bg-yellow-500/20 text-yellow-400'
+                                : tr.placement === 2
+                                  ? 'bg-gray-400/20 text-gray-300'
+                                  : tr.placement === 3
+                                    ? 'bg-amber-600/20 text-amber-500'
+                                    : 'bg-white/5 text-white/50'
+                            }`}
+                          >
+                            #{tr.placement}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-white/30">{tr.participantStatus}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-emerald-400 font-mono">
+                        {tr.prizeWon !== '0' ? `${tr.prizeWon} MBUCKS` : ''}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {/* Games Section */}
         {games.length > 0 && (

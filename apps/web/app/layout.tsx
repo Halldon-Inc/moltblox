@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'DENY',
     'Referrer-Policy': 'strict-origin-when-cross-origin',
+    'mcp-server': '/api/skill',
   },
 };
 

@@ -236,6 +236,100 @@ async function main() {
   }
   console.log(`  Created ${games.length} demo games`);
 
+  // ── Default Badges ──
+  const badges = [
+    // Creator badges
+    {
+      name: 'First Game',
+      description: 'Published your first game on Moltblox',
+      category: 'creator' as const,
+      criteria: { type: 'games_published', threshold: 1 },
+    },
+    {
+      name: 'Prolific Creator',
+      description: 'Published 5 games on Moltblox',
+      category: 'creator' as const,
+      criteria: { type: 'games_published', threshold: 5 },
+    },
+    {
+      name: 'Studio',
+      description: 'Published 10 games on Moltblox',
+      category: 'creator' as const,
+      criteria: { type: 'games_published', threshold: 10 },
+    },
+    // Player badges
+    {
+      name: 'First Play',
+      description: 'Played your first game on Moltblox',
+      category: 'player' as const,
+      criteria: { type: 'games_played', threshold: 1 },
+    },
+    {
+      name: 'Gamer',
+      description: 'Played 50 games on Moltblox',
+      category: 'player' as const,
+      criteria: { type: 'games_played', threshold: 50 },
+    },
+    {
+      name: 'Veteran',
+      description: 'Played 200 games on Moltblox',
+      category: 'player' as const,
+      criteria: { type: 'games_played', threshold: 200 },
+    },
+    // Competitor badges
+    {
+      name: 'First Win',
+      description: 'Won your first tournament',
+      category: 'competitor' as const,
+      criteria: { type: 'tournaments_won', threshold: 1 },
+    },
+    {
+      name: 'Champion',
+      description: 'Won 5 tournaments',
+      category: 'competitor' as const,
+      criteria: { type: 'tournaments_won', threshold: 5 },
+    },
+    {
+      name: 'Legend',
+      description: 'Won 20 tournaments',
+      category: 'competitor' as const,
+      criteria: { type: 'tournaments_won', threshold: 20 },
+    },
+    // Trader badges
+    {
+      name: 'First Sale',
+      description: 'Sold your first item on the marketplace',
+      category: 'trader' as const,
+      criteria: { type: 'items_sold', threshold: 1 },
+    },
+    {
+      name: 'Merchant',
+      description: 'Sold 10 items on the marketplace',
+      category: 'trader' as const,
+      criteria: { type: 'items_sold', threshold: 10 },
+    },
+    // Explorer badges
+    {
+      name: 'Template Tourist',
+      description: 'Played games from 3 different templates',
+      category: 'explorer' as const,
+      criteria: { type: 'templates_played', threshold: 3 },
+    },
+  ];
+
+  for (const badge of badges) {
+    await prisma.badge.upsert({
+      where: { name: badge.name },
+      update: {
+        description: badge.description,
+        category: badge.category,
+        criteria: badge.criteria,
+      },
+      create: badge,
+    });
+  }
+  console.log(`  Created ${badges.length} badges`);
+
   console.log('Seed complete.');
 }
 

@@ -73,6 +73,49 @@ router.get(
         },
       });
 
+      // Fetch tournament participation and results
+      const tournamentResults = await prisma.tournamentParticipant.findMany({
+        where: { userId: user.id },
+        orderBy: { registeredAt: 'desc' },
+        take: 10,
+        select: {
+          placement: true,
+          prizeWon: true,
+          status: true,
+          registeredAt: true,
+          tournament: {
+            select: {
+              id: true,
+              name: true,
+              status: true,
+              game: { select: { name: true } },
+            },
+          },
+        },
+      });
+
+      // Fetch badges
+      const badges = await prisma.userBadge.findMany({
+        where: { userId: user.id },
+        orderBy: { awardedAt: 'desc' },
+        include: {
+          badge: {
+            select: {
+              id: true,
+              name: true,
+              description: true,
+              imageUrl: true,
+              category: true,
+            },
+          },
+        },
+      });
+
+      // Count tournament wins
+      const tournamentWins = await prisma.tournamentWinner.count({
+        where: { userId: user.id },
+      });
+
       res.json({
         user: {
           ...user,
@@ -80,9 +123,28 @@ router.get(
             gamesCreated: gameStats._count.id,
             totalPlays: gameStats._sum.totalPlays ?? 0,
             itemsSold,
+            tournamentWins,
           },
         },
         games,
+        tournamentResults: tournamentResults.map((tr) => ({
+          tournamentId: tr.tournament.id,
+          tournamentName: tr.tournament.name,
+          gameName: tr.tournament.game.name,
+          status: tr.tournament.status,
+          placement: tr.placement,
+          prizeWon: tr.prizeWon?.toString() ?? '0',
+          participantStatus: tr.status,
+          registeredAt: tr.registeredAt,
+        })),
+        badges: badges.map((ub) => ({
+          id: ub.badge.id,
+          name: ub.badge.name,
+          description: ub.badge.description,
+          imageUrl: ub.badge.imageUrl,
+          category: ub.badge.category,
+          awardedAt: ub.awardedAt,
+        })),
       });
     } catch (error) {
       next(error);

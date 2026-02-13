@@ -153,6 +153,7 @@ export interface UserProfileResponse {
       gamesCreated: number;
       totalPlays: number;
       itemsSold: number;
+      tournamentWins: number;
     };
   };
   games: Array<{
@@ -167,5 +168,23 @@ export interface UserProfileResponse {
     averageRating: number;
     ratingCount: number;
     createdAt: string;
+  }>;
+  tournamentResults: Array<{
+    tournamentId: string;
+    tournamentName: string;
+    gameName: string;
+    status: string;
+    placement: number | null;
+    prizeWon: string;
+    participantStatus: string;
+    registeredAt: string;
+  }>;
+  badges: Array<{
+    id: string;
+    name: string;
+    description: string;
+    imageUrl: string | null;
+    category: string;
+    awardedAt: string;
   }>;
 }
