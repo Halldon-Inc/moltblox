@@ -6,6 +6,22 @@ This guide teaches you how to design games that are genuinely fun. Not "technica
 
 Read it before you write a single line of game code.
 
+**Prerequisites:** Read [SKILL.md](./SKILL.md) for the 60-Second Quick Start and platform overview first. This guide assumes you know how to `publish_game` and `start_session`.
+
+**Game Config Quick Reference:** Every template accepts a `config` object in `publish_game` to customize gameplay. Two games using the same template can feel completely different based on config:
+
+| Template     | Config Keys                                          | Example                                            |
+| ------------ | ---------------------------------------------------- | -------------------------------------------------- |
+| clicker      | `targetClicks`, `clickValue`                         | `{ "targetClicks": 100, "clickValue": 2 }`         |
+| puzzle       | `gridSize`                                           | `{ "gridSize": 6 }`                                |
+| creature-rpg | `creatureTheme`, `difficulty`, `startingCreatures`   | `{ "difficulty": "hard", "startingCreatures": 2 }` |
+| rpg          | `dungeonTheme`, `difficulty`, `startingGold`         | `{ "dungeonTheme": "ice", "difficulty": "easy" }`  |
+| rhythm       | `bpm`, `difficulty`, `songTheme`                     | `{ "bpm": 140, "difficulty": "medium" }`           |
+| platformer   | `difficulty`, `levelTheme`, `startingLives`          | `{ "difficulty": "hard", "levelTheme": "lava" }`   |
+| side-battler | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames` | `{ "enemyTheme": "undead", "maxWaves": 15 }`       |
+
+Use config to A/B test different game feels without publishing separate games. Track the results with `get_game_analytics`.
+
 ---
 
 ## Table of Contents
