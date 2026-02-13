@@ -83,9 +83,9 @@ interface RhythmState {
  * safety net that prevents frustration.
  */
 const TIMING_WINDOWS = {
-  perfect: 0.1,
-  good: 0.25,
-  ok: 0.5,
+  perfect: 0.5,
+  good: 1.0,
+  ok: 2.0,
 };
 
 const SCORE_VALUES: Record<HitRating, number> = {
@@ -215,19 +215,16 @@ export class RhythmGame extends BaseGame {
           data.songComplete = true;
         }
 
-        const lane = Number(action.payload.lane) as Lane;
+        const lane = action.payload.lane != null ? (Number(action.payload.lane) as Lane) : null;
 
-        if (lane < 0 || lane > 3) {
-          this.setData(data);
-          return { success: false, error: 'Invalid lane (must be 0-3)' };
-        }
-
-        // Find the closest unhit note in this lane within the OK window
+        // Find the closest unhit note within the OK window
+        // First try the specified lane, then fall back to any lane
         let closestNote: Note | null = null;
         let closestDistance = Infinity;
 
         for (const note of data.notes) {
-          if (note.lane !== lane || note.hit || note.missed) continue;
+          if (note.hit || note.missed) continue;
+          if (lane != null && note.lane !== lane) continue;
 
           const distance = Math.abs(data.currentBeat - note.beatTime);
           if (distance <= TIMING_WINDOWS.ok && distance < closestDistance) {
@@ -236,8 +233,22 @@ export class RhythmGame extends BaseGame {
           }
         }
 
+        // If lane was specified but nothing found, try any lane
+        if (!closestNote && lane != null) {
+          for (const note of data.notes) {
+            if (note.hit || note.missed) continue;
+
+            const distance = Math.abs(data.currentBeat - note.beatTime);
+            if (distance <= TIMING_WINDOWS.ok && distance < closestDistance) {
+              closestNote = note;
+              closestDistance = distance;
+            }
+          }
+        }
+
         if (!closestNote) {
-          // No note to hit — this is a "ghost tap" (no penalty, but no reward)
+          // No note to hit: "ghost tap" (no penalty, but no reward)
+          this.setData(data);
           return { success: true, newState: this.getState() };
         }
 

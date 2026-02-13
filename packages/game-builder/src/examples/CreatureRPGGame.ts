@@ -905,6 +905,7 @@ interface CreatureRPGState {
   totalCreaturesCaught: number;
   totalSteps: number;
   combatLog: string[];
+  exitHint: string | null;
   [key: string]: unknown;
 }
 
@@ -946,6 +947,7 @@ export class CreatureRPGGame extends BaseGame {
       totalCreaturesCaught: 0,
       totalSteps: 0,
       combatLog: [],
+      exitHint: 'South exit to route_1: walk to y=19 (columns x=13-15). Choose a starter first!',
     };
     this.emitEvent('game_started', playerIds[0]);
     return state;
@@ -1019,6 +1021,7 @@ export class CreatureRPGGame extends BaseGame {
     data.caughtSpecies = [species];
     data.gamePhase = 'overworld';
     data.combatLog.push(`You chose ${species.charAt(0).toUpperCase() + species.slice(1)}!`);
+    this.updateExitHints(data);
 
     this.setData(data as Record<string, unknown>);
     this.emitEvent('starter_chosen', this.getPlayers()[0], { species });
@@ -1029,7 +1032,10 @@ export class CreatureRPGGame extends BaseGame {
 
   private handleMove(data: CreatureRPGState, payload: Record<string, unknown>): ActionResult {
     if (data.gamePhase !== 'overworld') {
-      return { success: false, error: 'Cannot move in current phase' };
+      return {
+        success: false,
+        error: `Cannot move in '${data.gamePhase}' phase. ${data.gamePhase === 'starter_select' ? 'Use choose_starter first.' : data.gamePhase === 'battle' ? 'Use fight, flee, or catch to end combat.' : data.gamePhase === 'dialogue' ? 'Use advance_dialogue to finish dialogue.' : ''}`,
+      };
     }
 
     const dir = String(payload.direction || '');
@@ -1121,6 +1127,9 @@ export class CreatureRPGGame extends BaseGame {
       data.combatLog.push('Your creatures were fully healed!');
       this.emitEvent('healed', this.getPlayers()[0]);
     }
+
+    // Update exit hints in state so testers can see where to go
+    this.updateExitHints(data);
 
     this.setData(data as Record<string, unknown>);
     return { success: true, newState: this.state };
@@ -1856,6 +1865,31 @@ export class CreatureRPGGame extends BaseGame {
         level: creature.level,
       });
     }
+  }
+
+  private updateExitHints(data: CreatureRPGState): void {
+    const exits = WARPS.filter((w) => w.fromMap === data.mapId);
+    if (exits.length === 0) {
+      data.exitHint = null;
+      return;
+    }
+    // Find the unique destinations and their closest warp point
+    const destMap = new Map<string, { x: number; y: number; dist: number }>();
+    for (const w of exits) {
+      const dist = Math.abs(data.playerPos.x - w.fromX) + Math.abs(data.playerPos.y - w.fromY);
+      const existing = destMap.get(w.toMap);
+      if (!existing || dist < existing.dist) {
+        destMap.set(w.toMap, { x: w.fromX, y: w.fromY, dist });
+      }
+    }
+    const hints: string[] = [];
+    for (const [dest, info] of destMap) {
+      const dirY = info.y > data.playerPos.y ? 'south' : info.y < data.playerPos.y ? 'north' : '';
+      const dirX = info.x > data.playerPos.x ? 'east' : info.x < data.playerPos.x ? 'west' : '';
+      const direction = [dirY, dirX].filter(Boolean).join('-') || 'here';
+      hints.push(`Exit to ${dest}: ${direction} at (${info.x},${info.y}), ${info.dist} steps`);
+    }
+    data.exitHint = hints.join('. ');
   }
 
   private healParty(data: CreatureRPGState): void {

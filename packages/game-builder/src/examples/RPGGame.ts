@@ -225,7 +225,20 @@ export class RPGGame extends BaseGame {
        */
       case 'attack': {
         if (!data.currentEnemy) {
-          return { success: false, error: 'Not in combat' };
+          // Auto-start next encounter if available
+          if (data.encounter < data.maxEncounters) {
+            const autoResult = this.processAction(playerId, {
+              type: 'start_encounter',
+              payload: {},
+              timestamp: Date.now(),
+            });
+            if (!autoResult.success) return autoResult;
+            // Re-read data after encounter started
+            const freshData = this.getData<RPGState>();
+            Object.assign(data, freshData);
+          } else {
+            return { success: false, error: 'Not in combat and all encounters completed' };
+          }
         }
         if (data.turnOrder[data.currentTurnIndex] !== playerId) {
           return { success: false, error: 'Not your turn' };
@@ -375,8 +388,21 @@ export class RPGGame extends BaseGame {
         }
       }
       data.combatLog.push(`${data.currentEnemy.name} defeated! +${reward} XP`);
+      for (const pid of this.getPlayers()) {
+        const p = data.players[pid];
+        data.combatLog.push(
+          `${pid}: Level ${p.level}, XP ${p.xp}/${p.xpToLevel}, HP ${p.stats.hp}/${p.stats.maxHp}`,
+        );
+      }
+      if (data.encounter < data.maxEncounters) {
+        data.combatLog.push('Use start_encounter to begin the next battle.');
+      }
       data.currentEnemy = null;
       data.turnOrder = [];
+      // Bound combatLog to prevent unbounded growth
+      if (data.combatLog.length > 50) {
+        data.combatLog.splice(0, data.combatLog.length - 50);
+      }
       return;
     }
 
