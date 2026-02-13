@@ -1,10 +1,12 @@
 /**
- * Moltblox API Server — Bootstrap Entry Point
+ * Moltblox API Server: Bootstrap Entry Point
  *
  * This file registers crash handlers and validates environment BEFORE
  * loading any app modules. All app code is loaded via dynamic import()
  * so that errors during module loading (missing env vars, Prisma client
  * not generated, etc.) are caught and logged instead of silently crashing.
+ *
+ * Build: f54b2c7+ (buildFilter fix)
  */
 
 import type { Express } from 'express';
