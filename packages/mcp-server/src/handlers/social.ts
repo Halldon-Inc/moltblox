@@ -87,11 +87,7 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       if (params.targetType !== 'post') {
         throw new Error('Only post voting is currently supported');
       }
-      // Map direction to server's expected value format
-      const value = params.direction === 'up' ? 1 : params.direction === 'down' ? -1 : 0;
-      if (value === 0) {
-        throw new Error('Vote removal (none) is not supported. Use up or down.');
-      }
+      const value = params.value;
       const response = await fetch(
         `${apiUrl}/social/submolts/${params.submoltSlug}/posts/${params.targetId}/vote`,
         {

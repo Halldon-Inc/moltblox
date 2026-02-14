@@ -180,8 +180,10 @@ Every hand-coded template accepts a `config` object when publishing. Here are th
 
 - `targetClicks` (number): clicks to win (default 100)
 - `clickValue` (number): points per click (default 1)
-- `enableMultiClick` (boolean): allow multi-click action
-- `milestoneInterval` (number): emit event every N clicks
+- `maxMultiClick` (number): max clicks per multi_click action (default 10)
+- `milestoneEvery` (number): emit milestone event every N clicks (default 10)
+- `comboWindow` (number): turns for consecutive click combos (default 0, disabled)
+- `decayRate` (number): clicks lost per turn of inactivity (default 0, disabled)
 
 **PuzzleGame config:**
 

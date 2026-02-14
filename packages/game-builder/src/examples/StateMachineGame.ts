@@ -249,6 +249,207 @@ function applyEffects(
 }
 
 // ---------------------------------------------------------------------------
+// Normalization: convert simplified/alternative schema to internal format
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalizes a simplified state-machine definition (as sent by MCP bots)
+ * into the full StateMachineDefinition format the engine expects.
+ *
+ * Handles:
+ * - actions as string arrays: { start: ["explore"] } => { start: [{ name: "explore", effects: [] }] }
+ * - resources as plain numbers: { gold: 0 } => { gold: { initial: 0 } }
+ * - action-based transitions: { from, action, to, effects } => merged into ActionDef
+ * - winConditions/loseConditions arrays => single ConditionExpr
+ * - effect shorthand: { type: "modify_resource", resource, amount } => { resource, operation: "+", value }
+ */
+function normalizeDefinition(def: Record<string, unknown>): StateMachineDefinition {
+  const out = { ...def } as Record<string, unknown>;
+
+  // --- Normalize resources: number => ResourceDef ---
+  if (out.resources && typeof out.resources === 'object' && !Array.isArray(out.resources)) {
+    const resources = out.resources as Record<string, unknown>;
+    const normalized: Record<string, ResourceDef> = {};
+    for (const [key, val] of Object.entries(resources)) {
+      if (typeof val === 'number') {
+        normalized[key] = { initial: val };
+      } else if (val && typeof val === 'object' && 'initial' in (val as Record<string, unknown>)) {
+        normalized[key] = val as ResourceDef;
+      } else {
+        normalized[key] = { initial: 0 };
+      }
+    }
+    out.resources = normalized;
+  }
+
+  // --- Collect action-based transitions (simplified format) ---
+  // These have an "action" field and map to ActionDef.transition + effects
+  const actionTransitions = new Map<string, Map<string, { to: string; effects: EffectDef[] }>>();
+  if (Array.isArray(out.transitions)) {
+    const rawTransitions = out.transitions as Array<Record<string, unknown>>;
+    const cleanTransitions: TransitionDef[] = [];
+    for (const t of rawTransitions) {
+      if (typeof t.action === 'string') {
+        // Action-based transition: merge into the ActionDef
+        const from = String(t.from);
+        const actionName = String(t.action);
+        if (!actionTransitions.has(from)) {
+          actionTransitions.set(from, new Map());
+        }
+        const effects = normalizeEffects((t.effects as Array<Record<string, unknown>>) ?? []);
+        actionTransitions.get(from)!.set(actionName, {
+          to: String(t.to),
+          effects,
+        });
+      } else if (t.condition && typeof t.condition === 'object') {
+        // Standard condition-based transition: keep as-is
+        cleanTransitions.push(t as unknown as TransitionDef);
+      }
+    }
+    out.transitions = cleanTransitions;
+  }
+
+  // --- Normalize actions: string[] => ActionDef[] ---
+  if (out.actions && typeof out.actions === 'object') {
+    const actions = out.actions as Record<string, unknown>;
+    const normalized: Record<string, ActionDef[]> = {};
+    for (const [stateName, val] of Object.entries(actions)) {
+      if (Array.isArray(val)) {
+        normalized[stateName] = val.map((item) => {
+          if (typeof item === 'string') {
+            // Simplified: just an action name string
+            const transInfo = actionTransitions.get(stateName)?.get(item);
+            return {
+              name: item,
+              effects: transInfo?.effects ?? [],
+              transition: transInfo?.to,
+            } as ActionDef;
+          } else if (item && typeof item === 'object' && 'name' in item) {
+            // Full ActionDef object: normalize effects if needed
+            const actionObj = item as Record<string, unknown>;
+            const result: ActionDef = {
+              name: String(actionObj.name),
+              effects: normalizeEffects(
+                (actionObj.effects as Array<Record<string, unknown>>) ?? [],
+              ),
+            };
+            if (actionObj.label) result.label = String(actionObj.label);
+            if (actionObj.description) result.description = String(actionObj.description);
+            if (actionObj.transition) result.transition = String(actionObj.transition);
+            if (actionObj.condition) result.condition = actionObj.condition as ConditionExpr;
+            // Merge action-based transition if not already set
+            if (!result.transition) {
+              const transInfo = actionTransitions.get(stateName)?.get(result.name);
+              if (transInfo) {
+                result.transition = transInfo.to;
+                if (result.effects.length === 0) {
+                  result.effects = transInfo.effects;
+                }
+              }
+            }
+            return result;
+          }
+          return { name: String(item), effects: [] } as ActionDef;
+        });
+      } else {
+        normalized[stateName] = [];
+      }
+    }
+    out.actions = normalized;
+  }
+
+  // --- Normalize winConditions (array) => winCondition (single) ---
+  if (Array.isArray(out.winConditions) && !out.winCondition) {
+    out.winCondition = normalizeConditionArray(
+      out.winConditions as Array<Record<string, unknown>>,
+      '>=',
+    );
+    delete out.winConditions;
+  }
+  // Provide a default that never triggers if missing
+  if (!out.winCondition) {
+    out.winCondition = { resource: '__never__', operator: '==', value: '-999' };
+  }
+
+  // --- Normalize loseConditions (array) => loseCondition (single) ---
+  if (Array.isArray(out.loseConditions) && !out.loseCondition) {
+    out.loseCondition = normalizeConditionArray(
+      out.loseConditions as Array<Record<string, unknown>>,
+      '<=',
+    );
+    delete out.loseConditions;
+  }
+  // Provide a default that never triggers if missing
+  if (!out.loseCondition) {
+    out.loseCondition = { resource: '__never__', operator: '==', value: '-999' };
+  }
+
+  return out as unknown as StateMachineDefinition;
+}
+
+/**
+ * Normalize an array of condition objects (simplified format) into a single ConditionExpr.
+ * Handles: { type: "resource_threshold", resource, threshold } => { resource, operator, value }
+ * defaultOp: ">=" for win conditions ("win when resource reaches threshold"),
+ *            "<=" for lose conditions ("lose when resource drops to threshold")
+ */
+function normalizeConditionArray(
+  conditions: Array<Record<string, unknown>>,
+  defaultOp: '>=' | '<=' = '>=',
+): ConditionExpr {
+  const exprs: ConditionExpr[] = conditions.map((c) => {
+    if (c.type === 'resource_threshold') {
+      return {
+        resource: String(c.resource),
+        operator: defaultOp,
+        value: String(c.threshold ?? 0),
+      };
+    }
+    if (c.type === 'state') {
+      return { state: String(c.state) };
+    }
+    // Already a valid ConditionExpr
+    if (c.resource && c.operator) {
+      return c as unknown as ConditionExpr;
+    }
+    // Fallback: never-true condition
+    return { resource: '__never__', operator: '==' as const, value: '-999' };
+  });
+
+  if (exprs.length === 0) {
+    return { resource: '__never__', operator: '==', value: '-999' };
+  }
+  if (exprs.length === 1) {
+    return exprs[0];
+  }
+  return { and: exprs };
+}
+
+/**
+ * Normalize effect objects from simplified format to internal EffectDef.
+ * Handles: { type: "modify_resource", resource, amount } => { resource, operation: "+"/"-", value }
+ */
+function normalizeEffects(effects: Array<Record<string, unknown>>): EffectDef[] {
+  return effects.map((e) => {
+    // Already in internal format
+    if (typeof e.operation === 'string' && typeof e.value === 'string') {
+      return e as unknown as EffectDef;
+    }
+    // Simplified format: { type: "modify_resource", resource, amount }
+    if (e.type === 'modify_resource' || e.resource) {
+      const amount = Number(e.amount ?? e.value ?? 0);
+      return {
+        resource: String(e.resource),
+        operation: (amount >= 0 ? '+' : '-') as '+' | '-',
+        value: String(Math.abs(amount)),
+      };
+    }
+    // Fallback: no-op effect
+    return { resource: '__noop__', operation: '+' as const, value: '0' };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Validation
 // ---------------------------------------------------------------------------
 
@@ -356,7 +557,8 @@ export class StateMachineGame extends BaseGame {
       );
     }
 
-    this.definition = definition;
+    // Normalize simplified/alternative schemas (MCP bot format) into internal format
+    this.definition = normalizeDefinition(definition as unknown as Record<string, unknown>);
     this.name = this.definition.name || 'State Machine Game';
     validateDefinition(this.definition);
   }

@@ -29,12 +29,12 @@ describe('Wallet Schemas', () => {
       expect(result.success).toBe(false);
     });
 
-    it('should reject zero amount', () => {
+    it('should accept zero amount at schema level (route rejects it)', () => {
       const result = transferSchema.body.safeParse({
         to: '0x1234567890123456789012345678901234567890',
         amount: '0',
       });
-      expect(result.success).toBe(false);
+      expect(result.success).toBe(true);
     });
 
     it('should reject non-numeric amount', () => {

@@ -19,25 +19,9 @@ import {
   listSpectatorBetsSchema,
 } from '../schemas/wagers.js';
 import type { Prisma, WagerStatus } from '../generated/prisma/client.js';
+import { mbucksToWei } from '../lib/parseBigInt.js';
 
 const router: Router = Router();
-
-/**
- * Convert MBUCKS human-readable string to wei (18 decimals).
- * Example: "2.5" => 2500000000000000000n
- */
-function mbucksToWei(mbucks: string): bigint {
-  const parts = mbucks.split('.');
-  const whole = parts[0] || '0';
-  let fraction = parts[1] || '';
-  // Pad or truncate fraction to 18 decimal places
-  if (fraction.length > 18) {
-    fraction = fraction.slice(0, 18);
-  } else {
-    fraction = fraction.padEnd(18, '0');
-  }
-  return BigInt(whole + fraction);
-}
 
 /**
  * Serialize BigInt fields on a wager to strings for JSON output.

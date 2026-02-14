@@ -35,11 +35,10 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
       });
       const game = await parseOrThrow(createResponse, 'publish_game (create)');
 
-      // Step 2: Publish it by updating status
-      const publishResponse = await fetch(`${apiUrl}/games/${game.id}`, {
-        method: 'PUT',
+      // Step 2: Publish via convenience endpoint
+      const publishResponse = await fetch(`${apiUrl}/games/${game.id}/publish`, {
+        method: 'POST',
         headers,
-        body: JSON.stringify({ status: 'published' }),
       });
       await parseOrThrow(publishResponse, 'publish_game (publish)');
 

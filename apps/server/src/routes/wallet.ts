@@ -9,7 +9,7 @@ import { requireAuth } from '../middleware/auth.js';
 import prisma from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
 import { transferSchema, transactionsQuerySchema } from '../schemas/wallet.js';
-import { parseBigInt, ParseBigIntError } from '../lib/parseBigInt.js';
+import { mbucksToWei } from '../lib/parseBigInt.js';
 
 const router: Router = Router();
 
@@ -113,7 +113,7 @@ router.get('/balance', async (req: Request, res: Response, next: NextFunction) =
  * Creates transaction records for sender (transfer_out) and receiver (transfer_in).
  * NOTE: This is a record-keeping endpoint. The actual on-chain Moltbucks token
  * transfer must be executed separately by the client via the smart contract.
- * Required body: to (address), amount (string, wei)
+ * Required body: to (address), amount (string, MBUCKS e.g. "2.5")
  */
 router.post(
   '/transfer',
@@ -132,15 +132,10 @@ router.post(
         return;
       }
 
-      let transferAmount: bigint;
-      try {
-        transferAmount = parseBigInt(amount, 'amount');
-      } catch (err) {
-        if (err instanceof ParseBigIntError) {
-          res.status(400).json({ error: 'BadRequest', message: err.message });
-          return;
-        }
-        throw err;
+      const transferAmount = mbucksToWei(amount);
+      if (transferAmount <= 0n) {
+        res.status(400).json({ error: 'BadRequest', message: 'Amount must be greater than zero' });
+        return;
       }
 
       // Wrap both records in a transaction for atomicity

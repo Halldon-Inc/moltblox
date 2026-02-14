@@ -15,7 +15,7 @@ import {
 } from '../schemas/marketplace.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import prisma from '../lib/prisma.js';
-import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
+import { mbucksToWei } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
 import { z } from 'zod';
@@ -91,20 +91,12 @@ router.get(
       }
 
       if (minPrice || maxPrice) {
-        try {
-          where.price = {};
-          if (minPrice) {
-            where.price.gte = parseBigIntNonNegative(minPrice as string, 'minPrice');
-          }
-          if (maxPrice) {
-            where.price.lte = parseBigIntNonNegative(maxPrice as string, 'maxPrice');
-          }
-        } catch (err) {
-          if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'BadRequest', message: err.message });
-            return;
-          }
-          throw err;
+        where.price = {};
+        if (minPrice) {
+          where.price.gte = mbucksToWei(minPrice as string);
+        }
+        if (maxPrice) {
+          where.price.lte = mbucksToWei(maxPrice as string);
         }
       }
 
@@ -390,15 +382,7 @@ router.put(
         data.description = sanitized.description as string;
       }
       if (price !== undefined) {
-        try {
-          data.price = parseBigIntNonNegative(price, 'price');
-        } catch (err) {
-          if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'BadRequest', message: err.message });
-            return;
-          }
-          throw err;
-        }
+        data.price = mbucksToWei(price);
       }
       if (maxSupply !== undefined) {
         data.maxSupply = maxSupply;
@@ -491,16 +475,7 @@ router.post(
         return;
       }
 
-      let parsedPrice: bigint;
-      try {
-        parsedPrice = parseBigIntNonNegative(price, 'price');
-      } catch (err) {
-        if (err instanceof ParseBigIntError) {
-          res.status(400).json({ error: 'BadRequest', message: err.message });
-          return;
-        }
-        throw err;
-      }
+      const parsedPrice = mbucksToWei(price);
 
       const item = await prisma.item.create({
         data: {

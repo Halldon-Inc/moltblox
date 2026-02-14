@@ -59,25 +59,36 @@ function extractToken(req: Request): string | undefined {
  */
 router.get('/info', async (_req: Request, res: Response) => {
   let toolCount = 0;
+  const toolBreakdown: Record<string, number> = {};
+  let importError: string | null = null;
   try {
     // Dynamically check tool arrays from the mcp-server package
     const mcpPkg = await import('@moltblox/mcp-server');
-    toolCount =
-      (mcpPkg.gameTools?.length ?? 0) +
-      (mcpPkg.marketplaceTools?.length ?? 0) +
-      (mcpPkg.tournamentTools?.length ?? 0) +
-      (mcpPkg.socialTools?.length ?? 0) +
-      (mcpPkg.walletTools?.length ?? 0) +
-      (mcpPkg.badgeTools?.length ?? 0) +
-      (mcpPkg.wagerTools?.length ?? 0);
-  } catch {
-    toolCount = -1; // Import failed
+    const groups: Array<[string, unknown]> = [
+      ['game', mcpPkg.gameTools],
+      ['marketplace', mcpPkg.marketplaceTools],
+      ['tournament', mcpPkg.tournamentTools],
+      ['social', mcpPkg.socialTools],
+      ['wallet', mcpPkg.walletTools],
+      ['badges', mcpPkg.badgeTools],
+      ['wager', mcpPkg.wagerTools],
+    ];
+    for (const [name, tools] of groups) {
+      const count = Array.isArray(tools) ? tools.length : 0;
+      toolBreakdown[name] = count;
+      toolCount += count;
+    }
+  } catch (err) {
+    toolCount = -1;
+    importError = err instanceof Error ? err.message : String(err);
   }
   res.json({
     status: 'ok',
     tools: toolCount,
+    toolBreakdown,
+    ...(importError && { importError }),
     protocol: 'MCP (Model Context Protocol)',
-    transport: 'StreamableHTTP',
+    transport: 'StreamableHTTP (JSON response mode)',
     auth: 'Bearer JWT or X-API-Key header required for tool calls',
     usage: 'POST /mcp with JSON-RPC body to initialize a session. Include Authorization header.',
     activeSessions: sessions.size,
@@ -91,31 +102,48 @@ router.get('/info', async (_req: Request, res: Response) => {
  * If header present: route to existing session transport.
  */
 router.post('/', requireAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  try {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-  if (sessionId && sessions.has(sessionId)) {
-    const session = sessions.get(sessionId)!;
-    session.lastActivity = Date.now();
-    await session.transport.handleRequest(req, res, req.body);
-    return;
+    if (sessionId && sessions.has(sessionId)) {
+      const session = sessions.get(sessionId)!;
+      session.lastActivity = Date.now();
+      await session.transport.handleRequest(req, res, req.body);
+      return;
+    }
+
+    // New session: create MCP server + transport
+    const token = extractToken(req);
+    const server = await createMoltbloxMCPServer({
+      apiUrl: getApiUrl(),
+      authToken: token,
+    });
+
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => randomUUID(),
+      enableJsonResponse: true,
+      onsessioninitialized: (newId: string) => {
+        console.log(`[MCP] Session initialized: ${newId}`);
+        sessions.set(newId, { transport, lastActivity: Date.now() });
+      },
+    });
+
+    transport.onerror = (err: Error) => {
+      console.error('[MCP] Transport error:', err.message);
+    };
+
+    await server.connect(transport);
+    await transport.handleRequest(req, res, req.body);
+  } catch (err) {
+    console.error('[MCP] POST handler error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        error: { code: -32603, message: 'Internal MCP server error' },
+        id: null,
+      });
+    }
   }
-
-  // New session: create MCP server + transport
-  const token = extractToken(req);
-  const server = await createMoltbloxMCPServer({
-    apiUrl: getApiUrl(),
-    authToken: token,
-  });
-
-  const transport = new StreamableHTTPServerTransport({
-    sessionIdGenerator: () => randomUUID(),
-    onsessioninitialized: (newId: string) => {
-      sessions.set(newId, { transport, lastActivity: Date.now() });
-    },
-  });
-
-  await server.connect(transport);
-  await transport.handleRequest(req, res, req.body);
 });
 
 /**
@@ -124,18 +152,25 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
  * SSE stream for server-to-client messages.
  */
 router.get('/', requireAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  try {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-  if (!sessionId || !sessions.has(sessionId)) {
-    res
-      .status(400)
-      .json({ error: 'BadRequest', message: 'Missing or invalid mcp-session-id header' });
-    return;
+    if (!sessionId || !sessions.has(sessionId)) {
+      res
+        .status(400)
+        .json({ error: 'BadRequest', message: 'Missing or invalid mcp-session-id header' });
+      return;
+    }
+
+    const session = sessions.get(sessionId)!;
+    session.lastActivity = Date.now();
+    await session.transport.handleRequest(req, res);
+  } catch (err) {
+    console.error('[MCP] GET handler error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'InternalError', message: 'MCP stream error' });
+    }
   }
-
-  const session = sessions.get(sessionId)!;
-  session.lastActivity = Date.now();
-  await session.transport.handleRequest(req, res);
 });
 
 /**
@@ -144,18 +179,26 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
  * Terminate an MCP session.
  */
 router.delete('/', requireAuth, async (req: Request, res: Response) => {
-  const sessionId = req.headers['mcp-session-id'] as string | undefined;
+  try {
+    const sessionId = req.headers['mcp-session-id'] as string | undefined;
 
-  if (!sessionId || !sessions.has(sessionId)) {
-    res
-      .status(400)
-      .json({ error: 'BadRequest', message: 'Missing or invalid mcp-session-id header' });
-    return;
+    if (!sessionId || !sessions.has(sessionId)) {
+      res
+        .status(400)
+        .json({ error: 'BadRequest', message: 'Missing or invalid mcp-session-id header' });
+      return;
+    }
+
+    const session = sessions.get(sessionId)!;
+    await session.transport.handleRequest(req, res);
+    sessions.delete(sessionId);
+    console.log(`[MCP] Session terminated: ${sessionId}`);
+  } catch (err) {
+    console.error('[MCP] DELETE handler error:', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'InternalError', message: 'MCP session delete error' });
+    }
   }
-
-  const session = sessions.get(sessionId)!;
-  await session.transport.handleRequest(req, res);
-  sessions.delete(sessionId);
 });
 
 export default router;

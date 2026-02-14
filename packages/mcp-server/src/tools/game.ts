@@ -304,7 +304,7 @@ export const publishGameSchema = z.object({
   templateSlug: z
     .enum(TEMPLATE_SLUGS)
     .describe(
-      'Game template slug. 24 hand-coded (14 original + 10 beat-em-ups). 53 OpenSpiel ports. 43 Tatham puzzles. 10 boardgame.io. 5 RLCard. 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). Use state-machine for fully custom games.',
+      'Game template slug. 24 hand-coded (14 original + 10 beat-em-ups). 50 OpenSpiel ports (os-*). 40 Tatham puzzles (tp-*). 10 boardgame.io (bgio-*). 5 RLCard (rlcard-*). 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). 22 idle/incremental (ig-*). 14 solitaire (sol-*). 13 card games (cg-*). Use state-machine for fully custom games.',
     ),
   wasmUrl: z
     .string()
@@ -317,7 +317,7 @@ export const publishGameSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { states, resources, actions, transitions, winCondition, loseCondition } }. For ported games: most work with defaults. See skill docs for full config options per template.',
+      'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { initialState, states: [{name}], resources: {name: initialValue}, actions: {stateName: ["actionName"]}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }. For ported games: most work with defaults. See skill docs for full config options per template.',
     ),
   designBrief: z
     .object({
@@ -459,12 +459,19 @@ export const gameTools = [
         graph-strategy: { nodeCount, edgeDensity, signalDecay, maxTurns }
 
       STATE MACHINE (most powerful): Design ANY game as JSON.
-        state-machine: { definition: { states, resources, actions, transitions, winCondition, loseCondition } }
+        state-machine: { definition: { initialState, states: [{name}], resources: {gold: 0}, actions: {stateName: ["actionName"]}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }
         Define custom resources, actions, win/lose conditions. See skill docs for full schema.
 
-      PORTED CLASSICS (110+): Ready to play, add your items + economy.
-        OpenSpiel (os-*): os-chess, os-go, os-2048, os-blackjack, os-poker, os-minesweeper, os-hanabi, +46 more
-        Tatham Puzzles (tp-*): tp-mines, tp-sudoku, tp-bridges, tp-pattern, tp-loopy, +38 more
+      PORTED CLASSICS (234): Ready to play, add your items + economy.
+        OpenSpiel (os-*): os-chess, os-go, os-2048, os-blackjack, os-poker, os-minesweeper, os-hanabi, +43 more
+        Tatham Puzzles (tp-*): tp-mines, tp-sudoku, tp-bridges, tp-pattern, tp-loopy, +35 more
+        FreeBoardGames (fbg-*): fbg-reversi, fbg-coup, fbg-ludo, fbg-werewolf, +16 more
+        Chess Variants (cv-*): cv-crazyhouse, cv-atomic, cv-chess960, cv-shogi, +16 more
+        Mini-Games (mg-*): mg-snake, mg-tetris, mg-breakout, mg-nonogram, +26 more
+        Idle (ig-*): ig-cookie-clicker, ig-antimatter, ig-trimps, +19 more
+        Solitaire (sol-*): sol-klondike, sol-spider, sol-freecell, +11 more
+        Card Games (cg-*): cg-cribbage, cg-pinochle, cg-canasta, +10 more
+        Word Games (wg-*): wg-wordle, wg-hangman, wg-crossword, +7 more
         boardgame.io (bgio-*): bgio-azul, bgio-splendor, bgio-carcassonne, bgio-pandemic, +6 more
         RLCard (rlcard-*): rlcard-texas-holdem, rlcard-uno, rlcard-mahjong, +2 more
 
@@ -634,6 +641,13 @@ export const gameTools = [
       - survival: "gather", "build_upgrade", "prestige", "allocate_workers" (payload: { resource })
       - graph-strategy: "place_signal", "redirect_edge", "fortify_node", "end_turn" (payload: { nodeId })
       - state-machine: actions defined in game config definition
+      - street-fighter: "light", "medium", "heavy", "special", "ex_special", "super", "throw", "block", "dash" (payload: { direction: forward|back }), "tech_throw", "next_round"
+      - beat-em-up-rpg: "attack" (payload: { targetId? }), "skill" (payload: { skillName }), "dodge", "use_item" (payload: { itemId }), "allocate_stat" (payload: { stat: str|def|spd|lck }), "equip" (payload: { itemId }), "shop_buy" (payload: { itemId })
+      - wrestler: "strike" (payload: { type: punch|kick|chop }), "grapple", "irish_whip" (payload: { direction: ropes|corner }), "pin", "rope_break", "tag_partner", "climb_turnbuckle", "finisher", "kick_out"
+      - hack-and-slash: "attack" (payload: { targetId: "enemy_f1_0" }), "heavy_attack" (payload: { targetId }), "dodge", "use_item" (payload: { itemId }), "equip" (payload: { itemId, slot: number }), "descend", "shop_buy" (payload: { itemId }), "loot_pickup" (payload: { itemId })
+      - brawler, martial-arts, tag-team, boss-battle, sumo, weapons-duel: "attack", "block", "special", "dodge"
+      - Word games (wg-*): wg-wordle uses "guess" (payload: { word }), wg-hangman uses "guess" (payload: { letter })
+      - Idle games (ig-*): "click", "buy_upgrade", "prestige", "tick"
       - Ported games (os-*, tp-*, bgio-*, rlcard-*): "move" with game-specific payload
     `,
     inputSchema: startSessionSchema,

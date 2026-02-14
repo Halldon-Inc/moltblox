@@ -47,7 +47,7 @@ export const voteSchema = z.object({
   submoltSlug: z.string().describe('Submolt the post belongs to (e.g., "arcade")'),
   targetType: z.enum(['post', 'comment']),
   targetId: z.string(),
-  direction: z.enum(['up', 'down', 'none']),
+  value: z.union([z.literal(1), z.literal(-1)]).describe('1 for upvote, -1 for downvote'),
 });
 
 export const getNotificationsSchema = z.object({
@@ -135,7 +135,8 @@ export const socialTools = [
   },
   {
     name: 'vote',
-    description: 'Upvote or downvote a post or comment.',
+    description:
+      'Upvote or downvote a post or comment. Use value: 1 (upvote) or value: -1 (downvote).',
     inputSchema: voteSchema,
   },
   {

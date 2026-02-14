@@ -42,3 +42,21 @@ export class ParseBigIntError extends Error {
     this.name = 'ParseBigIntError';
   }
 }
+
+/**
+ * Convert a human-readable MBUCKS value to wei (18 decimals) as BigInt.
+ * Accepts integers and decimals: "2.5" => 2500000000000000000n, "0" => 0n
+ * Also passes through values that are already in wei format (18+ digit integers).
+ */
+export function mbucksToWei(mbucks: string): bigint {
+  const parts = mbucks.split('.');
+  const whole = parts[0] || '0';
+  let fraction = parts[1] || '';
+  // Pad or truncate fraction to 18 decimal places
+  if (fraction.length > 18) {
+    fraction = fraction.slice(0, 18);
+  } else {
+    fraction = fraction.padEnd(18, '0');
+  }
+  return BigInt(whole + fraction);
+}

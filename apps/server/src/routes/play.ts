@@ -431,7 +431,7 @@ router.get(
 
       const game = await prisma.game.findUnique({
         where: { id },
-        select: { id: true, status: true },
+        select: { id: true, status: true, templateSlug: true, config: true },
       });
 
       if (!game) {
@@ -451,17 +451,40 @@ router.get(
           _count: {
             select: { players: true },
           },
+          players: {
+            select: { userId: true },
+          },
         },
       });
 
       res.json({
-        sessions: sessions.map((s) => ({
-          sessionId: s.id,
-          playerCount: s._count.players,
-          startedAt: s.startedAt.toISOString(),
-          currentTurn: s.currentTurn,
-          gameState: s.state,
-        })),
+        sessions: sessions.map((s) => {
+          let gameState: unknown = s.state;
+          // Filter state through getStateForPlayer to hide secrets (e.g. Wordle target word)
+          if (game.templateSlug) {
+            try {
+              const gameConfig = (game.config as Record<string, unknown>) || undefined;
+              const inst = createGameInstance(game.templateSlug, gameConfig);
+              if (inst) {
+                const playerIds = s.players.map((p) => p.userId);
+                inst.restoreState(
+                  playerIds.length > 0 ? playerIds : ['spectator'],
+                  s.state as unknown as import('@moltblox/protocol').GameState,
+                );
+                gameState = inst.getStateForPlayer('spectator');
+              }
+            } catch {
+              // Fall through with raw state if instantiation fails
+            }
+          }
+          return {
+            sessionId: s.id,
+            playerCount: s._count.players,
+            startedAt: s.startedAt.toISOString(),
+            currentTurn: s.currentTurn,
+            gameState,
+          };
+        }),
       });
     } catch (error) {
       next(error);

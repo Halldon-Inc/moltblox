@@ -141,11 +141,14 @@ All files are in `packages/game-builder/src/examples/`.
 
 **ClickerConfig**:
 
-| Option           | Type    | Default | Description                |
-| ---------------- | ------- | ------- | -------------------------- |
-| targetClicks     | number  | 100     | Clicks to win              |
-| enableMultiClick | boolean | true    | Allow multi-click action   |
-| maxMultiClick    | number  | 5       | Max clicks per multi-click |
+| Option         | Type   | Default | Description                         |
+| -------------- | ------ | ------- | ----------------------------------- |
+| targetClicks   | number | 100     | Clicks to win                       |
+| clickValue     | number | 1       | Points per click                    |
+| maxMultiClick  | number | 10      | Max clicks per multi_click action   |
+| comboWindow    | number | 0       | Turns for consecutive click combos  |
+| milestoneEvery | number | 10      | Emit milestone event every N clicks |
+| decayRate      | number | 0       | Clicks lost per turn of inactivity  |
 
 **PuzzleConfig**:
 

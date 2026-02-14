@@ -750,4 +750,130 @@ describe('StateMachineGame', () => {
       expect(() => new StateMachineGame({ definition: badDef as never })).toThrow('preview:');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // Simplified/MCP bot schema normalization
+  // -------------------------------------------------------------------------
+
+  describe('simplified schema normalization', () => {
+    it('accepts actions as string arrays and plays through', () => {
+      const game = new StateMachineGame({
+        definition: {
+          name: 'Simple',
+          description: 'test',
+          states: [{ name: 'start' }, { name: 'win' }],
+          initialState: 'start',
+          resources: { gold: { initial: 0 } },
+          actions: { start: ['explore'], win: [] },
+          transitions: [
+            {
+              from: 'start',
+              action: 'explore',
+              to: 'start',
+              effects: [{ type: 'modify_resource', resource: 'gold', amount: 50 }],
+            },
+          ],
+          winConditions: [{ type: 'resource_threshold', resource: 'gold', threshold: 100 }],
+        },
+      });
+      game.initialize(['p1']);
+      const r1 = act(game, 'p1', 'explore');
+      expect(r1.success).toBe(true);
+      const data = game.getState().data as Record<string, unknown>;
+      const res = data.resources as Record<string, number>;
+      expect(res.gold).toBe(50);
+    });
+
+    it('normalizes plain number resources', () => {
+      const game = new StateMachineGame({
+        definition: {
+          name: 'NumRes',
+          description: 'test',
+          states: [{ name: 'start' }],
+          initialState: 'start',
+          resources: { gold: 0, hp: 10 },
+          actions: {
+            start: [{ name: 'earn', effects: [{ resource: 'gold', operation: '+', value: '5' }] }],
+          },
+          transitions: [],
+          winCondition: { resource: 'gold', operator: '>=', value: '100' },
+          loseCondition: { resource: 'hp', operator: '<=', value: '0' },
+        },
+      });
+      game.initialize(['p1']);
+      const r = act(game, 'p1', 'earn');
+      expect(r.success).toBe(true);
+      const res = (game.getState().data as Record<string, unknown>).resources as Record<
+        string,
+        number
+      >;
+      expect(res.gold).toBe(5);
+      expect(res.hp).toBe(10);
+    });
+
+    it('handles the exact tester schema end-to-end', () => {
+      const testerSchema = {
+        definition: {
+          initialState: 'start',
+          resources: { gold: 0 },
+          states: [{ name: 'start' }, { name: 'win' }],
+          actions: { start: ['explore'], win: [] },
+          transitions: [
+            {
+              from: 'start',
+              action: 'explore',
+              to: 'start',
+              effects: [{ type: 'modify_resource', resource: 'gold', amount: 50 }],
+            },
+          ],
+          winConditions: [{ type: 'resource_threshold', resource: 'gold', threshold: 100 }],
+        },
+      };
+      const game = new StateMachineGame(testerSchema);
+      game.initialize(['p1']);
+
+      // First explore: gold 0 -> 50
+      const r1 = act(game, 'p1', 'explore');
+      expect(r1.success).toBe(true);
+      expect(
+        ((game.getState().data as Record<string, unknown>).resources as Record<string, number>)
+          .gold,
+      ).toBe(50);
+
+      // Second explore: gold 50 -> 100 => win
+      const r2 = act(game, 'p1', 'explore');
+      expect(r2.success).toBe(true);
+      expect(game.isGameOver()).toBe(true);
+      expect(game.getWinner()).toBe('p1');
+    });
+
+    it('handles negative effect amounts', () => {
+      const game = new StateMachineGame({
+        definition: {
+          name: 'NegEffect',
+          description: 'test',
+          states: [{ name: 'start' }],
+          initialState: 'start',
+          resources: { hp: 10 },
+          actions: { start: ['hurt'] },
+          transitions: [
+            {
+              from: 'start',
+              action: 'hurt',
+              to: 'start',
+              effects: [{ type: 'modify_resource', resource: 'hp', amount: -3 }],
+            },
+          ],
+          loseConditions: [{ type: 'resource_threshold', resource: 'hp', threshold: 0 }],
+        },
+      });
+      game.initialize(['p1']);
+      const r = act(game, 'p1', 'hurt');
+      expect(r.success).toBe(true);
+      const hp = (
+        (game.getState().data as Record<string, unknown>).resources as Record<string, number>
+      ).hp;
+      expect(hp).toBe(7);
+    });
+  });
 });

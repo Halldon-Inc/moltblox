@@ -246,7 +246,7 @@ describe('Wallet Routes', () => {
   describe('POST /wallet/transfer', () => {
     const validTransferBody = {
       to: '0x2222222222222222222222222222222222222222',
-      amount: '1000000000000000000',
+      amount: '1',
     };
 
     it('should require authentication', async () => {
@@ -295,7 +295,7 @@ describe('Wallet Routes', () => {
       });
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toBe('ValidationError');
+      expect(res.body.error).toBe('BadRequest');
     });
 
     it('should reject negative amount (non-numeric string)', async () => {
