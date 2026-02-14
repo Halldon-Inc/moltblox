@@ -110,9 +110,29 @@ export class CardBattlerGame extends BaseGame {
       };
     }
 
+    // Auto-create CPU opponent for single-player mode
+    if (playerIds.length === 1) {
+      const cpuDeck = this.buildDeck(deckSize);
+      this.shuffleDeck(cpuDeck);
+      const cpuHand = cpuDeck.splice(0, handSize);
+      players['cpu'] = {
+        hp: startingHp,
+        maxHp: startingHp,
+        mana: 1,
+        maxMana: 1,
+        armor: 0,
+        hand: cpuHand,
+        deck: cpuDeck,
+        discard: [],
+        field: [],
+      };
+    }
+
+    const allPlayers = playerIds.length === 1 ? [...playerIds, 'cpu'] : [...playerIds];
+
     return {
       players,
-      turnOrder: [...playerIds],
+      turnOrder: allPlayers,
       currentPlayerIndex: 0,
       turnNumber: 1,
       manaGrowth,
@@ -312,8 +332,95 @@ export class CardBattlerGame extends BaseGame {
     }
 
     this.emitEvent('turn_ended', playerId, { nextPlayer: nextPlayerId });
+
+    // Auto-play CPU turn in single-player mode
+    if (data.turnOrder[data.currentPlayerIndex] === 'cpu') {
+      this.autoCpuTurn(data);
+    }
+
     this.setData(data);
     return { success: true, newState: this.getState() };
+  }
+
+  private autoCpuTurn(data: CBState): void {
+    const cpu = data.players['cpu'];
+    const humanId = data.turnOrder.find((id) => id !== 'cpu')!;
+    const human = data.players[humanId];
+
+    // Play affordable attack cards first, targeting the human player
+    for (let i = cpu.hand.length - 1; i >= 0; i--) {
+      const card = cpu.hand[i];
+      if (card.manaCost <= cpu.mana) {
+        cpu.mana -= card.manaCost;
+        cpu.hand.splice(i, 1);
+        cpu.discard.push(card);
+
+        if (card.type === 'attack') {
+          let damage = card.value;
+          if (human.armor > 0) {
+            const absorbed = Math.min(human.armor, damage);
+            human.armor -= absorbed;
+            damage -= absorbed;
+          }
+          human.hp -= damage;
+          this.emitEvent('card_played', 'cpu', { card: card.name, damage });
+        } else if (card.type === 'defense') {
+          cpu.armor += card.value;
+          this.emitEvent('card_played', 'cpu', { card: card.name, armor: card.value });
+        } else if (card.type === 'creature') {
+          cpu.field.push({
+            id: card.id,
+            name: card.name,
+            atk: card.atk ?? 1,
+            hp: card.hp ?? 1,
+            maxHp: card.hp ?? 1,
+          });
+          this.emitEvent('creature_summoned', 'cpu', { card: card.name });
+        }
+
+        if (human.hp <= 0) {
+          human.hp = 0;
+          data.gameResult = 'ended';
+          return;
+        }
+        break; // Play one card per CPU turn
+      }
+    }
+
+    // CPU creatures attack
+    for (const creature of cpu.field) {
+      let damage = creature.atk;
+      if (human.armor > 0) {
+        const absorbed = Math.min(human.armor, damage);
+        human.armor -= absorbed;
+        damage -= absorbed;
+      }
+      human.hp -= damage;
+      this.emitEvent('creature_attack', 'cpu', { creature: creature.name, damage: creature.atk });
+    }
+
+    if (human.hp <= 0) {
+      human.hp = 0;
+      data.gameResult = 'ended';
+      return;
+    }
+
+    // End CPU turn: advance to next player
+    data.currentPlayerIndex = (data.currentPlayerIndex + 1) % data.turnOrder.length;
+    if (data.currentPlayerIndex === 0) {
+      data.turnNumber++;
+    }
+
+    // Give next player (human) mana and draw
+    const nextId = data.turnOrder[data.currentPlayerIndex];
+    const nextPlayer = data.players[nextId];
+    nextPlayer.maxMana = Math.min(10, nextPlayer.maxMana + data.manaGrowth);
+    nextPlayer.mana = nextPlayer.maxMana;
+    while (nextPlayer.hand.length < data.handSize) {
+      this.drawCard(nextPlayer);
+    }
+
+    this.emitEvent('turn_ended', 'cpu', { nextPlayer: nextId });
   }
 
   protected checkGameOver(): boolean {

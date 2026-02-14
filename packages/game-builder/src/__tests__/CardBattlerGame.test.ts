@@ -144,6 +144,71 @@ describe('CardBattlerGame', () => {
     });
   });
 
+  describe('single-player mode', () => {
+    function createSoloGame(config: Record<string, unknown> = {}): CardBattlerGame {
+      const game = new CardBattlerGame(config);
+      game.initialize(['player-1']);
+      return game;
+    }
+
+    it('creates CPU opponent when only one player', () => {
+      const game = createSoloGame();
+      const data = game.getState().data as Record<string, unknown>;
+      const players = data.players as Record<string, { hp: number }>;
+      expect(players['player-1']).toBeDefined();
+      expect(players['cpu']).toBeDefined();
+      expect(players['cpu'].hp).toBe(30);
+    });
+
+    it('includes cpu in turnOrder', () => {
+      const game = createSoloGame();
+      const data = game.getState().data as Record<string, unknown>;
+      const turnOrder = data.turnOrder as string[];
+      expect(turnOrder).toEqual(['player-1', 'cpu']);
+    });
+
+    it('CPU auto-plays after human ends turn', () => {
+      const game = createSoloGame();
+      const result = act(game, 'player-1', 'end_turn');
+      expect(result.success).toBe(true);
+      // After CPU auto-turn, it should be player-1's turn again
+      const data = game.getState().data as Record<string, unknown>;
+      const turnOrder = data.turnOrder as string[];
+      const currentIndex = data.currentPlayerIndex as number;
+      expect(turnOrder[currentIndex]).toBe('player-1');
+    });
+
+    it('plays through a full solo game without crashing', () => {
+      const game = createSoloGame({ startingHp: 5 });
+      for (let i = 0; i < 50; i++) {
+        if (game.isGameOver()) break;
+        const data = game.getState().data as Record<string, unknown>;
+        const currentIndex = data.currentPlayerIndex as number;
+        const turnOrder = data.turnOrder as string[];
+        const pid = turnOrder[currentIndex];
+        if (pid === 'cpu') break; // Should not happen since CPU auto-plays
+        const players = data.players as Record<
+          string,
+          { hand: { manaCost: number }[]; mana: number }
+        >;
+        const player = players[pid];
+        let played = false;
+        for (let c = 0; c < player.hand.length; c++) {
+          if (player.hand[c].manaCost <= player.mana) {
+            act(game, pid, 'play_card', { cardIndex: c });
+            played = true;
+            break;
+          }
+        }
+        if (!played) {
+          act(game, pid, 'end_turn');
+        }
+      }
+      // Should complete without throwing
+      expect(true).toBe(true);
+    });
+  });
+
   describe('invalid player', () => {
     it('rejects actions from non-players', () => {
       const game = createGame();

@@ -1052,7 +1052,7 @@ export class CreatureRPGGame extends BaseGame {
     const availableStarters =
       numChoices > 3 ? allSpecies.slice(0, numChoices) : VALID_STARTERS.slice(0, numChoices);
 
-    const species = String(payload.species || '').toLowerCase();
+    const species = String(payload.species || payload.starter || '').toLowerCase();
     if (!availableStarters.includes(species)) {
       return { success: false, error: `Invalid starter. Choose: ${availableStarters.join(', ')}` };
     }

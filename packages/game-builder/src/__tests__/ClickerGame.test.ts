@@ -85,12 +85,12 @@ describe('ClickerGame', () => {
       expect(clicks['player-1']).toBe(3);
     });
 
-    it('caps at maxMultiClick (default 10) per action', () => {
+    it('caps at maxMultiClick (default 50) per action', () => {
       const game = createGame();
-      act(game, 'player-1', 'multi_click', { amount: 15 });
+      act(game, 'player-1', 'multi_click', { amount: 75 });
       const data = game.getState().data as Record<string, unknown>;
       const clicks = data.clicks as Record<string, number>;
-      expect(clicks['player-1']).toBe(10);
+      expect(clicks['player-1']).toBe(50);
     });
   });
 

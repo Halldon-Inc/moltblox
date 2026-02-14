@@ -123,9 +123,28 @@ export class FighterGame extends BaseGame {
       };
     }
 
+    // Auto-create CPU opponent for solo PvP modes
+    if ((mode === '1v1' || mode === 'arena') && playerIds.length === 1) {
+      fighters['cpu'] = {
+        id: 'cpu',
+        hp: 100,
+        maxHp: 100,
+        stamina: 100,
+        maxStamina: 100,
+        comboCount: 0,
+        lastMove: null,
+        isBlocking: false,
+        roundWins: 0,
+        alive: true,
+      };
+    }
+
     const totalScore: Record<string, number> = {};
     for (const pid of playerIds) {
       totalScore[pid] = 0;
+    }
+    if ((mode === '1v1' || mode === 'arena') && playerIds.length === 1) {
+      totalScore['cpu'] = 0;
     }
 
     const state: FighterState = {
@@ -347,6 +366,55 @@ export class FighterGame extends BaseGame {
           this.emitEvent('round_won', winner?.id ?? undefined, {
             round: data.currentRound,
           });
+        }
+      }
+    }
+
+    // CPU auto-response
+    if (!data.roundOver && target.id === 'cpu' && target.alive) {
+      const cpuMoves: AttackType[] = ['light', 'light', 'light', 'heavy', 'grab'];
+      const cpuMove = cpuMoves[Math.floor(Math.random() * cpuMoves.length)];
+      // CPU decides to block sometimes
+      if (Math.random() < 0.2) {
+        target.isBlocking = true;
+        target.lastMove = 'block';
+        target.stamina = Math.min(target.maxStamina, target.stamina + 10);
+      } else {
+        target.isBlocking = false;
+        let cpuDamage = ATTACK_DAMAGE[cpuMove] || 8;
+        if (fighter.isBlocking && cpuMove !== 'grab') {
+          if (COUNTER_MAP['block'] === cpuMove) {
+            cpuDamage = 0;
+          } else {
+            cpuDamage = Math.floor(cpuDamage * 0.3);
+          }
+        } else if (fighter.isBlocking && cpuMove === 'grab') {
+          cpuDamage = Math.floor(cpuDamage * 1.5);
+          fighter.isBlocking = false;
+        }
+        target.lastMove = cpuMove;
+        fighter.hp -= cpuDamage;
+        this.emitEvent('attack', 'cpu', {
+          attackType: cpuMove,
+          target: playerId,
+          damage: cpuDamage,
+        });
+
+        if (fighter.hp <= 0) {
+          fighter.hp = 0;
+          fighter.alive = false;
+          const aliveFighters = Object.values(data.fighters).filter((f) => f.alive);
+          if (aliveFighters.length <= 1) {
+            const winner = aliveFighters[0];
+            if (winner) {
+              winner.roundWins++;
+              data.totalScore[winner.id] = (data.totalScore[winner.id] ?? 0) + 100;
+            }
+            data.roundOver = true;
+            if (winner && winner.roundWins >= data.roundsToWin) {
+              data.matchOver = true;
+            }
+          }
         }
       }
     }

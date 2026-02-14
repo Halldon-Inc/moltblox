@@ -77,8 +77,11 @@ export class PuzzleGame extends BaseGame {
     const data = this.getData<PuzzleState>();
 
     switch (action.type) {
+      case 'match':
       case 'select': {
-        const index = Number(action.payload.index);
+        const index = Number(
+          action.payload.index ?? action.payload.cell ?? action.payload.position,
+        );
 
         // Validate index
         if (index < 0 || index >= data.grid.length) {

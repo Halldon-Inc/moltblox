@@ -207,6 +207,32 @@ describe('PuzzleGame', () => {
     });
   });
 
+  describe('match action alias', () => {
+    it('accepts match as alias for select', () => {
+      const game = createGame();
+      act(game, 'match', { index: 0 });
+      const data = getData(game);
+      expect(data.revealed[0]).toBe(true);
+      expect(data.selected).toBe(0);
+    });
+
+    it('accepts cell as alias for index', () => {
+      const game = createGame();
+      act(game, 'select', { cell: 0 });
+      const data = getData(game);
+      expect(data.revealed[0]).toBe(true);
+      expect(data.selected).toBe(0);
+    });
+
+    it('accepts position as alias for index', () => {
+      const game = createGame();
+      act(game, 'select', { position: 0 });
+      const data = getData(game);
+      expect(data.revealed[0]).toBe(true);
+      expect(data.selected).toBe(0);
+    });
+  });
+
   describe('unknown action', () => {
     it('rejects unknown action types', () => {
       const game = createGame();

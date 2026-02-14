@@ -217,6 +217,26 @@ describe('RPGGame', () => {
     });
   });
 
+  describe('all players dying', () => {
+    it('clears currentEnemy and turnOrder when all players die', () => {
+      const game = createGame();
+      act(game, 'player-1', 'start_encounter');
+      const data = getData(game);
+      // Set enemy to very high ATK so it kills the player
+      data.currentEnemy!.stats.atk = 9999;
+      data.currentEnemy!.stats.hp = 9999;
+      // Set player HP very low so enemy kills them
+      data.players['player-1'].stats.hp = 1;
+      // Attack to trigger enemy turn via advanceTurn
+      act(game, 'player-1', 'attack');
+      const after = getData(game);
+      // currentEnemy should be cleared (not left dangling)
+      expect(after.currentEnemy).toBeNull();
+      expect(after.turnOrder).toHaveLength(0);
+      expect(after.combatLog).toContain('All heroes have fallen!');
+    });
+  });
+
   describe('invalid player', () => {
     it('rejects actions from non-players', () => {
       const game = createGame();

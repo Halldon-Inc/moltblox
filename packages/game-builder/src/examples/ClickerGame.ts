@@ -139,7 +139,7 @@ export class ClickerGame extends BaseGame {
         }
 
         const amount = Number(action.payload.amount || action.payload.count) || 1;
-        const mcMax = (this.config as ClickerConfig).maxMultiClick ?? 10;
+        const mcMax = (this.config as ClickerConfig).maxMultiClick ?? 50;
         data.clicks[playerId] += Math.min(amount, mcMax);
         data.lastAction = playerId;
         this.setData(data);

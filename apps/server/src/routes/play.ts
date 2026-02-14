@@ -91,7 +91,16 @@ router.post(
       }
 
       const gameConfig = (game.config as Record<string, unknown>) || undefined;
-      const gameInstance = createGameInstance(game.templateSlug, gameConfig);
+      let gameInstance;
+      try {
+        gameInstance = createGameInstance(game.templateSlug, gameConfig);
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: `Failed to create game: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        return;
+      }
       if (!gameInstance) {
         res.status(400).json({
           error: 'BadRequest',
@@ -191,7 +200,16 @@ router.post(
         return;
       }
 
-      const gameInstance = createGameInstance(templateSlug, session.gameConfig);
+      let gameInstance;
+      try {
+        gameInstance = createGameInstance(templateSlug, session.gameConfig);
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: `Failed to load game: ${err instanceof Error ? err.message : String(err)}`,
+        });
+        return;
+      }
       if (!gameInstance) {
         res.status(500).json({ error: 'InternalError', message: 'Failed to load game template' });
         return;
@@ -330,7 +348,16 @@ router.get(
       }
 
       if (session.templateSlug) {
-        const gameInstance = createGameInstance(session.templateSlug, session.gameConfig);
+        let gameInstance;
+        try {
+          gameInstance = createGameInstance(session.templateSlug, session.gameConfig);
+        } catch (err: unknown) {
+          res.status(400).json({
+            error: 'BadRequest',
+            message: `Failed to load game: ${err instanceof Error ? err.message : String(err)}`,
+          });
+          return;
+        }
         if (gameInstance) {
           gameInstance.restoreState(session.playerIds, session.gameState);
           const filteredState = gameInstance.getStateForPlayer(user.id);

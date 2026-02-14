@@ -167,6 +167,24 @@ export class RhythmGame extends BaseGame {
       noteSpeedMultiplier,
       missLimit,
       totalMisses,
+      upcomingNotes: this.getUpcomingNotes({
+        notes,
+        currentBeat: 0,
+        totalBeats: songLengthBeats,
+        bpm,
+        scores,
+        combos,
+        maxCombos,
+        multipliers,
+        hitCounts,
+        difficulty,
+        nextNoteId: notes.length + 1,
+        songComplete: false,
+        totalLanes,
+        noteSpeedMultiplier,
+        missLimit,
+        totalMisses,
+      }),
     };
   }
 
@@ -214,6 +232,7 @@ export class RhythmGame extends BaseGame {
           }
         }
 
+        (data as Record<string, unknown>).upcomingNotes = this.getUpcomingNotes(data);
         this.setData(data);
         return { success: true, newState: this.getState() };
       }
@@ -297,6 +316,12 @@ export class RhythmGame extends BaseGame {
 
         if (!closestNote) {
           // No note to hit: "ghost tap" (no penalty, but no reward)
+          this.emitEvent('ghost_tap', playerId, {
+            currentBeat: data.currentBeat,
+            upcomingNotes: this.getUpcomingNotes(data, 3),
+            hint: 'No note in range. Next notes listed in upcomingNotes.',
+          });
+          (data as Record<string, unknown>).upcomingNotes = this.getUpcomingNotes(data);
           this.setData(data);
           return { success: true, newState: this.getState() };
         }
@@ -337,6 +362,7 @@ export class RhythmGame extends BaseGame {
           });
         }
 
+        (data as Record<string, unknown>).upcomingNotes = this.getUpcomingNotes(data);
         this.setData(data);
         return { success: true, newState: this.getState() };
       }
@@ -417,6 +443,20 @@ export class RhythmGame extends BaseGame {
     if (distance <= TIMING_WINDOWS.good / speedMultiplier) return 'good';
     if (distance <= TIMING_WINDOWS.ok / speedMultiplier) return 'ok';
     return 'miss';
+  }
+
+  /**
+   * Return the next N unhit/unmissed notes sorted by beat time.
+   */
+  private getUpcomingNotes(
+    data: RhythmState,
+    count = 5,
+  ): { id: number; lane: number; beatTime: number }[] {
+    return data.notes
+      .filter((n) => !n.hit && !n.missed)
+      .sort((a, b) => a.beatTime - b.beatTime)
+      .slice(0, count)
+      .map((n) => ({ id: n.id, lane: n.lane, beatTime: n.beatTime }));
   }
 
   /**

@@ -131,6 +131,42 @@ describe('FighterGame', () => {
     });
   });
 
+  describe('solo 1v1 mode', () => {
+    it('creates CPU opponent when only 1 player in 1v1 mode', () => {
+      const game = createGame(1, { fightStyle: '1v1' });
+      const data = game.getState().data as Record<string, unknown>;
+      const fighters = data.fighters as Record<string, { hp: number; alive: boolean }>;
+      expect(fighters['cpu']).toBeDefined();
+      expect(fighters['cpu'].hp).toBe(100);
+      expect(fighters['cpu'].alive).toBe(true);
+    });
+
+    it('allows combat against CPU opponent', () => {
+      const game = createGame(1, { fightStyle: '1v1' });
+      const result = act(game, 'player-1', 'attack', { attackType: 'light' });
+      expect(result.success).toBe(true);
+      const data = game.getState().data as Record<string, unknown>;
+      const fighters = data.fighters as Record<string, { hp: number }>;
+      // CPU should have taken damage
+      expect(fighters['cpu'].hp).toBeLessThan(100);
+    });
+
+    it('creates CPU opponent in arena mode with 1 player', () => {
+      const game = createGame(1, { fightStyle: 'arena' });
+      const data = game.getState().data as Record<string, unknown>;
+      const fighters = data.fighters as Record<string, { hp: number }>;
+      expect(fighters['cpu']).toBeDefined();
+      expect(fighters['cpu'].hp).toBe(100);
+    });
+
+    it('does not create CPU in beat-em-up mode', () => {
+      const game = createGame(1, { fightStyle: 'beat-em-up' });
+      const data = game.getState().data as Record<string, unknown>;
+      const fighters = data.fighters as Record<string, { hp: number }>;
+      expect(fighters['cpu']).toBeUndefined();
+    });
+  });
+
   describe('invalid actions', () => {
     it('rejects unknown action type', () => {
       const game = createGame();

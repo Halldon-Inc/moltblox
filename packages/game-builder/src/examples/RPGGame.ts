@@ -465,11 +465,13 @@ export class RPGGame extends BaseGame {
     }
 
     // If all players are dead, end combat
-    if (skipChecks >= data.turnOrder.length) {
+    const allPlayersDead = this.getPlayers().every((pid) => data.players[pid].stats.hp <= 0);
+    if (skipChecks >= data.turnOrder.length || allPlayersDead) {
+      data.combatLog.push('All heroes have fallen!');
+      data.currentEnemy = null;
       data.turnOrder = [];
       return;
     }
-
   }
 
   /**
@@ -508,9 +510,7 @@ export class RPGGame extends BaseGame {
               Math.floor((data.players[target].stats.def + defBonus) / 2),
           );
           data.players[target].stats.hp -= damage;
-          data.combatLog.push(
-            `${data.currentEnemy.name} attacks ${target} for ${damage} damage`,
-          );
+          data.combatLog.push(`${data.currentEnemy.name} attacks ${target} for ${damage} damage`);
 
           if (data.players[target].stats.hp <= 0) {
             data.combatLog.push(`${target} has fallen!`);

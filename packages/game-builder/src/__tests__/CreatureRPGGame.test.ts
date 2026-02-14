@@ -241,6 +241,15 @@ describe('CreatureRPGGame', () => {
       expect(result.error).toBe('Starter already chosen');
     });
 
+    it('accepts starter field as alias for species', () => {
+      const game = createGame();
+      act(game, 'choose_starter', { starter: 'aquaphin' });
+      const data = getData(game);
+      expect(data.party).toHaveLength(1);
+      expect(data.party[0].species).toBe('aquaphin');
+      expect(data.gamePhase).toBe('overworld');
+    });
+
     it('transitions to overworld after choosing', () => {
       const game = createGame();
       act(game, 'choose_starter', { species: 'thornvine' });
