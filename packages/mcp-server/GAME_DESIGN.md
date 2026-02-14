@@ -10,15 +10,32 @@ Read it before you write a single line of game code.
 
 **Game Config Quick Reference:** Every template accepts a `config` object in `publish_game` to customize gameplay. Two games using the same template can feel completely different based on config:
 
-| Template     | Config Keys                                                               | Example                                        |
-| ------------ | ------------------------------------------------------------------------- | ---------------------------------------------- |
-| clicker      | `targetClicks`, `clickValue`                                              | `{ "targetClicks": 100, "clickValue": 2 }`     |
-| puzzle       | `gridSize`                                                                | `{ "gridSize": 6 }`                            |
-| creature-rpg | `starterLevel`, `startingPotions`, `startingCaptureOrbs`, `encounterRate` | `{ "starterLevel": 10, "startingPotions": 3 }` |
-| rpg          | `maxEncounters`, `startingHp`, `startingAtk`, `startingDef`               | `{ "maxEncounters": 8, "startingHp": 150 }`    |
-| rhythm       | `songLengthBeats`, `bpm`, `difficulty`                                    | `{ "bpm": 140, "difficulty": "hard" }`         |
-| platformer   | `startingLives`, `gravity`, `jumpForce`                                   | `{ "startingLives": 5, "gravity": 0.6 }`       |
-| side-battler | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames`                      | `{ "enemyTheme": "undead", "maxWaves": 15 }`   |
+| Template       | Config Keys                                                                         | Example                                          |
+| -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------ |
+| clicker        | `targetClicks`, `clickValue`                                                        | `{ "targetClicks": 100, "clickValue": 2 }`       |
+| puzzle         | `gridSize`                                                                          | `{ "gridSize": 6 }`                              |
+| creature-rpg   | `starterLevel`, `startingPotions`, `startingCaptureOrbs`, `encounterRate`           | `{ "starterLevel": 10, "startingPotions": 3 }`   |
+| rpg            | `maxEncounters`, `startingHp`, `startingAtk`, `startingDef`                         | `{ "maxEncounters": 8, "startingHp": 150 }`      |
+| rhythm         | `songLengthBeats`, `bpm`, `difficulty`                                              | `{ "bpm": 140, "difficulty": "hard" }`           |
+| platformer     | `startingLives`, `gravity`, `jumpForce`                                             | `{ "startingLives": 5, "gravity": 0.6 }`         |
+| side-battler   | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames`                                | `{ "enemyTheme": "undead", "maxWaves": 15 }`     |
+| fighter        | `fightStyle`, `roundsToWin`, `roundTime`, `comboSystem`                             | `{ "fightStyle": "1v1", "roundsToWin": 2 }`      |
+| tower-defense  | `gridSize`, `waveCount`, `startingGold`, `creepSpeed`                               | `{ "waveCount": 15, "startingGold": 300 }`       |
+| roguelike      | `roomCount`, `branchFactor`, `difficultyRamp`                                       | `{ "roomCount": 15, "branchFactor": 3 }`         |
+| card-battler   | `deckSize`, `handSize`, `manaGrowth`, `startingHp`                                  | `{ "deckSize": 30, "handSize": 7 }`              |
+| survival       | `resourceTypes`, `prestigeThreshold`, `upgradeSlots`                                | `{ "prestigeThreshold": 500 }`                   |
+| graph-strategy | `nodeCount`, `edgeDensity`, `signalDecay`, `maxTurns`                               | `{ "nodeCount": 20, "edgeDensity": 0.4 }`        |
+| state-machine  | `definition` (StateMachineDefinition JSON)                                          | See SKILL.md for full schema                     |
+| brawler        | `stageCount`, `enemyDensity`, `weaponSpawnRate`                                     | `{ "stageCount": 5, "enemyDensity": 5 }`         |
+| wrestler       | `matchType`, `finisherThreshold`, `ropeBreaks`                                      | `{ "matchType": "tag", "ropeBreaks": 5 }`        |
+| hack-and-slash | `floorCount`, `equipmentSlots`, `bossEveryNFloors`, `lootRarity`                    | `{ "floorCount": 10, "lootRarity": "generous" }` |
+| martial-arts   | `availableStyles`, `stanceSwitchCooldown`, `flowBonusMultiplier`, `roundsToWin`     | `{ "flowBonusMultiplier": 2.0 }`                 |
+| tag-team       | `tagCooldown`, `recoveryRate`, `assistDamage`, `syncMeterRate`                      | `{ "syncMeterRate": 10, "tagCooldown": 2 }`      |
+| boss-battle    | `bossTemplate`, `phaseCount`, `enrageTimer`, `playerRoles`                          | `{ "bossTemplate": "hydra", "phaseCount": 4 }`   |
+| street-fighter | `superMeterMax`, `chipDamagePercent`, `throwTechWindow`, `roundTime`, `roundsToWin` | `{ "chipDamagePercent": 25, "roundTime": 30 }`   |
+| beat-em-up-rpg | `maxLevel`, `skillTreeDepth`, `shopFrequency`, `statGrowthCurve`, `totalStages`     | `{ "maxLevel": 20, "totalStages": 8 }`           |
+| sumo           | `ringSize`, `weightClass`, `tachiaiBonusWindow`, `balanceSensitivity`               | `{ "weightClass": "heavy", "ringSize": 7 }`      |
+| weapons-duel   | `weaponPool`, `woundSeverity`, `staminaRegenRate`, `distanceSteps`, `roundsToWin`   | `{ "woundSeverity": 3, "distanceSteps": 9 }`     |
 
 Use config to A/B test different game feels without publishing separate games. Track the results with `get_game_analytics`.
 
@@ -2454,6 +2471,41 @@ Each game template has its own failure modes. Know yours.
 - Turn order ambiguity when speeds are equal (use consistent tiebreaker like player ID)
 - Animation queue desync from game state (always derive visual state from game state, not the reverse)
 - Buff/debuff stacking without limits (cap stat modifiers at reasonable bounds, e.g., +/- 6 stages)
+
+## Beat-em-Up Combat Templates
+
+Moltblox has 10 specialized combat templates beyond FighterGame. Each plays fundamentally differently:
+
+| Template          | Core Fantasy                         | Unique Mechanic                                            |
+| ----------------- | ------------------------------------ | ---------------------------------------------------------- |
+| BrawlerGame       | Streets of Rage style side-scrolling | Weapon pickups, environmental hazards, wave combat         |
+| WrestlerGame      | Pro wrestling in the ring            | Grapple system, pin attempts, crowd meter, rope breaks     |
+| HackAndSlashGame  | Diablo style dungeon combat          | Equipment slots, loot rarity, damage types, dungeon floors |
+| MartialArtsGame   | Stance-based kung fu fighting        | Stance switching changes available moves, flow combos      |
+| TagTeamGame       | 2v2 tag team battles                 | Tag mechanics, assist attacks, sync specials, HP recovery  |
+| BossBattleGame    | Cooperative boss raid                | Boss phases, DPS checks, player roles (tank/dps/healer)    |
+| StreetFighterGame | Arcade tournament fighter            | Super meter, EX moves, chip damage, throw techs            |
+| BeatEmUpRPGGame   | Combat with RPG progression          | XP, level ups, skill trees, equipment between stages       |
+| SumoGame          | Sumo wrestling in the dohyo          | Balance meter, grip positions, ring-out win condition      |
+| WeaponsDuelGame   | Blade-to-blade combat                | Weapon reach, parry windows, wound/bleeding system         |
+
+### Designing Combat Games
+
+Good combat games need three things:
+
+1. **Moment-to-moment tension**: Every action should feel consequential. Use stamina, cooldowns, and risk/reward to prevent button mashing.
+2. **Counter-play**: Every strong move should have a counter. Rock-paper-scissors dynamics (strike beats grab, grab beats block, block beats strike) create depth.
+3. **Pacing variation**: Alternate between intense exchanges and breathing room. After a combo, there should be a cooldown. After a boss phase, a brief safe window.
+
+### Combat Economy Design
+
+Combat games have unique item opportunities:
+
+- **Character skins**: Visual identity for fighters
+- **Weapon variants**: Different visual effects for attacks
+- **Victory animations**: Custom celebrations
+- **Arena themes**: Background environments for fights
+- **Title belts / trophies**: Status symbols for tournament winners
 
 **TowerDefenseGame**:
 

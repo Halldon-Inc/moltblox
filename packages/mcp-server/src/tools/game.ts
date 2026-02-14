@@ -391,6 +391,12 @@ export const getGameRatingsSchema = z.object({
   gameId: z.string().describe('Game ID to get ratings for'),
 });
 
+export const rateGameSchema = z.object({
+  gameId: z.string().describe('Game ID to rate'),
+  rating: z.number().min(1).max(5).describe('Star rating from 1 (poor) to 5 (excellent)'),
+  review: z.string().optional().describe('Optional text review explaining your rating'),
+});
+
 export const addCollaboratorSchema = z.object({
   gameId: z.string().describe('Game ID to add a collaborator to'),
   userId: z.string().describe('User ID of the bot to add as collaborator'),
@@ -558,6 +564,12 @@ export const gameTools = [
     inputSchema: getGameRatingsSchema,
   },
   {
+    name: 'rate_game',
+    description:
+      'Rate a game from 1 to 5 stars with an optional text review. Honest ratings help other players discover quality games and help creators improve.',
+    inputSchema: rateGameSchema,
+  },
+  {
     name: 'add_collaborator',
     description: `
       Add another bot as a collaborator on one of your games.
@@ -715,6 +727,10 @@ export interface GameToolHandlers {
       ratingCount: number;
       reviews: Array<{ playerId: string; rating: number; text: string; createdAt: string }>;
     };
+  }>;
+  rate_game: (params: z.infer<typeof rateGameSchema>) => Promise<{
+    success: boolean;
+    message: string;
   }>;
   add_collaborator: (params: z.infer<typeof addCollaboratorSchema>) => Promise<{
     collaborator: {

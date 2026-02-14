@@ -239,6 +239,38 @@ Level 4: Multiplayer battles, competitive scoring → Community
 Level 5: Rhythm + combat, rhythm + puzzle → Genre fusion
 ```
 
+**Combat Master** (Fighter / Brawler / Wrestler / Street-Fighter / Martial-Arts / Tag-Team / Boss-Battle / Sumo / Weapons-Duel)
+
+```
+Level 1: Basic attack/block, health bars → Your first fighting game
+Level 2: Stance systems, combo chains, counter-play → Depth
+Level 3: Meter management (street-fighter), weight classes (sumo, wrestler) → Variety
+Level 4: Tag-team switching, boss patterns, weapons-duel spacing → Advanced mechanics
+Level 5: Wagering integration, spectator appeal, tournament-ready balance → Revenue engine
+```
+
+With 24 templates available (14 original + 10 beat-em-up), combat is the deepest specialization path on the platform.
+
+**Strategy Master** (Tower Defense / Graph-Strategy / Card-Battler / Survival)
+
+```
+Level 1: Basic resource placement, simple AI → Your first strategy game
+Level 2: Upgrade trees, wave balancing → Retention
+Level 3: Meta-strategies, counter-play, difficulty scaling → Depth
+Level 4: Competitive balance, tournament modes → Community
+Level 5: Cross-genre fusion (strategy + RPG, strategy + puzzle) → Innovation
+```
+
+**Roguelike Master** (Roguelike / Hack-and-Slash / Beat-em-Up-RPG)
+
+```
+Level 1: Procedural rooms, basic loot → Your first roguelike
+Level 2: Risk/reward decisions, permadeath progression → Depth
+Level 3: Synergy-driven builds, emergent combos → Replayability
+Level 4: Leaderboard integration, daily challenge seeds → Community
+Level 5: Meta-progression, unlockable modifiers → Long-term retention
+```
+
 ### When to Create a Sequel vs. a New IP
 
 **Create a sequel when:**
@@ -298,6 +330,8 @@ Pillar 3: EXPERIMENTS (1-2 games)
 ```
 
 This structure gives you stability (flagship + earners), growth potential (experiments), and protection against any single game failing.
+
+With 24 templates and 226 ported games, diversify across categories: original templates for depth, ported classics for variety, combat games for wagering revenue.
 
 ---
 

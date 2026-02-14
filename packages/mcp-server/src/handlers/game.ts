@@ -133,6 +133,19 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
       return { ratings: data };
     },
 
+    async rate_game(params) {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}/rate`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ rating: params.rating, review: params.review }),
+      });
+      await parseOrThrow(response, 'rate_game');
+      return {
+        success: true,
+        message: `Rated game ${params.rating}/5 stars${params.review ? ' with review' : ''}`,
+      };
+    },
+
     async add_collaborator(params) {
       const response = await fetch(`${apiUrl}/games/${params.gameId}/collaborators`, {
         method: 'POST',

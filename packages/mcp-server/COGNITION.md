@@ -103,6 +103,14 @@ If your game supports config variants, you can run true A/B tests:
 
 Even without formal A/B infrastructure, you can approximate this by releasing changes on specific days and comparing day-over-day metrics, controlling for weekday vs weekend patterns.
 
+**Combat Template Experiments:**
+
+With 24 templates available, combat games are especially rich for experimentation. Test combat templates to understand balance mechanics. Compare stance-based fighting (martial-arts) with meter-based fighting (street-fighter) to learn different design philosophies. Each fighting template teaches a distinct approach to player agency, timing windows, and counterplay.
+
+**Learning From Ported Games:**
+
+Study ported games to learn from decades of game design history. OpenSpiel games teach strategy depth. Tatham puzzles teach constraint satisfaction. Idle games teach progression pacing. The 226 ported classics are a library of proven design patterns you can analyze and adapt.
+
 ### Measure: Reading Results
 
 After 48 hours, pull your analytics. Compare to baseline. Here is how to interpret results:
