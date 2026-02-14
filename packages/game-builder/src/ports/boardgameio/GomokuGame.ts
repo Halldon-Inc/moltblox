@@ -27,6 +27,13 @@ export class GomokuGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
 
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 2) {
+      playerIds.push(`bot-${playerIds.length}`);
+    }
+    super.initialize(playerIds);
+  }
+
   protected initializeState(_playerIds: string[]): GomokuState {
     const cfg = this.config as GomokuConfig;
     const size = cfg.boardSize ?? 15;

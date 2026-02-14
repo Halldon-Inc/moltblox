@@ -310,10 +310,14 @@ export class FighterGame extends BaseGame {
     attackType: AttackType,
     data: FighterState,
   ): ActionResult {
-    // Find opponent(s)
+    // Find opponent(s): check both human fighters and CPU
     const opponents = Object.values(data.fighters).filter((f) => f.id !== playerId && f.alive);
     if (opponents.length === 0) {
-      return { success: false, error: 'No opponents' };
+      return {
+        success: false,
+        error:
+          'No opponents available. For solo play, use fightStyle "beat-em-up" or ensure a CPU opponent exists.',
+      };
     }
 
     const target = opponents[0];

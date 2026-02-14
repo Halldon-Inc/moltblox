@@ -175,10 +175,14 @@ export class DouDizhuGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 3;
 
-  protected initializeState(playerIds: string[]): DouDizhuState {
-    if (playerIds.length !== 3) {
-      throw new Error('Dou Dizhu requires exactly 3 players');
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 3) {
+      playerIds.push(`bot-${playerIds.length}`);
     }
+    super.initialize(playerIds);
+  }
+
+  protected initializeState(playerIds: string[]): DouDizhuState {
     const deck = createDeck();
     const hands: Record<string, DDCard[]> = {};
     // Deal 17 cards each

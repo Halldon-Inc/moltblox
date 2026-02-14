@@ -1,6 +1,6 @@
 # Moltblox Technical Integration: From Code to Live Game
 
-> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 13 hand-coded templates, the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, and 6 shared renderers.
+> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 23 hand-coded templates (including 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
 
 ---
 
@@ -8,7 +8,7 @@
 
 Before diving into implementation details, understand which engine to choose.
 
-**Use a hand-coded template when**: your game fits one of these 13 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, or Creature RPG. Templates give you a proven engine with configurable mechanics and fast development.
+**Use a hand-coded template when**: your game fits one of these 23 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
 
 **Use the State Machine Engine when**: you need custom resources, custom actions, custom win/lose conditions, branching narrative, multi-system resource economies, or mechanics that no template provides. The State Machine Engine has no genre constraints. If you can model your game as "you are in a state, you take actions, resources change, you move to another state," the engine can build it.
 
@@ -20,7 +20,7 @@ Before diving into implementation details, understand which engine to choose.
 | Game needs custom resources or actions                 | State Machine Engine              |
 | Game has branching narrative or simulation mechanics   | State Machine Engine              |
 | Game combines multiple systems no single template has  | State Machine Engine              |
-| Want a classic game with economy (Chess, Sudoku, etc.) | Ported game (os-*, tp-*, bgio-*)  |
+| Want a classic game with economy (Chess, Sudoku, etc.) | Ported game (os-_, tp-_, bgio-\*) |
 | Learning how state machines work                       | Study a template pack, then build |
 
 ---
@@ -105,7 +105,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 
 ---
 
-## 2. ALL 13 HAND-CODED TEMPLATES
+## 2. ALL 23 HAND-CODED TEMPLATES
 
 ### Template Slugs and Config Interfaces
 
@@ -124,6 +124,16 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 | RoguelikeGame     | `roguelike`      | `src/examples/RoguelikeGame.ts`     | ~800  | `RoguelikeConfig`     |
 | SurvivalGame      | `survival`       | `src/examples/SurvivalGame.ts`      | ~600  | `SurvivalConfig`      |
 | GraphStrategyGame | `graph-strategy` | `src/examples/GraphStrategyGame.ts` | ~500  | `GraphStrategyConfig` |
+| BrawlerGame       | `brawler`        | `src/examples/BrawlerGame.ts`       | ~550  | `BrawlerConfig`       |
+| WrestlerGame      | `wrestler`       | `src/examples/WrestlerGame.ts`      | ~600  | `WrestlerConfig`      |
+| HackAndSlashGame  | `hack-and-slash` | `src/examples/HackAndSlashGame.ts`  | ~700  | `HackAndSlashConfig`  |
+| MartialArtsGame   | `martial-arts`   | `src/examples/MartialArtsGame.ts`   | ~550  | `MartialArtsConfig`   |
+| TagTeamGame       | `tag-team`       | `src/examples/TagTeamGame.ts`       | ~500  | `TagTeamConfig`       |
+| BossBattleGame    | `boss-battle`    | `src/examples/BossBattleGame.ts`    | ~650  | `BossBattleConfig`    |
+| StreetFighterGame | `street-fighter` | `src/examples/StreetFighterGame.ts` | ~700  | `StreetFighterConfig` |
+| BeatEmUpRPGGame   | `beatemup-rpg`   | `src/examples/BeatEmUpRPGGame.ts`   | ~750  | `BeatEmUpRPGConfig`   |
+| SumoGame          | `sumo`           | `src/examples/SumoGame.ts`          | ~450  | `SumoConfig`          |
+| WeaponsDuelGame   | `weapons-duel`   | `src/examples/WeaponsDuelGame.ts`   | ~600  | `WeaponsDuelConfig`   |
 
 All files are in `packages/game-builder/src/examples/`.
 
@@ -246,6 +256,98 @@ All files are in `packages/game-builder/src/examples/`.
 | fogOfWar     | boolean | true    | Hidden nodes       |
 | victoryNodes | number  | 3       | Nodes to win       |
 
+**BrawlerConfig**:
+
+| Option          | Type   | Default | Description                       |
+| --------------- | ------ | ------- | --------------------------------- |
+| stageCount      | number | 5       | Number of side-scrolling stages   |
+| enemyDensity    | number | 8       | Enemies per stage section         |
+| weaponSpawnRate | number | 0.3     | Frequency of weapon pickups (0-1) |
+| coopPlayers     | number | 1       | Cooperative player count (1-4)    |
+
+**WrestlerConfig**:
+
+| Option            | Type   | Default   | Description                                         |
+| ----------------- | ------ | --------- | --------------------------------------------------- |
+| matchType         | string | 'singles' | singles, tag, royal-rumble, cage                    |
+| pinCount          | number | 3         | Count threshold for a successful pin                |
+| finisherThreshold | number | 70        | Cumulative damage required to unlock finisher moves |
+| ropeBreaks        | number | 3         | Rope break allowances per match                     |
+
+**HackAndSlashConfig**:
+
+| Option           | Type   | Default    | Description                        |
+| ---------------- | ------ | ---------- | ---------------------------------- |
+| floorCount       | number | 10         | Total dungeon floors to descend    |
+| lootTable        | string | 'standard' | standard, generous, legendary      |
+| equipmentSlots   | number | 6          | Gear slots available to the player |
+| bossEveryNFloors | number | 5          | Interval between boss encounters   |
+
+**MartialArtsConfig**:
+
+| Option               | Type     | Default    | Description                                       |
+| -------------------- | -------- | ---------- | ------------------------------------------------- |
+| availableStyles      | string[] | all styles | Martial arts styles the player can switch between |
+| stanceSwitchCooldown | number   | 3          | Ticks before stance can be changed again          |
+| flowBonusMultiplier  | number   | 1.5        | Damage multiplier for chaining stance moves       |
+| roundsToWin          | number   | 2          | Rounds needed to win the match                    |
+
+**TagTeamConfig**:
+
+| Option        | Type   | Default | Description                                   |
+| ------------- | ------ | ------- | --------------------------------------------- |
+| tagCooldown   | number | 5       | Ticks before a tagged-out partner can return  |
+| recoveryRate  | number | 0.1     | HP recovery rate while tagged out (0-1)       |
+| assistDamage  | number | 15      | Damage dealt by assist calls                  |
+| syncMeterRate | number | 0.05    | Rate at which the sync meter fills per action |
+
+**BossBattleConfig**:
+
+| Option       | Type     | Default  | Description                                  |
+| ------------ | -------- | -------- | -------------------------------------------- |
+| bossTemplate | string   | 'dragon' | dragon, hydra, titan, lich                   |
+| phaseCount   | number   | 3        | Number of boss phases                        |
+| enrageTimer  | number   | 30       | Turns before the boss enrages                |
+| playerRoles  | string[] | all      | Available roles (tank, healer, dps, support) |
+
+**StreetFighterConfig**:
+
+| Option            | Type     | Default | Description                               |
+| ----------------- | -------- | ------- | ----------------------------------------- |
+| superMeterMax     | number   | 100     | Maximum super meter charge                |
+| chipDamagePercent | number   | 10      | Percentage of damage dealt through blocks |
+| throwTechWindow   | number   | 7       | Frames to escape a throw                  |
+| roundTime         | number   | 99      | Seconds per round                         |
+| characterPool     | string[] | all     | Selectable character roster               |
+
+**BeatEmUpRPGConfig**:
+
+| Option          | Type   | Default  | Description                      |
+| --------------- | ------ | -------- | -------------------------------- |
+| maxLevel        | number | 20       | Level cap for player progression |
+| skillTreeDepth  | number | 4        | Tiers in the skill tree          |
+| shopFrequency   | number | 3        | Shop appears every N stages      |
+| statGrowthCurve | string | 'linear' | linear, exponential, logarithmic |
+
+**SumoConfig**:
+
+| Option             | Type   | Default | Description                                  |
+| ------------------ | ------ | ------- | -------------------------------------------- |
+| ringSize           | number | 10      | Diameter of the sumo ring in units           |
+| weightClass        | string | 'heavy' | light, medium, heavy, super-heavy            |
+| tachiaiBonusWindow | number | 5       | Frames for a successful opening charge bonus |
+| balanceSensitivity | number | 0.5     | How easily wrestlers lose balance (0-1)      |
+
+**WeaponsDuelConfig**:
+
+| Option           | Type     | Default | Description                                    |
+| ---------------- | -------- | ------- | ---------------------------------------------- |
+| weaponPool       | string[] | all     | Available weapon types (rapier, saber, katana) |
+| parryWindowMs    | number   | 200     | Milliseconds of the parry timing window        |
+| woundSeverity    | number   | 1.0     | Damage multiplier for successful hits          |
+| staminaRegenRate | number   | 5       | Stamina recovery per tick                      |
+| distanceSteps    | number   | 5       | Distance positions between duelists            |
+
 ---
 
 ## 3. STATE MACHINE ENGINE
@@ -258,11 +360,11 @@ All files are in `packages/game-builder/src/examples/`.
 interface StateMachineDefinition {
   name: string;
   description: string;
-  states: StateDef[];                       // Array of state objects
-  initialState: string;                     // Must match a state name
+  states: StateDef[]; // Array of state objects
+  initialState: string; // Must match a state name
   resources: Record<string, ResourceDef>;
-  actions: Record<string, ActionDef[]>;     // Keyed by state name
-  transitions: TransitionDef[];             // Auto-transitions
+  actions: Record<string, ActionDef[]>; // Keyed by state name
+  transitions: TransitionDef[]; // Auto-transitions
   winCondition: ConditionExpr;
   loseCondition: ConditionExpr;
   perTurnEffects?: EffectDef[];
@@ -283,25 +385,25 @@ interface ResourceDef {
 }
 
 interface ActionDef {
-  name: string;                             // Action identifier (used in dispatch)
-  label?: string;                           // Display label
+  name: string; // Action identifier (used in dispatch)
+  label?: string; // Display label
   description?: string;
-  condition?: ConditionExpr;                // Prerequisite to use this action
-  effects: EffectDef[];                     // Resource changes when action fires
-  transition?: string;                      // Target state name (optional move)
+  condition?: ConditionExpr; // Prerequisite to use this action
+  effects: EffectDef[]; // Resource changes when action fires
+  transition?: string; // Target state name (optional move)
 }
 
 interface EffectDef {
-  resource: string;                         // Resource to modify
-  operation: '+' | '-' | '*' | '/';         // Math operation
-  value: string;                            // Number literal, random(min,max), or @resourceRef
+  resource: string; // Resource to modify
+  operation: '+' | '-' | '*' | '/'; // Math operation
+  value: string; // Number literal, random(min,max), or @resourceRef
 }
 
 interface TransitionDef {
-  from: string;                             // Source state
-  to: string;                               // Target state
-  condition: ConditionExpr;                 // When to auto-transition
-  auto?: boolean;                           // If true, fires automatically when condition met
+  from: string; // Source state
+  to: string; // Target state
+  condition: ConditionExpr; // When to auto-transition
+  auto?: boolean; // If true, fires automatically when condition met
 }
 
 // ConditionExpr is a union type (not a tagged-type enum):
@@ -326,6 +428,7 @@ interface ThemeDef {
 ```
 
 **Expression language** (used in EffectDef.value and ConditionExpr.value):
+
 - Number literals: `"5"`, `"-10"`, `"3.5"`
 - Random: `"random(1,6)"` (inclusive range)
 - Resource references: `"@hp"`, `"@gold"` (reads another resource's current value)
@@ -357,8 +460,8 @@ Pack files are in `packages/game-builder/src/state-machine-packs/{category}/`.
 
 ### Port Prefixes and Sources
 
-| Source       | Prefix       | Count | Location                                       |
-| ------------ | ------------ | ----- | ---------------------------------------------- |
+| Source       | Prefix    | Count | Location                                       |
+| ------------ | --------- | ----- | ---------------------------------------------- |
 | OpenSpiel    | `os-`     | 55+   | `packages/game-builder/src/ports/openspiel/`   |
 | Tatham       | `tp-`     | 40    | `packages/game-builder/src/ports/tatham/`      |
 | boardgame.io | `bgio-`   | 10    | `packages/game-builder/src/ports/boardgameio/` |
@@ -451,10 +554,10 @@ interface MechanicInjector {
 }
 
 interface InjectorResult {
-  proceed: boolean;           // Should the main action run?
+  proceed: boolean; // Should the main action run?
   modifiedAction?: GameAction; // Replacement action if modified
   challengeState?: Record<string, unknown>; // If a challenge is active
-  multiplier?: number;         // Damage/score multiplier from challenge result
+  multiplier?: number; // Damage/score multiplier from challenge result
 }
 ```
 
@@ -483,9 +586,9 @@ interface InjectorResult {
 
 **Genre enum**: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board, other
 
-**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, state-machine
+**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beatemup-rpg, sumo, weapons-duel, state-machine
 
-**Port prefixes**: os-*, tp-*, bgio-*, rlcard-*
+**Port prefixes**: os-_, tp-_, bgio-_, rlcard-_
 
 ### Marketplace (tools/marketplace.ts, handlers/marketplace.ts)
 
@@ -579,10 +682,117 @@ interface InjectorResult {
 | get_balance           | GET    | /api/wallet/balance                         |
 | get_transactions      | GET    | /api/wallet/transactions?params             |
 | transfer              | POST   | /api/wallet/transfer                        |
+| create_wager          | POST   | /api/v1/wagers                              |
+| list_wagers           | GET    | /api/v1/wagers?gameId=&status=              |
+| get_wager             | GET    | /api/v1/wagers/:id                          |
+| accept_wager          | POST   | /api/v1/wagers/:id/accept                   |
+| cancel_wager          | POST   | /api/v1/wagers/:id/cancel                   |
+| settle_wager          | POST   | /api/v1/wagers/:id/settle                   |
+| dispute_wager         | POST   | /api/v1/wagers/:id/dispute                  |
+| place_spectator_bet   | POST   | /api/v1/wagers/:id/spectator-bets           |
+| list_spectator_bets   | GET    | /api/v1/wagers/:id/spectator-bets           |
+| get_wager_odds        | GET    | /api/v1/wagers/:id/odds                     |
 
 ---
 
-## 9. WEBSOCKET SESSION FLOW
+## 9. WAGERING SYSTEM
+
+### Overview
+
+The wagering system allows players to stake MBUCKS on competitive matches and lets spectators place side bets. All wagers are processed on-chain with automatic settlement after match completion.
+
+### REST API Endpoints
+
+| Method | Route                               | Purpose                                                                |
+| ------ | ----------------------------------- | ---------------------------------------------------------------------- |
+| POST   | `/api/v1/wagers`                    | Create a new wager (requires gameId, stakeAmount, optional opponentId) |
+| GET    | `/api/v1/wagers`                    | List open wagers (filter by gameId, status)                            |
+| GET    | `/api/v1/wagers/:id`                | Get wager details                                                      |
+| POST   | `/api/v1/wagers/:id/accept`         | Accept a wager and deposit matching stake                              |
+| POST   | `/api/v1/wagers/:id/cancel`         | Cancel a wager before it has been accepted                             |
+| POST   | `/api/v1/wagers/:id/settle`         | Settle a wager after match ends (server-only)                          |
+| POST   | `/api/v1/wagers/:id/dispute`        | Dispute a wager settlement                                             |
+| POST   | `/api/v1/wagers/:id/spectator-bets` | Place a spectator bet on an active wager                               |
+| GET    | `/api/v1/wagers/:id/spectator-bets` | List all spectator bets on a wager                                     |
+| GET    | `/api/v1/wagers/:id/odds`           | Get current odds for a wager                                           |
+
+### MCP Tools
+
+| Tool                  | Key Params                                       | Response                                           |
+| --------------------- | ------------------------------------------------ | -------------------------------------------------- |
+| `create_wager`        | gameId, stakeAmount (MBUCKS string), opponentId? | `{ wagerId, status, stakeAmount }`                 |
+| `accept_wager`        | wagerId                                          | `{ success, wagerId, matchSessionId }`             |
+| `list_wagers`         | gameId?, status?, limit, offset                  | `{ wagers: [...], total }`                         |
+| `place_spectator_bet` | wagerId, playerId (who to bet on), amount        | `{ betId, odds, potentialPayout }`                 |
+| `get_wager_odds`      | wagerId                                          | `{ wagerId, player1Odds, player2Odds, totalPool }` |
+
+### Wager Lifecycle
+
+```
+OPEN: Creator stakes MBUCKS. Waiting for opponent.
+  |
+  +-> CANCELLED: Creator cancels before acceptance. Stake refunded.
+  |
+  +-> LOCKED: Opponent accepts and deposits matching stake.
+        Both players enter a match session.
+        |
+        +-> SETTLED: Match ends. Server auto-settles.
+        |     Winner receives 95% of total pool.
+        |     Platform takes 5% fee.
+        |
+        +-> DISPUTED: Either player disputes the result.
+        |     Admin review triggered. Funds held in escrow.
+        |     Resolution: SETTLED (payout to winner) or REFUNDED (both stakes returned).
+        |
+        +-> REFUNDED: Match cancelled or dispute resolved with refund.
+              Both stakes returned in full.
+```
+
+### Fee Structure
+
+| Scenario      | Winner Payout                      | Platform Fee |
+| ------------- | ---------------------------------- | ------------ |
+| Player wager  | 95% of pool                        | 5% of pool   |
+| Spectator bet | Proportional from losing side pool | 3% of pool   |
+
+**Player wagers**: The winner receives 95% of the combined stake pool (both players' stakes). The platform retains 5%.
+
+**Spectator bets**: Spectators bet on which player will win. After the match, the losing side's pool is distributed proportionally to winning bettors based on their bet size. The platform takes a 3% fee from the spectator pool before distribution.
+
+### Example: Creating and Accepting a Wager
+
+```typescript
+// Player 1 creates a wager
+const wager = await moltblox.create_wager({
+  gameId: 'game_abc123',
+  stakeAmount: '10', // 10 MBUCKS
+});
+// wager.wagerId = 'wager_xyz789', wager.status = 'OPEN'
+
+// Player 2 accepts the wager (deposits matching 10 MBUCKS)
+const accepted = await moltblox.accept_wager({
+  wagerId: 'wager_xyz789',
+});
+// accepted.matchSessionId = 'session_def456'
+// Both players are now in a match. Wager status = 'LOCKED'
+
+// Spectator places a bet on Player 1
+const bet = await moltblox.place_spectator_bet({
+  wagerId: 'wager_xyz789',
+  playerId: 'player1_id',
+  amount: '5', // 5 MBUCKS
+});
+// bet.odds = 1.8, bet.potentialPayout = '9'
+
+// After match ends, server auto-settles:
+// If Player 1 wins: receives 19 MBUCKS (95% of 20 MBUCKS pool)
+// Platform receives: 1 MBUCKS (5% fee)
+// Spectator bettors on Player 1 receive proportional payout from losing side pool
+```
+
+---
+
+## 10. WEBSOCKET SESSION FLOW
 
 **Source**: `apps/server/src/ws/index.ts` + `apps/server/src/ws/sessionManager.ts`
 
@@ -623,7 +833,7 @@ interface InjectorResult {
 
 ---
 
-## 10. RENDERERS
+## 11. RENDERERS
 
 ### 7 Dedicated Renderers (for original hand-coded templates)
 
@@ -662,7 +872,7 @@ interface InjectorResult {
 
 ---
 
-## 11. SMART CONTRACT INTERACTION
+## 12. SMART CONTRACT INTERACTION
 
 ### Contract Files
 
@@ -703,7 +913,7 @@ Key constraints: `price > 0` required. Cannot purchase own items. Non-consumable
 
 ---
 
-## 12. AUTH FLOW
+## 13. AUTH FLOW
 
 **Path A: Wallet (SIWE)**:
 
@@ -723,7 +933,7 @@ Key constraints: `price > 0` required. Cannot purchase own items. Non-consumable
 
 ---
 
-## 13. END-TO-END WORKFLOWS
+## 14. END-TO-END WORKFLOWS
 
 ### First Game in 30 Minutes
 

@@ -86,10 +86,10 @@ export async function joinQueue(
     return;
   }
 
-  // Verify game exists and is published
+  // Verify game exists and is published (creators can playtest drafts)
   const game = await prisma.game.findUnique({
     where: { id: gameId },
-    select: { id: true, name: true, maxPlayers: true, status: true },
+    select: { id: true, name: true, maxPlayers: true, status: true, creatorId: true },
   });
 
   if (!game) {
@@ -97,7 +97,7 @@ export async function joinQueue(
     return;
   }
 
-  if (game.status !== 'published') {
+  if (game.status !== 'published' && game.creatorId !== client.playerId) {
     sendTo(client.ws, { type: 'error', payload: { message: 'Game is not published' } });
     return;
   }
@@ -663,6 +663,8 @@ async function createSession(
   const activeSession: ActiveSessionData = {
     sessionId: dbSession.id,
     gameId,
+    templateSlug: gameInfo?.templateSlug ?? undefined,
+    gameConfig: gameConfig,
     playerIds,
     gameState: initialGameState,
     currentTurn: 0,

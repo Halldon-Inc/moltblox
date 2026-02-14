@@ -18,6 +18,13 @@ export class OthelloGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
 
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 2) {
+      playerIds.push(`bot-${playerIds.length}`);
+    }
+    super.initialize(playerIds);
+  }
+
   protected initializeState(playerIds: string[]): OthelloState {
     const size = (this.config as OthelloConfig).boardSize ?? 8;
     const board: (string | null)[][] = [];

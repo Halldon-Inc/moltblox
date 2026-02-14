@@ -63,6 +63,13 @@ export class PandemicGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
 
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 2) {
+      playerIds.push(`bot-${playerIds.length}`);
+    }
+    super.initialize(playerIds);
+  }
+
   private shuffle<T>(arr: T[]): T[] {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {

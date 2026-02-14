@@ -69,7 +69,14 @@ router.post(
 
       const game = await prisma.game.findUnique({
         where: { id },
-        select: { id: true, status: true, templateSlug: true, maxPlayers: true, config: true },
+        select: {
+          id: true,
+          status: true,
+          templateSlug: true,
+          maxPlayers: true,
+          config: true,
+          creatorId: true,
+        },
       });
 
       if (!game) {
@@ -77,7 +84,8 @@ router.post(
         return;
       }
 
-      if (game.status !== 'published') {
+      // Allow creators to playtest their own draft games
+      if (game.status !== 'published' && game.creatorId !== user.id) {
         res.status(400).json({ error: 'BadRequest', message: 'Game is not published' });
         return;
       }

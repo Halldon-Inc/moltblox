@@ -114,7 +114,7 @@ const MAX_AUTO_TRANSITIONS = 50; // guard against infinite loops
 const RANDOM_RE = /^random\((-?\d+),(-?\d+)\)$/;
 // eslint-disable-next-line security/detect-unsafe-regex
 const RESOURCE_MATH_RE = /^@([a-zA-Z_][a-zA-Z0-9_]*)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/;
-// eslint-disable-next-line security/detect-unsafe-regex
+
 const RESOURCE_REF_RE = /^@([a-zA-Z_][a-zA-Z0-9_]*)$/;
 // eslint-disable-next-line security/detect-unsafe-regex
 const NUMBER_RE = /^-?\d+(?:\.\d+)?$/;
@@ -253,13 +253,27 @@ function applyEffects(
 // ---------------------------------------------------------------------------
 
 function validateDefinition(def: StateMachineDefinition): void {
+  if (!Array.isArray(def.states) || def.states.length === 0) {
+    throw new Error('Definition must have at least one state');
+  }
   if (def.states.length > MAX_STATES) {
     throw new Error(`Too many states: ${def.states.length} (max ${MAX_STATES})`);
   }
 
+  if (!def.resources || typeof def.resources !== 'object') {
+    throw new Error('Definition must have a resources object (e.g. { hp: { initial: 10 } })');
+  }
   const resourceCount = Object.keys(def.resources).length;
   if (resourceCount > MAX_RESOURCES) {
     throw new Error(`Too many resources: ${resourceCount} (max ${MAX_RESOURCES})`);
+  }
+
+  if (!def.actions || typeof def.actions !== 'object') {
+    throw new Error('Definition must have an actions object mapping state names to action arrays');
+  }
+
+  if (!def.initialState) {
+    throw new Error('Definition must have an initialState');
   }
 
   const stateNames = new Set(def.states.map((s) => s.name));

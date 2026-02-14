@@ -133,10 +133,14 @@ export class MahjongGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
 
-  protected initializeState(playerIds: string[]): MahjongState {
-    if (playerIds.length !== 4) {
-      throw new Error('Mahjong requires exactly 4 players');
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 4) {
+      playerIds.push(`bot-${playerIds.length}`);
     }
+    super.initialize(playerIds);
+  }
+
+  protected initializeState(playerIds: string[]): MahjongState {
     const wall = createWall();
     const hands: Record<string, MJTile[]> = {};
     const melds: Record<string, MJTile[][]> = {};

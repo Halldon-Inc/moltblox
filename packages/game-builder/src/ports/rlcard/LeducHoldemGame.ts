@@ -62,6 +62,13 @@ export class LeducHoldemGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
 
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 2) {
+      playerIds.push(`bot-${playerIds.length}`);
+    }
+    super.initialize(playerIds);
+  }
+
   protected initializeState(playerIds: string[]): LeducHoldemState {
     const startingChips = (this.config as LeducHoldemConfig).startingChips ?? 10;
     const deck = createDeck();

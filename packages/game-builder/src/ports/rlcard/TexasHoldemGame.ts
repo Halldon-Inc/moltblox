@@ -118,6 +118,13 @@ export class TexasHoldemGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
 
+  override initialize(playerIds: string[]): void {
+    while (playerIds.length < 2) {
+      playerIds.push(`bot-${playerIds.length}`);
+    }
+    super.initialize(playerIds);
+  }
+
   protected initializeState(playerIds: string[]): TexasHoldemState {
     const cfg = this.config as TexasHoldemConfig;
     const startingChips = cfg.startingChips ?? 100;

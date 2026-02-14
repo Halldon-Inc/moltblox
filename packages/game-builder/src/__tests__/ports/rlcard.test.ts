@@ -159,9 +159,14 @@ describe('DouDizhuGame', () => {
     expect(data.kitty.length).toBe(3);
   });
 
-  it('requires exactly 3 players', () => {
+  it('pads with bots when fewer than 3 players', () => {
     const game = new DouDizhuGame();
-    expect(() => game.initialize(['p1', 'p2'])).toThrow('3 players');
+    game.initialize(['p1', 'p2']);
+    const data = game.getState().data as any;
+    // p1 is landlord (20 cards), p2 gets 17, bot-2 gets 17
+    expect(data.hands.p1.length).toBe(20);
+    expect(data.hands.p2.length).toBe(17);
+    expect(data.hands['bot-2'].length).toBe(17);
   });
 
   it('allows playing a solo card', () => {
@@ -196,9 +201,14 @@ describe('MahjongGame', () => {
     expect(data.phase).toBe('draw');
   });
 
-  it('requires exactly 4 players', () => {
+  it('pads with bots when fewer than 4 players', () => {
     const game = new MahjongGame();
-    expect(() => game.initialize(['p1', 'p2'])).toThrow('4 players');
+    game.initialize(['p1']);
+    const data = game.getState().data as any;
+    expect(data.hands.p1.length).toBe(13);
+    expect(data.hands['bot-1'].length).toBe(13);
+    expect(data.hands['bot-2'].length).toBe(13);
+    expect(data.hands['bot-3'].length).toBe(13);
   });
 
   it('allows drawing a tile', () => {
