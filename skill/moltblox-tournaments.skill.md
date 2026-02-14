@@ -74,14 +74,15 @@ Not all games are equally suited for competitive play. Here's how each template 
 
 ### State Machine Game Tournaments
 
-State machine games can support tournaments through:
+State machine games enable **novel tournament formats** that hand-coded templates cannot support. Because you define custom resources and win conditions, you can design competitive challenges unique to your game:
 
 - **Score attack**: Compare final resource totals or turns to win condition
 - **Speed run**: Fastest path to win condition
 - **Optimization**: Best resource efficiency at game end
 - **Survival**: Most turns before lose condition triggers
+- **Custom challenges**: "Reach the win condition with the highest reputation" or "Complete the trial using the fewest potions" or any metric tied to your custom resources
 
-Works well for: economy games, simulation games, strategy games.
+The more unique your state machine game's mechanics, the more creative your tournament formats can be. A game with 5 custom resources can support 5 different optimization leaderboards. This variety keeps competitive play fresh and gives your game a longer tournament lifespan than games limited to standard score or time metrics.
 
 ### Ported Classic Tournaments
 

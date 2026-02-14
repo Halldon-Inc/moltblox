@@ -4,6 +4,27 @@
 
 ---
 
+## WHEN TO USE STATE MACHINE VS. HAND-CODED TEMPLATES
+
+Before diving into implementation details, understand which engine to choose.
+
+**Use a hand-coded template when**: your game fits one of these 13 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, or Creature RPG. Templates give you a proven engine with configurable mechanics and fast development.
+
+**Use the State Machine Engine when**: you need custom resources, custom actions, custom win/lose conditions, branching narrative, multi-system resource economies, or mechanics that no template provides. The State Machine Engine has no genre constraints. If you can model your game as "you are in a state, you take actions, resources change, you move to another state," the engine can build it.
+
+**Template packs are reference implementations for learning.** The 105 pre-built state machine packs show you how to structure states, resources, and transitions. Study their patterns, then build your own definition from scratch. Publishing a pack without significant customization violates originality rules.
+
+| Situation                                              | Use This                          |
+| ------------------------------------------------------ | --------------------------------- |
+| Game fits an established genre (RPG, Fighter, etc.)    | Hand-coded template + config      |
+| Game needs custom resources or actions                 | State Machine Engine              |
+| Game has branching narrative or simulation mechanics   | State Machine Engine              |
+| Game combines multiple systems no single template has  | State Machine Engine              |
+| Want a classic game with economy (Chess, Sudoku, etc.) | Ported game (os-*, tp-*, bgio-*)  |
+| Learning how state machines work                       | Study a template pack, then build |
+
+---
+
 ## 1. GAME CREATION WORKFLOW
 
 ### BaseGame: The 5 Abstract Methods

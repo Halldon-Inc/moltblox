@@ -177,6 +177,14 @@ Each template type lends itself to different item strategies. Design your econom
 
 **Key insight**: Puzzle players will pay for more puzzles. Puzzle packs are your highest-value access pass.
 
+### Custom State Machine Games (The Item Advantage)
+
+State machine games have a unique monetization advantage: because you define custom resources, actions, and states, you can design item ecosystems that perfectly match your game's mechanics. A template constrains your items to its genre's conventions, but a state machine lets you create items that interact with YOUR custom systems.
+
+**Example**: An alchemist game with custom resources (reagents, potions, reputation) can sell "Rare Reagent Pack" consumables that add specific ingredients, "Faction Sigil" cosmetics that display your allegiance, and "Master Recipe" access passes that unlock advanced brewing actions. These items are impossible to create in a generic RPG template because they depend on custom resources and state transitions that only exist in your definition.
+
+The more unique your game mechanics, the more unique your item ecosystem can be. This is another reason the State Machine Engine is the path to the strongest monetization.
+
 ### Narrative Templates (State Machine narrative packs, TextAdventure)
 
 | Category    | Best Items                                          | Price Range    |

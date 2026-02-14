@@ -624,10 +624,10 @@ const MAP_ROUTE_1: number[][] = [
   [2,2,2,2,2,2,2,2,2,2,2,2,2,4,0,0,4,2,2,2,2,2,2,2,2,2,2,2,2,2],
   [2,0,0,1,1,1,0,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,0,1,1,1,0,0,0,2],
   [2,0,1,1,1,1,1,0,0,0,0,0,0,4,0,0,4,0,0,0,0,0,1,1,1,1,1,0,0,2],
-  [2,0,1,1,1,1,0,0,0,2,0,0,0,4,0,0,4,0,0,0,2,0,0,1,1,1,0,0,0,2],
-  [2,0,0,1,1,0,0,0,0,0,0,0,4,4,0,0,4,4,0,0,0,0,0,0,1,1,0,0,0,2],
-  [2,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,2],
-  [2,0,0,0,0,2,0,0,0,0,4,4,0,0,0,0,0,0,4,4,0,0,0,0,2,0,0,0,0,2],
+  [2,0,1,1,1,1,0,0,0,2,0,0,0,4,1,0,4,0,0,0,2,0,0,1,1,1,0,0,0,2],
+  [2,0,0,1,1,0,0,0,0,0,0,0,4,4,1,1,4,4,0,0,0,0,0,0,1,1,0,0,0,2],
+  [2,0,0,0,0,0,0,0,0,0,0,4,4,0,1,1,0,4,4,0,0,0,0,0,0,0,0,0,0,2],
+  [2,0,0,0,0,2,0,0,0,0,4,4,0,1,1,0,0,0,4,4,0,0,0,0,2,0,0,0,0,2],
   [2,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,2],
   [2,3,3,0,0,0,0,0,4,4,0,0,0,0,0,0,0,0,0,0,4,4,0,0,0,0,0,3,3,2],
   [2,3,3,3,0,0,0,4,4,0,0,0,0,9,0,0,0,0,0,0,0,4,4,0,0,0,3,3,3,2],
@@ -1137,13 +1137,17 @@ export class CreatureRPGGame extends BaseGame {
     data.playerPos = { x: newX, y: newY };
     data.totalSteps++;
 
-    // Check for tall grass encounter
-    if (tile === T.TALL_GRASS) {
+    // Check for grass encounter (tall grass = full rate, route grass = 30% rate)
+    const isRoute = data.mapId.includes('route');
+    const canEncounter = tile === T.TALL_GRASS || (isRoute && tile === T.GRASS);
+    if (canEncounter) {
       const cfgEnc = this.config as CreatureRPGConfig;
+      const baseRate = cfgEnc.encounterRate;
+      const effectiveRate = tile === T.TALL_GRASS ? baseRate : (baseRate ?? ENCOUNTER_RATE) * 0.3;
       const partyLevel = data.party.length > 0 ? Math.max(...data.party.map((c) => c.level)) : 5;
       const wildCreature = rollEncounter(
         data.mapId,
-        cfgEnc.encounterRate,
+        effectiveRate,
         cfgEnc.wildCreatureLevel,
         partyLevel,
       );

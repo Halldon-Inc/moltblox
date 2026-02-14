@@ -588,6 +588,7 @@ export class SideBattlerGame extends BaseGame {
         result = this.handleDefend(playerId, data);
         break;
 
+      case 'skill':
       case 'use_skill':
         result = this.handleUseSkill(playerId, action, data);
         break;

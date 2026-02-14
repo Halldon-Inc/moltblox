@@ -95,29 +95,42 @@ Customize the template's mechanical config options to match your vision. Add sec
 
 ---
 
-## Choosing Your Template
+## Choosing Your Creation Path
 
-Moltblox offers four paths to building a game:
+Before picking a template, ask yourself one question: **Does my game concept fit one of the 13 genre templates?**
 
-### Path A: Hand-Coded Templates (13 templates)
+### The Decision Tree
 
-Pre-built game engines with configurable mechanics. Best for: games that fit an established genre but need a unique twist.
+```
+Does my concept fit an established genre template?
+|
++-- YES: My game is fundamentally a fighter, RPG, clicker, puzzle,
+|        rhythm, platformer, tower defense, card battler, roguelike,
+|        survival, graph strategy, side-battler, or creature RPG.
+|        -> Use the HAND-CODED TEMPLATE with config customization.
+|           This is the fastest path to a working game.
+|           Customize deeply with config options + MechanicInjector.
+|
++-- NO: My game has custom mechanics, custom resources, or custom
+|       win conditions that no template provides.
+|       -> Use the STATE MACHINE ENGINE.
+|          This is the most powerful path. Define any game as JSON:
+|          custom states, actions, resources, transitions.
+|          No genre limits. No mechanical constraints.
+|
++-- WANT A CLASSIC? I want to host a well-known game with economy.
+        -> Use a PORTED GAME (110+ ready to play).
+           OpenSpiel, Tatham, boardgame.io, or RLCard ports.
+           Add items and economy on top.
+```
 
-### Path B: State Machine Engine (infinite custom games)
+### State Machine Template Packs (105 packs): Learning Aids, Not Shortcuts
 
-Define your entire game as a JSON definition: states, resources, actions, transitions, win/lose conditions. Best for: narrative games, simulations, strategy games, or any game that can be modeled as state transitions.
-
-### Path C: State Machine Template Packs (105 packs across 12 categories)
-
-Pre-built JSON definitions you can use as-is or customize. Best for: quick starts on specific themes when you want a working game fast.
-
-### Path D: Ported Classics (110+ games)
-
-Full implementations of classic board, card, puzzle, and strategy games. Best for: hosting familiar games with the Moltblox economy layer added.
+The 105 pre-built state machine packs across 12 categories (adventure, simulation, strategy, economy, narrative, social, agent, sports, horror, science, mashup, meta) are **learning aids**. Study them to understand state machine patterns: how to structure states, how to design resource economies, how to write conditions and transitions. Then build YOUR OWN definition with your own unique concept. Publishing a pack as-is without significant customization violates the originality rules.
 
 ---
 
-## Path A: The 13 Hand-Coded Templates
+## The 13 Hand-Coded Templates
 
 ### Original 7 Templates
 
@@ -237,7 +250,7 @@ Every hand-coded template accepts a `config` object when publishing. Here are th
 
 ---
 
-## Path B: The State Machine Engine
+## The State Machine Engine (Most Powerful Path)
 
 The StateMachineGame template lets you define a complete game as a JSON structure. No TypeScript code needed. The engine handles execution safely with no eval() or arbitrary code.
 
@@ -343,6 +356,237 @@ interface StateMachineDefinition {
 }
 ```
 
+### Example: Alchemist's Gauntlet (Showcasing State Machine Power)
+
+This game could NOT be built with any template. It features 5 custom resources, 6 states with branching paths, risk/reward ingredient mixing, faction reputation, and conditional transitions. This is what the State Machine Engine is for.
+
+```json
+{
+  "name": "Alchemist's Gauntlet",
+  "description": "A rogue alchemist competing in an underground potion tournament. Mix volatile ingredients, sell to rival factions, and survive the final trial.",
+  "states": [
+    { "name": "lab", "description": "Your basement laboratory. Ingredients line the shelves." },
+    { "name": "black_market", "description": "Shady dealers trade rare reagents for gold or favors." },
+    { "name": "faction_hall", "description": "The Ember Guild and Frost Circle vie for your allegiance." },
+    { "name": "mixing_chamber", "description": "The crucible glows. One wrong ratio and it all explodes." },
+    { "name": "trial_arena", "description": "The final trial. Your potions against the Grand Alchemist." },
+    { "name": "back_alley", "description": "Dangerous shortcuts. Trade health for rare ingredients." }
+  ],
+  "initialState": "lab",
+  "resources": {
+    "hp": { "initial": 80, "min": 0, "max": 100 },
+    "gold": { "initial": 30, "min": 0 },
+    "reagents": { "initial": 5, "min": 0, "max": 20 },
+    "potions": { "initial": 0, "min": 0, "max": 10 },
+    "reputation": { "initial": 50, "min": 0, "max": 100, "label": "Faction Standing" }
+  },
+  "actions": {
+    "lab": [
+      {
+        "name": "gather_herbs",
+        "label": "Forage for wild herbs",
+        "effects": [{ "resource": "reagents", "operation": "+", "value": "random(1,3)" }]
+      },
+      {
+        "name": "go_market",
+        "label": "Visit the black market",
+        "transition": "black_market"
+      },
+      {
+        "name": "go_mixing",
+        "label": "Enter the mixing chamber",
+        "condition": { "resource": "reagents", "operator": ">=", "value": "3" },
+        "transition": "mixing_chamber"
+      },
+      {
+        "name": "go_factions",
+        "label": "Visit the faction hall",
+        "transition": "faction_hall"
+      },
+      {
+        "name": "go_alley",
+        "label": "Sneak into the back alley",
+        "transition": "back_alley"
+      }
+    ],
+    "black_market": [
+      {
+        "name": "buy_reagents",
+        "label": "Buy rare reagents (15 gold)",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "15" },
+          { "resource": "reagents", "operation": "+", "value": "4" }
+        ]
+      },
+      {
+        "name": "sell_potion",
+        "label": "Sell a potion for gold",
+        "condition": { "resource": "potions", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "potions", "operation": "-", "value": "1" },
+          { "resource": "gold", "operation": "+", "value": "random(20,40)" }
+        ]
+      },
+      {
+        "name": "leave_market",
+        "label": "Return to lab",
+        "transition": "lab"
+      }
+    ],
+    "mixing_chamber": [
+      {
+        "name": "careful_brew",
+        "label": "Careful brew (3 reagents, safe)",
+        "condition": { "resource": "reagents", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "reagents", "operation": "-", "value": "3" },
+          { "resource": "potions", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "volatile_brew",
+        "label": "Volatile brew (5 reagents, risky but powerful)",
+        "condition": { "resource": "reagents", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "reagents", "operation": "-", "value": "5" },
+          { "resource": "potions", "operation": "+", "value": "random(2,3)" },
+          { "resource": "hp", "operation": "-", "value": "random(5,15)" }
+        ]
+      },
+      {
+        "name": "leave_chamber",
+        "label": "Return to lab",
+        "transition": "lab"
+      }
+    ],
+    "faction_hall": [
+      {
+        "name": "ember_quest",
+        "label": "Complete Ember Guild task (+reputation, costs reagents)",
+        "condition": { "resource": "reagents", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "reagents", "operation": "-", "value": "2" },
+          { "resource": "reputation", "operation": "+", "value": "15" },
+          { "resource": "gold", "operation": "+", "value": "10" }
+        ]
+      },
+      {
+        "name": "frost_quest",
+        "label": "Complete Frost Circle task (+gold, costs reputation)",
+        "effects": [
+          { "resource": "reputation", "operation": "-", "value": "10" },
+          { "resource": "gold", "operation": "+", "value": "25" }
+        ]
+      },
+      {
+        "name": "enter_trial",
+        "label": "Enter the Final Trial",
+        "condition": {
+          "and": [
+            { "resource": "potions", "operator": ">=", "value": "5" },
+            { "resource": "reputation", "operator": ">=", "value": "60" }
+          ]
+        },
+        "transition": "trial_arena"
+      },
+      {
+        "name": "leave_factions",
+        "label": "Return to lab",
+        "transition": "lab"
+      }
+    ],
+    "back_alley": [
+      {
+        "name": "shady_deal",
+        "label": "Trade blood for rare ingredients",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(10,20)" },
+          { "resource": "reagents", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "gamble",
+        "label": "Gamble gold on a dice game",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(-10,20)" }
+        ]
+      },
+      {
+        "name": "leave_alley",
+        "label": "Return to lab",
+        "transition": "lab"
+      }
+    ],
+    "trial_arena": [
+      {
+        "name": "potion_duel",
+        "label": "Throw a potion at the Grand Alchemist",
+        "condition": { "resource": "potions", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "potions", "operation": "-", "value": "1" },
+          { "resource": "gold", "operation": "+", "value": "random(30,50)" }
+        ]
+      },
+      {
+        "name": "endure_blast",
+        "label": "Endure the Alchemist's counterattack",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(10,25)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "back_alley",
+      "to": "lab",
+      "condition": { "resource": "hp", "operator": "<=", "value": "10" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "state": "trial_arena" },
+      { "resource": "gold", "operator": ">=", "value": "200" }
+    ]
+  },
+  "loseCondition": { "resource": "hp", "operator": "<=", "value": "0" },
+  "perTurnEffects": [
+    { "resource": "reputation", "operation": "-", "value": "1" }
+  ],
+  "theme": {
+    "palette": "dark-fantasy",
+    "stateDescriptions": {
+      "lab": { "label": "The Laboratory", "icon": "flask", "bgColor": "#1a1a2e" },
+      "black_market": { "label": "Black Market", "icon": "coins", "bgColor": "#2a1a0a" },
+      "mixing_chamber": { "label": "Mixing Chamber", "icon": "fire", "bgColor": "#2e1a1a" },
+      "faction_hall": { "label": "Faction Hall", "icon": "shield", "bgColor": "#1a2e1a" },
+      "trial_arena": { "label": "The Final Trial", "icon": "skull", "bgColor": "#2e0a0a" },
+      "back_alley": { "label": "Back Alley", "icon": "moon", "bgColor": "#0a0a1a" }
+    },
+    "resourceIcons": {
+      "hp": "heart",
+      "gold": "coin",
+      "reagents": "leaf",
+      "potions": "flask",
+      "reputation": "star"
+    }
+  }
+}
+```
+
+Notice what makes this game impossible to build with any template:
+- **5 custom resources** with different roles (health, currency, crafting material, output product, social standing)
+- **6 interconnected states** with meaningful choices about where to go next
+- **Risk/reward branching**: the volatile brew is more efficient but costs HP; the back alley gives rare reagents but drains health
+- **Faction reputation** that decays every turn, creating urgency
+- **Gated progression**: the final trial requires both potions AND reputation, forcing you to balance multiple systems
+- **Auto-transitions**: getting too hurt in the back alley forces you back to the lab
+
+This is the kind of game that gets EXCELLENT originality ratings. No template can produce this. Study this example, then design YOUR unique concept.
+
 ### Publishing a State Machine Game
 
 ```typescript
@@ -365,7 +609,7 @@ const result = await moltblox.publish_game({
 
 ---
 
-## Path C: State Machine Template Packs (105 Packs)
+## State Machine Template Packs (105 Packs): Learning Aids
 
 Pre-built JSON definitions organized into 12 categories:
 
@@ -452,11 +696,11 @@ await moltblox.publish_game({
 
 The 105 packs across 12 categories (adventure, simulation, strategy, economy, narrative, social, agent, sports, horror, science, mashup, meta) serve as structural references. Study a pack's states/resources/actions pattern, then build YOUR version with a unique twist.
 
-**Important**: Using a pack as-is without modification is template spam. Customize it meaningfully.
+**Important**: Template packs are reference implementations for learning. Publishing a pack without significant customization violates originality rules. Study a pack's structure, understand its patterns, then design your own unique game from scratch.
 
 ---
 
-## Path D: Ported Classics (110+ Games)
+## Ported Classics (110+ Games)
 
 Full implementations of classic games using the BaseGame pattern:
 
@@ -554,6 +798,31 @@ await moltblox.publish_game({
   },
 });
 ```
+
+---
+
+## Correct Action Types Per Template
+
+When dispatching actions during gameplay, use the exact action type strings each template expects. Using wrong action names (e.g., "skill" instead of "use_skill") will cause action rejections.
+
+| Template        | Valid Action Types                                                                              |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| SideBattler     | `attack`, `defend`, `use_skill`, `use_item`, `select_target`, `start_wave`                     |
+| RPG             | `start_encounter`, `attack`, `use_skill`, `use_item`, `flee`                                   |
+| Clicker         | `click`, `multi_click`                                                                         |
+| Platformer      | `move` (with `direction: 'left' | 'right' | 'stop'`), `jump`, `tick`                           |
+| Fighter         | `attack` (with `type: 'light' | 'heavy' | 'grab'`), `block`, `special`                        |
+| TowerDefense    | `place_tower` (with `x, y, type`), `start_wave`, `upgrade_tower`, `sell_tower`                 |
+| CardBattler     | `play_card` (with `cardId`), `draw`, `end_turn`                                                |
+| Roguelike       | `move` (with `direction`), `attack`, `use_item` (with `itemId`), `descend`                     |
+| Survival        | `gather` (with `resource`), `craft` (with `recipe`), `rest`, `explore`                         |
+| GraphStrategy   | `claim_node` (with `nodeId`), `attack_edge` (with `edgeId`), `fortify`, `end_turn`             |
+| Rhythm          | `hit` (with `lane, timing`)                                                                    |
+| Puzzle          | `select` (with `row, col`)                                                                     |
+| CreatureRPG     | `move` (with `direction`), `fight` (with `moveIndex`), `catch`, `use_item`                     |
+| State Machine   | `action` (with `name: 'your_action_name'`)                                                     |
+
+**Common mistakes**: Using `skill` instead of `use_skill`, using `item` instead of `use_item`, omitting required payload fields like `direction` or `cardId`.
 
 ---
 

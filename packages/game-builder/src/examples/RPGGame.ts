@@ -240,6 +240,7 @@ export class RPGGame extends BaseGame {
           enemy: data.currentEnemy.name,
         });
         this.setData(data);
+        this.autoResolveEnemyTurns(data);
         return { success: true, newState: this.getState() };
       }
 
@@ -258,10 +259,8 @@ export class RPGGame extends BaseGame {
               payload: {},
               timestamp: Date.now(),
             });
-            if (!autoResult.success) return autoResult;
-            // Re-read data after encounter started
-            const freshData = this.getData<RPGState>();
-            Object.assign(data, freshData);
+            // Return immediately: encounter was started, player attacks on next action
+            return autoResult;
           } else {
             return { success: false, error: 'Not in combat and all encounters completed' };
           }
@@ -286,6 +285,7 @@ export class RPGGame extends BaseGame {
 
         this.advanceTurn(data);
         this.setData(data);
+        this.autoResolveEnemyTurns(data);
         return { success: true, newState: this.getState() };
       }
 
@@ -340,6 +340,7 @@ export class RPGGame extends BaseGame {
         this.emitEvent('skill_used', playerId, { skill: skill.name });
         this.advanceTurn(data);
         this.setData(data);
+        this.autoResolveEnemyTurns(data);
         return { success: true, newState: this.getState() };
       }
 
@@ -371,6 +372,9 @@ export class RPGGame extends BaseGame {
           this.advanceTurn(data);
         }
         this.setData(data);
+        if (data.currentEnemy) {
+          this.autoResolveEnemyTurns(data);
+        }
         return { success: true, newState: this.getState() };
       }
 
@@ -466,35 +470,60 @@ export class RPGGame extends BaseGame {
       return;
     }
 
-    // If it's the enemy's turn, auto-attack
-    if (data.turnOrder[data.currentTurnIndex] === 'enemy' && data.currentEnemy) {
-      // Target the player with lowest HP
-      let target: string | null = null;
-      let lowestHp = Infinity;
-      for (const pid of this.getPlayers()) {
-        if (data.players[pid].stats.hp > 0 && data.players[pid].stats.hp < lowestHp) {
-          lowestHp = data.players[pid].stats.hp;
-          target = pid;
+  }
+
+  /**
+   * Auto-resolve enemy/NPC turns until it is a real player's turn.
+   * Call this after advanceTurn + setData so the player never sees
+   * "Not your turn" because the turn index points at an enemy.
+   */
+  private autoResolveEnemyTurns(data: RPGState): void {
+    const playerSet = new Set(this.getPlayers());
+    // Guard: max iterations = turnOrder.length to prevent infinite loops
+    let iterations = 0;
+    while (
+      iterations < data.turnOrder.length &&
+      data.turnOrder.length > 0 &&
+      data.currentEnemy &&
+      !playerSet.has(data.turnOrder[data.currentTurnIndex])
+    ) {
+      iterations++;
+      const enemyId = data.turnOrder[data.currentTurnIndex];
+      if (enemyId === 'enemy' || !playerSet.has(enemyId)) {
+        // Enemy attacks the player with lowest HP
+        let target: string | null = null;
+        let lowestHp = Infinity;
+        for (const pid of this.getPlayers()) {
+          if (data.players[pid].stats.hp > 0 && data.players[pid].stats.hp < lowestHp) {
+            lowestHp = data.players[pid].stats.hp;
+            target = pid;
+          }
         }
-      }
 
-      if (target) {
-        const defBonus = data.players[target].buffs['buff_def'] ? 5 : 0;
-        const damage = Math.max(
-          1,
-          data.currentEnemy.stats.atk - Math.floor((data.players[target].stats.def + defBonus) / 2),
-        );
-        data.players[target].stats.hp -= damage;
-        data.combatLog.push(`${data.currentEnemy.name} attacks ${target} for ${damage} damage`);
+        if (target) {
+          const defBonus = data.players[target].buffs['buff_def'] ? 5 : 0;
+          const damage = Math.max(
+            1,
+            data.currentEnemy.stats.atk -
+              Math.floor((data.players[target].stats.def + defBonus) / 2),
+          );
+          data.players[target].stats.hp -= damage;
+          data.combatLog.push(
+            `${data.currentEnemy.name} attacks ${target} for ${damage} damage`,
+          );
 
-        if (data.players[target].stats.hp <= 0) {
-          data.combatLog.push(`${target} has fallen!`);
-          this.emitEvent('player_defeated', target, {});
+          if (data.players[target].stats.hp <= 0) {
+            data.combatLog.push(`${target} has fallen!`);
+            this.emitEvent('player_defeated', target, {});
+          }
         }
-      }
 
-      // Advance past enemy turn
-      data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+        // Advance past this enemy turn
+        this.advanceTurn(data);
+        this.setData(data);
+        // If advanceTurn cleared turnOrder (enemy died or all players dead), stop
+        if (data.turnOrder.length === 0) break;
+      }
     }
   }
 

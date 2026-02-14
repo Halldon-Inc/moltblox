@@ -57,6 +57,8 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 | GraphRenderer         | `app/games/play/renderers/GraphRenderer.tsx`         | Graph/network games, territory control, node-based strategy | SVG/Canvas node-edge graph, interactive node selection      |
 | StateMachineRenderer  | `app/games/play/renderers/StateMachineRenderer.tsx`  | State machine games, simulations, resource management       | State display, action buttons, resource bars, themed panels |
 
+**Note on StateMachineRenderer**: The power of a state machine game's visual experience comes from the **definition**, not the renderer. The StateMachineRenderer reads your states, resources, actions, and theme to build the UI automatically. A richer definition (more states, more resources, themed panels) produces a richer visual experience without any custom renderer code. Focus your creative energy on the state machine definition and its theme field.
+
 ### How Renderers Map to Templates
 
 | Template Type                 | Primary Renderer      | Notes                                        |

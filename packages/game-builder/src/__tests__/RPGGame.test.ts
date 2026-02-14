@@ -136,15 +136,7 @@ describe('RPGGame', () => {
       const dataBefore = getData(game);
       const hpBefore = dataBefore.currentEnemy!.stats.hp;
 
-      // Advance to player turn
-      const playerTurnIdx = dataBefore.turnOrder.indexOf('player-1');
-      if (playerTurnIdx > 0) {
-        // Skip enemy turns via auto_tick
-        for (let i = 0; i < playerTurnIdx; i++) {
-          act(game, 'player-1', 'auto_tick');
-        }
-      }
-
+      // Enemy turns are auto-resolved, so player can act immediately
       act(game, 'player-1', 'attack');
       const dataAfter = getData(game);
       if (dataAfter.currentEnemy) {
@@ -152,11 +144,23 @@ describe('RPGGame', () => {
       }
     });
 
-    it('rejects attack when not in combat', () => {
+    it('auto-starts encounter when attacking with no active enemy', () => {
       const game = createGame();
       const result = act(game, 'player-1', 'attack');
+      // Should auto-start the first encounter instead of failing
+      expect(result.success).toBe(true);
+      const data = getData(game);
+      expect(data.encounter).toBe(1);
+    });
+
+    it('rejects attack when all encounters completed (game over)', () => {
+      const game = createGame();
+      const data = getData(game);
+      data.encounter = data.maxEncounters;
+      const result = act(game, 'player-1', 'attack');
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Not in combat');
+      // handleAction catches game over before processAction runs
+      expect(result.error).toContain('Game is already over');
     });
   });
 
@@ -169,11 +173,7 @@ describe('RPGGame', () => {
       data.players['player-1'].stats.hp = 50;
       const healSkillIdx = data.players['player-1'].skills.findIndex((s) => s.effect === 'heal');
 
-      // Find player turn
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
-
+      // Enemy turns are auto-resolved, player turn is always current
       act(game, 'player-1', 'use_skill', { skillIndex: healSkillIdx });
       const after = getData(game);
       expect(after.players['player-1'].stats.hp).toBeGreaterThan(50);
@@ -185,10 +185,7 @@ describe('RPGGame', () => {
       const data = getData(game);
       data.players['player-1'].stats.mp = 0;
 
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
-
+      // Enemy turns are auto-resolved, player turn is always current
       const result = act(game, 'player-1', 'use_skill', { skillIndex: 0 });
       expect(result.success).toBe(false);
       expect(result.error).toContain('Not enough MP');
@@ -198,10 +195,7 @@ describe('RPGGame', () => {
       const game = createGame();
       act(game, 'player-1', 'start_encounter');
 
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
-
+      // Enemy turns are auto-resolved, player turn is always current
       const result = act(game, 'player-1', 'use_skill', { skillIndex: 99 });
       expect(result.success).toBe(false);
       expect(result.error).toContain('Invalid skill index');
@@ -244,9 +238,7 @@ describe('RPGGame', () => {
       if (d.currentEnemy) {
         d.currentEnemy.stats.hp = 1;
       }
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
+      // Enemy turns are auto-resolved, player can act immediately
       act(game, 'player-1', 'attack');
       const after = getData(game);
       // Shop should add +1 Potion
@@ -268,22 +260,21 @@ describe('RPGGame', () => {
 
   describe('config: bossEncounterAt', () => {
     it('spawns a stronger enemy at specified encounter index', () => {
-      const game = new RPGGame({ bossEncounterAt: [1] });
+      // Boss on encounter 2 (encounter numbers are 1-based)
+      const game = new RPGGame({ bossEncounterAt: [2] });
       game.initialize(['player-1']);
-      // First encounter (index 0) should be normal
+      // First encounter should be normal
       act(game, 'player-1', 'start_encounter');
       const data1 = getData(game);
       const normalHp = data1.currentEnemy!.stats.hp;
       // Defeat it
       data1.currentEnemy!.stats.hp = 1;
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
+      // Enemy turns are auto-resolved, player can act immediately
       act(game, 'player-1', 'attack');
-      // Second encounter (index 1) should be boss
+      // Second encounter should be boss
       act(game, 'player-1', 'start_encounter');
       const data2 = getData(game);
-      // Boss should have higher HP (1.5x multiplier)
+      // Boss should have higher HP (1.5x multiplier on strongest template)
       expect(data2.currentEnemy!.stats.hp).toBeGreaterThan(normalHp);
     });
   });
@@ -294,13 +285,13 @@ describe('RPGGame', () => {
       game.initialize(['player-1']);
       const before = getData(game);
       const levelBefore = before.players['player-1'].level;
+      // Lower xpToLevel so first encounter reward (20 XP) triggers level up
+      before.players['player-1'].xpToLevel = 10;
       // Start and defeat first encounter
       act(game, 'player-1', 'start_encounter');
       const d = getData(game);
       if (d.currentEnemy) d.currentEnemy.stats.hp = 1;
-      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
-        act(game, 'player-1', 'auto_tick');
-      }
+      // Enemy turns are auto-resolved, player can act immediately
       act(game, 'player-1', 'attack');
       const after = getData(game);
       expect(after.players['player-1'].level).toBe(levelBefore + 1);

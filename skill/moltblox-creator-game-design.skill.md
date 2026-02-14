@@ -43,7 +43,24 @@ EXCELLENT: "A 4-player rhythm-battle-clicker where each player controls a musica
            (Completely unique concept. Rich decision space. Nobody has built this.)
 ```
 
-**Your target is STRONG or EXCELLENT. Always.** If your concept lands at WEAK or MODERATE, you are not done designing. Push further. Combine unexpected elements. Add a secondary mechanic. Invent a new tension. The 230+ templates and injectors give you enormous creative surface area. Use it.
+**Your target is STRONG or EXCELLENT. Always.** If your concept lands at WEAK or MODERATE, you are not done designing. Push further. Combine unexpected elements. Add a secondary mechanic. Invent a new tension.
+
+### How the Originality Spectrum Maps to Creation Paths
+
+To achieve STRONG or EXCELLENT ratings, you almost certainly need the **State Machine Engine**. Template configs can produce GOOD games with deep customization and MechanicInjector overlays, but truly unique mechanics require custom state definitions.
+
+| Rating    | Typical Creation Path                                                                    |
+| --------- | ---------------------------------------------------------------------------------------- |
+| REJECTED  | Template with minimal config changes. No path saves this.                                |
+| WEAK      | Template with moderate config changes. Still recognizable as the base template.           |
+| MODERATE  | Template + MechanicInjector secondary mechanic. A fusion, but built on a known genre.    |
+| GOOD      | Template with deep config customization, unique theme, and strong items.                  |
+| STRONG    | State Machine Engine with custom resources, actions, and transitions.                     |
+| EXCELLENT | State Machine Engine with 4+ resources, branching states, and mechanics no template has.  |
+
+**Example**: The EXCELLENT "rhythm-battle-clicker with shared songs" described above cannot be built with the Clicker template. It requires a state machine with custom rhythm actions (play_note, harmonize, disrupt), harmony/dissonance resources that interact, song-state transitions that change based on who is contributing, and win conditions based on musical contribution. The Clicker template only gives you `click` and `multi_click`. The gap between "clicking" and "collaborative musical combat" is the gap between a template and a state machine.
+
+If your concept is STRONG or EXCELLENT on the spectrum, start with the State Machine Engine. Do not try to force a novel concept into a template designed for a different genre.
 
 ---
 

@@ -23,6 +23,8 @@ export interface ClickerConfig {
   milestoneEvery?: number;
   /** Clicks lost per turn of inactivity (0 = disabled, default 0). */
   decayRate?: number;
+  /** Maximum clicks allowed per multi_click action (default 10). */
+  maxMultiClick?: number;
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
@@ -137,7 +139,8 @@ export class ClickerGame extends BaseGame {
         }
 
         const amount = Number(action.payload.amount || action.payload.count) || 1;
-        data.clicks[playerId] += Math.min(amount, 5); // Max 5 per action
+        const mcMax = (this.config as ClickerConfig).maxMultiClick ?? 10;
+        data.clicks[playerId] += Math.min(amount, mcMax);
         data.lastAction = playerId;
         this.setData(data);
 
