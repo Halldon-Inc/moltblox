@@ -1,0 +1,239 @@
+{
+  "name": "Siege Warfare",
+  "description": "Lay siege to a fortified castle. Build siege engines, manage supplies, and breach the walls before reinforcements arrive.",
+  "states": [
+    { "name": "camp", "description": "Your siege camp outside the castle walls.", "onEnter": [] },
+    { "name": "construction", "description": "Building siege equipment.", "onEnter": [] },
+    { "name": "bombardment", "description": "Firing at the castle walls.", "onEnter": [] },
+    { "name": "assault", "description": "Storming the walls.", "onEnter": [] },
+    { "name": "tunnel", "description": "Mining beneath the walls.", "onEnter": [] },
+    {
+      "name": "sally",
+      "description": "The defenders have sortied!",
+      "onEnter": [{ "resource": "troops", "operation": "-", "value": "random(5,10)" }]
+    }
+  ],
+  "initialState": "camp",
+  "resources": {
+    "troops": { "initial": 200, "min": 0, "max": 300, "label": "Troops" },
+    "supplies": { "initial": 40, "min": 0, "max": 60, "label": "Supplies" },
+    "siege_engines": { "initial": 0, "min": 0, "max": 8, "label": "Siege Engines" },
+    "wall_integrity": { "initial": 100, "min": 0, "max": 100, "label": "Wall Integrity" },
+    "morale": { "initial": 8, "min": 0, "max": 10, "label": "Morale" },
+    "days": { "initial": 30, "min": 0, "label": "Days Before Relief" },
+    "gold": { "initial": 150, "min": 0, "label": "Gold" }
+  },
+  "actions": {
+    "camp": [
+      { "name": "build", "label": "Build Equipment", "effects": [], "transition": "construction" },
+      {
+        "name": "bombard",
+        "label": "Begin Bombardment",
+        "condition": { "resource": "siege_engines", "operator": ">=", "value": "2" },
+        "effects": [],
+        "transition": "bombardment"
+      },
+      { "name": "dig_tunnel", "label": "Dig Tunnel", "effects": [], "transition": "tunnel" },
+      {
+        "name": "storm",
+        "label": "Storm the Walls",
+        "condition": { "resource": "wall_integrity", "operator": "<=", "value": "40" },
+        "effects": [],
+        "transition": "assault"
+      },
+      {
+        "name": "forage",
+        "label": "Forage",
+        "effects": [
+          { "resource": "supplies", "operation": "+", "value": "random(3,8)" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "rest",
+        "label": "Rest Troops",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "random(1,2)" },
+          { "resource": "supplies", "operation": "-", "value": "3" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "construction": [
+      {
+        "name": "build_trebuchet",
+        "label": "Build Trebuchet",
+        "condition": { "resource": "gold", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "siege_engines", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "30" },
+          { "resource": "days", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "build_ram",
+        "label": "Build Battering Ram",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "siege_engines", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "20" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "build_ladders",
+        "label": "Build Siege Ladders",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "siege_engines", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "10" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Return to Camp", "effects": [], "transition": "camp" }
+    ],
+    "bombardment": [
+      {
+        "name": "fire_all",
+        "label": "Full Bombardment",
+        "effects": [
+          { "resource": "wall_integrity", "operation": "-", "value": "random(8,18)" },
+          { "resource": "siege_engines", "operation": "-", "value": "random(0,1)" },
+          { "resource": "supplies", "operation": "-", "value": "3" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "targeted",
+        "label": "Targeted Fire",
+        "effects": [
+          { "resource": "wall_integrity", "operation": "-", "value": "random(5,12)" },
+          { "resource": "supplies", "operation": "-", "value": "2" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Cease Fire", "effects": [], "transition": "camp" }
+    ],
+    "assault": [
+      {
+        "name": "full_assault",
+        "label": "Full Assault",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(30,60)" },
+          { "resource": "wall_integrity", "operation": "-", "value": "random(20,40)" },
+          { "resource": "morale", "operation": "+", "value": "random(1,3)" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "feint",
+        "label": "Feint Attack",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(5,15)" },
+          { "resource": "wall_integrity", "operation": "-", "value": "random(3,8)" },
+          { "resource": "days", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Pull Back",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(5,10)" },
+          { "resource": "morale", "operation": "-", "value": "2" }
+        ],
+        "transition": "camp"
+      }
+    ],
+    "tunnel": [
+      {
+        "name": "keep_digging",
+        "label": "Continue Mining",
+        "effects": [
+          { "resource": "wall_integrity", "operation": "-", "value": "random(5,15)" },
+          { "resource": "troops", "operation": "-", "value": "random(2,5)" },
+          { "resource": "days", "operation": "-", "value": "2" },
+          { "resource": "supplies", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "collapse_tunnel",
+        "label": "Collapse Tunnel Under Wall",
+        "condition": { "resource": "troops", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "wall_integrity", "operation": "-", "value": "random(15,30)" },
+          { "resource": "troops", "operation": "-", "value": "random(5,10)" }
+        ],
+        "transition": "camp"
+      },
+      { "name": "back", "label": "Abandon Tunnel", "effects": [], "transition": "camp" }
+    ],
+    "sally": [
+      {
+        "name": "counter_attack",
+        "label": "Counter Attack",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(10,20)" },
+          { "resource": "morale", "operation": "+", "value": "2" },
+          { "resource": "siege_engines", "operation": "-", "value": "random(0,1)" }
+        ],
+        "transition": "camp"
+      },
+      {
+        "name": "fall_back",
+        "label": "Fall Back",
+        "effects": [
+          { "resource": "siege_engines", "operation": "-", "value": "random(1,2)" },
+          { "resource": "supplies", "operation": "-", "value": "random(3,6)" },
+          { "resource": "morale", "operation": "-", "value": "2" }
+        ],
+        "transition": "camp"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "camp",
+      "to": "sally",
+      "condition": { "resource": "wall_integrity", "operator": "<=", "value": "50" },
+      "auto": false
+    },
+    {
+      "from": "bombardment",
+      "to": "sally",
+      "condition": { "resource": "wall_integrity", "operator": "<=", "value": "30" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [
+    { "resource": "supplies", "operation": "-", "value": "2" },
+    { "resource": "days", "operation": "-", "value": "1" }
+  ],
+  "winCondition": { "resource": "wall_integrity", "operator": "<=", "value": "0" },
+  "loseCondition": {
+    "or": [
+      { "resource": "days", "operator": "<=", "value": "0" },
+      { "resource": "troops", "operator": "<=", "value": "0" },
+      { "resource": "morale", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "castle-grey",
+    "stateDescriptions": {
+      "camp": { "label": "Siege Camp", "icon": "tent" },
+      "construction": { "label": "Building", "icon": "tool" },
+      "bombardment": { "label": "Bombardment", "icon": "target" },
+      "assault": { "label": "Assault!", "icon": "crosshair" },
+      "tunnel": { "label": "Mining", "icon": "arrow-down" },
+      "sally": { "label": "Enemy Sortie!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "troops": "users",
+      "supplies": "package",
+      "siege_engines": "target",
+      "wall_integrity": "shield",
+      "morale": "flag",
+      "days": "clock",
+      "gold": "coin"
+    }
+  }
+}

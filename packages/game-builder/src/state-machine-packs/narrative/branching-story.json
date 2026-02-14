@@ -1,0 +1,277 @@
+{
+  "name": "Branching Story",
+  "description": "You are a writer crafting a novel with multiple endings. Develop characters, weave plot threads, and choose which paths to explore before your deadline.",
+  "states": [
+    { "name": "desk", "description": "Your writing desk. A blank page waits.", "onEnter": [] },
+    {
+      "name": "character_arc",
+      "description": "Developing a character's journey.",
+      "onEnter": [{ "resource": "depth", "operation": "+", "value": "random(2,5)" }]
+    },
+    {
+      "name": "plot_twist",
+      "description": "A shocking revelation changes everything.",
+      "onEnter": [{ "resource": "tension", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "romance",
+      "description": "A love story unfolds between characters.",
+      "onEnter": [{ "resource": "depth", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "climax",
+      "description": "All threads converge. The story reaches its peak.",
+      "onEnter": [{ "resource": "tension", "operation": "+", "value": "random(8,12)" }]
+    },
+    {
+      "name": "resolution",
+      "description": "Tying up loose ends. The story winds down.",
+      "onEnter": [{ "resource": "satisfaction", "operation": "+", "value": "random(5,10)" }]
+    }
+  ],
+  "initialState": "desk",
+  "resources": {
+    "words": { "initial": 0, "min": 0, "max": 200, "label": "Words Written (x1000)" },
+    "depth": { "initial": 5, "min": 0, "max": 100, "label": "Story Depth" },
+    "tension": { "initial": 0, "min": 0, "max": 100, "label": "Narrative Tension" },
+    "branches": { "initial": 0, "min": 0, "max": 20, "label": "Story Branches" },
+    "satisfaction": { "initial": 10, "min": 0, "max": 100, "label": "Reader Satisfaction" },
+    "deadline": { "initial": 30, "min": 0, "max": 30, "label": "Days Until Deadline" }
+  },
+  "actions": {
+    "desk": [
+      {
+        "name": "write_chapter",
+        "label": "Write a Chapter",
+        "description": "Put words on the page.",
+        "effects": [
+          { "resource": "words", "operation": "+", "value": "random(5,10)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "develop_character",
+        "label": "Develop a Character",
+        "description": "Give a character more depth.",
+        "effects": [{ "resource": "deadline", "operation": "-", "value": "1" }],
+        "transition": "character_arc"
+      },
+      {
+        "name": "add_branch",
+        "label": "Create a Branch Point",
+        "description": "Add a choice that splits the narrative.",
+        "effects": [
+          { "resource": "branches", "operation": "+", "value": "1" },
+          { "resource": "words", "operation": "+", "value": "random(3,6)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "outline",
+        "label": "Review Outline",
+        "description": "Step back and see the big picture.",
+        "effects": [
+          { "resource": "depth", "operation": "+", "value": "random(2,4)" },
+          { "resource": "satisfaction", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "character_arc": [
+      {
+        "name": "backstory",
+        "label": "Write Backstory",
+        "description": "Explore the character's past.",
+        "effects": [
+          { "resource": "depth", "operation": "+", "value": "random(5,10)" },
+          { "resource": "words", "operation": "+", "value": "random(4,8)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "inner_conflict",
+        "label": "Inner Conflict",
+        "description": "The character struggles with themselves.",
+        "effects": [
+          { "resource": "depth", "operation": "+", "value": "random(4,8)" },
+          { "resource": "tension", "operation": "+", "value": "random(3,6)" },
+          { "resource": "words", "operation": "+", "value": "random(3,6)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "love_interest",
+        "label": "Add Love Interest",
+        "description": "Introduce a romantic connection.",
+        "effects": [
+          { "resource": "branches", "operation": "+", "value": "1" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ],
+        "transition": "romance"
+      },
+      {
+        "name": "back_desk",
+        "label": "Return to Writing",
+        "description": "Go back to the main narrative.",
+        "effects": [],
+        "transition": "desk"
+      }
+    ],
+    "plot_twist": [
+      {
+        "name": "reveal_secret",
+        "label": "Reveal the Secret",
+        "description": "Drop the bombshell on the reader.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(8,15)" },
+          { "resource": "satisfaction", "operation": "+", "value": "random(5,10)" },
+          { "resource": "words", "operation": "+", "value": "random(5,8)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "foreshadow",
+        "label": "Plant Foreshadowing",
+        "description": "Hint at what is coming.",
+        "effects": [
+          { "resource": "depth", "operation": "+", "value": "random(5,8)" },
+          { "resource": "tension", "operation": "+", "value": "random(3,5)" },
+          { "resource": "words", "operation": "+", "value": "random(2,4)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "branch_twist",
+        "label": "Branch the Twist",
+        "description": "Let readers discover different truths.",
+        "effects": [
+          { "resource": "branches", "operation": "+", "value": "random(1,2)" },
+          { "resource": "words", "operation": "+", "value": "random(5,10)" },
+          { "resource": "deadline", "operation": "-", "value": "2" }
+        ],
+        "transition": "desk"
+      }
+    ],
+    "romance": [
+      {
+        "name": "slow_burn",
+        "label": "Slow Burn",
+        "description": "Build the relationship gradually.",
+        "effects": [
+          { "resource": "depth", "operation": "+", "value": "random(5,8)" },
+          { "resource": "satisfaction", "operation": "+", "value": "random(3,6)" },
+          { "resource": "words", "operation": "+", "value": "random(5,8)" },
+          { "resource": "deadline", "operation": "-", "value": "2" }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "love_triangle",
+        "label": "Love Triangle",
+        "description": "Add a rival. Increase the drama.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(5,10)" },
+          { "resource": "branches", "operation": "+", "value": "1" },
+          { "resource": "words", "operation": "+", "value": "random(4,7)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "heartbreak",
+        "label": "Heartbreak",
+        "description": "End the romance tragically.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(5,8)" },
+          { "resource": "depth", "operation": "+", "value": "random(3,6)" },
+          { "resource": "words", "operation": "+", "value": "random(3,6)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ],
+        "transition": "desk"
+      }
+    ],
+    "climax": [
+      {
+        "name": "final_battle",
+        "label": "Write the Final Battle",
+        "description": "Everything leads to this moment.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(10,15)" },
+          { "resource": "words", "operation": "+", "value": "random(8,12)" },
+          { "resource": "satisfaction", "operation": "+", "value": "random(5,10)" },
+          { "resource": "deadline", "operation": "-", "value": "2" }
+        ],
+        "transition": "resolution"
+      },
+      {
+        "name": "multiple_endings",
+        "label": "Write Multiple Endings",
+        "description": "Each branch gets its own conclusion.",
+        "effects": [
+          { "resource": "branches", "operation": "+", "value": "random(2,3)" },
+          { "resource": "words", "operation": "+", "value": "random(10,15)" },
+          { "resource": "satisfaction", "operation": "+", "value": "random(8,12)" },
+          { "resource": "deadline", "operation": "-", "value": "3" }
+        ],
+        "transition": "resolution"
+      }
+    ],
+    "resolution": [
+      {
+        "name": "wrap_up",
+        "label": "Wrap Up All Threads",
+        "description": "Resolve every storyline.",
+        "effects": [
+          { "resource": "satisfaction", "operation": "+", "value": "random(10,15)" },
+          { "resource": "words", "operation": "+", "value": "random(5,8)" },
+          { "resource": "deadline", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "open_ending",
+        "label": "Leave It Open",
+        "description": "Let the reader decide.",
+        "effects": [
+          { "resource": "satisfaction", "operation": "+", "value": "random(3,8)" },
+          { "resource": "depth", "operation": "+", "value": "random(3,6)" },
+          { "resource": "words", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "desk",
+      "to": "plot_twist",
+      "condition": { "resource": "tension", "operator": ">=", "value": "25" },
+      "auto": true
+    },
+    {
+      "from": "desk",
+      "to": "climax",
+      "condition": { "resource": "words", "operator": ">=", "value": "80" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "satisfaction", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "deadline", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "ink-cream",
+    "stateDescriptions": {
+      "desk": { "label": "Writing Desk", "icon": "edit" },
+      "character_arc": { "label": "Character Arc", "icon": "user" },
+      "plot_twist": { "label": "Plot Twist!", "icon": "zap" },
+      "romance": { "label": "Romance", "icon": "heart" },
+      "climax": { "label": "Climax", "icon": "star" },
+      "resolution": { "label": "Resolution", "icon": "check-circle" }
+    },
+    "resourceIcons": {
+      "words": "file-text",
+      "depth": "layers",
+      "tension": "activity",
+      "branches": "git-branch",
+      "satisfaction": "smile",
+      "deadline": "clock"
+    }
+  }
+}

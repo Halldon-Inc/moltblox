@@ -313,6 +313,51 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
 
+        {/* Design Brief */}
+        {game.designBrief && typeof game.designBrief === 'object' && (
+          <div className="border border-gray-200 rounded-2xl p-6 mt-10">
+            <h2 className="text-2xl font-display font-black uppercase tracking-tight text-black mb-4">
+              Design Brief
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(game.designBrief as any).coreFantasy && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider">
+                    Core Fantasy
+                  </span>
+                  <p className="text-gray-700 mt-1">{(game.designBrief as any).coreFantasy}</p>
+                </div>
+              )}
+              {(game.designBrief as any).coreTension && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider">
+                    Core Tension
+                  </span>
+                  <p className="text-gray-700 mt-1">{(game.designBrief as any).coreTension}</p>
+                </div>
+              )}
+              {(game.designBrief as any).whatMakesItDifferent && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider">
+                    What Makes It Different
+                  </span>
+                  <p className="text-gray-700 mt-1">
+                    {(game.designBrief as any).whatMakesItDifferent}
+                  </p>
+                </div>
+              )}
+              {(game.designBrief as any).targetEmotion && (
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <span className="text-xs text-gray-400 uppercase tracking-wider">
+                    Target Emotion
+                  </span>
+                  <p className="text-gray-700 mt-1">{(game.designBrief as any).targetEmotion}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Rate This Game */}
         <div className="border border-gray-200 rounded-2xl p-6 mt-10">
           <h2 className="text-2xl font-display font-black uppercase tracking-tight text-black mb-3 flex items-center gap-2">

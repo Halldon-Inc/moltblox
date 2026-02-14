@@ -1,0 +1,276 @@
+{
+  "name": "Lab Experiment",
+  "description": "Run a series of experiments in your research lab. Gather data, test hypotheses, and publish a groundbreaking paper.",
+  "states": [
+    {
+      "name": "planning",
+      "description": "Planning your experiment. Choose your approach.",
+      "onEnter": []
+    },
+    {
+      "name": "setup",
+      "description": "Setting up equipment and preparing samples.",
+      "onEnter": []
+    },
+    {
+      "name": "running",
+      "description": "The experiment is running. Monitor results.",
+      "onEnter": []
+    },
+    { "name": "analysis", "description": "Analyzing the collected data.", "onEnter": [] },
+    {
+      "name": "peer_review",
+      "description": "Submitting your findings for peer review.",
+      "onEnter": []
+    },
+    {
+      "name": "contamination",
+      "description": "Contamination detected! Results at risk.",
+      "onEnter": [{ "resource": "data_quality", "operation": "-", "value": "random(2,4)" }]
+    }
+  ],
+  "initialState": "planning",
+  "resources": {
+    "funding": { "initial": 100, "min": 0, "label": "Funding" },
+    "data_points": { "initial": 0, "min": 0, "max": 20, "label": "Data Points" },
+    "data_quality": { "initial": 5, "min": 0, "max": 10, "label": "Data Quality" },
+    "hypothesis_strength": { "initial": 0, "min": 0, "max": 12, "label": "Hypothesis Strength" },
+    "reputation": { "initial": 3, "min": 0, "max": 10, "label": "Reputation" },
+    "lab_safety": { "initial": 8, "min": 0, "max": 10, "label": "Lab Safety" }
+  },
+  "actions": {
+    "planning": [
+      {
+        "name": "literature_review",
+        "label": "Literature Review",
+        "effects": [
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "write_proposal",
+        "label": "Write Grant Proposal",
+        "effects": [
+          { "resource": "funding", "operation": "+", "value": "random(20,40)" },
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "design_experiment",
+        "label": "Design Experiment",
+        "condition": { "resource": "hypothesis_strength", "operator": ">=", "value": "3" },
+        "effects": [{ "resource": "hypothesis_strength", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "begin_setup",
+        "label": "Begin Lab Setup",
+        "condition": { "resource": "hypothesis_strength", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "setup"
+      }
+    ],
+    "setup": [
+      {
+        "name": "calibrate",
+        "label": "Calibrate Equipment",
+        "condition": { "resource": "funding", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "10" },
+          { "resource": "data_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "lab_safety", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "prepare_samples",
+        "label": "Prepare Samples",
+        "condition": { "resource": "funding", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "8" },
+          { "resource": "data_quality", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "safety_check",
+        "label": "Safety Inspection",
+        "effects": [{ "resource": "lab_safety", "operation": "+", "value": "random(1,3)" }]
+      },
+      {
+        "name": "start_experiment",
+        "label": "Start Experiment",
+        "condition": { "resource": "data_quality", "operator": ">=", "value": "5" },
+        "effects": [],
+        "transition": "running"
+      },
+      { "name": "back", "label": "Back to Planning", "effects": [], "transition": "planning" }
+    ],
+    "running": [
+      {
+        "name": "collect_data",
+        "label": "Collect Data",
+        "effects": [
+          { "resource": "data_points", "operation": "+", "value": "random(2,4)" },
+          { "resource": "funding", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "control_run",
+        "label": "Run Control Group",
+        "effects": [
+          { "resource": "data_points", "operation": "+", "value": "random(1,2)" },
+          { "resource": "data_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "funding", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "adjust_variables",
+        "label": "Adjust Variables",
+        "effects": [
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(0,2)" },
+          { "resource": "data_quality", "operation": "+", "value": "random(0,1)" },
+          { "resource": "lab_safety", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "repeat_trial",
+        "label": "Repeat Trial",
+        "condition": { "resource": "funding", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "data_points", "operation": "+", "value": "random(2,5)" },
+          { "resource": "funding", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "stop_experiment",
+        "label": "Stop and Analyze",
+        "condition": { "resource": "data_points", "operator": ">=", "value": "8" },
+        "effects": [],
+        "transition": "analysis"
+      }
+    ],
+    "analysis": [
+      {
+        "name": "statistical",
+        "label": "Statistical Analysis",
+        "effects": [
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(2,4)" },
+          { "resource": "data_quality", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "visualize",
+        "label": "Create Visualizations",
+        "effects": [
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "write_paper",
+        "label": "Write Paper",
+        "condition": {
+          "and": [
+            { "resource": "hypothesis_strength", "operator": ">=", "value": "8" },
+            { "resource": "data_points", "operator": ">=", "value": "12" }
+          ]
+        },
+        "effects": [{ "resource": "reputation", "operation": "+", "value": "random(1,3)" }],
+        "transition": "peer_review"
+      },
+      { "name": "more_data", "label": "Need More Data", "effects": [], "transition": "running" }
+    ],
+    "peer_review": [
+      {
+        "name": "respond_reviewers",
+        "label": "Respond to Reviewers",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" },
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "revise_paper",
+        "label": "Revise and Resubmit",
+        "effects": [
+          { "resource": "data_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "present_conference",
+        "label": "Present at Conference",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "15" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "contamination": [
+      {
+        "name": "clean_restart",
+        "label": "Clean and Restart",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "15" },
+          { "resource": "lab_safety", "operation": "+", "value": "random(2,3)" },
+          { "resource": "data_quality", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "setup"
+      },
+      {
+        "name": "salvage_data",
+        "label": "Salvage What You Can",
+        "effects": [
+          { "resource": "data_points", "operation": "-", "value": "random(2,4)" },
+          { "resource": "data_quality", "operation": "+", "value": "random(1,2)" }
+        ],
+        "transition": "running"
+      },
+      {
+        "name": "investigate",
+        "label": "Investigate the Source",
+        "effects": [
+          { "resource": "lab_safety", "operation": "+", "value": "random(2,4)" },
+          { "resource": "hypothesis_strength", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "setup"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "running",
+      "to": "contamination",
+      "condition": { "resource": "lab_safety", "operator": "<=", "value": "2" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "funding", "operation": "-", "value": "2" }],
+  "winCondition": {
+    "and": [
+      { "resource": "reputation", "operator": ">=", "value": "8" },
+      { "resource": "hypothesis_strength", "operator": ">=", "value": "10" }
+    ]
+  },
+  "loseCondition": { "resource": "funding", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "lab-white",
+    "stateDescriptions": {
+      "planning": { "label": "Planning", "icon": "clipboard" },
+      "setup": { "label": "Lab Setup", "icon": "tool" },
+      "running": { "label": "Running", "icon": "play" },
+      "analysis": { "label": "Analysis", "icon": "bar-chart" },
+      "peer_review": { "label": "Peer Review", "icon": "check-circle" },
+      "contamination": { "label": "Contamination!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "funding": "dollar",
+      "data_points": "database",
+      "data_quality": "star",
+      "hypothesis_strength": "trending-up",
+      "reputation": "award",
+      "lab_safety": "shield"
+    }
+  }
+}

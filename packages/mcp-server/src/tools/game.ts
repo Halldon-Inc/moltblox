@@ -55,6 +55,15 @@ export const publishGameSchema = z.object({
     .describe(
       'Template-specific game config. Options vary by template: side-battler accepts enemyTheme (fantasy/undead/demons/beasts/sci-fi), difficulty (easy/normal/hard), maxWaves, partyNames. clicker accepts targetClicks, clickValue. puzzle accepts gridSize. See GAME_DESIGN.md for full options.',
     ),
+  designBrief: z
+    .object({
+      coreFantasy: z.string().optional().describe('What the player imagines they are doing'),
+      coreTension: z.string().optional().describe('The central conflict or challenge'),
+      whatMakesItDifferent: z.string().optional().describe('Unique selling point vs other games'),
+      targetEmotion: z.string().optional().describe('Primary feeling the game evokes'),
+    })
+    .optional()
+    .describe('Creative design metadata for the game'),
 });
 
 export const updateGameSchema = z.object({
@@ -66,6 +75,15 @@ export const updateGameSchema = z.object({
   thumbnailUrl: z.string().url().optional().describe('New thumbnail'),
   active: z.boolean().optional().describe('Active status'),
   config: z.record(z.unknown()).optional().describe('Updated template-specific game config'),
+  designBrief: z
+    .object({
+      coreFantasy: z.string().optional().describe('What the player imagines they are doing'),
+      coreTension: z.string().optional().describe('The central conflict or challenge'),
+      whatMakesItDifferent: z.string().optional().describe('Unique selling point vs other games'),
+      targetEmotion: z.string().optional().describe('Primary feeling the game evokes'),
+    })
+    .optional()
+    .describe('Creative design metadata for the game'),
 });
 
 export const getGameSchema = z.object({

@@ -1,0 +1,286 @@
+{
+  "name": "Airport Manager",
+  "description": "Manage a growing airport. Handle flights, passengers, and logistics to become an international hub.",
+  "states": [
+    {
+      "name": "control_tower",
+      "description": "The nerve center coordinating all flights.",
+      "onEnter": []
+    },
+    {
+      "name": "terminal",
+      "description": "Passenger terminal with gates and shops.",
+      "onEnter": []
+    },
+    { "name": "runway", "description": "Runways and taxiways for aircraft.", "onEnter": [] },
+    { "name": "cargo", "description": "Cargo handling and freight operations.", "onEnter": [] },
+    { "name": "expansion", "description": "Building new facilities.", "onEnter": [] },
+    {
+      "name": "weather_delay",
+      "description": "Bad weather grounds all flights.",
+      "onEnter": [{ "resource": "passenger_satisfaction", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "control_tower",
+  "resources": {
+    "budget": { "initial": 1000, "min": 0, "label": "Budget" },
+    "flights_daily": { "initial": 10, "min": 0, "max": 50, "label": "Daily Flights" },
+    "passenger_satisfaction": {
+      "initial": 60,
+      "min": 0,
+      "max": 100,
+      "label": "Passenger Satisfaction"
+    },
+    "gates": { "initial": 5, "min": 2, "max": 30, "label": "Gates" },
+    "runways": { "initial": 1, "min": 1, "max": 5, "label": "Runways" },
+    "staff": { "initial": 20, "min": 5, "max": 100, "label": "Staff" },
+    "reputation": { "initial": 30, "min": 0, "max": 100, "label": "Airport Rating" }
+  },
+  "actions": {
+    "control_tower": [
+      {
+        "name": "manage_schedule",
+        "label": "Optimize Schedule",
+        "description": "Reorganize flight times for efficiency.",
+        "effects": [
+          { "resource": "flights_daily", "operation": "+", "value": "random(1,3)" },
+          { "resource": "budget", "operation": "+", "value": "random(20,50)" }
+        ]
+      },
+      {
+        "name": "go_terminal",
+        "label": "Visit Terminal",
+        "description": "Check on passenger services.",
+        "effects": [],
+        "transition": "terminal"
+      },
+      {
+        "name": "go_runway",
+        "label": "Inspect Runways",
+        "description": "Check runway conditions.",
+        "effects": [],
+        "transition": "runway"
+      },
+      {
+        "name": "go_cargo",
+        "label": "Visit Cargo Area",
+        "description": "Manage freight operations.",
+        "effects": [],
+        "transition": "cargo"
+      },
+      {
+        "name": "go_expansion",
+        "label": "Plan Expansion",
+        "description": "Build new facilities.",
+        "effects": [],
+        "transition": "expansion"
+      }
+    ],
+    "terminal": [
+      {
+        "name": "add_shops",
+        "label": "Add Retail Shops",
+        "description": "Open new stores in the terminal.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "50" },
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(3,8)" },
+          { "resource": "budget", "operation": "+", "value": "random(15,30)" }
+        ]
+      },
+      {
+        "name": "add_lounge",
+        "label": "Build VIP Lounge",
+        "description": "Premium lounge for travelers.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "80" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "80" },
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(5,12)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "security_upgrade",
+        "label": "Upgrade Security",
+        "description": "Faster, better security screening.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "60" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "60" },
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(5,10)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Tower",
+        "effects": [],
+        "transition": "control_tower"
+      }
+    ],
+    "runway": [
+      {
+        "name": "maintain_runway",
+        "label": "Runway Maintenance",
+        "description": "Resurface and repair the runway.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "40" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "add_lighting",
+        "label": "Upgrade Lighting",
+        "description": "Better lights for night operations.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "30" },
+          { "resource": "flights_daily", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Tower",
+        "effects": [],
+        "transition": "control_tower"
+      }
+    ],
+    "cargo": [
+      {
+        "name": "process_freight",
+        "label": "Process Freight",
+        "description": "Handle incoming and outgoing cargo.",
+        "effects": [
+          { "resource": "budget", "operation": "+", "value": "random(30,70)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "build_warehouse",
+        "label": "Build Cargo Warehouse",
+        "description": "Expand cargo handling capacity.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "100" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "100" },
+          { "resource": "budget", "operation": "+", "value": "random(20,40)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Tower",
+        "effects": [],
+        "transition": "control_tower"
+      }
+    ],
+    "expansion": [
+      {
+        "name": "new_gate",
+        "label": "Build New Gate",
+        "description": "Add another boarding gate.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "80" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "80" },
+          { "resource": "gates", "operation": "+", "value": "1" },
+          { "resource": "flights_daily", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "new_runway",
+        "label": "Build New Runway",
+        "description": "Major construction of a new runway.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "300" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "300" },
+          { "resource": "runways", "operation": "+", "value": "1" },
+          { "resource": "flights_daily", "operation": "+", "value": "random(8,15)" },
+          { "resource": "reputation", "operation": "+", "value": "random(8,15)" }
+        ]
+      },
+      {
+        "name": "hire_staff",
+        "label": "Hire Staff",
+        "description": "Recruit more workers.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "40" },
+          { "resource": "staff", "operation": "+", "value": "random(5,10)" },
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Tower",
+        "effects": [],
+        "transition": "control_tower"
+      }
+    ],
+    "weather_delay": [
+      {
+        "name": "communicate",
+        "label": "Communicate with Passengers",
+        "description": "Keep everyone informed of the delays.",
+        "effects": [
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(2,5)" }
+        ],
+        "transition": "control_tower"
+      },
+      {
+        "name": "offer_vouchers",
+        "label": "Offer Meal Vouchers",
+        "description": "Compensate passengers for delays.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "20" },
+          { "resource": "passenger_satisfaction", "operation": "+", "value": "random(5,10)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "control_tower"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "control_tower",
+      "to": "weather_delay",
+      "condition": { "resource": "flights_daily", "operator": ">=", "value": "30" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [
+    { "resource": "budget", "operation": "+", "value": "random(10,30)" },
+    { "resource": "budget", "operation": "-", "value": "15" }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "flights_daily", "operator": ">=", "value": "40" },
+      { "resource": "reputation", "operator": ">=", "value": "80" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "budget", "operator": "<=", "value": "0" },
+      { "resource": "passenger_satisfaction", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "sky-blue",
+    "stateDescriptions": {
+      "control_tower": { "label": "Control Tower", "icon": "radio" },
+      "terminal": { "label": "Terminal", "icon": "home" },
+      "runway": { "label": "Runway", "icon": "arrow-right" },
+      "cargo": { "label": "Cargo", "icon": "box" },
+      "expansion": { "label": "Expansion", "icon": "tool" },
+      "weather_delay": { "label": "Weather Delay!", "icon": "cloud-rain" }
+    },
+    "resourceIcons": {
+      "budget": "dollar",
+      "flights_daily": "send",
+      "passenger_satisfaction": "smile",
+      "gates": "door",
+      "runways": "arrow-right",
+      "staff": "users",
+      "reputation": "star"
+    }
+  }
+}

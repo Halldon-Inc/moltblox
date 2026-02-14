@@ -12,10 +12,7 @@ export function initSentry(): void {
     dsn: SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
-    integrations: [
-      Sentry.httpIntegration(),
-      Sentry.expressIntegration(),
-    ],
+    integrations: [Sentry.httpIntegration(), Sentry.expressIntegration()],
   });
 
   console.log('[Sentry] Initialized');

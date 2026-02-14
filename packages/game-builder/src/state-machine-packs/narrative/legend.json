@@ -1,0 +1,283 @@
+{
+  "name": "Legend",
+  "description": "You are a bard in a medieval tavern. Craft the greatest legend ever told by weaving together tales of heroes, monsters, and miracles for your audience.",
+  "states": [
+    { "name": "tavern", "description": "A packed tavern. Every eye is on you.", "onEnter": [] },
+    {
+      "name": "hero_tale",
+      "description": "Telling the story of the legendary hero.",
+      "onEnter": [{ "resource": "drama", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "monster_fight",
+      "description": "Describing an epic battle with a fearsome beast.",
+      "onEnter": [{ "resource": "excitement", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "love_story",
+      "description": "A tale of romance between unlikely lovers.",
+      "onEnter": [{ "resource": "emotion", "operation": "+", "value": "random(5,8)" }]
+    },
+    {
+      "name": "divine_miracle",
+      "description": "The gods intervene. A miracle unfolds.",
+      "onEnter": [{ "resource": "wonder", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "grand_finale",
+      "description": "The climax of the legend. Everyone leans forward.",
+      "onEnter": [{ "resource": "excitement", "operation": "+", "value": "random(8,12)" }]
+    }
+  ],
+  "initialState": "tavern",
+  "resources": {
+    "audience": { "initial": 20, "min": 0, "max": 100, "label": "Audience Size" },
+    "drama": { "initial": 5, "min": 0, "max": 100, "label": "Drama" },
+    "excitement": { "initial": 5, "min": 0, "max": 100, "label": "Excitement" },
+    "emotion": { "initial": 5, "min": 0, "max": 100, "label": "Emotion" },
+    "wonder": { "initial": 5, "min": 0, "max": 100, "label": "Wonder" },
+    "reputation": { "initial": 10, "min": 0, "max": 100, "label": "Reputation" }
+  },
+  "actions": {
+    "tavern": [
+      {
+        "name": "begin_hero",
+        "label": "Tell of a Hero",
+        "description": "Start with a tale of courage.",
+        "effects": [{ "resource": "audience", "operation": "+", "value": "random(3,6)" }],
+        "transition": "hero_tale"
+      },
+      {
+        "name": "begin_monster",
+        "label": "Describe a Monster",
+        "description": "Open with a terrifying beast.",
+        "effects": [{ "resource": "audience", "operation": "+", "value": "random(3,6)" }],
+        "transition": "monster_fight"
+      },
+      {
+        "name": "begin_love",
+        "label": "Speak of Love",
+        "description": "Start with a romantic tale.",
+        "effects": [{ "resource": "audience", "operation": "+", "value": "random(2,5)" }],
+        "transition": "love_story"
+      },
+      {
+        "name": "warm_up",
+        "label": "Warm Up the Crowd",
+        "description": "Jokes and small stories to get attention.",
+        "effects": [
+          { "resource": "audience", "operation": "+", "value": "random(5,10)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      }
+    ],
+    "hero_tale": [
+      {
+        "name": "humble_origins",
+        "label": "Humble Origins",
+        "description": "The hero came from nothing.",
+        "effects": [
+          { "resource": "emotion", "operation": "+", "value": "random(3,6)" },
+          { "resource": "drama", "operation": "+", "value": "random(3,5)" },
+          { "resource": "audience", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "training_montage",
+        "label": "The Training",
+        "description": "Years of preparation for destiny.",
+        "effects": [
+          { "resource": "drama", "operation": "+", "value": "random(5,8)" },
+          { "resource": "excitement", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "hero_faces_monster",
+        "label": "The Hero Faces Evil",
+        "description": "The hero confronts the beast.",
+        "effects": [{ "resource": "drama", "operation": "+", "value": "random(5,8)" }],
+        "transition": "monster_fight"
+      },
+      {
+        "name": "hero_falls_in_love",
+        "label": "The Hero Falls in Love",
+        "description": "A chance encounter changes everything.",
+        "effects": [{ "resource": "emotion", "operation": "+", "value": "random(3,6)" }],
+        "transition": "love_story"
+      }
+    ],
+    "monster_fight": [
+      {
+        "name": "describe_beast",
+        "label": "Describe the Beast",
+        "description": "Paint a vivid picture of terror.",
+        "effects": [
+          { "resource": "excitement", "operation": "+", "value": "random(5,10)" },
+          { "resource": "audience", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "epic_clash",
+        "label": "The Epic Clash",
+        "description": "Swords ring and fire blazes.",
+        "effects": [
+          { "resource": "excitement", "operation": "+", "value": "random(8,12)" },
+          { "resource": "drama", "operation": "+", "value": "random(5,8)" },
+          { "resource": "audience", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "divine_aid",
+        "label": "Call for Divine Aid",
+        "description": "The hero prays for help.",
+        "effects": [{ "resource": "wonder", "operation": "+", "value": "random(5,8)" }],
+        "transition": "divine_miracle"
+      },
+      {
+        "name": "victory",
+        "label": "The Victory",
+        "description": "The beast falls. The crowd cheers.",
+        "effects": [
+          { "resource": "excitement", "operation": "+", "value": "random(5,10)" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,8)" }
+        ],
+        "transition": "tavern"
+      }
+    ],
+    "love_story": [
+      {
+        "name": "first_meeting",
+        "label": "Their First Meeting",
+        "description": "Eyes meet across a crowded square.",
+        "effects": [
+          { "resource": "emotion", "operation": "+", "value": "random(5,10)" },
+          { "resource": "audience", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "forbidden_love",
+        "label": "Forbidden Love",
+        "description": "Their families would never allow it.",
+        "effects": [
+          { "resource": "emotion", "operation": "+", "value": "random(8,12)" },
+          { "resource": "drama", "operation": "+", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "sacrifice",
+        "label": "The Sacrifice",
+        "description": "One gives everything for the other.",
+        "effects": [
+          { "resource": "emotion", "operation": "+", "value": "random(8,12)" },
+          { "resource": "wonder", "operation": "+", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "tavern"
+      }
+    ],
+    "divine_miracle": [
+      {
+        "name": "healing_light",
+        "label": "Healing Light",
+        "description": "Golden light heals all wounds.",
+        "effects": [
+          { "resource": "wonder", "operation": "+", "value": "random(8,12)" },
+          { "resource": "emotion", "operation": "+", "value": "random(3,6)" },
+          { "resource": "audience", "operation": "+", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "divine_weapon",
+        "label": "A Divine Weapon",
+        "description": "The gods forge a weapon of pure light.",
+        "effects": [
+          { "resource": "wonder", "operation": "+", "value": "random(5,10)" },
+          { "resource": "excitement", "operation": "+", "value": "random(5,8)" }
+        ],
+        "transition": "monster_fight"
+      },
+      {
+        "name": "prophecy",
+        "label": "A Prophecy",
+        "description": "The gods speak of what must come.",
+        "effects": [
+          { "resource": "wonder", "operation": "+", "value": "random(5,10)" },
+          { "resource": "drama", "operation": "+", "value": "random(5,8)" }
+        ],
+        "transition": "grand_finale"
+      }
+    ],
+    "grand_finale": [
+      {
+        "name": "triumphant_ending",
+        "label": "Triumphant Ending",
+        "description": "The hero wins. The kingdom is saved.",
+        "effects": [
+          { "resource": "excitement", "operation": "+", "value": "random(10,15)" },
+          { "resource": "reputation", "operation": "+", "value": "random(10,15)" },
+          { "resource": "audience", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "bittersweet_ending",
+        "label": "Bittersweet Ending",
+        "description": "Victory, but at a great cost.",
+        "effects": [
+          { "resource": "emotion", "operation": "+", "value": "random(10,15)" },
+          { "resource": "reputation", "operation": "+", "value": "random(8,12)" },
+          { "resource": "audience", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "cliffhanger",
+        "label": "Leave a Cliffhanger",
+        "description": "End the story mid-sentence. They will come back tomorrow.",
+        "effects": [
+          { "resource": "drama", "operation": "+", "value": "random(8,12)" },
+          { "resource": "audience", "operation": "+", "value": "random(8,12)" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,8)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "tavern",
+      "to": "grand_finale",
+      "condition": {
+        "and": [
+          { "resource": "drama", "operator": ">=", "value": "40" },
+          { "resource": "excitement", "operator": ">=", "value": "40" }
+        ]
+      },
+      "auto": true
+    },
+    {
+      "from": "hero_tale",
+      "to": "grand_finale",
+      "condition": { "resource": "drama", "operator": ">=", "value": "60" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "reputation", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "audience", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "tavern-amber",
+    "stateDescriptions": {
+      "tavern": { "label": "The Tavern", "icon": "home" },
+      "hero_tale": { "label": "Hero's Tale", "icon": "shield" },
+      "monster_fight": { "label": "Monster Fight", "icon": "sword" },
+      "love_story": { "label": "Love Story", "icon": "heart" },
+      "divine_miracle": { "label": "Divine Miracle", "icon": "star" },
+      "grand_finale": { "label": "Grand Finale", "icon": "award" }
+    },
+    "resourceIcons": {
+      "audience": "users",
+      "drama": "activity",
+      "excitement": "zap",
+      "emotion": "heart",
+      "wonder": "star",
+      "reputation": "award"
+    }
+  }
+}

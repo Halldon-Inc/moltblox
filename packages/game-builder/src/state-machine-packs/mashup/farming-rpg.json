@@ -1,0 +1,555 @@
+{
+  "name": "Farming RPG",
+  "description": "You are an adventurer who retired to a farm, but the land is cursed. Tend your crops by day, fight monsters that emerge from the soil at night. Your harvest is your power.",
+  "states": [
+    {
+      "name": "farmstead",
+      "description": "Your small farm. The soil glows faintly at night.",
+      "onEnter": []
+    },
+    {
+      "name": "planting",
+      "description": "Choosing what to grow. Some seeds have magical properties.",
+      "onEnter": [
+        {
+          "resource": "crops",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "harvest",
+      "description": "The crops are ready. Golden wheat and glowing berries.",
+      "onEnter": [
+        {
+          "resource": "crops",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "night_battle",
+      "description": "Darkness falls. Things crawl from the earth.",
+      "onEnter": [
+        {
+          "resource": "corruption",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "market",
+      "description": "The nearby town market. Trade and buy supplies.",
+      "onEnter": []
+    },
+    {
+      "name": "deep_roots",
+      "description": "Below the farm, ancient roots pulse with dark energy.",
+      "onEnter": [
+        {
+          "resource": "corruption",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    }
+  ],
+  "initialState": "farmstead",
+  "resources": {
+    "crops": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Crops"
+    },
+    "strength": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Strength"
+    },
+    "gold": {
+      "initial": 10,
+      "min": 0,
+      "max": 200,
+      "label": "Gold"
+    },
+    "corruption": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Land Corruption"
+    },
+    "purification": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Purification"
+    }
+  },
+  "actions": {
+    "farmstead": [
+      {
+        "name": "plant_seeds",
+        "label": "Plant Seeds",
+        "description": "Prepare the soil and sow.",
+        "effects": [
+          {
+            "resource": "gold",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "planting"
+      },
+      {
+        "name": "check_fields",
+        "label": "Check the Fields",
+        "description": "See what is ready to harvest.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "harvest"
+      },
+      {
+        "name": "fortify",
+        "label": "Fortify the Farm",
+        "description": "Build defenses for the night.",
+        "effects": [
+          {
+            "resource": "strength",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "gold",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "go_market",
+        "label": "Go to Market",
+        "description": "Sell crops and buy supplies.",
+        "effects": [],
+        "transition": "market"
+      }
+    ],
+    "planting": [
+      {
+        "name": "wheat",
+        "label": "Plant Wheat",
+        "description": "A reliable staple crop.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "magic_herbs",
+        "label": "Plant Magic Herbs",
+        "description": "Glowing seeds that purify the soil.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "battle_crops",
+        "label": "Plant Battle Crops",
+        "description": "Thorny vines that fight alongside you.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "strength",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "farmstead"
+      },
+      {
+        "name": "tend_soil",
+        "label": "Tend the Soil",
+        "description": "Care for what is already planted.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "farmstead"
+      }
+    ],
+    "harvest": [
+      {
+        "name": "gather_all",
+        "label": "Gather Everything",
+        "description": "Pull every crop from the ground.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "selective",
+        "label": "Selective Harvest",
+        "description": "Only take the best, leave the rest to purify.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "sell_harvest",
+        "label": "Sell at Market",
+        "description": "Take the harvest straight to town.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "gold",
+            "operation": "+",
+            "value": "random(8,15)"
+          }
+        ],
+        "transition": "market"
+      },
+      {
+        "name": "store",
+        "label": "Store for Winter",
+        "description": "Save the harvest.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "farmstead"
+      }
+    ],
+    "night_battle": [
+      {
+        "name": "fight_monsters",
+        "label": "Fight the Monsters",
+        "description": "Draw your sword and defend the farm.",
+        "effects": [
+          {
+            "resource": "strength",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "use_crops",
+        "label": "Use Battle Crops",
+        "description": "Activate your planted defenses.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "dig_deep",
+        "label": "Dig to the Source",
+        "description": "Follow the corruption to its root.",
+        "effects": [
+          {
+            "resource": "strength",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "deep_roots"
+      },
+      {
+        "name": "barricade",
+        "label": "Barricade and Wait",
+        "description": "Hide until dawn.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "farmstead"
+      }
+    ],
+    "market": [
+      {
+        "name": "sell_crops",
+        "label": "Sell Crops",
+        "description": "Trade your harvest for gold.",
+        "effects": [
+          {
+            "resource": "crops",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "gold",
+            "operation": "+",
+            "value": "random(10,18)"
+          }
+        ]
+      },
+      {
+        "name": "buy_seeds",
+        "label": "Buy Magic Seeds",
+        "description": "Special seeds from a traveling merchant.",
+        "effects": [
+          {
+            "resource": "gold",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "hire_help",
+        "label": "Hire a Farmhand",
+        "description": "Extra hands for the harvest.",
+        "effects": [
+          {
+            "resource": "gold",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "strength",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "return_farm",
+        "label": "Return to Farm",
+        "description": "Head back before nightfall.",
+        "effects": [],
+        "transition": "farmstead"
+      }
+    ],
+    "deep_roots": [
+      {
+        "name": "purify_source",
+        "label": "Purify the Source",
+        "description": "Pour cleansing magic into the roots.",
+        "effects": [
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "strength",
+            "operation": "-",
+            "value": "random(8,12)"
+          }
+        ]
+      },
+      {
+        "name": "cut_roots",
+        "label": "Cut the Dark Roots",
+        "description": "Sever the corruption at its core.",
+        "effects": [
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "strength",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "purification",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "retreat_up",
+        "label": "Retreat to Surface",
+        "description": "Too dangerous. Come back stronger.",
+        "effects": [
+          {
+            "resource": "corruption",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "farmstead"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "farmstead",
+      "to": "night_battle",
+      "condition": {
+        "resource": "corruption",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "harvest",
+      "to": "night_battle",
+      "condition": {
+        "resource": "corruption",
+        "operator": ">=",
+        "value": "50"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "purification",
+    "operator": ">=",
+    "value": "85"
+  },
+  "loseCondition": {
+    "resource": "strength",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "earth-brown",
+    "stateDescriptions": {
+      "farmstead": {
+        "label": "Farmstead",
+        "icon": "home"
+      },
+      "planting": {
+        "label": "Planting",
+        "icon": "feather"
+      },
+      "harvest": {
+        "label": "Harvest",
+        "icon": "sun"
+      },
+      "night_battle": {
+        "label": "Night Battle",
+        "icon": "moon"
+      },
+      "market": {
+        "label": "Market",
+        "icon": "shopping-cart"
+      },
+      "deep_roots": {
+        "label": "Deep Roots",
+        "icon": "arrow-down"
+      }
+    },
+    "resourceIcons": {
+      "crops": "leaf",
+      "strength": "shield",
+      "gold": "dollar-sign",
+      "corruption": "alert-triangle",
+      "purification": "sun"
+    }
+  }
+}

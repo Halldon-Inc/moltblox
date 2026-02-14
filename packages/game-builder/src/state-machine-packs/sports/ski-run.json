@@ -1,0 +1,412 @@
+{
+  "name": "Ski Run",
+  "description": "Race down a mountain ski course. Choose your line, manage speed, and avoid obstacles to post the fastest time.",
+  "states": [
+    {
+      "name": "start_gate",
+      "description": "At the top. The timer beeps.",
+      "onEnter": []
+    },
+    {
+      "name": "steep_section",
+      "description": "A steep pitch. Gravity pulls you faster.",
+      "onEnter": [
+        {
+          "resource": "speed",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "mogul_field",
+      "description": "Bumps and jumps across the slope.",
+      "onEnter": []
+    },
+    {
+      "name": "ice_patch",
+      "description": "Slick ice. Edges barely grip.",
+      "onEnter": [
+        {
+          "resource": "control",
+          "operation": "-",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "finish_chute",
+      "description": "The final stretch to the finish line.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "start_gate",
+  "resources": {
+    "time": {
+      "initial": 0,
+      "min": 0,
+      "max": 200,
+      "label": "Time (lower is better)"
+    },
+    "speed": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Speed"
+    },
+    "control": {
+      "initial": 80,
+      "min": 0,
+      "max": 100,
+      "label": "Control"
+    },
+    "energy": {
+      "initial": 100,
+      "min": 0,
+      "max": 100,
+      "label": "Energy"
+    },
+    "style": {
+      "initial": 0,
+      "min": 0,
+      "max": 50,
+      "label": "Style Points"
+    }
+  },
+  "actions": {
+    "start_gate": [
+      {
+        "name": "explosive_start",
+        "label": "Explosive Start",
+        "description": "Push hard out of the gate.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(15,25)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "10"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "2"
+          }
+        ],
+        "transition": "steep_section"
+      },
+      {
+        "name": "smooth_start",
+        "label": "Smooth Start",
+        "description": "Glide out with good form.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "control",
+            "operation": "+",
+            "value": "5"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "3"
+          }
+        ],
+        "transition": "steep_section"
+      }
+    ],
+    "steep_section": [
+      {
+        "name": "tuck",
+        "label": "Tuck for Speed",
+        "description": "Aerodynamic position.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "control",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "carve_turns",
+        "label": "Carve Clean Turns",
+        "description": "Arc through the gates.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(3,8)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(4,7)"
+          },
+          {
+            "resource": "style",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "brake_check",
+        "label": "Brake Check",
+        "description": "Slow down before the moguls.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "control",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "mogul_field"
+      }
+    ],
+    "mogul_field": [
+      {
+        "name": "absorb_bumps",
+        "label": "Absorb the Bumps",
+        "description": "Use your legs as shock absorbers.",
+        "effects": [
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "control",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "air_trick",
+        "label": "Hit a Jump",
+        "description": "Launch off a mogul for style.",
+        "effects": [
+          {
+            "resource": "style",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "control",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(4,6)"
+          }
+        ]
+      },
+      {
+        "name": "power_through",
+        "label": "Power Through",
+        "description": "Brute force over the bumps.",
+        "effects": [
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(15,20)"
+          },
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(4,6)"
+          }
+        ],
+        "transition": "ice_patch"
+      }
+    ],
+    "ice_patch": [
+      {
+        "name": "edge_carefully",
+        "label": "Edge Carefully",
+        "description": "Pressure your edges to grip the ice.",
+        "effects": [
+          {
+            "resource": "control",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "finish_chute"
+      },
+      {
+        "name": "straight_line",
+        "label": "Straight Line It",
+        "description": "Just point downhill and hold on.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "control",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "finish_chute"
+      }
+    ],
+    "finish_chute": [
+      {
+        "name": "final_tuck",
+        "label": "Final Tuck",
+        "description": "Maximum speed to the finish.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "style",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "victory_spray",
+        "label": "Victory Snow Spray",
+        "description": "Slide to a stop in style.",
+        "effects": [
+          {
+            "resource": "style",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "steep_section",
+      "to": "mogul_field",
+      "condition": {
+        "resource": "speed",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "mogul_field",
+      "to": "ice_patch",
+      "condition": {
+        "resource": "energy",
+        "operator": "<=",
+        "value": "30"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "style",
+    "operator": ">=",
+    "value": "30"
+  },
+  "loseCondition": {
+    "resource": "control",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "snow-white",
+    "stateDescriptions": {
+      "start_gate": {
+        "label": "Start Gate",
+        "icon": "flag"
+      },
+      "steep_section": {
+        "label": "Steep Pitch",
+        "icon": "trending-down"
+      },
+      "mogul_field": {
+        "label": "Moguls",
+        "icon": "activity"
+      },
+      "ice_patch": {
+        "label": "Ice!",
+        "icon": "snowflake"
+      },
+      "finish_chute": {
+        "label": "Finish!",
+        "icon": "flag"
+      }
+    },
+    "resourceIcons": {
+      "time": "clock",
+      "speed": "zap",
+      "control": "compass",
+      "energy": "battery",
+      "style": "star"
+    }
+  }
+}

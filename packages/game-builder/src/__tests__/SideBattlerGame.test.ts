@@ -858,4 +858,99 @@ describe('SideBattlerGame', () => {
       );
     });
   });
+
+  // -----------------------------------------------------------------------
+  // 12. Config option tests
+  // -----------------------------------------------------------------------
+
+  describe('config: partySize', () => {
+    it('creates a 2-member party when partySize is 2', () => {
+      const game = new SideBattlerGame({ partySize: 2 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.party).toHaveLength(2);
+      expect(data.party[0].classType).toBe('warrior');
+      expect(data.party[1].classType).toBe('mage');
+    });
+
+    it('creates a 6-member party when partySize is 6', () => {
+      const game = new SideBattlerGame({ partySize: 6 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.party).toHaveLength(6);
+    });
+  });
+
+  describe('config: healBetweenWaves', () => {
+    it('heals party between waves when enabled (default)', () => {
+      const game = new SideBattlerGame({ healBetweenWaves: true });
+      game.initialize(['player-1']);
+      act(game, 'player-1', 'start_wave');
+      // Damage a party member
+      const data = getData(game);
+      data.party[0].stats.hp = 10;
+      clearCurrentWave(game, 'player-1');
+      // Start next wave, which should heal the party
+      act(game, 'player-1', 'start_wave');
+      const after = getData(game);
+      // Warrior should be healed back to max
+      expect(after.party[0].stats.hp).toBe(after.party[0].stats.maxHp);
+    });
+
+    it('does not heal party between waves when disabled', () => {
+      const game = new SideBattlerGame({ healBetweenWaves: false });
+      game.initialize(['player-1']);
+      act(game, 'player-1', 'start_wave');
+      const data = getData(game);
+      data.party[0].stats.hp = 10;
+      clearCurrentWave(game, 'player-1');
+      act(game, 'player-1', 'start_wave');
+      const after = getData(game);
+      expect(after.party[0].stats.hp).toBeLessThanOrEqual(10);
+    });
+  });
+
+  describe('config: enemyScaling', () => {
+    it('exponential scaling makes wave 4 enemies stronger than linear', () => {
+      const linearGame = new SideBattlerGame({ enemyScaling: 'linear' });
+      linearGame.initialize(['player-1']);
+      // Clear 3 waves and check wave 4 enemy stats
+      for (let w = 0; w < 3; w++) {
+        act(linearGame, 'player-1', 'start_wave');
+        clearCurrentWave(linearGame, 'player-1');
+      }
+      act(linearGame, 'player-1', 'start_wave');
+      const linearData = getData(linearGame);
+      const linearHp = linearData.enemies[0].stats.hp;
+
+      const expGame = new SideBattlerGame({ enemyScaling: 'exponential' });
+      expGame.initialize(['player-1']);
+      for (let w = 0; w < 3; w++) {
+        act(expGame, 'player-1', 'start_wave');
+        clearCurrentWave(expGame, 'player-1');
+      }
+      act(expGame, 'player-1', 'start_wave');
+      const expData = getData(expGame);
+      const expHp = expData.enemies[0].stats.hp;
+
+      expect(expHp).toBeGreaterThan(linearHp);
+    });
+  });
+
+  describe('config: allowFormationSwap', () => {
+    it('allows swapping party member positions when enabled', () => {
+      const game = new SideBattlerGame({ allowFormationSwap: true });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      const firstClass = data.party[0].classType;
+      const secondClass = data.party[1].classType;
+
+      const result = act(game, 'player-1', 'swap_formation', { indexA: 0, indexB: 1 });
+      expect(result.success).toBe(true);
+
+      const after = getData(game);
+      expect(after.party[0].classType).toBe(secondClass);
+      expect(after.party[1].classType).toBe(firstClass);
+    });
+  });
 });

@@ -1,0 +1,267 @@
+{
+  "name": "Insurance",
+  "description": "Run an insurance company. Write policies, assess risk, handle claims, and balance profitability against customer trust.",
+  "states": [
+    {
+      "name": "office",
+      "description": "Your insurance office. Phones ring constantly.",
+      "onEnter": []
+    },
+    {
+      "name": "underwriting",
+      "description": "Evaluating new policy applications and assessing risk.",
+      "onEnter": [{ "resource": "policies", "operation": "+", "value": "random(1,2)" }]
+    },
+    {
+      "name": "claims_desk",
+      "description": "Stacks of claims to process. Each one costs money.",
+      "onEnter": [{ "resource": "pending_claims", "operation": "+", "value": "random(1,3)" }]
+    },
+    {
+      "name": "investigation",
+      "description": "Checking if this claim is legitimate or fraudulent.",
+      "onEnter": []
+    },
+    {
+      "name": "disaster",
+      "description": "A major event triggers hundreds of claims at once.",
+      "onEnter": [
+        { "resource": "pending_claims", "operation": "+", "value": "random(5,10)" },
+        { "resource": "reserves", "operation": "-", "value": "random(50000,100000)" }
+      ]
+    },
+    {
+      "name": "reinsurance",
+      "description": "Negotiating with reinsurers to spread your risk.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "office",
+  "resources": {
+    "reserves": { "initial": 500000, "min": 0, "max": 5000000, "label": "Cash Reserves" },
+    "policies": { "initial": 10, "min": 0, "max": 100, "label": "Active Policies" },
+    "pending_claims": { "initial": 2, "min": 0, "max": 50, "label": "Pending Claims" },
+    "trust": { "initial": 40, "min": 0, "max": 100, "label": "Customer Trust" },
+    "profit": { "initial": 0, "min": 0, "max": 200, "label": "Profit" },
+    "risk_exposure": { "initial": 20, "min": 0, "max": 100, "label": "Risk Exposure" }
+  },
+  "actions": {
+    "office": [
+      {
+        "name": "collect_premiums",
+        "label": "Collect Premiums",
+        "description": "Gather monthly premium payments.",
+        "effects": [
+          { "resource": "reserves", "operation": "+", "value": "random(20000,50000)" },
+          { "resource": "profit", "operation": "+", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "go_underwriting",
+        "label": "Review Applications",
+        "description": "Check new policy requests.",
+        "effects": [],
+        "transition": "underwriting"
+      },
+      {
+        "name": "go_claims",
+        "label": "Process Claims",
+        "description": "Handle pending claims.",
+        "condition": { "resource": "pending_claims", "operator": ">=", "value": "1" },
+        "effects": [],
+        "transition": "claims_desk"
+      },
+      {
+        "name": "market_policies",
+        "label": "Market New Policies",
+        "description": "Advertise to attract customers.",
+        "effects": [
+          { "resource": "reserves", "operation": "-", "value": "random(5000,15000)" },
+          { "resource": "policies", "operation": "+", "value": "random(2,5)" },
+          { "resource": "trust", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "underwriting": [
+      {
+        "name": "write_standard",
+        "label": "Write Standard Policy",
+        "description": "Standard coverage at fair premiums.",
+        "effects": [
+          { "resource": "policies", "operation": "+", "value": "1" },
+          { "resource": "risk_exposure", "operation": "+", "value": "random(2,5)" },
+          { "resource": "profit", "operation": "+", "value": "random(3,6)" },
+          { "resource": "trust", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "write_premium",
+        "label": "Write Premium Policy",
+        "description": "Full coverage at higher premiums.",
+        "effects": [
+          { "resource": "policies", "operation": "+", "value": "1" },
+          { "resource": "risk_exposure", "operation": "+", "value": "random(5,10)" },
+          { "resource": "profit", "operation": "+", "value": "random(6,12)" }
+        ]
+      },
+      {
+        "name": "decline_app",
+        "label": "Decline Application",
+        "description": "Too risky to insure.",
+        "effects": [
+          { "resource": "risk_exposure", "operation": "-", "value": "random(2,5)" },
+          { "resource": "trust", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "back_office",
+        "label": "Return to Office",
+        "description": "Head back to the main office.",
+        "effects": [],
+        "transition": "office"
+      }
+    ],
+    "claims_desk": [
+      {
+        "name": "pay_claim",
+        "label": "Pay Claim",
+        "description": "Approve and pay the claim.",
+        "condition": { "resource": "pending_claims", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "pending_claims", "operation": "-", "value": "1" },
+          { "resource": "reserves", "operation": "-", "value": "random(10000,40000)" },
+          { "resource": "trust", "operation": "+", "value": "random(3,8)" },
+          { "resource": "profit", "operation": "-", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "investigate_claim",
+        "label": "Investigate Claim",
+        "description": "Check for fraud before paying.",
+        "condition": { "resource": "pending_claims", "operator": ">=", "value": "1" },
+        "effects": [{ "resource": "pending_claims", "operation": "-", "value": "1" }],
+        "transition": "investigation"
+      },
+      {
+        "name": "deny_claim",
+        "label": "Deny Claim",
+        "description": "Reject the claim outright.",
+        "condition": { "resource": "pending_claims", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "pending_claims", "operation": "-", "value": "1" },
+          { "resource": "trust", "operation": "-", "value": "random(5,10)" },
+          { "resource": "profit", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back_office2",
+        "label": "Return to Office",
+        "description": "Go back to the main floor.",
+        "effects": [],
+        "transition": "office"
+      }
+    ],
+    "investigation": [
+      {
+        "name": "find_fraud",
+        "label": "Fraud Confirmed",
+        "description": "Evidence of a fake claim. Deny it.",
+        "effects": [
+          { "resource": "reserves", "operation": "+", "value": "random(5000,15000)" },
+          { "resource": "trust", "operation": "+", "value": "random(2,5)" },
+          { "resource": "profit", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "office"
+      },
+      {
+        "name": "legitimate",
+        "label": "Claim is Legitimate",
+        "description": "Pay the verified claim.",
+        "effects": [
+          { "resource": "reserves", "operation": "-", "value": "random(15000,35000)" },
+          { "resource": "trust", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "office"
+      }
+    ],
+    "disaster": [
+      {
+        "name": "mobilize",
+        "label": "Mobilize Response Team",
+        "description": "Deploy adjusters to assess damage.",
+        "effects": [
+          { "resource": "reserves", "operation": "-", "value": "random(50000,150000)" },
+          { "resource": "trust", "operation": "+", "value": "random(8,15)" },
+          { "resource": "pending_claims", "operation": "-", "value": "random(3,6)" }
+        ],
+        "transition": "office"
+      },
+      {
+        "name": "call_reinsurer",
+        "label": "Activate Reinsurance",
+        "description": "Pass the catastrophe to reinsurers.",
+        "effects": [
+          { "resource": "reserves", "operation": "-", "value": "random(20000,50000)" },
+          { "resource": "risk_exposure", "operation": "-", "value": "random(10,20)" },
+          { "resource": "pending_claims", "operation": "-", "value": "random(3,5)" }
+        ],
+        "transition": "reinsurance"
+      }
+    ],
+    "reinsurance": [
+      {
+        "name": "negotiate_treaty",
+        "label": "Negotiate Treaty",
+        "description": "Secure reinsurance coverage.",
+        "effects": [
+          { "resource": "reserves", "operation": "-", "value": "random(30000,60000)" },
+          { "resource": "risk_exposure", "operation": "-", "value": "random(10,20)" },
+          { "resource": "profit", "operation": "-", "value": "random(3,6)" }
+        ],
+        "transition": "office"
+      },
+      {
+        "name": "self_insure",
+        "label": "Self Insure",
+        "description": "Keep all risk on your own books.",
+        "effects": [{ "resource": "risk_exposure", "operation": "+", "value": "random(5,10)" }],
+        "transition": "office"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "office",
+      "to": "disaster",
+      "condition": { "resource": "risk_exposure", "operator": ">=", "value": "60" },
+      "auto": true
+    },
+    {
+      "from": "office",
+      "to": "reinsurance",
+      "condition": { "resource": "risk_exposure", "operator": ">=", "value": "45" },
+      "auto": false
+    }
+  ],
+  "winCondition": { "resource": "profit", "operator": ">=", "value": "150" },
+  "loseCondition": { "resource": "reserves", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "corporate-blue",
+    "stateDescriptions": {
+      "office": { "label": "Office", "icon": "home" },
+      "underwriting": { "label": "Underwriting", "icon": "file-text" },
+      "claims_desk": { "label": "Claims", "icon": "inbox" },
+      "investigation": { "label": "Investigation", "icon": "search" },
+      "disaster": { "label": "Disaster!", "icon": "alert" },
+      "reinsurance": { "label": "Reinsurance", "icon": "shield" }
+    },
+    "resourceIcons": {
+      "reserves": "database",
+      "policies": "file",
+      "pending_claims": "inbox",
+      "trust": "heart",
+      "profit": "trending-up",
+      "risk_exposure": "alert"
+    }
+  }
+}

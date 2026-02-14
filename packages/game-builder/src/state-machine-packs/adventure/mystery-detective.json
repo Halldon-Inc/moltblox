@@ -1,0 +1,310 @@
+{
+  "name": "Mystery Detective",
+  "description": "Investigate a murder at a grand estate. Gather clues, interview suspects, and solve the case before the culprit escapes.",
+  "states": [
+    {
+      "name": "crime_scene",
+      "description": "The scene of the crime. Evidence is everywhere.",
+      "onEnter": []
+    },
+    { "name": "interviewing", "description": "Question a person of interest.", "onEnter": [] },
+    { "name": "lab", "description": "Analyze evidence in the forensics lab.", "onEnter": [] },
+    { "name": "library", "description": "Research the victim's background.", "onEnter": [] },
+    {
+      "name": "stakeout",
+      "description": "Watch a suspect from the shadows.",
+      "onEnter": [{ "resource": "time", "operation": "-", "value": "2" }]
+    },
+    {
+      "name": "confrontation",
+      "description": "Present your case to the prime suspect.",
+      "onEnter": []
+    },
+    { "name": "chase", "description": "The suspect is running!", "onEnter": [] }
+  ],
+  "initialState": "crime_scene",
+  "resources": {
+    "clues": { "initial": 0, "min": 0, "max": 20, "label": "Clues" },
+    "evidence": { "initial": 0, "min": 0, "max": 10, "label": "Hard Evidence" },
+    "time": { "initial": 24, "min": 0, "label": "Hours Remaining" },
+    "suspicion": { "initial": 0, "min": 0, "max": 10, "label": "Suspect Awareness" },
+    "reputation": { "initial": 5, "min": 0, "max": 10, "label": "Reputation" },
+    "stress": { "initial": 0, "min": 0, "max": 10, "label": "Stress" }
+  },
+  "actions": {
+    "crime_scene": [
+      {
+        "name": "examine_body",
+        "label": "Examine the Victim",
+        "description": "Look for cause of death and personal items.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "dust_prints",
+        "label": "Dust for Prints",
+        "description": "Look for fingerprints on surfaces.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(0,2)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "photograph",
+        "label": "Photograph Scene",
+        "description": "Document everything for later analysis.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "1" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "interview_witnesses",
+        "label": "Talk to Witnesses",
+        "description": "Speak with people who were nearby.",
+        "effects": [{ "resource": "time", "operation": "-", "value": "1" }],
+        "transition": "interviewing"
+      },
+      {
+        "name": "go_to_lab",
+        "label": "Go to Lab",
+        "description": "Take evidence for analysis.",
+        "condition": { "resource": "clues", "operator": ">=", "value": "3" },
+        "effects": [{ "resource": "time", "operation": "-", "value": "1" }],
+        "transition": "lab"
+      }
+    ],
+    "interviewing": [
+      {
+        "name": "good_cop",
+        "label": "Friendly Approach",
+        "description": "Build rapport to get information.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "bad_cop",
+        "label": "Pressure Them",
+        "description": "Apply pressure to get a confession.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(0,2)" },
+          { "resource": "suspicion", "operation": "+", "value": "2" },
+          { "resource": "stress", "operation": "+", "value": "1" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "present_evidence",
+        "label": "Show Evidence",
+        "description": "Reveal what you know to gauge reactions.",
+        "condition": { "resource": "evidence", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(2,4)" },
+          { "resource": "suspicion", "operation": "+", "value": "1" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "return_scene",
+        "label": "Back to Scene",
+        "description": "Return to the crime scene.",
+        "effects": [],
+        "transition": "crime_scene"
+      }
+    ],
+    "lab": [
+      {
+        "name": "analyze_dna",
+        "label": "DNA Analysis",
+        "description": "Run DNA tests on collected samples.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "run_toxicology",
+        "label": "Toxicology Report",
+        "description": "Check for poisons or substances.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(0,2)" },
+          { "resource": "clues", "operation": "+", "value": "1" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_library",
+        "label": "Research Background",
+        "description": "Dig into records and history.",
+        "effects": [],
+        "transition": "library"
+      },
+      {
+        "name": "go_stakeout",
+        "label": "Set Up Stakeout",
+        "description": "Watch a suspect's movements.",
+        "effects": [],
+        "transition": "stakeout"
+      }
+    ],
+    "library": [
+      {
+        "name": "research_victim",
+        "label": "Research Victim",
+        "description": "Study the victim's past.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(2,4)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "check_records",
+        "label": "Check Financial Records",
+        "description": "Follow the money trail.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(1,2)" },
+          { "resource": "clues", "operation": "+", "value": "random(1,2)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back_to_scene",
+        "label": "Back to Scene",
+        "description": "Return with new knowledge.",
+        "effects": [],
+        "transition": "crime_scene"
+      }
+    ],
+    "stakeout": [
+      {
+        "name": "observe",
+        "label": "Watch Carefully",
+        "description": "Observe the suspect's behavior.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "3" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "follow",
+        "label": "Follow Suspect",
+        "description": "Trail them to see where they go.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(1,2)" },
+          { "resource": "suspicion", "operation": "+", "value": "2" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "end_stakeout",
+        "label": "End Stakeout",
+        "description": "Return to investigation.",
+        "effects": [],
+        "transition": "crime_scene"
+      }
+    ],
+    "confrontation": [
+      {
+        "name": "accuse",
+        "label": "Make the Accusation",
+        "description": "Present all evidence and accuse the suspect.",
+        "condition": { "resource": "evidence", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "3" },
+          { "resource": "evidence", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "bluff",
+        "label": "Bluff",
+        "description": "Pretend you have more evidence than you do.",
+        "effects": [
+          { "resource": "suspicion", "operation": "+", "value": "3" },
+          { "resource": "stress", "operation": "+", "value": "2" },
+          { "resource": "clues", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "back_off",
+        "label": "Back Off",
+        "description": "Not enough evidence yet.",
+        "effects": [{ "resource": "suspicion", "operation": "+", "value": "1" }],
+        "transition": "crime_scene"
+      }
+    ],
+    "chase": [
+      {
+        "name": "pursue",
+        "label": "Chase on Foot",
+        "description": "Sprint after the fleeing suspect.",
+        "effects": [
+          { "resource": "stress", "operation": "+", "value": "2" },
+          { "resource": "time", "operation": "-", "value": "1" },
+          { "resource": "evidence", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "call_backup",
+        "label": "Call Backup",
+        "description": "Radio for backup to cut them off.",
+        "effects": [
+          { "resource": "time", "operation": "-", "value": "2" },
+          { "resource": "evidence", "operation": "+", "value": "1" }
+        ],
+        "transition": "confrontation"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "crime_scene",
+      "to": "confrontation",
+      "condition": {
+        "and": [
+          { "resource": "evidence", "operator": ">=", "value": "6" },
+          { "resource": "clues", "operator": ">=", "value": "10" }
+        ]
+      },
+      "auto": false
+    },
+    {
+      "from": "confrontation",
+      "to": "chase",
+      "condition": { "resource": "suspicion", "operator": ">=", "value": "8" },
+      "auto": true
+    },
+    {
+      "from": "interviewing",
+      "to": "chase",
+      "condition": { "resource": "suspicion", "operator": ">=", "value": "9" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "evidence", "operator": ">=", "value": "10" },
+  "loseCondition": { "resource": "time", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "noir",
+    "stateDescriptions": {
+      "crime_scene": { "label": "Crime Scene", "icon": "search" },
+      "interviewing": { "label": "Interview Room", "icon": "message-circle" },
+      "lab": { "label": "Forensics Lab", "icon": "microscope" },
+      "library": { "label": "Records Archive", "icon": "book" },
+      "stakeout": { "label": "Stakeout", "icon": "eye" },
+      "confrontation": { "label": "Confrontation", "icon": "gavel" },
+      "chase": { "label": "Pursuit!", "icon": "zap" }
+    },
+    "resourceIcons": {
+      "clues": "puzzle",
+      "evidence": "file-text",
+      "time": "clock",
+      "suspicion": "alert-triangle",
+      "reputation": "badge",
+      "stress": "activity"
+    }
+  }
+}

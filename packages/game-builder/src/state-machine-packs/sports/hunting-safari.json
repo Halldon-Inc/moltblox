@@ -1,0 +1,487 @@
+{
+  "name": "Hunting Safari",
+  "description": "Track and photograph rare wildlife on an African safari. Navigate the savanna, manage your supplies, and capture amazing shots.",
+  "states": [
+    {
+      "name": "camp",
+      "description": "Base camp under the acacia trees.",
+      "onEnter": []
+    },
+    {
+      "name": "savanna",
+      "description": "Open grassland stretching to the horizon.",
+      "onEnter": []
+    },
+    {
+      "name": "watering_hole",
+      "description": "Animals gather here at dawn and dusk.",
+      "onEnter": [
+        {
+          "resource": "wildlife_spotted",
+          "operation": "+",
+          "value": "random(1,3)"
+        }
+      ]
+    },
+    {
+      "name": "dense_bush",
+      "description": "Thick vegetation. Hard to see but good for hiding.",
+      "onEnter": [
+        {
+          "resource": "stealth",
+          "operation": "+",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "name": "encounter",
+      "description": "A magnificent animal stands before you.",
+      "onEnter": []
+    },
+    {
+      "name": "danger_zone",
+      "description": "You have stumbled too close to a predator.",
+      "onEnter": [
+        {
+          "resource": "danger",
+          "operation": "+",
+          "value": "5"
+        }
+      ]
+    }
+  ],
+  "initialState": "camp",
+  "resources": {
+    "photos": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Great Photos"
+    },
+    "film": {
+      "initial": 20,
+      "min": 0,
+      "max": 30,
+      "label": "Film Remaining"
+    },
+    "water": {
+      "initial": 10,
+      "min": 0,
+      "max": 15,
+      "label": "Water"
+    },
+    "stealth": {
+      "initial": 5,
+      "min": 0,
+      "max": 20,
+      "label": "Stealth"
+    },
+    "wildlife_spotted": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Wildlife Spotted"
+    },
+    "danger": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Danger"
+    }
+  },
+  "actions": {
+    "camp": [
+      {
+        "name": "head_out",
+        "label": "Head to Savanna",
+        "description": "Drive out to the grasslands.",
+        "effects": [
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "savanna"
+      },
+      {
+        "name": "resupply",
+        "label": "Resupply",
+        "description": "Restock water and film.",
+        "effects": [
+          {
+            "resource": "water",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "film",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "study_map",
+        "label": "Study Migration Map",
+        "description": "Learn where animals are heading.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(2,3)"
+          }
+        ]
+      }
+    ],
+    "savanna": [
+      {
+        "name": "scan_horizon",
+        "label": "Scan the Horizon",
+        "description": "Use binoculars to spot animals.",
+        "effects": [
+          {
+            "resource": "wildlife_spotted",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "go_watering",
+        "label": "Drive to Watering Hole",
+        "description": "Head to where animals drink.",
+        "effects": [
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "watering_hole"
+      },
+      {
+        "name": "track_prints",
+        "label": "Follow Tracks",
+        "description": "Follow animal footprints into the bush.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "dense_bush"
+      },
+      {
+        "name": "return_camp",
+        "label": "Return to Camp",
+        "description": "Head back to rest.",
+        "effects": [],
+        "transition": "camp"
+      }
+    ],
+    "watering_hole": [
+      {
+        "name": "wait_quietly",
+        "label": "Wait Quietly",
+        "description": "Stay hidden and watch.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "wildlife_spotted",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      },
+      {
+        "name": "snap_photo",
+        "label": "Take Photos",
+        "description": "Capture the scene.",
+        "condition": {
+          "resource": "film",
+          "operator": ">=",
+          "value": "1"
+        },
+        "effects": [
+          {
+            "resource": "film",
+            "operation": "-",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "photos",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      },
+      {
+        "name": "move_closer",
+        "label": "Move Closer",
+        "description": "Approach for better shots.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      }
+    ],
+    "dense_bush": [
+      {
+        "name": "stalk",
+        "label": "Stalk Quietly",
+        "description": "Move through cover toward prey.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "wildlife_spotted",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "water",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "photograph_birds",
+        "label": "Photograph Birds",
+        "description": "Colorful birds perch overhead.",
+        "condition": {
+          "resource": "film",
+          "operator": ">=",
+          "value": "1"
+        },
+        "effects": [
+          {
+            "resource": "film",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "photos",
+            "operation": "+",
+            "value": "random(1,2)"
+          }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Back to Open Ground",
+        "description": "Return to the savanna.",
+        "effects": [],
+        "transition": "savanna"
+      }
+    ],
+    "encounter": [
+      {
+        "name": "photograph_animal",
+        "label": "Photograph It!",
+        "description": "Get the perfect shot.",
+        "condition": {
+          "resource": "film",
+          "operator": ">=",
+          "value": "1"
+        },
+        "effects": [
+          {
+            "resource": "film",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "photos",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "savanna"
+      },
+      {
+        "name": "observe",
+        "label": "Just Observe",
+        "description": "Watch the animal in its habitat.",
+        "effects": [
+          {
+            "resource": "wildlife_spotted",
+            "operation": "+",
+            "value": "2"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "savanna"
+      }
+    ],
+    "danger_zone": [
+      {
+        "name": "back_away",
+        "label": "Back Away Slowly",
+        "description": "Move slowly to avoid provoking it.",
+        "effects": [
+          {
+            "resource": "danger",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "2"
+          }
+        ],
+        "transition": "savanna"
+      },
+      {
+        "name": "snap_and_run",
+        "label": "Quick Photo and Run",
+        "description": "Grab a shot and get out.",
+        "condition": {
+          "resource": "film",
+          "operator": ">=",
+          "value": "1"
+        },
+        "effects": [
+          {
+            "resource": "film",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "photos",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "savanna"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "watering_hole",
+      "to": "encounter",
+      "condition": {
+        "resource": "stealth",
+        "operator": ">=",
+        "value": "10"
+      },
+      "auto": false
+    },
+    {
+      "from": "dense_bush",
+      "to": "encounter",
+      "condition": {
+        "resource": "wildlife_spotted",
+        "operator": ">=",
+        "value": "8"
+      },
+      "auto": true
+    },
+    {
+      "from": "savanna",
+      "to": "danger_zone",
+      "condition": {
+        "resource": "danger",
+        "operator": ">=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "photos",
+    "operator": ">=",
+    "value": "20"
+  },
+  "loseCondition": {
+    "resource": "water",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "savanna-gold",
+    "stateDescriptions": {
+      "camp": {
+        "label": "Base Camp",
+        "icon": "tent"
+      },
+      "savanna": {
+        "label": "Savanna",
+        "icon": "sun"
+      },
+      "watering_hole": {
+        "label": "Watering Hole",
+        "icon": "droplet"
+      },
+      "dense_bush": {
+        "label": "Dense Bush",
+        "icon": "tree"
+      },
+      "encounter": {
+        "label": "Encounter!",
+        "icon": "eye"
+      },
+      "danger_zone": {
+        "label": "Danger!",
+        "icon": "alert"
+      }
+    },
+    "resourceIcons": {
+      "photos": "camera",
+      "film": "film",
+      "water": "droplet",
+      "stealth": "eye",
+      "wildlife_spotted": "binoculars",
+      "danger": "alert"
+    }
+  }
+}

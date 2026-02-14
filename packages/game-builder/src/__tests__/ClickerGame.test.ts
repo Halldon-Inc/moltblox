@@ -171,4 +171,52 @@ describe('ClickerGame', () => {
       expect(result.error).toContain('Not a valid player');
     });
   });
+
+  describe('config: comboWindow', () => {
+    it('grants bonus clicks when clicking within the combo window', () => {
+      const game = new ClickerGame({ comboWindow: 5 });
+      game.initialize(['player-1']);
+      // Click twice in quick succession (consecutive turns)
+      act(game, 'player-1', 'click');
+      act(game, 'player-1', 'click');
+      const data = game.getState().data as Record<string, unknown>;
+      const combos = data.combos as Record<string, number>;
+      expect(combos['player-1']).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('config: milestoneEvery', () => {
+    it('emits milestone at custom interval', () => {
+      const game = new ClickerGame({ milestoneEvery: 5 });
+      game.initialize(['player-1']);
+      for (let i = 0; i < 5; i++) {
+        const result = act(game, 'player-1', 'click');
+        if (i === 4) {
+          // 5th click should trigger milestone event
+          expect(result.events?.some((e: { type: string }) => e.type === 'milestone')).toBe(true);
+        }
+      }
+    });
+  });
+
+  describe('config: decayRate', () => {
+    it('decays clicks when player is inactive', () => {
+      const game = new ClickerGame({ decayRate: 2 });
+      game.initialize(['player-1', 'player-2']);
+      // Player-1 clicks 10 times
+      for (let i = 0; i < 10; i++) {
+        act(game, 'player-1', 'click');
+      }
+      // Player-2 clicks several times (advancing the turn counter)
+      for (let i = 0; i < 5; i++) {
+        act(game, 'player-2', 'click');
+      }
+      // Now player-1 clicks again after being idle. Decay should have reduced their count.
+      act(game, 'player-1', 'click');
+      const data = game.getState().data as Record<string, unknown>;
+      const clicks = data.clicks as Record<string, number>;
+      // With decay, player-1's count should be less than 11 (10 original + 1 new)
+      expect(clicks['player-1']).toBeLessThan(11);
+    });
+  });
 });

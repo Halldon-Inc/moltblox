@@ -1,0 +1,298 @@
+{
+  "name": "Robotics Lab",
+  "description": "Design and build a humanoid robot. Develop hardware, program AI, and pass the ultimate test of robotic autonomy.",
+  "states": [
+    { "name": "design", "description": "Design phase. Blueprint the robot.", "onEnter": [] },
+    { "name": "hardware", "description": "Building and assembling hardware.", "onEnter": [] },
+    { "name": "programming", "description": "Programming the robot's AI.", "onEnter": [] },
+    { "name": "testing", "description": "Testing the robot's capabilities.", "onEnter": [] },
+    {
+      "name": "malfunction",
+      "description": "A critical malfunction has occurred!",
+      "onEnter": [{ "resource": "stability", "operation": "-", "value": "random(2,4)" }]
+    },
+    { "name": "demonstration", "description": "Public demonstration for investors.", "onEnter": [] }
+  ],
+  "initialState": "design",
+  "resources": {
+    "funding": { "initial": 80, "min": 0, "label": "Funding" },
+    "hardware_quality": { "initial": 0, "min": 0, "max": 10, "label": "Hardware Quality" },
+    "ai_level": { "initial": 0, "min": 0, "max": 10, "label": "AI Level" },
+    "stability": { "initial": 5, "min": 0, "max": 10, "label": "System Stability" },
+    "components": { "initial": 5, "min": 0, "max": 12, "label": "Components" },
+    "test_score": { "initial": 0, "min": 0, "max": 15, "label": "Test Score" }
+  },
+  "actions": {
+    "design": [
+      {
+        "name": "sketch_frame",
+        "label": "Design Frame Structure",
+        "effects": [{ "resource": "hardware_quality", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "plan_ai",
+        "label": "Plan AI Architecture",
+        "effects": [
+          { "resource": "ai_level", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stability", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "order_parts",
+        "label": "Order Components",
+        "condition": { "resource": "funding", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "12" },
+          { "resource": "components", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "start_build",
+        "label": "Start Building",
+        "condition": { "resource": "components", "operator": ">=", "value": "4" },
+        "effects": [],
+        "transition": "hardware"
+      }
+    ],
+    "hardware": [
+      {
+        "name": "build_frame",
+        "label": "Build Frame",
+        "condition": { "resource": "components", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "components", "operation": "-", "value": "3" },
+          { "resource": "hardware_quality", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "install_motors",
+        "label": "Install Motors",
+        "condition": { "resource": "components", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "components", "operation": "-", "value": "2" },
+          { "resource": "hardware_quality", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "add_sensors",
+        "label": "Add Sensors",
+        "condition": { "resource": "components", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "components", "operation": "-", "value": "2" },
+          { "resource": "hardware_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "ai_level", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "quality_check",
+        "label": "Quality Check",
+        "effects": [{ "resource": "stability", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "start_programming",
+        "label": "Begin Programming",
+        "condition": { "resource": "hardware_quality", "operator": ">=", "value": "4" },
+        "effects": [],
+        "transition": "programming"
+      },
+      { "name": "back", "label": "Back to Design", "effects": [], "transition": "design" }
+    ],
+    "programming": [
+      {
+        "name": "write_movement",
+        "label": "Program Movement",
+        "effects": [
+          { "resource": "ai_level", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "write_vision",
+        "label": "Program Vision System",
+        "effects": [
+          { "resource": "ai_level", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "write_speech",
+        "label": "Program Speech",
+        "condition": { "resource": "ai_level", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "ai_level", "operation": "+", "value": "random(2,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "debug",
+        "label": "Debug and Optimize",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(2,3)" },
+          { "resource": "ai_level", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "run_tests",
+        "label": "Run Tests",
+        "condition": {
+          "and": [
+            { "resource": "ai_level", "operator": ">=", "value": "5" },
+            { "resource": "hardware_quality", "operator": ">=", "value": "5" }
+          ]
+        },
+        "effects": [],
+        "transition": "testing"
+      },
+      { "name": "back", "label": "Back to Hardware", "effects": [], "transition": "hardware" }
+    ],
+    "testing": [
+      {
+        "name": "walk_test",
+        "label": "Walking Test",
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "object_test",
+        "label": "Object Recognition Test",
+        "condition": { "resource": "ai_level", "operator": ">=", "value": "5" },
+        "effects": [{ "resource": "test_score", "operation": "+", "value": "random(2,4)" }]
+      },
+      {
+        "name": "conversation_test",
+        "label": "Conversation Test",
+        "condition": { "resource": "ai_level", "operator": ">=", "value": "7" },
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(2,5)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "endurance_test",
+        "label": "Endurance Test",
+        "condition": { "resource": "hardware_quality", "operator": ">=", "value": "6" },
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "demo",
+        "label": "Schedule Demo",
+        "condition": { "resource": "test_score", "operator": ">=", "value": "8" },
+        "effects": [],
+        "transition": "demonstration"
+      },
+      { "name": "back", "label": "Back to Programming", "effects": [], "transition": "programming" }
+    ],
+    "malfunction": [
+      {
+        "name": "diagnose",
+        "label": "Diagnose Problem",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(2,4)" },
+          { "resource": "ai_level", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "programming"
+      },
+      {
+        "name": "replace_parts",
+        "label": "Replace Faulty Parts",
+        "condition": { "resource": "components", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "components", "operation": "-", "value": "2" },
+          { "resource": "hardware_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stability", "operation": "+", "value": "random(2,3)" }
+        ],
+        "transition": "hardware"
+      },
+      {
+        "name": "emergency_fix",
+        "label": "Emergency Patch",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(1,3)" },
+          { "resource": "test_score", "operation": "-", "value": "random(1,2)" }
+        ],
+        "transition": "testing"
+      }
+    ],
+    "demonstration": [
+      {
+        "name": "showcase_movement",
+        "label": "Showcase Movement",
+        "condition": { "resource": "hardware_quality", "operator": ">=", "value": "6" },
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(2,4)" },
+          { "resource": "funding", "operation": "+", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "showcase_ai",
+        "label": "Showcase AI Features",
+        "condition": { "resource": "ai_level", "operator": ">=", "value": "7" },
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(3,5)" },
+          { "resource": "funding", "operation": "+", "value": "random(15,25)" }
+        ]
+      },
+      {
+        "name": "full_demo",
+        "label": "Full Autonomy Demo",
+        "condition": {
+          "and": [
+            { "resource": "ai_level", "operator": ">=", "value": "8" },
+            { "resource": "hardware_quality", "operator": ">=", "value": "7" }
+          ]
+        },
+        "effects": [
+          { "resource": "test_score", "operation": "+", "value": "random(3,5)" },
+          { "resource": "stability", "operation": "-", "value": "random(1,2)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "testing",
+      "to": "malfunction",
+      "condition": { "resource": "stability", "operator": "<=", "value": "2" },
+      "auto": true
+    },
+    {
+      "from": "demonstration",
+      "to": "malfunction",
+      "condition": { "resource": "stability", "operator": "<=", "value": "1" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "funding", "operation": "-", "value": "3" }],
+  "winCondition": { "resource": "test_score", "operator": ">=", "value": "15" },
+  "loseCondition": {
+    "or": [
+      { "resource": "funding", "operator": "<=", "value": "0" },
+      { "resource": "stability", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "steel-blue",
+    "stateDescriptions": {
+      "design": { "label": "Design", "icon": "pen-tool" },
+      "hardware": { "label": "Hardware", "icon": "tool" },
+      "programming": { "label": "Programming", "icon": "code" },
+      "testing": { "label": "Testing", "icon": "check-circle" },
+      "malfunction": { "label": "Malfunction!", "icon": "alert-triangle" },
+      "demonstration": { "label": "Demo Day", "icon": "star" }
+    },
+    "resourceIcons": {
+      "funding": "dollar",
+      "hardware_quality": "cpu",
+      "ai_level": "brain",
+      "stability": "shield",
+      "components": "package",
+      "test_score": "trending-up"
+    }
+  }
+}

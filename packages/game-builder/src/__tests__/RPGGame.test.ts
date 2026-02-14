@@ -231,4 +231,79 @@ describe('RPGGame', () => {
       expect(result.error).toContain('Not a valid player');
     });
   });
+
+  describe('config: shopBetweenEncounters', () => {
+    it('adds potions after encounters when enabled', () => {
+      const game = new RPGGame({ shopBetweenEncounters: true });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      const potionsBefore = data.players['player-1'].items['Potion'];
+      // Start and defeat an encounter quickly
+      act(game, 'player-1', 'start_encounter');
+      const d = getData(game);
+      if (d.currentEnemy) {
+        d.currentEnemy.stats.hp = 1;
+      }
+      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
+        act(game, 'player-1', 'auto_tick');
+      }
+      act(game, 'player-1', 'attack');
+      const after = getData(game);
+      // Shop should add +1 Potion
+      expect(after.players['player-1'].items['Potion']).toBeGreaterThan(potionsBefore);
+    });
+  });
+
+  describe('config: randomEncounters', () => {
+    it('spawns different enemies when enabled', () => {
+      const game = new RPGGame({ randomEncounters: true });
+      game.initialize(['player-1']);
+      act(game, 'player-1', 'start_encounter');
+      const data = getData(game);
+      // With random encounters, we should still get a valid enemy
+      expect(data.currentEnemy).not.toBeNull();
+      expect(data.currentEnemy!.stats.hp).toBeGreaterThan(0);
+    });
+  });
+
+  describe('config: bossEncounterAt', () => {
+    it('spawns a stronger enemy at specified encounter index', () => {
+      const game = new RPGGame({ bossEncounterAt: [1] });
+      game.initialize(['player-1']);
+      // First encounter (index 0) should be normal
+      act(game, 'player-1', 'start_encounter');
+      const data1 = getData(game);
+      const normalHp = data1.currentEnemy!.stats.hp;
+      // Defeat it
+      data1.currentEnemy!.stats.hp = 1;
+      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
+        act(game, 'player-1', 'auto_tick');
+      }
+      act(game, 'player-1', 'attack');
+      // Second encounter (index 1) should be boss
+      act(game, 'player-1', 'start_encounter');
+      const data2 = getData(game);
+      // Boss should have higher HP (1.5x multiplier)
+      expect(data2.currentEnemy!.stats.hp).toBeGreaterThan(normalHp);
+    });
+  });
+
+  describe('config: levelUpBetweenEncounters', () => {
+    it('increases player stats between encounters when enabled', () => {
+      const game = new RPGGame({ levelUpBetweenEncounters: true });
+      game.initialize(['player-1']);
+      const before = getData(game);
+      const levelBefore = before.players['player-1'].level;
+      // Start and defeat first encounter
+      act(game, 'player-1', 'start_encounter');
+      const d = getData(game);
+      if (d.currentEnemy) d.currentEnemy.stats.hp = 1;
+      while (getData(game).turnOrder[getData(game).currentTurnIndex] !== 'player-1') {
+        act(game, 'player-1', 'auto_tick');
+      }
+      act(game, 'player-1', 'attack');
+      const after = getData(game);
+      expect(after.players['player-1'].level).toBe(levelBefore + 1);
+    });
+  });
 });

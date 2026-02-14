@@ -1,0 +1,259 @@
+{
+  "name": "Merchant Trader",
+  "description": "Build a trading empire across multiple cities. Buy low, sell high, and become the wealthiest merchant in the land.",
+  "states": [
+    { "name": "home_city", "description": "Your home base and warehouse.", "onEnter": [] },
+    {
+      "name": "trade_route",
+      "description": "Traveling between cities with goods.",
+      "onEnter": [{ "resource": "days", "operation": "-", "value": "2" }]
+    },
+    { "name": "foreign_market", "description": "A market in a distant city.", "onEnter": [] },
+    { "name": "guild_hall", "description": "The merchants guild offers contracts.", "onEnter": [] },
+    { "name": "warehouse", "description": "Your storage facility for goods.", "onEnter": [] },
+    { "name": "bandit_raid", "description": "Bandits attack your caravan!", "onEnter": [] }
+  ],
+  "initialState": "home_city",
+  "resources": {
+    "gold": { "initial": 200, "min": 0, "label": "Gold" },
+    "goods_spice": { "initial": 0, "min": 0, "max": 30, "label": "Spices" },
+    "goods_silk": { "initial": 0, "min": 0, "max": 20, "label": "Silk" },
+    "goods_iron": { "initial": 0, "min": 0, "max": 25, "label": "Iron" },
+    "reputation": { "initial": 5, "min": 0, "max": 20, "label": "Reputation" },
+    "wagons": { "initial": 2, "min": 1, "max": 8, "label": "Wagons" },
+    "days": { "initial": 60, "min": 0, "label": "Days Remaining" },
+    "guards": { "initial": 1, "min": 0, "max": 6, "label": "Guards" }
+  },
+  "actions": {
+    "home_city": [
+      {
+        "name": "buy_spice",
+        "label": "Buy Spices",
+        "description": "Purchase spices at local prices.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "goods_spice", "operation": "+", "value": "random(3,6)" },
+          { "resource": "gold", "operation": "-", "value": "15" }
+        ]
+      },
+      {
+        "name": "buy_iron",
+        "label": "Buy Iron",
+        "description": "Purchase iron from local smiths.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "goods_iron", "operation": "+", "value": "random(3,5)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "hire_guards",
+        "label": "Hire Guards",
+        "description": "Protect your goods on the road.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "guards", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "buy_wagon",
+        "label": "Buy Wagon",
+        "description": "Expand your carrying capacity.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "wagons", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "50" }
+        ]
+      },
+      {
+        "name": "set_out",
+        "label": "Depart for Foreign Market",
+        "description": "Travel to another city to trade.",
+        "condition": { "resource": "wagons", "operator": ">=", "value": "1" },
+        "effects": [{ "resource": "days", "operation": "-", "value": "1" }],
+        "transition": "trade_route"
+      },
+      {
+        "name": "visit_guild",
+        "label": "Visit Guild Hall",
+        "description": "Check for trade contracts.",
+        "effects": [],
+        "transition": "guild_hall"
+      }
+    ],
+    "trade_route": [
+      {
+        "name": "press_on",
+        "label": "Press On",
+        "description": "Continue traveling toward destination.",
+        "effects": [
+          { "resource": "days", "operation": "-", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "random(2,5)" }
+        ],
+        "transition": "foreign_market"
+      },
+      {
+        "name": "take_shortcut",
+        "label": "Take Shortcut",
+        "description": "A faster route but more dangerous.",
+        "effects": [
+          { "resource": "days", "operation": "-", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "random(1,3)" }
+        ],
+        "transition": "foreign_market"
+      },
+      {
+        "name": "camp",
+        "label": "Make Camp",
+        "description": "Rest for the night.",
+        "effects": [
+          { "resource": "days", "operation": "-", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "2" }
+        ]
+      }
+    ],
+    "foreign_market": [
+      {
+        "name": "sell_spice",
+        "label": "Sell Spices",
+        "description": "Spices fetch high prices here.",
+        "condition": { "resource": "goods_spice", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(25,50)" },
+          { "resource": "goods_spice", "operation": "-", "value": "3" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "sell_iron",
+        "label": "Sell Iron",
+        "description": "Iron is in demand here.",
+        "condition": { "resource": "goods_iron", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(20,40)" },
+          { "resource": "goods_iron", "operation": "-", "value": "3" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "buy_silk",
+        "label": "Buy Silk",
+        "description": "Fine silk is cheap here.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "goods_silk", "operation": "+", "value": "random(3,6)" },
+          { "resource": "gold", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "return_home",
+        "label": "Travel Home",
+        "description": "Head back to your home city.",
+        "effects": [{ "resource": "days", "operation": "-", "value": "2" }],
+        "transition": "home_city"
+      }
+    ],
+    "guild_hall": [
+      {
+        "name": "take_contract",
+        "label": "Accept Trade Contract",
+        "description": "Commit to delivering specific goods.",
+        "condition": { "resource": "reputation", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(30,60)" },
+          { "resource": "reputation", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "network",
+        "label": "Network with Merchants",
+        "description": "Build connections in the guild.",
+        "effects": [{ "resource": "reputation", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "back",
+        "label": "Leave Guild",
+        "description": "Return to the city.",
+        "effects": [],
+        "transition": "home_city"
+      }
+    ],
+    "warehouse": [
+      {
+        "name": "organize",
+        "label": "Organize Goods",
+        "description": "Sort and prepare goods for transport.",
+        "effects": [{ "resource": "reputation", "operation": "+", "value": "1" }],
+        "transition": "home_city"
+      }
+    ],
+    "bandit_raid": [
+      {
+        "name": "fight_bandits",
+        "label": "Fight Back",
+        "description": "Your guards defend the caravan.",
+        "condition": { "resource": "guards", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "guards", "operation": "-", "value": "random(0,1)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ],
+        "transition": "trade_route"
+      },
+      {
+        "name": "pay_off",
+        "label": "Pay Them Off",
+        "description": "Give gold to save your goods.",
+        "effects": [{ "resource": "gold", "operation": "-", "value": "random(15,30)" }],
+        "transition": "trade_route"
+      },
+      {
+        "name": "lose_goods",
+        "label": "Surrender Goods",
+        "description": "Hand over some cargo.",
+        "effects": [
+          { "resource": "goods_spice", "operation": "-", "value": "random(1,3)" },
+          { "resource": "goods_silk", "operation": "-", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "-", "value": "1" }
+        ],
+        "transition": "trade_route"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "trade_route",
+      "to": "bandit_raid",
+      "condition": { "resource": "guards", "operator": "<=", "value": "1" },
+      "auto": false
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "gold", "operator": ">=", "value": "1000" },
+      { "resource": "reputation", "operator": ">=", "value": "15" }
+    ]
+  },
+  "loseCondition": { "resource": "days", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "merchant-gold",
+    "stateDescriptions": {
+      "home_city": { "label": "Home City", "icon": "home" },
+      "trade_route": { "label": "Trade Route", "icon": "map" },
+      "foreign_market": { "label": "Foreign Market", "icon": "shopping-bag" },
+      "guild_hall": { "label": "Merchants Guild", "icon": "award" },
+      "warehouse": { "label": "Warehouse", "icon": "box" },
+      "bandit_raid": { "label": "Bandit Raid!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "gold": "coin",
+      "goods_spice": "sun",
+      "goods_silk": "feather",
+      "goods_iron": "hexagon",
+      "reputation": "star",
+      "wagons": "truck",
+      "days": "clock",
+      "guards": "shield"
+    }
+  }
+}

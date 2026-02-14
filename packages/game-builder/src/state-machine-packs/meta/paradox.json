@@ -1,0 +1,250 @@
+{
+  "name": "Paradox",
+  "description": "Navigate a world of logical contradictions. Time loops, impossible spaces, and self-referencing riddles stand between you and the truth. Collect paradox shards to resolve the impossible.",
+  "states": [
+    { "name": "normal_space", "description": "Reality seems stable here. For now.", "onEnter": [] },
+    {
+      "name": "time_loop",
+      "description": "You have been here before. Or will be. Events repeat with slight differences.",
+      "onEnter": [{ "resource": "confusion", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "impossible_room",
+      "description": "The geometry of this room cannot exist. Stairs lead both up and down simultaneously.",
+      "onEnter": [{ "resource": "confusion", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "mirror_self",
+      "description": "You face a version of yourself making opposite choices.",
+      "onEnter": [{ "resource": "paradox_shards", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "liar_gate",
+      "description": "Two doors. One guard always lies, one always tells the truth. Or do they?",
+      "onEnter": []
+    },
+    {
+      "name": "bootstrap",
+      "description": "An object that created itself. You hold the key to your own arrival.",
+      "onEnter": [{ "resource": "paradox_shards", "operation": "+", "value": "2" }]
+    },
+    {
+      "name": "resolution",
+      "description": "All contradictions converge into a single coherent answer.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "normal_space",
+  "resources": {
+    "sanity": { "initial": 80, "min": 0, "max": 100, "label": "Sanity" },
+    "logic": { "initial": 30, "min": 0, "max": 100, "label": "Logic" },
+    "confusion": { "initial": 0, "min": 0, "max": 50, "label": "Confusion" },
+    "paradox_shards": { "initial": 0, "min": 0, "max": 15, "label": "Paradox Shards" },
+    "truth": { "initial": 0, "min": 0, "max": 100, "label": "Truth Discovered" }
+  },
+  "actions": {
+    "normal_space": [
+      {
+        "name": "investigate",
+        "label": "Investigate",
+        "description": "Look for cracks in reality.",
+        "effects": [
+          { "resource": "logic", "operation": "+", "value": "random(3,8)" },
+          { "resource": "confusion", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "ground_yourself",
+        "label": "Ground Yourself",
+        "description": "Focus on what is real to restore sanity.",
+        "effects": [
+          { "resource": "sanity", "operation": "+", "value": "10" },
+          { "resource": "confusion", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "step_into_anomaly",
+        "label": "Enter Anomaly",
+        "description": "Walk toward the shimmering distortion.",
+        "effects": [{ "resource": "sanity", "operation": "-", "value": "5" }],
+        "transition": "time_loop"
+      }
+    ],
+    "time_loop": [
+      {
+        "name": "break_pattern",
+        "label": "Break the Pattern",
+        "description": "Do something different than last time.",
+        "effects": [
+          { "resource": "logic", "operation": "+", "value": "random(5,10)" },
+          { "resource": "confusion", "operation": "-", "value": "3" },
+          { "resource": "truth", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "normal_space"
+      },
+      {
+        "name": "repeat_loop",
+        "label": "Repeat the Loop",
+        "description": "Let events play out the same way.",
+        "effects": [
+          { "resource": "paradox_shards", "operation": "+", "value": "1" },
+          { "resource": "confusion", "operation": "+", "value": "3" },
+          { "resource": "sanity", "operation": "-", "value": "5" }
+        ]
+      }
+    ],
+    "impossible_room": [
+      {
+        "name": "walk_upstairs_down",
+        "label": "Walk the Impossible Stairs",
+        "description": "Ascend and descend at the same time.",
+        "effects": [
+          { "resource": "paradox_shards", "operation": "+", "value": "random(1,3)" },
+          { "resource": "sanity", "operation": "-", "value": "random(5,10)" },
+          { "resource": "truth", "operation": "+", "value": "random(5,12)" }
+        ]
+      },
+      {
+        "name": "close_eyes",
+        "label": "Close Your Eyes",
+        "description": "Refuse to see the impossible. Walk by feel.",
+        "effects": [
+          { "resource": "sanity", "operation": "+", "value": "5" },
+          { "resource": "confusion", "operation": "-", "value": "5" }
+        ],
+        "transition": "normal_space"
+      }
+    ],
+    "mirror_self": [
+      {
+        "name": "argue",
+        "label": "Argue with Yourself",
+        "description": "Debate your mirror about who is real.",
+        "effects": [
+          { "resource": "logic", "operation": "+", "value": "random(5,10)" },
+          { "resource": "sanity", "operation": "-", "value": "random(3,8)" },
+          { "resource": "truth", "operation": "+", "value": "random(8,15)" }
+        ]
+      },
+      {
+        "name": "merge",
+        "label": "Merge Perspectives",
+        "description": "Accept both versions as equally valid.",
+        "effects": [
+          { "resource": "paradox_shards", "operation": "+", "value": "2" },
+          { "resource": "confusion", "operation": "-", "value": "5" }
+        ],
+        "transition": "normal_space"
+      }
+    ],
+    "liar_gate": [
+      {
+        "name": "ask_question",
+        "label": "Ask the Classic Question",
+        "description": "Use logic to determine which door is safe.",
+        "effects": [
+          { "resource": "logic", "operation": "+", "value": "5" },
+          { "resource": "truth", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "normal_space"
+      },
+      {
+        "name": "walk_both",
+        "label": "Walk Through Both",
+        "description": "Reject the binary. Take both doors.",
+        "effects": [
+          { "resource": "paradox_shards", "operation": "+", "value": "2" },
+          { "resource": "sanity", "operation": "-", "value": "10" },
+          { "resource": "truth", "operation": "+", "value": "10" }
+        ],
+        "transition": "bootstrap"
+      }
+    ],
+    "bootstrap": [
+      {
+        "name": "accept_loop",
+        "label": "Accept the Bootstrap",
+        "description": "Understand that some things create themselves.",
+        "effects": [
+          { "resource": "truth", "operation": "+", "value": "random(10,20)" },
+          { "resource": "confusion", "operation": "-", "value": "5" },
+          { "resource": "paradox_shards", "operation": "+", "value": "2" }
+        ],
+        "transition": "normal_space"
+      },
+      {
+        "name": "reject_loop",
+        "label": "Reject the Paradox",
+        "description": "Insist on linear causality.",
+        "effects": [
+          { "resource": "logic", "operation": "+", "value": "10" },
+          { "resource": "sanity", "operation": "-", "value": "10" },
+          { "resource": "confusion", "operation": "+", "value": "5" }
+        ],
+        "transition": "normal_space"
+      }
+    ],
+    "resolution": [
+      {
+        "name": "resolve",
+        "label": "Resolve All Paradoxes",
+        "description": "Combine shards into a unified theory of everything.",
+        "condition": { "resource": "paradox_shards", "operator": ">=", "value": "10" },
+        "effects": [{ "resource": "truth", "operation": "+", "value": "30" }]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "normal_space",
+      "to": "impossible_room",
+      "condition": { "resource": "confusion", "operator": ">=", "value": "15" },
+      "auto": true
+    },
+    {
+      "from": "normal_space",
+      "to": "mirror_self",
+      "condition": { "resource": "logic", "operator": ">=", "value": "40" },
+      "auto": false
+    },
+    {
+      "from": "normal_space",
+      "to": "liar_gate",
+      "condition": { "resource": "truth", "operator": ">=", "value": "30" },
+      "auto": false
+    },
+    {
+      "from": "normal_space",
+      "to": "resolution",
+      "condition": { "resource": "paradox_shards", "operator": ">=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "time_loop",
+      "to": "impossible_room",
+      "condition": { "resource": "confusion", "operator": ">=", "value": "20" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "truth", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "sanity", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "void-black",
+    "stateDescriptions": {
+      "normal_space": { "label": "Stable Reality", "icon": "globe" },
+      "time_loop": { "label": "Time Loop", "icon": "clock" },
+      "impossible_room": { "label": "Impossible Space", "icon": "infinity" },
+      "mirror_self": { "label": "Mirror Self", "icon": "mirror" },
+      "liar_gate": { "label": "Liar's Gate", "icon": "door" },
+      "bootstrap": { "label": "Bootstrap", "icon": "loop" },
+      "resolution": { "label": "Resolution", "icon": "check" }
+    },
+    "resourceIcons": {
+      "sanity": "brain",
+      "logic": "lightbulb",
+      "confusion": "swirl",
+      "paradox_shards": "gem",
+      "truth": "eye"
+    }
+  }
+}

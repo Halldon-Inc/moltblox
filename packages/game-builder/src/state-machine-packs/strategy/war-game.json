@@ -1,0 +1,286 @@
+{
+  "name": "War Game",
+  "description": "Command armies across a battlefield. Manage troops, resources, and morale to achieve military victory.",
+  "states": [
+    {
+      "name": "headquarters",
+      "description": "Your command tent. Plan strategy here.",
+      "onEnter": []
+    },
+    { "name": "frontline", "description": "The front lines where battles rage.", "onEnter": [] },
+    { "name": "supply_camp", "description": "Logistics and supply management.", "onEnter": [] },
+    {
+      "name": "scouting",
+      "description": "Gathering intelligence on enemy movements.",
+      "onEnter": []
+    },
+    { "name": "siege", "description": "Laying siege to an enemy fortification.", "onEnter": [] },
+    {
+      "name": "retreat",
+      "description": "Falling back to regroup.",
+      "onEnter": [{ "resource": "morale", "operation": "-", "value": "3" }]
+    },
+    {
+      "name": "victory_push",
+      "description": "A final decisive offensive.",
+      "onEnter": [{ "resource": "morale", "operation": "+", "value": "5" }]
+    }
+  ],
+  "initialState": "headquarters",
+  "resources": {
+    "troops": { "initial": 100, "min": 0, "max": 200, "label": "Troops" },
+    "supplies": { "initial": 50, "min": 0, "max": 80, "label": "Supplies" },
+    "gold": { "initial": 200, "min": 0, "label": "War Chest" },
+    "morale": { "initial": 7, "min": 0, "max": 10, "label": "Morale" },
+    "territory": { "initial": 3, "min": 0, "max": 15, "label": "Territory" },
+    "intel": { "initial": 0, "min": 0, "max": 10, "label": "Intelligence" }
+  },
+  "actions": {
+    "headquarters": [
+      {
+        "name": "recruit",
+        "label": "Recruit Troops",
+        "condition": { "resource": "gold", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "troops", "operation": "+", "value": "random(10,25)" },
+          { "resource": "gold", "operation": "-", "value": "30" }
+        ]
+      },
+      {
+        "name": "go_front",
+        "label": "Move to Frontline",
+        "effects": [{ "resource": "supplies", "operation": "-", "value": "3" }],
+        "transition": "frontline"
+      },
+      {
+        "name": "go_supply",
+        "label": "Visit Supply Camp",
+        "effects": [],
+        "transition": "supply_camp"
+      },
+      {
+        "name": "send_scouts",
+        "label": "Send Scouts",
+        "effects": [{ "resource": "troops", "operation": "-", "value": "random(1,3)" }],
+        "transition": "scouting"
+      },
+      {
+        "name": "rally",
+        "label": "Rally the Troops",
+        "effects": [{ "resource": "morale", "operation": "+", "value": "random(1,3)" }]
+      }
+    ],
+    "frontline": [
+      {
+        "name": "attack",
+        "label": "Launch Attack",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(10,25)" },
+          { "resource": "territory", "operation": "+", "value": "random(1,2)" },
+          { "resource": "supplies", "operation": "-", "value": "random(3,6)" },
+          { "resource": "morale", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "defend",
+        "label": "Hold Position",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(3,10)" },
+          { "resource": "supplies", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "flank",
+        "label": "Flanking Maneuver",
+        "condition": { "resource": "intel", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(5,15)" },
+          { "resource": "territory", "operation": "+", "value": "random(1,3)" },
+          { "resource": "intel", "operation": "-", "value": "2" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "fall_back",
+        "label": "Fall Back",
+        "effects": [{ "resource": "troops", "operation": "-", "value": "random(3,8)" }],
+        "transition": "retreat"
+      },
+      {
+        "name": "back_hq",
+        "label": "Return to HQ",
+        "effects": [],
+        "transition": "headquarters"
+      }
+    ],
+    "supply_camp": [
+      {
+        "name": "resupply",
+        "label": "Resupply",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "supplies", "operation": "+", "value": "random(10,20)" },
+          { "resource": "gold", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "train_troops",
+        "label": "Train Troops",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "1" },
+          { "resource": "supplies", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "back_hq",
+        "label": "Return to HQ",
+        "effects": [],
+        "transition": "headquarters"
+      }
+    ],
+    "scouting": [
+      {
+        "name": "gather_intel",
+        "label": "Gather Intelligence",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(2,4)" },
+          { "resource": "troops", "operation": "-", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "sabotage",
+        "label": "Sabotage Enemy",
+        "condition": { "resource": "intel", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "intel", "operation": "-", "value": "3" },
+          { "resource": "territory", "operation": "+", "value": "1" },
+          { "resource": "troops", "operation": "-", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back_hq",
+        "label": "Return to HQ",
+        "effects": [],
+        "transition": "headquarters"
+      }
+    ],
+    "siege": [
+      {
+        "name": "bombard",
+        "label": "Bombard Walls",
+        "effects": [
+          { "resource": "supplies", "operation": "-", "value": "random(5,8)" },
+          { "resource": "territory", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "storm",
+        "label": "Storm the Fortress",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(15,30)" },
+          { "resource": "territory", "operation": "+", "value": "random(2,3)" },
+          { "resource": "morale", "operation": "+", "value": "3" }
+        ],
+        "transition": "headquarters"
+      },
+      {
+        "name": "starve_out",
+        "label": "Starve Them Out",
+        "effects": [
+          { "resource": "supplies", "operation": "-", "value": "random(8,12)" },
+          { "resource": "territory", "operation": "+", "value": "1" },
+          { "resource": "morale", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "retreat": [
+      {
+        "name": "regroup",
+        "label": "Regroup",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "random(1,3)" },
+          { "resource": "supplies", "operation": "-", "value": "2" }
+        ],
+        "transition": "headquarters"
+      },
+      {
+        "name": "scorched_earth",
+        "label": "Scorched Earth",
+        "description": "Burn resources as you retreat.",
+        "effects": [
+          { "resource": "territory", "operation": "-", "value": "1" },
+          { "resource": "morale", "operation": "-", "value": "1" }
+        ],
+        "transition": "headquarters"
+      }
+    ],
+    "victory_push": [
+      {
+        "name": "charge",
+        "label": "All-Out Charge",
+        "effects": [
+          { "resource": "troops", "operation": "-", "value": "random(20,40)" },
+          { "resource": "territory", "operation": "+", "value": "random(3,5)" },
+          { "resource": "supplies", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "negotiate_surrender",
+        "label": "Demand Surrender",
+        "condition": { "resource": "territory", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "territory", "operation": "+", "value": "random(2,4)" },
+          { "resource": "gold", "operation": "+", "value": "random(50,100)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "frontline",
+      "to": "siege",
+      "condition": { "resource": "territory", "operator": ">=", "value": "7" },
+      "auto": false
+    },
+    {
+      "from": "frontline",
+      "to": "retreat",
+      "condition": { "resource": "morale", "operator": "<=", "value": "2" },
+      "auto": true
+    },
+    {
+      "from": "headquarters",
+      "to": "victory_push",
+      "condition": { "resource": "territory", "operator": ">=", "value": "12" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "supplies", "operation": "-", "value": "2" }],
+  "winCondition": { "resource": "territory", "operator": ">=", "value": "15" },
+  "loseCondition": {
+    "or": [
+      { "resource": "troops", "operator": "<=", "value": "0" },
+      { "resource": "morale", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "military-green",
+    "stateDescriptions": {
+      "headquarters": { "label": "HQ", "icon": "flag" },
+      "frontline": { "label": "Front Lines", "icon": "crosshair" },
+      "supply_camp": { "label": "Supply Camp", "icon": "package" },
+      "scouting": { "label": "Scouting", "icon": "eye" },
+      "siege": { "label": "Siege!", "icon": "target" },
+      "retreat": { "label": "Retreat", "icon": "arrow-left" },
+      "victory_push": { "label": "Victory Push!", "icon": "star" }
+    },
+    "resourceIcons": {
+      "troops": "users",
+      "supplies": "package",
+      "gold": "coin",
+      "morale": "flag",
+      "territory": "map",
+      "intel": "eye"
+    }
+  }
+}

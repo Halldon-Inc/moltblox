@@ -1,0 +1,233 @@
+{
+  "name": "Territory Control",
+  "description": "Expand your territory on a contested map. Build outposts, defend borders, and outmaneuver rival factions.",
+  "states": [
+    {
+      "name": "capital",
+      "description": "Your central stronghold.",
+      "onEnter": [{ "resource": "gold", "operation": "+", "value": "5" }]
+    },
+    { "name": "border", "description": "The contested borderlands.", "onEnter": [] },
+    {
+      "name": "expansion_zone",
+      "description": "Unclaimed territory for the taking.",
+      "onEnter": []
+    },
+    { "name": "fortification", "description": "Building defenses.", "onEnter": [] },
+    { "name": "skirmish", "description": "Border conflict with a rival.", "onEnter": [] },
+    { "name": "diplomacy", "description": "Negotiating with other factions.", "onEnter": [] }
+  ],
+  "initialState": "capital",
+  "resources": {
+    "gold": { "initial": 100, "min": 0, "label": "Gold" },
+    "soldiers": { "initial": 30, "min": 0, "max": 100, "label": "Soldiers" },
+    "territory": { "initial": 5, "min": 0, "max": 25, "label": "Territory" },
+    "outposts": { "initial": 1, "min": 0, "max": 8, "label": "Outposts" },
+    "influence": { "initial": 3, "min": 0, "max": 15, "label": "Influence" },
+    "defenses": { "initial": 2, "min": 0, "max": 10, "label": "Defenses" }
+  },
+  "actions": {
+    "capital": [
+      {
+        "name": "collect_tax",
+        "label": "Collect Taxes",
+        "effects": [{ "resource": "gold", "operation": "+", "value": "random(10,25)" }]
+      },
+      {
+        "name": "recruit",
+        "label": "Recruit Soldiers",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "soldiers", "operation": "+", "value": "random(5,15)" },
+          { "resource": "gold", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "go_border",
+        "label": "Move to Border",
+        "effects": [],
+        "transition": "border"
+      },
+      {
+        "name": "go_diplomacy",
+        "label": "Open Diplomacy",
+        "effects": [],
+        "transition": "diplomacy"
+      }
+    ],
+    "border": [
+      {
+        "name": "patrol",
+        "label": "Patrol Borders",
+        "effects": [
+          { "resource": "soldiers", "operation": "-", "value": "random(1,3)" },
+          { "resource": "influence", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "expand",
+        "label": "Push Into New Territory",
+        "condition": { "resource": "soldiers", "operator": ">=", "value": "10" },
+        "effects": [{ "resource": "soldiers", "operation": "-", "value": "5" }],
+        "transition": "expansion_zone"
+      },
+      {
+        "name": "fortify",
+        "label": "Build Fortifications",
+        "condition": { "resource": "gold", "operator": ">=", "value": "25" },
+        "effects": [{ "resource": "gold", "operation": "-", "value": "25" }],
+        "transition": "fortification"
+      },
+      {
+        "name": "back",
+        "label": "Return to Capital",
+        "effects": [],
+        "transition": "capital"
+      }
+    ],
+    "expansion_zone": [
+      {
+        "name": "claim",
+        "label": "Claim Territory",
+        "effects": [
+          { "resource": "territory", "operation": "+", "value": "random(1,3)" },
+          { "resource": "soldiers", "operation": "-", "value": "random(3,8)" },
+          { "resource": "gold", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "build_outpost",
+        "label": "Build Outpost",
+        "condition": { "resource": "gold", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "outposts", "operation": "+", "value": "1" },
+          { "resource": "territory", "operation": "+", "value": "2" },
+          { "resource": "gold", "operation": "-", "value": "30" }
+        ]
+      },
+      {
+        "name": "back_border",
+        "label": "Return to Border",
+        "effects": [],
+        "transition": "border"
+      }
+    ],
+    "fortification": [
+      {
+        "name": "build_walls",
+        "label": "Build Walls",
+        "effects": [
+          { "resource": "defenses", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "station_guards",
+        "label": "Station Guards",
+        "condition": { "resource": "soldiers", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "soldiers", "operation": "-", "value": "5" },
+          { "resource": "defenses", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "back_border",
+        "label": "Return to Border",
+        "effects": [],
+        "transition": "border"
+      }
+    ],
+    "skirmish": [
+      {
+        "name": "fight",
+        "label": "Engage Enemy",
+        "effects": [
+          { "resource": "soldiers", "operation": "-", "value": "random(5,15)" },
+          { "resource": "territory", "operation": "+", "value": "random(0,2)" },
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "border"
+      },
+      {
+        "name": "retreat",
+        "label": "Tactical Retreat",
+        "effects": [
+          { "resource": "territory", "operation": "-", "value": "random(1,2)" },
+          { "resource": "soldiers", "operation": "-", "value": "random(2,5)" }
+        ],
+        "transition": "capital"
+      }
+    ],
+    "diplomacy": [
+      {
+        "name": "trade_deal",
+        "label": "Trade Agreement",
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(15,30)" },
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "alliance",
+        "label": "Form Alliance",
+        "condition": { "resource": "influence", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "influence", "operation": "-", "value": "3" },
+          { "resource": "soldiers", "operation": "+", "value": "random(5,15)" },
+          { "resource": "territory", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "intimidate",
+        "label": "Show of Force",
+        "condition": { "resource": "soldiers", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "territory", "operation": "+", "value": "random(1,3)" },
+          { "resource": "influence", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Return to Capital",
+        "effects": [],
+        "transition": "capital"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "border",
+      "to": "skirmish",
+      "condition": { "resource": "territory", "operator": ">=", "value": "12" },
+      "auto": false
+    },
+    {
+      "from": "expansion_zone",
+      "to": "skirmish",
+      "condition": { "resource": "defenses", "operator": "<=", "value": "1" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [{ "resource": "gold", "operation": "+", "value": "3" }],
+  "winCondition": { "resource": "territory", "operator": ">=", "value": "25" },
+  "loseCondition": { "resource": "soldiers", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "conquest-red",
+    "stateDescriptions": {
+      "capital": { "label": "Capital", "icon": "crown" },
+      "border": { "label": "Borderlands", "icon": "map" },
+      "expansion_zone": { "label": "New Territory", "icon": "compass" },
+      "fortification": { "label": "Fortifying", "icon": "shield" },
+      "skirmish": { "label": "Skirmish!", "icon": "crosshair" },
+      "diplomacy": { "label": "Diplomacy", "icon": "message-circle" }
+    },
+    "resourceIcons": {
+      "gold": "coin",
+      "soldiers": "shield",
+      "territory": "map",
+      "outposts": "flag",
+      "influence": "star",
+      "defenses": "lock"
+    }
+  }
+}

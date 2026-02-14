@@ -1,0 +1,272 @@
+{
+  "name": "Resource Management",
+  "description": "Manage a colony's resources through harsh seasons. Balance food, materials, and population to survive and thrive.",
+  "states": [
+    { "name": "town_center", "description": "The heart of your settlement.", "onEnter": [] },
+    { "name": "farms", "description": "Agricultural areas producing food.", "onEnter": [] },
+    { "name": "mines", "description": "Mines and quarries for raw materials.", "onEnter": [] },
+    { "name": "workshop", "description": "Crafting and manufacturing.", "onEnter": [] },
+    { "name": "trade_post", "description": "Trade with neighboring settlements.", "onEnter": [] },
+    {
+      "name": "winter",
+      "description": "A brutal winter descends.",
+      "onEnter": [
+        { "resource": "food", "operation": "-", "value": "8" },
+        { "resource": "wood", "operation": "-", "value": "5" }
+      ]
+    }
+  ],
+  "initialState": "town_center",
+  "resources": {
+    "food": { "initial": 30, "min": 0, "max": 60, "label": "Food" },
+    "wood": { "initial": 20, "min": 0, "max": 50, "label": "Wood" },
+    "stone": { "initial": 10, "min": 0, "max": 40, "label": "Stone" },
+    "iron": { "initial": 5, "min": 0, "max": 30, "label": "Iron" },
+    "population": { "initial": 20, "min": 0, "max": 100, "label": "Population" },
+    "tools": { "initial": 5, "min": 0, "max": 15, "label": "Tools" },
+    "gold": { "initial": 50, "min": 0, "label": "Gold" },
+    "season": { "initial": 0, "min": 0, "max": 12, "label": "Season Counter" }
+  },
+  "actions": {
+    "town_center": [
+      {
+        "name": "assign_farmers",
+        "label": "Assign Farmers",
+        "effects": [],
+        "transition": "farms"
+      },
+      {
+        "name": "assign_miners",
+        "label": "Assign Miners",
+        "effects": [],
+        "transition": "mines"
+      },
+      {
+        "name": "assign_crafters",
+        "label": "Assign Crafters",
+        "effects": [],
+        "transition": "workshop"
+      },
+      {
+        "name": "open_trade",
+        "label": "Open Trade",
+        "effects": [],
+        "transition": "trade_post"
+      },
+      {
+        "name": "build_house",
+        "label": "Build Housing",
+        "condition": {
+          "and": [
+            { "resource": "wood", "operator": ">=", "value": "10" },
+            { "resource": "stone", "operator": ">=", "value": "5" }
+          ]
+        },
+        "effects": [
+          { "resource": "wood", "operation": "-", "value": "10" },
+          { "resource": "stone", "operation": "-", "value": "5" },
+          { "resource": "population", "operation": "+", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "feast",
+        "label": "Hold a Feast",
+        "condition": { "resource": "food", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "food", "operation": "-", "value": "10" },
+          { "resource": "population", "operation": "+", "value": "random(2,5)" }
+        ]
+      }
+    ],
+    "farms": [
+      {
+        "name": "plant_crops",
+        "label": "Plant Crops",
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(5,12)" },
+          { "resource": "tools", "operation": "-", "value": "random(0,1)" },
+          { "resource": "season", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "gather_herbs",
+        "label": "Forage",
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(2,5)" },
+          { "resource": "season", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Town",
+        "effects": [],
+        "transition": "town_center"
+      }
+    ],
+    "mines": [
+      {
+        "name": "mine_stone",
+        "label": "Quarry Stone",
+        "effects": [
+          { "resource": "stone", "operation": "+", "value": "random(3,8)" },
+          { "resource": "tools", "operation": "-", "value": "random(0,1)" },
+          { "resource": "season", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "mine_iron",
+        "label": "Mine Iron",
+        "condition": { "resource": "tools", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "iron", "operation": "+", "value": "random(2,6)" },
+          { "resource": "tools", "operation": "-", "value": "1" },
+          { "resource": "season", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "chop_wood",
+        "label": "Chop Wood",
+        "effects": [
+          { "resource": "wood", "operation": "+", "value": "random(4,10)" },
+          { "resource": "season", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Town",
+        "effects": [],
+        "transition": "town_center"
+      }
+    ],
+    "workshop": [
+      {
+        "name": "make_tools",
+        "label": "Craft Tools",
+        "condition": {
+          "and": [
+            { "resource": "iron", "operator": ">=", "value": "2" },
+            { "resource": "wood", "operator": ">=", "value": "2" }
+          ]
+        },
+        "effects": [
+          { "resource": "iron", "operation": "-", "value": "2" },
+          { "resource": "wood", "operation": "-", "value": "2" },
+          { "resource": "tools", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "build_furniture",
+        "label": "Build Goods",
+        "condition": { "resource": "wood", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "wood", "operation": "-", "value": "5" },
+          { "resource": "gold", "operation": "+", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Town",
+        "effects": [],
+        "transition": "town_center"
+      }
+    ],
+    "trade_post": [
+      {
+        "name": "buy_food",
+        "label": "Buy Food",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(5,10)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "sell_iron",
+        "label": "Sell Iron",
+        "condition": { "resource": "iron", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "iron", "operation": "-", "value": "3" },
+          { "resource": "gold", "operation": "+", "value": "random(15,25)" }
+        ]
+      },
+      {
+        "name": "sell_stone",
+        "label": "Sell Stone",
+        "condition": { "resource": "stone", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "stone", "operation": "-", "value": "5" },
+          { "resource": "gold", "operation": "+", "value": "random(10,18)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Town",
+        "effects": [],
+        "transition": "town_center"
+      }
+    ],
+    "winter": [
+      {
+        "name": "ration",
+        "label": "Ration Supplies",
+        "effects": [
+          { "resource": "food", "operation": "-", "value": "random(3,6)" },
+          { "resource": "population", "operation": "-", "value": "random(0,3)" }
+        ],
+        "transition": "town_center"
+      },
+      {
+        "name": "burn_wood",
+        "label": "Burn Extra Wood",
+        "condition": { "resource": "wood", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "wood", "operation": "-", "value": "5" },
+          { "resource": "population", "operation": "-", "value": "random(0,1)" }
+        ],
+        "transition": "town_center"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "town_center",
+      "to": "winter",
+      "condition": { "resource": "season", "operator": ">=", "value": "8" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "food", "operation": "-", "value": "2" }],
+  "winCondition": {
+    "and": [
+      { "resource": "population", "operator": ">=", "value": "80" },
+      { "resource": "gold", "operator": ">=", "value": "200" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "population", "operator": "<=", "value": "0" },
+      { "resource": "food", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "earth-brown",
+    "stateDescriptions": {
+      "town_center": { "label": "Town Center", "icon": "home" },
+      "farms": { "label": "Farms", "icon": "sun" },
+      "mines": { "label": "Mines", "icon": "pick" },
+      "workshop": { "label": "Workshop", "icon": "tool" },
+      "trade_post": { "label": "Trade Post", "icon": "shopping-bag" },
+      "winter": { "label": "Winter!", "icon": "snowflake" }
+    },
+    "resourceIcons": {
+      "food": "apple",
+      "wood": "tree",
+      "stone": "hexagon",
+      "iron": "diamond",
+      "population": "users",
+      "tools": "tool",
+      "gold": "coin",
+      "season": "calendar"
+    }
+  }
+}

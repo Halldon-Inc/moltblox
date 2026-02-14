@@ -1,0 +1,222 @@
+{
+  "name": "Party Planner",
+  "description": "Plan and execute the perfect party. Manage vendors, decorations, entertainment, and guest satisfaction.",
+  "states": [
+    { "name": "planning", "description": "Planning phase. Make the big decisions.", "onEnter": [] },
+    { "name": "shopping", "description": "Buying supplies and decorations.", "onEnter": [] },
+    { "name": "setup", "description": "Setting up the venue.", "onEnter": [] },
+    { "name": "party_live", "description": "The party is happening now!", "onEnter": [] },
+    {
+      "name": "crisis_mode",
+      "description": "Something went wrong!",
+      "onEnter": [{ "resource": "guest_mood", "operation": "-", "value": "3" }]
+    }
+  ],
+  "initialState": "planning",
+  "resources": {
+    "budget": { "initial": 500, "min": 0, "label": "Budget" },
+    "decor_level": { "initial": 0, "min": 0, "max": 15, "label": "Decorations" },
+    "food_quality": { "initial": 0, "min": 0, "max": 15, "label": "Food Quality" },
+    "entertainment": { "initial": 0, "min": 0, "max": 15, "label": "Entertainment" },
+    "guest_mood": { "initial": 5, "min": 0, "max": 15, "label": "Guest Satisfaction" },
+    "stress": { "initial": 0, "min": 0, "max": 12, "label": "Stress" }
+  },
+  "actions": {
+    "planning": [
+      { "name": "go_shopping", "label": "Go Shopping", "effects": [], "transition": "shopping" },
+      {
+        "name": "book_caterer",
+        "label": "Book Caterer",
+        "condition": { "resource": "budget", "operator": ">=", "value": "80" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "80" },
+          { "resource": "food_quality", "operation": "+", "value": "random(4,8)" }
+        ]
+      },
+      {
+        "name": "book_dj",
+        "label": "Book DJ",
+        "condition": { "resource": "budget", "operator": ">=", "value": "60" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "60" },
+          { "resource": "entertainment", "operation": "+", "value": "random(4,7)" }
+        ]
+      },
+      {
+        "name": "book_band",
+        "label": "Book Live Band",
+        "condition": { "resource": "budget", "operator": ">=", "value": "120" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "120" },
+          { "resource": "entertainment", "operation": "+", "value": "random(6,10)" }
+        ]
+      },
+      { "name": "go_setup", "label": "Start Setup", "effects": [], "transition": "setup" }
+    ],
+    "shopping": [
+      {
+        "name": "buy_decor",
+        "label": "Buy Decorations",
+        "condition": { "resource": "budget", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "30" },
+          { "resource": "decor_level", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "buy_food",
+        "label": "Buy Food and Drinks",
+        "condition": { "resource": "budget", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "40" },
+          { "resource": "food_quality", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "buy_premium",
+        "label": "Buy Premium Items",
+        "condition": { "resource": "budget", "operator": ">=", "value": "70" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "70" },
+          { "resource": "decor_level", "operation": "+", "value": "random(2,4)" },
+          { "resource": "food_quality", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      { "name": "back", "label": "Back to Planning", "effects": [], "transition": "planning" }
+    ],
+    "setup": [
+      {
+        "name": "arrange_tables",
+        "label": "Arrange Tables",
+        "effects": [
+          { "resource": "decor_level", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "set_lighting",
+        "label": "Set Up Lighting",
+        "effects": [
+          { "resource": "decor_level", "operation": "+", "value": "random(2,4)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "sound_check",
+        "label": "Sound Check",
+        "effects": [
+          { "resource": "entertainment", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "open_doors",
+        "label": "Open the Doors",
+        "condition": {
+          "and": [
+            { "resource": "decor_level", "operator": ">=", "value": "5" },
+            { "resource": "food_quality", "operator": ">=", "value": "5" }
+          ]
+        },
+        "effects": [{ "resource": "guest_mood", "operation": "+", "value": "3" }],
+        "transition": "party_live"
+      }
+    ],
+    "party_live": [
+      {
+        "name": "mingle",
+        "label": "Mingle with Guests",
+        "effects": [
+          { "resource": "guest_mood", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "start_music",
+        "label": "Crank Up the Music",
+        "condition": { "resource": "entertainment", "operator": ">=", "value": "5" },
+        "effects": [{ "resource": "guest_mood", "operation": "+", "value": "random(2,5)" }]
+      },
+      {
+        "name": "serve_food",
+        "label": "Serve Main Course",
+        "condition": { "resource": "food_quality", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "guest_mood", "operation": "+", "value": "random(3,6)" },
+          { "resource": "food_quality", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "special_moment",
+        "label": "Create Special Moment",
+        "condition": { "resource": "entertainment", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "guest_mood", "operation": "+", "value": "random(3,6)" },
+          { "resource": "entertainment", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "troubleshoot",
+        "label": "Check for Issues",
+        "effects": [
+          { "resource": "stress", "operation": "+", "value": "random(1,2)" },
+          { "resource": "guest_mood", "operation": "+", "value": "random(0,2)" }
+        ]
+      }
+    ],
+    "crisis_mode": [
+      {
+        "name": "throw_money",
+        "label": "Throw Money at It",
+        "condition": { "resource": "budget", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "30" },
+          { "resource": "guest_mood", "operation": "+", "value": "random(3,5)" }
+        ],
+        "transition": "party_live"
+      },
+      {
+        "name": "improvise",
+        "label": "Improvise a Solution",
+        "effects": [
+          { "resource": "stress", "operation": "+", "value": "3" },
+          { "resource": "guest_mood", "operation": "+", "value": "random(1,4)" }
+        ],
+        "transition": "party_live"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "party_live",
+      "to": "crisis_mode",
+      "condition": { "resource": "stress", "operator": ">=", "value": "8" },
+      "auto": false
+    }
+  ],
+  "winCondition": { "resource": "guest_mood", "operator": ">=", "value": "14" },
+  "loseCondition": {
+    "or": [
+      { "resource": "guest_mood", "operator": "<=", "value": "0" },
+      { "resource": "stress", "operator": ">=", "value": "12" }
+    ]
+  },
+  "theme": {
+    "palette": "festive-gold",
+    "stateDescriptions": {
+      "planning": { "label": "Planning", "icon": "clipboard" },
+      "shopping": { "label": "Shopping", "icon": "shopping-bag" },
+      "setup": { "label": "Setup", "icon": "tool" },
+      "party_live": { "label": "Party Time!", "icon": "music" },
+      "crisis_mode": { "label": "Crisis!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "budget": "dollar",
+      "decor_level": "star",
+      "food_quality": "apple",
+      "entertainment": "music",
+      "guest_mood": "smile",
+      "stress": "activity"
+    }
+  }
+}

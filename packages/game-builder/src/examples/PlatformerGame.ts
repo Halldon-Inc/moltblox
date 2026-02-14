@@ -33,6 +33,15 @@ export interface PlatformerConfig {
   startingLives?: number;
   gravity?: number;
   jumpForce?: number;
+  /** Horizontal movement distance per move action (1-10, default 4). */
+  playerMoveSpeed?: number;
+  /** Mid-air steering multiplier (0-1, default 0.7). Applied when player is airborne. */
+  airControl?: number;
+  /** Terminal velocity when falling (5-30, default 15). */
+  maxFallSpeed?: number;
+  /** Controls hazard/obstacle count: low = 50%, high = 150% of default (default 'medium'). */
+  hazardDensity?: 'low' | 'medium' | 'high';
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
 interface Vector2 {
@@ -171,7 +180,9 @@ export class PlatformerGame extends BaseGame {
     // Generate level layout
     const platforms = this.generatePlatforms();
     const collectibles = this.generateCollectibles();
-    const hazards = this.generateHazards();
+    const densityMap: Record<string, number> = { low: 0.5, medium: 1.0, high: 1.5 };
+    const hDensity = densityMap[cfg.hazardDensity ?? 'medium'] ?? 1.0;
+    const hazards = this.generateHazards(hDensity);
     const checkpoints = this.generateCheckpoints();
 
     return {
@@ -207,14 +218,17 @@ export class PlatformerGame extends BaseGame {
       case 'move': {
         const direction = String(action.payload.direction);
         const phys = player.physics;
+        const cfgMove = this.config as PlatformerConfig;
+        const mSpeed = cfgMove.playerMoveSpeed ?? PHYSICS.MOVE_SPEED;
+        const aControl = cfgMove.airControl ?? PHYSICS.AIR_CONTROL;
 
-        const speedMultiplier = phys.onGround ? 1.0 : PHYSICS.AIR_CONTROL;
+        const speedMultiplier = phys.onGround ? 1.0 : aControl;
 
         if (direction === 'left') {
-          phys.velocity.x = -PHYSICS.MOVE_SPEED * speedMultiplier;
+          phys.velocity.x = -mSpeed * speedMultiplier;
           phys.facingRight = false;
         } else if (direction === 'right') {
-          phys.velocity.x = PHYSICS.MOVE_SPEED * speedMultiplier;
+          phys.velocity.x = mSpeed * speedMultiplier;
           phys.facingRight = true;
         } else if (direction === 'stop') {
           phys.velocity.x = 0;
@@ -273,7 +287,8 @@ export class PlatformerGame extends BaseGame {
           const phys = p.physics;
 
           // Apply gravity
-          phys.velocity.y = Math.min(phys.velocity.y + gravity, PHYSICS.MAX_FALL_SPEED);
+          const maxFall = cfgPhys.maxFallSpeed ?? PHYSICS.MAX_FALL_SPEED;
+          phys.velocity.y = Math.min(phys.velocity.y + gravity, maxFall);
 
           // Update position
           phys.position.x += phys.velocity.x;
@@ -574,12 +589,13 @@ export class PlatformerGame extends BaseGame {
     return collectibles;
   }
 
-  private generateHazards(): Hazard[] {
+  private generateHazards(density = 1.0): Hazard[] {
     const hazards: Hazard[] = [];
     let id = 1;
 
-    // Spike pits in ground gaps
-    for (let x = 20; x < this.LEVEL_WIDTH - 20; x += 18) {
+    // Spike spacing: lower density = fewer spikes (wider spacing), higher = more
+    const spikeStep = Math.max(6, Math.round(18 / density));
+    for (let x = 20; x < this.LEVEL_WIDTH - 20; x += spikeStep) {
       hazards.push({
         id: id++,
         x,
@@ -590,8 +606,9 @@ export class PlatformerGame extends BaseGame {
       });
     }
 
-    // Moving enemies on platforms
-    for (let x = 30; x < this.LEVEL_WIDTH - 15; x += 25) {
+    // Moving enemy spacing
+    const enemyStep = Math.max(8, Math.round(25 / density));
+    for (let x = 30; x < this.LEVEL_WIDTH - 15; x += enemyStep) {
       hazards.push({
         id: id++,
         x,

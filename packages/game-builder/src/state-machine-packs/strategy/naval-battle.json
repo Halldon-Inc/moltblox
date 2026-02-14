@@ -1,0 +1,184 @@
+{
+  "name": "Naval Battle",
+  "description": "Command a fleet in a naval engagement. Position ships, manage ammunition, and outmaneuver the enemy fleet.",
+  "states": [
+    {
+      "name": "flagship_bridge",
+      "description": "Command the fleet from your flagship.",
+      "onEnter": []
+    },
+    { "name": "battle_line", "description": "Ships formed in battle line.", "onEnter": [] },
+    { "name": "flanking", "description": "Executing a flanking maneuver.", "onEnter": [] },
+    { "name": "boarding", "description": "Ships locked together in close combat.", "onEnter": [] },
+    {
+      "name": "regrouping",
+      "description": "Pulling ships back to reform.",
+      "onEnter": [{ "resource": "morale", "operation": "-", "value": "1" }]
+    }
+  ],
+  "initialState": "flagship_bridge",
+  "resources": {
+    "ships": { "initial": 8, "min": 0, "max": 15, "label": "Ships" },
+    "crew": { "initial": 500, "min": 0, "label": "Total Crew" },
+    "ammunition": { "initial": 30, "min": 0, "max": 50, "label": "Ammunition" },
+    "morale": { "initial": 8, "min": 0, "max": 10, "label": "Fleet Morale" },
+    "enemy_ships": { "initial": 10, "min": 0, "label": "Enemy Ships" },
+    "wind_advantage": { "initial": 5, "min": 0, "max": 10, "label": "Wind Advantage" }
+  },
+  "actions": {
+    "flagship_bridge": [
+      {
+        "name": "form_line",
+        "label": "Form Battle Line",
+        "effects": [{ "resource": "wind_advantage", "operation": "+", "value": "random(0,2)" }],
+        "transition": "battle_line"
+      },
+      {
+        "name": "flank_order",
+        "label": "Order Flanking",
+        "condition": { "resource": "wind_advantage", "operator": ">=", "value": "5" },
+        "effects": [{ "resource": "wind_advantage", "operation": "-", "value": "2" }],
+        "transition": "flanking"
+      },
+      {
+        "name": "signal_regroup",
+        "label": "Signal Regroup",
+        "effects": [],
+        "transition": "regrouping"
+      },
+      {
+        "name": "rally",
+        "label": "Rally the Fleet",
+        "effects": [{ "resource": "morale", "operation": "+", "value": "random(1,3)" }]
+      }
+    ],
+    "battle_line": [
+      {
+        "name": "broadside",
+        "label": "Full Broadside",
+        "condition": { "resource": "ammunition", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "ammunition", "operation": "-", "value": "5" },
+          { "resource": "enemy_ships", "operation": "-", "value": "random(1,3)" },
+          { "resource": "ships", "operation": "-", "value": "random(0,1)" },
+          { "resource": "crew", "operation": "-", "value": "random(10,30)" }
+        ]
+      },
+      {
+        "name": "careful_fire",
+        "label": "Aimed Fire",
+        "condition": { "resource": "ammunition", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "ammunition", "operation": "-", "value": "3" },
+          { "resource": "enemy_ships", "operation": "-", "value": "random(0,2)" },
+          { "resource": "crew", "operation": "-", "value": "random(5,15)" }
+        ]
+      },
+      { "name": "close_range", "label": "Close to Board", "effects": [], "transition": "boarding" },
+      {
+        "name": "back",
+        "label": "Return to Bridge",
+        "effects": [],
+        "transition": "flagship_bridge"
+      }
+    ],
+    "flanking": [
+      {
+        "name": "rake_stern",
+        "label": "Rake Enemy Stern",
+        "condition": { "resource": "ammunition", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "ammunition", "operation": "-", "value": "4" },
+          { "resource": "enemy_ships", "operation": "-", "value": "random(2,4)" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "cut_line",
+        "label": "Cut Enemy Line",
+        "effects": [
+          { "resource": "enemy_ships", "operation": "-", "value": "random(1,2)" },
+          { "resource": "ships", "operation": "-", "value": "random(0,1)" },
+          { "resource": "wind_advantage", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Return to Bridge",
+        "effects": [],
+        "transition": "flagship_bridge"
+      }
+    ],
+    "boarding": [
+      {
+        "name": "board_enemy",
+        "label": "Board Enemy Ship",
+        "effects": [
+          { "resource": "crew", "operation": "-", "value": "random(30,60)" },
+          { "resource": "enemy_ships", "operation": "-", "value": "random(1,2)" },
+          { "resource": "ships", "operation": "+", "value": "random(0,1)" },
+          { "resource": "morale", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "disengage",
+        "label": "Disengage",
+        "effects": [
+          { "resource": "crew", "operation": "-", "value": "random(10,20)" },
+          { "resource": "ships", "operation": "-", "value": "random(0,1)" }
+        ],
+        "transition": "flagship_bridge"
+      }
+    ],
+    "regrouping": [
+      {
+        "name": "reform",
+        "label": "Reform Fleet",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "random(1,2)" },
+          { "resource": "wind_advantage", "operation": "+", "value": "random(1,2)" }
+        ],
+        "transition": "flagship_bridge"
+      },
+      {
+        "name": "redistribute",
+        "label": "Redistribute Ammo",
+        "effects": [{ "resource": "ammunition", "operation": "+", "value": "random(2,5)" }],
+        "transition": "flagship_bridge"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "battle_line",
+      "to": "regrouping",
+      "condition": { "resource": "ships", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "enemy_ships", "operator": "<=", "value": "0" },
+  "loseCondition": {
+    "or": [
+      { "resource": "ships", "operator": "<=", "value": "0" },
+      { "resource": "morale", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "ocean-steel",
+    "stateDescriptions": {
+      "flagship_bridge": { "label": "Flagship", "icon": "compass" },
+      "battle_line": { "label": "Battle Line", "icon": "target" },
+      "flanking": { "label": "Flanking", "icon": "corner-right-down" },
+      "boarding": { "label": "Boarding!", "icon": "anchor" },
+      "regrouping": { "label": "Regrouping", "icon": "refresh-cw" }
+    },
+    "resourceIcons": {
+      "ships": "navigation",
+      "crew": "users",
+      "ammunition": "crosshair",
+      "morale": "flag",
+      "enemy_ships": "alert-triangle",
+      "wind_advantage": "wind"
+    }
+  }
+}

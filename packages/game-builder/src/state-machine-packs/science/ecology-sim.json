@@ -1,0 +1,230 @@
+{
+  "name": "Ecology Sim",
+  "description": "Manage a fragile ecosystem. Balance predator and prey populations, handle invasive species, and protect biodiversity.",
+  "states": [
+    {
+      "name": "observation",
+      "description": "Observing the ecosystem from your field station.",
+      "onEnter": []
+    },
+    { "name": "fieldwork", "description": "Out in the field collecting data.", "onEnter": [] },
+    { "name": "intervention", "description": "Time to intervene in the ecosystem.", "onEnter": [] },
+    {
+      "name": "crisis",
+      "description": "The ecosystem is collapsing!",
+      "onEnter": [{ "resource": "biodiversity", "operation": "-", "value": "random(2,4)" }]
+    },
+    { "name": "report", "description": "Writing reports and securing more funding.", "onEnter": [] }
+  ],
+  "initialState": "observation",
+  "resources": {
+    "biodiversity": { "initial": 8, "min": 0, "max": 15, "label": "Biodiversity" },
+    "prey_pop": { "initial": 8, "min": 0, "max": 15, "label": "Prey Population" },
+    "predator_pop": { "initial": 4, "min": 0, "max": 10, "label": "Predator Population" },
+    "water_quality": { "initial": 7, "min": 0, "max": 10, "label": "Water Quality" },
+    "funding": { "initial": 50, "min": 0, "label": "Funding" },
+    "invasive_threat": { "initial": 2, "min": 0, "max": 10, "label": "Invasive Threat" }
+  },
+  "actions": {
+    "observation": [
+      {
+        "name": "survey_wildlife",
+        "label": "Survey Wildlife",
+        "effects": [
+          { "resource": "biodiversity", "operation": "+", "value": "random(0,1)" },
+          { "resource": "funding", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "monitor_water",
+        "label": "Monitor Water",
+        "effects": [{ "resource": "water_quality", "operation": "+", "value": "random(0,1)" }]
+      },
+      { "name": "go_field", "label": "Go to the Field", "effects": [], "transition": "fieldwork" },
+      {
+        "name": "write_report",
+        "label": "Write Research Report",
+        "effects": [],
+        "transition": "report"
+      },
+      {
+        "name": "intervene",
+        "label": "Plan Intervention",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [],
+        "transition": "intervention"
+      }
+    ],
+    "fieldwork": [
+      {
+        "name": "tag_animals",
+        "label": "Tag and Track Animals",
+        "condition": { "resource": "funding", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "8" },
+          { "resource": "biodiversity", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "sample_water",
+        "label": "Collect Water Samples",
+        "effects": [
+          { "resource": "water_quality", "operation": "+", "value": "random(1,2)" },
+          { "resource": "funding", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "remove_invasive",
+        "label": "Remove Invasive Species",
+        "effects": [
+          { "resource": "invasive_threat", "operation": "-", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "plant_native",
+        "label": "Plant Native Species",
+        "condition": { "resource": "funding", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "10" },
+          { "resource": "biodiversity", "operation": "+", "value": "random(1,3)" },
+          { "resource": "prey_pop", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Station", "effects": [], "transition": "observation" }
+    ],
+    "intervention": [
+      {
+        "name": "predator_program",
+        "label": "Predator Reintroduction",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "15" },
+          { "resource": "predator_pop", "operation": "+", "value": "random(1,3)" },
+          { "resource": "biodiversity", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "prey_protection",
+        "label": "Prey Protection Zone",
+        "condition": { "resource": "funding", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "12" },
+          { "resource": "prey_pop", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "water_treatment",
+        "label": "Water Treatment",
+        "condition": { "resource": "funding", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "10" },
+          { "resource": "water_quality", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "barrier",
+        "label": "Build Invasive Barrier",
+        "condition": { "resource": "funding", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "12" },
+          { "resource": "invasive_threat", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Station", "effects": [], "transition": "observation" }
+    ],
+    "crisis": [
+      {
+        "name": "emergency_fund",
+        "label": "Emergency Funding",
+        "effects": [
+          { "resource": "funding", "operation": "+", "value": "random(15,25)" },
+          { "resource": "biodiversity", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "intervention"
+      },
+      {
+        "name": "triage",
+        "label": "Triage Most Endangered",
+        "effects": [
+          { "resource": "biodiversity", "operation": "+", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(8,12)" }
+        ],
+        "transition": "observation"
+      },
+      {
+        "name": "document",
+        "label": "Document the Collapse",
+        "effects": [{ "resource": "funding", "operation": "+", "value": "random(5,10)" }],
+        "transition": "observation"
+      }
+    ],
+    "report": [
+      {
+        "name": "grant_app",
+        "label": "Apply for Grant",
+        "effects": [{ "resource": "funding", "operation": "+", "value": "random(15,30)" }]
+      },
+      {
+        "name": "publish_findings",
+        "label": "Publish Findings",
+        "effects": [
+          { "resource": "funding", "operation": "+", "value": "random(5,15)" },
+          { "resource": "biodiversity", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "community_outreach",
+        "label": "Community Outreach",
+        "effects": [
+          { "resource": "invasive_threat", "operation": "-", "value": "random(0,2)" },
+          { "resource": "water_quality", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Station", "effects": [], "transition": "observation" }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "observation",
+      "to": "crisis",
+      "condition": { "resource": "biodiversity", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [
+    { "resource": "invasive_threat", "operation": "+", "value": "1" },
+    { "resource": "water_quality", "operation": "-", "value": "1" },
+    { "resource": "funding", "operation": "-", "value": "2" }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "biodiversity", "operator": ">=", "value": "12" },
+      { "resource": "water_quality", "operator": ">=", "value": "7" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "biodiversity", "operator": "<=", "value": "0" },
+      { "resource": "prey_pop", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "forest-green",
+    "stateDescriptions": {
+      "observation": { "label": "Station", "icon": "eye" },
+      "fieldwork": { "label": "Field", "icon": "navigation" },
+      "intervention": { "label": "Intervention", "icon": "tool" },
+      "crisis": { "label": "Crisis!", "icon": "alert-triangle" },
+      "report": { "label": "Reports", "icon": "file-text" }
+    },
+    "resourceIcons": {
+      "biodiversity": "feather",
+      "prey_pop": "rabbit",
+      "predator_pop": "wolf",
+      "water_quality": "droplet",
+      "funding": "dollar",
+      "invasive_threat": "alert-circle"
+    }
+  }
+}

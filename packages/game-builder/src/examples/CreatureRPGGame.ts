@@ -51,6 +51,15 @@ export interface CreatureRPGConfig {
   startingPotions?: number;
   startingCaptureOrbs?: number;
   encounterRate?: number;
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+  /** Number of starter creatures to choose from (2-5, default 3). */
+  starterChoices?: number;
+  /** Number of gyms before the game ends (1-8, default 1). */
+  gymCount?: number;
+  /** Base catch rate for wild creatures (0.1-0.9, default 0.45). */
+  captureChance?: number;
+  /** How wild creature levels are determined (default 'scaled'). */
+  wildCreatureLevel?: 'scaled' | 'fixed' | 'random';
 }
 
 // ---------------------------------------------------------------------------
@@ -712,7 +721,12 @@ const ENCOUNTER_TABLES: Record<string, EncounterEntry[]> = {
 
 const ENCOUNTER_RATE = 0.15;
 
-function rollEncounter(mapId: string, encounterRate?: number): Creature | null {
+function rollEncounter(
+  mapId: string,
+  encounterRate?: number,
+  wildLevelMode?: 'scaled' | 'fixed' | 'random',
+  playerLevel?: number,
+): Creature | null {
   const table = ENCOUNTER_TABLES[mapId];
   const rate = encounterRate ?? ENCOUNTER_RATE;
   if (!table || Math.random() > rate) return null;
@@ -722,10 +736,31 @@ function rollEncounter(mapId: string, encounterRate?: number): Creature | null {
   for (const entry of table) {
     roll -= entry.weight;
     if (roll <= 0) {
-      const level =
-        entry.levelRange[0] +
-        Math.floor(Math.random() * (entry.levelRange[1] - entry.levelRange[0] + 1));
-      return createCreature(entry.species, level);
+      let level: number;
+      const mode = wildLevelMode ?? 'scaled';
+      if (mode === 'fixed') {
+        // Fixed: always use the midpoint of the level range
+        level = Math.floor((entry.levelRange[0] + entry.levelRange[1]) / 2);
+      } else if (mode === 'random') {
+        // Random: uniform random between 1 and max(10, range max)
+        const cap = Math.max(10, entry.levelRange[1]);
+        level = 1 + Math.floor(Math.random() * cap);
+      } else {
+        // Scaled (default): scale within range, biased toward player level
+        const base =
+          entry.levelRange[0] +
+          Math.floor(Math.random() * (entry.levelRange[1] - entry.levelRange[0] + 1));
+        if (playerLevel != null && playerLevel > 0) {
+          // Blend 70% table level, 30% player level for scaling feel
+          level = Math.max(
+            entry.levelRange[0],
+            Math.min(entry.levelRange[1], Math.round(base * 0.7 + playerLevel * 0.3)),
+          );
+        } else {
+          level = base;
+        }
+      }
+      return createCreature(entry.species, Math.max(1, level));
     }
   }
   return null;
@@ -901,6 +936,7 @@ interface CreatureRPGState {
   postDialogueAction: string | null;
   battleState: BattleState | null;
   gymDefeated: boolean;
+  gymsDefeatedCount: number;
   totalBattlesWon: number;
   totalCreaturesCaught: number;
   totalSteps: number;
@@ -943,6 +979,7 @@ export class CreatureRPGGame extends BaseGame {
       postDialogueAction: null,
       battleState: null,
       gymDefeated: false,
+      gymsDefeatedCount: 0,
       totalBattlesWon: 0,
       totalCreaturesCaught: 0,
       totalSteps: 0,
@@ -1008,12 +1045,18 @@ export class CreatureRPGGame extends BaseGame {
     if (data.starterChosen) {
       return { success: false, error: 'Starter already chosen' };
     }
+    const cfg = this.config as CreatureRPGConfig;
+    const numChoices = Math.max(2, Math.min(cfg.starterChoices ?? 3, 5));
+    // Expand or restrict available starters based on config
+    const allSpecies = Object.keys(SPECIES);
+    const availableStarters =
+      numChoices > 3 ? allSpecies.slice(0, numChoices) : VALID_STARTERS.slice(0, numChoices);
+
     const species = String(payload.species || '').toLowerCase();
-    if (!VALID_STARTERS.includes(species)) {
-      return { success: false, error: `Invalid starter. Choose: ${VALID_STARTERS.join(', ')}` };
+    if (!availableStarters.includes(species)) {
+      return { success: false, error: `Invalid starter. Choose: ${availableStarters.join(', ')}` };
     }
 
-    const cfg = this.config as CreatureRPGConfig;
     const starter = createCreature(species, cfg.starterLevel ?? 5, `starter_${species}`);
     data.party = [starter];
     data.activeCreatureIndex = 0;
@@ -1097,7 +1140,13 @@ export class CreatureRPGGame extends BaseGame {
     // Check for tall grass encounter
     if (tile === T.TALL_GRASS) {
       const cfgEnc = this.config as CreatureRPGConfig;
-      const wildCreature = rollEncounter(data.mapId, cfgEnc.encounterRate);
+      const partyLevel = data.party.length > 0 ? Math.max(...data.party.map((c) => c.level)) : 5;
+      const wildCreature = rollEncounter(
+        data.mapId,
+        cfgEnc.encounterRate,
+        cfgEnc.wildCreatureLevel,
+        partyLevel,
+      );
       if (wildCreature) {
         data.battleState = {
           type: 'wild',
@@ -1417,8 +1466,9 @@ export class CreatureRPGGame extends BaseGame {
     const enemy = data.battleState.enemyCreature;
 
     // Catch formula
+    const cfgCatch = this.config as CreatureRPGConfig;
     const hpRatio = enemy.stats.hp / enemy.stats.maxHp;
-    const baseCatchRate = 0.45;
+    const baseCatchRate = Math.max(0.1, Math.min(cfgCatch.captureChance ?? 0.45, 0.9));
     const statusBonus = enemy.statusEffect
       ? enemy.statusEffect.type === 'paralysis'
         ? 0.25
@@ -1756,12 +1806,25 @@ export class CreatureRPGGame extends BaseGame {
         this.emitEvent('trainer_defeated', this.getPlayers()[0], { trainer: bs.trainerName });
 
         if (bs.trainerId === 'gym_leader') {
-          data.gymDefeated = true;
-          data.combatLog.push('You earned the Verdant Badge! Congratulations!');
-          data.gamePhase = 'victory';
-          data.battleState = null;
-          this.emitEvent('gym_defeated', this.getPlayers()[0]);
-          return;
+          const cfgGym = this.config as CreatureRPGConfig;
+          const totalGyms = Math.max(1, Math.min(cfgGym.gymCount ?? 1, 8));
+          data.gymsDefeatedCount++;
+          this.emitEvent('gym_defeated', this.getPlayers()[0], {
+            count: data.gymsDefeatedCount,
+            total: totalGyms,
+          });
+          if (data.gymsDefeatedCount >= totalGyms) {
+            data.gymDefeated = true;
+            data.combatLog.push('You earned the Verdant Badge! Congratulations!');
+            data.gamePhase = 'victory';
+            data.battleState = null;
+            return;
+          }
+          // More gyms remain: reset gym_leader from defeated list so it can be fought again
+          data.defeatedTrainers = data.defeatedTrainers.filter((t) => t !== 'gym_leader');
+          data.combatLog.push(
+            `Gym ${data.gymsDefeatedCount}/${totalGyms} defeated! More challenges await.`,
+          );
         }
       }
 

@@ -1,0 +1,235 @@
+{
+  "name": "Political Intrigue",
+  "description": "Navigate the treacherous world of court politics. Form alliances, spread rumors, and climb to the top of the power structure.",
+  "states": [
+    {
+      "name": "court",
+      "description": "The royal court. Power and danger intertwine.",
+      "onEnter": []
+    },
+    {
+      "name": "private_chambers",
+      "description": "Secret meetings behind closed doors.",
+      "onEnter": []
+    },
+    { "name": "grand_council", "description": "The ruling council debates policy.", "onEnter": [] },
+    {
+      "name": "feast_hall",
+      "description": "A grand feast. Alliances formed over wine.",
+      "onEnter": []
+    },
+    {
+      "name": "scandal",
+      "description": "A scandal threatens your position!",
+      "onEnter": [{ "resource": "reputation", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "court",
+  "resources": {
+    "influence": { "initial": 10, "min": 0, "max": 30, "label": "Influence" },
+    "reputation": { "initial": 15, "min": 0, "max": 30, "label": "Reputation" },
+    "allies": { "initial": 1, "min": 0, "max": 8, "label": "Allies" },
+    "secrets": { "initial": 2, "min": 0, "max": 10, "label": "Secrets Known" },
+    "gold": { "initial": 50, "min": 0, "label": "Gold" },
+    "enemies": { "initial": 1, "min": 0, "max": 8, "label": "Enemies" }
+  },
+  "actions": {
+    "court": [
+      {
+        "name": "schmooze",
+        "label": "Schmooze Nobles",
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" },
+          { "resource": "allies", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "go_private",
+        "label": "Private Meeting",
+        "effects": [],
+        "transition": "private_chambers"
+      },
+      {
+        "name": "go_council",
+        "label": "Attend Council",
+        "condition": { "resource": "influence", "operator": ">=", "value": "10" },
+        "effects": [],
+        "transition": "grand_council"
+      },
+      { "name": "go_feast", "label": "Attend Feast", "effects": [], "transition": "feast_hall" },
+      {
+        "name": "spread_rumor",
+        "label": "Spread a Rumor",
+        "condition": { "resource": "secrets", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "secrets", "operation": "-", "value": "1" },
+          { "resource": "influence", "operation": "+", "value": "random(2,5)" },
+          { "resource": "enemies", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "bribe",
+        "label": "Bribe an Official",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "15" },
+          { "resource": "influence", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "private_chambers": [
+      {
+        "name": "plot",
+        "label": "Plot Against Rival",
+        "condition": { "resource": "allies", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(3,6)" },
+          { "resource": "enemies", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "gather_secrets",
+        "label": "Gather Secrets",
+        "effects": [
+          { "resource": "secrets", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "secure_alliance",
+        "label": "Secure Alliance",
+        "effects": [
+          { "resource": "allies", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "random(8,15)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Court", "effects": [], "transition": "court" }
+    ],
+    "grand_council": [
+      {
+        "name": "propose_law",
+        "label": "Propose Law",
+        "condition": { "resource": "influence", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(3,8)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" },
+          { "resource": "enemies", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "back_policy",
+        "label": "Back Another's Policy",
+        "effects": [
+          { "resource": "allies", "operation": "+", "value": "random(0,1)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "block_rival",
+        "label": "Block Rival's Plan",
+        "condition": { "resource": "allies", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(2,5)" },
+          { "resource": "enemies", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Return to Court", "effects": [], "transition": "court" }
+    ],
+    "feast_hall": [
+      {
+        "name": "toast",
+        "label": "Make a Toast",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" },
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "gossip",
+        "label": "Trade Gossip",
+        "effects": [
+          { "resource": "secrets", "operation": "+", "value": "random(1,2)" },
+          { "resource": "allies", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "poison_chalice",
+        "label": "Undermine Rival",
+        "condition": { "resource": "secrets", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "secrets", "operation": "-", "value": "1" },
+          { "resource": "enemies", "operation": "+", "value": "1" },
+          { "resource": "influence", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Court", "effects": [], "transition": "court" }
+    ],
+    "scandal": [
+      {
+        "name": "deny",
+        "label": "Deny Everything",
+        "effects": [
+          { "resource": "reputation", "operation": "-", "value": "random(2,4)" },
+          { "resource": "influence", "operation": "-", "value": "random(1,3)" }
+        ],
+        "transition": "court"
+      },
+      {
+        "name": "deflect",
+        "label": "Deflect to a Rival",
+        "condition": { "resource": "secrets", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "secrets", "operation": "-", "value": "2" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" },
+          { "resource": "enemies", "operation": "+", "value": "1" }
+        ],
+        "transition": "court"
+      },
+      {
+        "name": "own_it",
+        "label": "Own It Publicly",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(1,4)" },
+          { "resource": "influence", "operation": "-", "value": "random(2,4)" }
+        ],
+        "transition": "court"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "court",
+      "to": "scandal",
+      "condition": { "resource": "enemies", "operator": ">=", "value": "5" },
+      "auto": false
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "influence", "operator": ">=", "value": "25" },
+      { "resource": "allies", "operator": ">=", "value": "6" }
+    ]
+  },
+  "loseCondition": { "resource": "reputation", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "velvet-crimson",
+    "stateDescriptions": {
+      "court": { "label": "Royal Court", "icon": "crown" },
+      "private_chambers": { "label": "Private Chambers", "icon": "lock" },
+      "grand_council": { "label": "Grand Council", "icon": "users" },
+      "feast_hall": { "label": "Feast Hall", "icon": "wine" },
+      "scandal": { "label": "Scandal!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "influence": "trending-up",
+      "reputation": "star",
+      "allies": "users",
+      "secrets": "eye",
+      "gold": "coin",
+      "enemies": "alert-triangle"
+    }
+  }
+}

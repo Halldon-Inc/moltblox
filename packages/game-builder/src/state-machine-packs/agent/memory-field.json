@@ -1,0 +1,483 @@
+{
+  "name": "Memory Field",
+  "description": "Navigate a field of memory fragments. Collect, organize, and link memories to reconstruct a lost consciousness before the fragments fade.",
+  "states": [
+    {
+      "name": "void_space",
+      "description": "Empty space between memory clusters.",
+      "onEnter": []
+    },
+    {
+      "name": "fragment_cluster",
+      "description": "A cluster of glowing memory fragments.",
+      "onEnter": [
+        {
+          "resource": "fragments",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "core_memory",
+      "description": "A powerful, stable memory. An anchor point.",
+      "onEnter": [
+        {
+          "resource": "coherence",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "corrupted_zone",
+      "description": "Garbled data. Memories twisted and wrong.",
+      "onEnter": [
+        {
+          "resource": "corruption",
+          "operation": "+",
+          "value": "random(5,8)"
+        }
+      ]
+    },
+    {
+      "name": "synthesis",
+      "description": "Linking fragments together into meaning.",
+      "onEnter": [
+        {
+          "resource": "coherence",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    }
+  ],
+  "initialState": "void_space",
+  "resources": {
+    "fragments": {
+      "initial": 3,
+      "min": 0,
+      "max": 50,
+      "label": "Memory Fragments"
+    },
+    "coherence": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Coherence"
+    },
+    "corruption": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Corruption"
+    },
+    "energy": {
+      "initial": 40,
+      "min": 0,
+      "max": 40,
+      "label": "Mental Energy"
+    },
+    "links": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Memory Links"
+    }
+  },
+  "actions": {
+    "void_space": [
+      {
+        "name": "search",
+        "label": "Search for Fragments",
+        "description": "Reach out into the void.",
+        "effects": [
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "fragment_cluster"
+      },
+      {
+        "name": "stabilize",
+        "label": "Stabilize Self",
+        "description": "Center your consciousness.",
+        "effects": [
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "dive_deep",
+        "label": "Dive Deeper",
+        "description": "Push into unknown territory.",
+        "effects": [
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "core_memory"
+      }
+    ],
+    "fragment_cluster": [
+      {
+        "name": "collect",
+        "label": "Collect Fragments",
+        "description": "Gather the floating memories.",
+        "effects": [
+          {
+            "resource": "fragments",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "sort",
+        "label": "Sort Fragments",
+        "description": "Organize by type and era.",
+        "effects": [
+          {
+            "resource": "fragments",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "links",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "name": "link_fragments",
+        "label": "Link Fragments",
+        "description": "Connect related memories.",
+        "condition": {
+          "resource": "fragments",
+          "operator": ">=",
+          "value": "5"
+        },
+        "effects": [
+          {
+            "resource": "fragments",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "links",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "synthesis"
+      },
+      {
+        "name": "return_void",
+        "label": "Return to Void",
+        "description": "Float back to open space.",
+        "effects": [],
+        "transition": "void_space"
+      }
+    ],
+    "core_memory": [
+      {
+        "name": "anchor",
+        "label": "Set Anchor Point",
+        "description": "Use this memory as a foundation.",
+        "effects": [
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "explore_memory",
+        "label": "Explore the Memory",
+        "description": "Dive into this moment in time.",
+        "effects": [
+          {
+            "resource": "fragments",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "fragment_cluster"
+      },
+      {
+        "name": "extract",
+        "label": "Extract Core Data",
+        "description": "Pull the essential meaning.",
+        "effects": [
+          {
+            "resource": "links",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(3,4)"
+          }
+        ],
+        "transition": "void_space"
+      }
+    ],
+    "corrupted_zone": [
+      {
+        "name": "purge",
+        "label": "Purge Corruption",
+        "description": "Burn away the garbled data.",
+        "effects": [
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "fragments",
+            "operation": "-",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "void_space"
+      },
+      {
+        "name": "salvage",
+        "label": "Salvage Memories",
+        "description": "Try to recover fragments from the corruption.",
+        "effects": [
+          {
+            "resource": "fragments",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "fragment_cluster"
+      },
+      {
+        "name": "firewall",
+        "label": "Build Firewall",
+        "description": "Wall off the corrupted area.",
+        "effects": [
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "void_space"
+      }
+    ],
+    "synthesis": [
+      {
+        "name": "weave",
+        "label": "Weave Memories",
+        "description": "Connect fragments into a narrative.",
+        "effects": [
+          {
+            "resource": "links",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "fragments",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "crystallize",
+        "label": "Crystallize Understanding",
+        "description": "Lock in the connections.",
+        "effects": [
+          {
+            "resource": "coherence",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "corruption",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "energy",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "void_space"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "fragment_cluster",
+      "to": "corrupted_zone",
+      "condition": {
+        "resource": "corruption",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "void_space",
+      "to": "core_memory",
+      "condition": {
+        "resource": "links",
+        "operator": ">=",
+        "value": "12"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "coherence",
+    "operator": ">=",
+    "value": "85"
+  },
+  "loseCondition": {
+    "resource": "energy",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "neural-purple",
+    "stateDescriptions": {
+      "void_space": {
+        "label": "Void Space",
+        "icon": "circle"
+      },
+      "fragment_cluster": {
+        "label": "Fragments",
+        "icon": "layers"
+      },
+      "core_memory": {
+        "label": "Core Memory",
+        "icon": "star"
+      },
+      "corrupted_zone": {
+        "label": "Corrupted!",
+        "icon": "alert"
+      },
+      "synthesis": {
+        "label": "Synthesis",
+        "icon": "link"
+      }
+    },
+    "resourceIcons": {
+      "fragments": "layers",
+      "coherence": "target",
+      "corruption": "alert",
+      "energy": "battery",
+      "links": "link"
+    }
+  }
+}

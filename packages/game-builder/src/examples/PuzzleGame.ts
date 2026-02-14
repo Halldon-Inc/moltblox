@@ -14,6 +14,11 @@ import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 export interface PuzzleConfig {
   gridSize?: number;
+  /** Move limit (1 move per action). 0 = unlimited (default 0). */
+  timerSeconds?: number;
+  /** If true, a wrong match costs an extra move and reduces score (default false). */
+  penaltyForWrongMatch?: boolean;
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
 interface PuzzleState {
@@ -22,9 +27,11 @@ interface PuzzleState {
   revealed: boolean[]; // Which cells are revealed
   matched: boolean[]; // Which cells are matched
   selected: number | null; // Currently selected cell
-  moves: number; // Total moves made
+  moves: number; // Total moves made (legacy alias for movesUsed)
   matches: number; // Pairs found
   gridSize: number; // Width/height of grid
+  movesUsed: number; // Moves consumed (incremented per action)
+  moveLimit: number; // 0 = unlimited; otherwise game ends when movesUsed >= moveLimit
 }
 
 export class PuzzleGame extends BaseGame {
@@ -51,6 +58,8 @@ export class PuzzleGame extends BaseGame {
     // Shuffle
     const grid = this.shuffle(pairs);
 
+    const moveLimit = cfg.timerSeconds ?? 0;
+
     return {
       grid,
       revealed: new Array(totalCells).fill(false),
@@ -59,6 +68,8 @@ export class PuzzleGame extends BaseGame {
       moves: 0,
       matches: 0,
       gridSize,
+      movesUsed: 0,
+      moveLimit,
     };
   }
 
@@ -97,6 +108,7 @@ export class PuzzleGame extends BaseGame {
           const secondValue = data.grid[index];
 
           data.moves++;
+          data.movesUsed++;
 
           if (firstValue === secondValue) {
             // Match found!
@@ -109,10 +121,16 @@ export class PuzzleGame extends BaseGame {
               indices: [firstIndex, index],
             });
           } else {
-            // No match - hide both after a delay (handled by frontend)
-            // For now, just mark them to be hidden
+            // No match: hide both
             data.revealed[firstIndex] = false;
             data.revealed[index] = false;
+
+            // If penaltyForWrongMatch, costs an extra move
+            const cfgPen = this.config as PuzzleConfig;
+            if (cfgPen.penaltyForWrongMatch) {
+              data.moves++;
+              data.movesUsed++;
+            }
 
             this.emitEvent('match_failed', playerId, {
               indices: [firstIndex, index],
@@ -139,7 +157,10 @@ export class PuzzleGame extends BaseGame {
     const data = this.getData<PuzzleState>();
     // Game over when all pairs are matched
     const numPairs = (data.gridSize * data.gridSize) / 2;
-    return data.matches >= numPairs;
+    if (data.matches >= numPairs) return true;
+    // Also over if move limit exhausted
+    if (data.moveLimit > 0 && data.movesUsed >= data.moveLimit) return true;
+    return false;
   }
 
   protected determineWinner(): string | null {

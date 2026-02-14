@@ -1,0 +1,284 @@
+{
+  "name": "Zoo Manager",
+  "description": "Build and manage a world-class zoo. Acquire animals, build exhibits, and balance conservation with entertainment.",
+  "states": [
+    { "name": "main_office", "description": "The zoo management office.", "onEnter": [] },
+    { "name": "exhibits", "description": "Animal enclosures and habitats.", "onEnter": [] },
+    { "name": "veterinary", "description": "Animal health center.", "onEnter": [] },
+    { "name": "gift_shop", "description": "The zoo gift shop and food court.", "onEnter": [] },
+    { "name": "conservation", "description": "Breeding and conservation programs.", "onEnter": [] },
+    { "name": "event_area", "description": "Special shows and educational events.", "onEnter": [] }
+  ],
+  "initialState": "main_office",
+  "resources": {
+    "funds": { "initial": 300, "min": 0, "label": "Funds" },
+    "animals": { "initial": 5, "min": 0, "max": 30, "label": "Animals" },
+    "visitors": { "initial": 50, "min": 0, "label": "Daily Visitors" },
+    "animal_happiness": { "initial": 60, "min": 0, "max": 100, "label": "Animal Welfare" },
+    "public_rating": { "initial": 40, "min": 0, "max": 100, "label": "Public Rating" },
+    "staff": { "initial": 3, "min": 1, "max": 10, "label": "Staff" },
+    "conservation_pts": { "initial": 0, "min": 0, "label": "Conservation Score" }
+  },
+  "actions": {
+    "main_office": [
+      {
+        "name": "go_exhibits",
+        "label": "Visit Exhibits",
+        "description": "Check on the animal enclosures.",
+        "effects": [],
+        "transition": "exhibits"
+      },
+      {
+        "name": "go_vet",
+        "label": "Visit Veterinary",
+        "description": "Check on animal health.",
+        "effects": [],
+        "transition": "veterinary"
+      },
+      {
+        "name": "go_shop",
+        "label": "Visit Gift Shop",
+        "description": "Check on retail operations.",
+        "effects": [],
+        "transition": "gift_shop"
+      },
+      {
+        "name": "go_conservation",
+        "label": "Conservation Center",
+        "description": "Work on breeding programs.",
+        "effects": [],
+        "transition": "conservation"
+      },
+      {
+        "name": "go_events",
+        "label": "Event Area",
+        "description": "Plan shows and events.",
+        "effects": [],
+        "transition": "event_area"
+      },
+      {
+        "name": "hire",
+        "label": "Hire Staff",
+        "description": "Recruit new zookeepers.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "staff", "operation": "+", "value": "1" },
+          { "resource": "funds", "operation": "-", "value": "40" }
+        ]
+      },
+      {
+        "name": "advertise",
+        "label": "Marketing Campaign",
+        "description": "Promote the zoo to attract visitors.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "25" },
+          { "resource": "visitors", "operation": "+", "value": "random(20,50)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(2,5)" }
+        ]
+      }
+    ],
+    "exhibits": [
+      {
+        "name": "build_exhibit",
+        "label": "Build New Exhibit",
+        "description": "Construct a new animal habitat.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "80" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "80" },
+          { "resource": "animals", "operation": "+", "value": "random(1,3)" },
+          { "resource": "visitors", "operation": "+", "value": "random(15,30)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "upgrade_exhibit",
+        "label": "Upgrade Exhibit",
+        "description": "Improve existing habitats.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "40" },
+          { "resource": "animal_happiness", "operation": "+", "value": "random(5,10)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "feed_animals",
+        "label": "Feed Animals",
+        "description": "Provide food to all exhibits.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "10" },
+          { "resource": "animal_happiness", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to the main office.",
+        "effects": [],
+        "transition": "main_office"
+      }
+    ],
+    "veterinary": [
+      {
+        "name": "checkup",
+        "label": "Health Checkups",
+        "description": "Examine all animals.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "15" },
+          { "resource": "animal_happiness", "operation": "+", "value": "random(5,10)" },
+          { "resource": "conservation_pts", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "treat",
+        "label": "Treat Sick Animal",
+        "description": "Provide medical treatment.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "25" },
+          { "resource": "animal_happiness", "operation": "+", "value": "random(8,15)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to the main office.",
+        "effects": [],
+        "transition": "main_office"
+      }
+    ],
+    "gift_shop": [
+      {
+        "name": "stock_shop",
+        "label": "Stock Merchandise",
+        "description": "Fill the shop with zoo-themed goods.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "15" },
+          { "resource": "funds", "operation": "+", "value": "random(20,40)" }
+        ]
+      },
+      {
+        "name": "food_court",
+        "label": "Upgrade Food Court",
+        "description": "Better food means happier visitors.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "30" },
+          { "resource": "public_rating", "operation": "+", "value": "random(3,6)" },
+          { "resource": "visitors", "operation": "+", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to the main office.",
+        "effects": [],
+        "transition": "main_office"
+      }
+    ],
+    "conservation": [
+      {
+        "name": "breeding_program",
+        "label": "Run Breeding Program",
+        "description": "Breed endangered species.",
+        "condition": { "resource": "animals", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "animals", "operation": "+", "value": "random(1,2)" },
+          { "resource": "conservation_pts", "operation": "+", "value": "random(5,10)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(3,6)" },
+          { "resource": "funds", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "research",
+        "label": "Conservation Research",
+        "description": "Study animals for science.",
+        "effects": [
+          { "resource": "conservation_pts", "operation": "+", "value": "random(3,8)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to the main office.",
+        "effects": [],
+        "transition": "main_office"
+      }
+    ],
+    "event_area": [
+      {
+        "name": "educational_show",
+        "label": "Educational Show",
+        "description": "Host an animal education program.",
+        "condition": { "resource": "staff", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "visitors", "operation": "+", "value": "random(20,40)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(3,6)" },
+          { "resource": "funds", "operation": "+", "value": "random(15,30)" }
+        ]
+      },
+      {
+        "name": "night_event",
+        "label": "Night Safari Event",
+        "description": "Special after-hours experience.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "20" },
+          { "resource": "funds", "operation": "+", "value": "random(30,60)" },
+          { "resource": "visitors", "operation": "+", "value": "random(15,30)" },
+          { "resource": "public_rating", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to the main office.",
+        "effects": [],
+        "transition": "main_office"
+      }
+    ]
+  },
+  "transitions": [],
+  "perTurnEffects": [
+    { "resource": "funds", "operation": "+", "value": "random(5,15)" },
+    { "resource": "animal_happiness", "operation": "-", "value": "2" }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "conservation_pts", "operator": ">=", "value": "50" },
+      { "resource": "public_rating", "operator": ">=", "value": "80" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "animal_happiness", "operator": "<=", "value": "0" },
+      { "resource": "funds", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "nature-green",
+    "stateDescriptions": {
+      "main_office": { "label": "Zoo Office", "icon": "briefcase" },
+      "exhibits": { "label": "Animal Exhibits", "icon": "paw" },
+      "veterinary": { "label": "Vet Center", "icon": "heart" },
+      "gift_shop": { "label": "Gift Shop", "icon": "shopping-bag" },
+      "conservation": { "label": "Conservation", "icon": "globe" },
+      "event_area": { "label": "Events", "icon": "calendar" }
+    },
+    "resourceIcons": {
+      "funds": "dollar",
+      "animals": "paw",
+      "visitors": "users",
+      "animal_happiness": "heart",
+      "public_rating": "star",
+      "staff": "user",
+      "conservation_pts": "globe"
+    }
+  }
+}

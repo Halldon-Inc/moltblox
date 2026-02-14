@@ -1,0 +1,332 @@
+{
+  "name": "Mountain Climb",
+  "description": "Attempt to summit the world's tallest peak. Manage oxygen, weather windows, and fatigue on the ultimate mountaineering challenge.",
+  "states": [
+    {
+      "name": "base_camp",
+      "description": "Base camp at 5000m. Acclimatize and prepare.",
+      "onEnter": [{ "resource": "energy", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "lower_slopes",
+      "description": "Climbing through rocky terrain and glacier fields.",
+      "onEnter": []
+    },
+    {
+      "name": "camp_two",
+      "description": "An intermediate camp for rest and staging.",
+      "onEnter": [{ "resource": "energy", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "ice_wall",
+      "description": "A sheer wall of ice that must be climbed.",
+      "onEnter": []
+    },
+    {
+      "name": "death_zone",
+      "description": "Above 8000m. Every breath is a battle.",
+      "onEnter": [{ "resource": "oxygen", "operation": "-", "value": "5" }]
+    },
+    {
+      "name": "summit_push",
+      "description": "The final push toward the summit.",
+      "onEnter": [
+        { "resource": "oxygen", "operation": "-", "value": "3" },
+        { "resource": "energy", "operation": "-", "value": "5" }
+      ]
+    },
+    {
+      "name": "whiteout",
+      "description": "Zero visibility. Impossible to see anything.",
+      "onEnter": [{ "resource": "energy", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "base_camp",
+  "resources": {
+    "energy": { "initial": 30, "min": 0, "max": 40, "label": "Energy" },
+    "oxygen": { "initial": 20, "min": 0, "max": 25, "label": "Oxygen Bottles" },
+    "rope": { "initial": 10, "min": 0, "max": 15, "label": "Rope Lengths" },
+    "food": { "initial": 12, "min": 0, "max": 15, "label": "Food Rations" },
+    "altitude": { "initial": 5000, "min": 5000, "max": 9000, "label": "Altitude (m)" },
+    "acclimatization": { "initial": 0, "min": 0, "max": 10, "label": "Acclimatization" },
+    "morale": { "initial": 8, "min": 0, "max": 10, "label": "Morale" }
+  },
+  "actions": {
+    "base_camp": [
+      {
+        "name": "acclimatize",
+        "label": "Acclimatize",
+        "description": "Spend time adjusting to the altitude.",
+        "effects": [
+          { "resource": "acclimatization", "operation": "+", "value": "random(1,3)" },
+          { "resource": "food", "operation": "-", "value": "1" },
+          { "resource": "energy", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "rest",
+        "label": "Rest and Recover",
+        "description": "Sleep in your tent to restore energy.",
+        "effects": [
+          { "resource": "energy", "operation": "+", "value": "8" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "check_gear",
+        "label": "Check Gear",
+        "description": "Inspect and organize equipment.",
+        "effects": [
+          { "resource": "rope", "operation": "+", "value": "1" },
+          { "resource": "morale", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "begin_climb",
+        "label": "Begin Ascent",
+        "description": "Start climbing the lower slopes.",
+        "condition": { "resource": "acclimatization", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "altitude", "operation": "+", "value": "500" },
+          { "resource": "energy", "operation": "-", "value": "5" }
+        ],
+        "transition": "lower_slopes"
+      }
+    ],
+    "lower_slopes": [
+      {
+        "name": "climb_steady",
+        "label": "Steady Climb",
+        "description": "Maintain a sustainable pace.",
+        "effects": [
+          { "resource": "altitude", "operation": "+", "value": "random(200,500)" },
+          { "resource": "energy", "operation": "-", "value": "random(3,6)" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "fix_rope",
+        "label": "Fix Ropes",
+        "description": "Set up fixed ropes for the route.",
+        "condition": { "resource": "rope", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "rope", "operation": "-", "value": "1" },
+          { "resource": "energy", "operation": "-", "value": "3" },
+          { "resource": "morale", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "go_back",
+        "label": "Descend to Base Camp",
+        "description": "Go back down to rest.",
+        "effects": [
+          { "resource": "altitude", "operation": "-", "value": "500" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "base_camp"
+      }
+    ],
+    "camp_two": [
+      {
+        "name": "rest_camp",
+        "label": "Rest at Camp",
+        "description": "Recover energy at this altitude.",
+        "effects": [
+          { "resource": "energy", "operation": "+", "value": "6" },
+          { "resource": "food", "operation": "-", "value": "1" },
+          { "resource": "oxygen", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "push_higher",
+        "label": "Continue Ascent",
+        "description": "Keep climbing higher.",
+        "effects": [
+          { "resource": "altitude", "operation": "+", "value": "random(300,600)" },
+          { "resource": "energy", "operation": "-", "value": "random(4,8)" },
+          { "resource": "oxygen", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Descend",
+        "description": "Go back to lower altitude.",
+        "effects": [
+          { "resource": "altitude", "operation": "-", "value": "500" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "lower_slopes"
+      }
+    ],
+    "ice_wall": [
+      {
+        "name": "climb_wall",
+        "label": "Climb the Ice Wall",
+        "description": "Use ice axes and crampons.",
+        "condition": { "resource": "rope", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "rope", "operation": "-", "value": "2" },
+          { "resource": "energy", "operation": "-", "value": "random(6,10)" },
+          { "resource": "altitude", "operation": "+", "value": "random(400,700)" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ],
+        "transition": "death_zone"
+      },
+      {
+        "name": "find_route",
+        "label": "Find Alternate Route",
+        "description": "Search for an easier path around.",
+        "effects": [
+          { "resource": "energy", "operation": "-", "value": "5" },
+          { "resource": "oxygen", "operation": "-", "value": "1" },
+          { "resource": "altitude", "operation": "+", "value": "random(200,400)" }
+        ]
+      },
+      {
+        "name": "turn_back",
+        "label": "Turn Back",
+        "description": "The wall is too dangerous today.",
+        "effects": [
+          { "resource": "morale", "operation": "-", "value": "2" },
+          { "resource": "altitude", "operation": "-", "value": "300" }
+        ],
+        "transition": "camp_two"
+      }
+    ],
+    "death_zone": [
+      {
+        "name": "push_summit",
+        "label": "Push for Summit",
+        "description": "Every step takes tremendous willpower.",
+        "condition": { "resource": "oxygen", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "altitude", "operation": "+", "value": "random(100,300)" },
+          { "resource": "oxygen", "operation": "-", "value": "random(2,4)" },
+          { "resource": "energy", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "use_oxygen",
+        "label": "Use Supplemental Oxygen",
+        "description": "Breathe from your oxygen supply.",
+        "condition": { "resource": "oxygen", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "oxygen", "operation": "-", "value": "2" },
+          { "resource": "energy", "operation": "+", "value": "4" }
+        ]
+      },
+      {
+        "name": "descend_death_zone",
+        "label": "Descend",
+        "description": "Go back down before it is too late.",
+        "effects": [
+          { "resource": "altitude", "operation": "-", "value": "500" },
+          { "resource": "energy", "operation": "-", "value": "3" }
+        ],
+        "transition": "camp_two"
+      }
+    ],
+    "summit_push": [
+      {
+        "name": "final_steps",
+        "label": "Final Steps to Summit",
+        "description": "The summit is right there. Push through.",
+        "condition": { "resource": "energy", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "altitude", "operation": "+", "value": "random(100,200)" },
+          { "resource": "oxygen", "operation": "-", "value": "random(3,5)" },
+          { "resource": "energy", "operation": "-", "value": "random(5,10)" },
+          { "resource": "morale", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "retreat_summit",
+        "label": "Turn Back",
+        "description": "So close, but conditions are too dangerous.",
+        "effects": [
+          { "resource": "morale", "operation": "-", "value": "3" },
+          { "resource": "altitude", "operation": "-", "value": "300" }
+        ],
+        "transition": "death_zone"
+      }
+    ],
+    "whiteout": [
+      {
+        "name": "wait",
+        "label": "Wait for Clear",
+        "description": "Stay put until visibility returns.",
+        "effects": [
+          { "resource": "energy", "operation": "-", "value": "random(3,6)" },
+          { "resource": "oxygen", "operation": "-", "value": "random(1,3)" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ],
+        "transition": "death_zone"
+      },
+      {
+        "name": "navigate_blind",
+        "label": "Navigate by Compass",
+        "description": "Try to move using instruments only.",
+        "effects": [
+          { "resource": "energy", "operation": "-", "value": "random(4,8)" },
+          { "resource": "morale", "operation": "-", "value": "2" }
+        ],
+        "transition": "camp_two"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "lower_slopes",
+      "to": "camp_two",
+      "condition": { "resource": "altitude", "operator": ">=", "value": "6500" },
+      "auto": true
+    },
+    {
+      "from": "camp_two",
+      "to": "ice_wall",
+      "condition": { "resource": "altitude", "operator": ">=", "value": "7500" },
+      "auto": true
+    },
+    {
+      "from": "death_zone",
+      "to": "summit_push",
+      "condition": { "resource": "altitude", "operator": ">=", "value": "8500" },
+      "auto": true
+    },
+    {
+      "from": "death_zone",
+      "to": "whiteout",
+      "condition": { "resource": "energy", "operator": "<=", "value": "8" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [{ "resource": "food", "operation": "-", "value": "1" }],
+  "winCondition": { "resource": "altitude", "operator": ">=", "value": "8850" },
+  "loseCondition": {
+    "or": [
+      { "resource": "energy", "operator": "<=", "value": "0" },
+      { "resource": "oxygen", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "snow-white",
+    "stateDescriptions": {
+      "base_camp": { "label": "Base Camp", "icon": "tent" },
+      "lower_slopes": { "label": "Lower Slopes", "icon": "trending-up" },
+      "camp_two": { "label": "Camp II", "icon": "flag" },
+      "ice_wall": { "label": "Ice Wall", "icon": "mountain" },
+      "death_zone": { "label": "Death Zone", "icon": "alert-triangle" },
+      "summit_push": { "label": "Summit Push!", "icon": "star" },
+      "whiteout": { "label": "Whiteout!", "icon": "cloud" }
+    },
+    "resourceIcons": {
+      "energy": "battery",
+      "oxygen": "wind",
+      "rope": "link",
+      "food": "apple",
+      "altitude": "trending-up",
+      "acclimatization": "activity",
+      "morale": "smile"
+    }
+  }
+}

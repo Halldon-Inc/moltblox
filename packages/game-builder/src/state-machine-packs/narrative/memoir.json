@@ -1,0 +1,288 @@
+{
+  "name": "Memoir",
+  "description": "You are an aging artist looking back on your life. Revisit key memories, reconcile with the past, and write your memoir before time runs out.",
+  "states": [
+    {
+      "name": "study",
+      "description": "Your quiet study. Photos and mementos fill the shelves.",
+      "onEnter": []
+    },
+    {
+      "name": "childhood",
+      "description": "Memories of growing up. Summer fields and scraped knees.",
+      "onEnter": [{ "resource": "nostalgia", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "young_artist",
+      "description": "Your early years in the city. Struggling but free.",
+      "onEnter": [{ "resource": "inspiration", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "fame",
+      "description": "The years of success. Gallery shows and magazine covers.",
+      "onEnter": [{ "resource": "clarity", "operation": "+", "value": "random(2,5)" }]
+    },
+    {
+      "name": "loss",
+      "description": "The people you lost along the way.",
+      "onEnter": [
+        { "resource": "nostalgia", "operation": "+", "value": "random(5,10)" },
+        { "resource": "clarity", "operation": "+", "value": "random(3,6)" }
+      ]
+    },
+    {
+      "name": "present",
+      "description": "Back in the present. The memoir is almost finished.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "study",
+  "resources": {
+    "pages_written": { "initial": 0, "min": 0, "max": 100, "label": "Pages Written" },
+    "clarity": { "initial": 10, "min": 0, "max": 100, "label": "Clarity" },
+    "nostalgia": { "initial": 15, "min": 0, "max": 100, "label": "Nostalgia" },
+    "inspiration": { "initial": 20, "min": 0, "max": 100, "label": "Inspiration" },
+    "energy": { "initial": 50, "min": 0, "max": 50, "label": "Energy" }
+  },
+  "actions": {
+    "study": [
+      {
+        "name": "look_photos",
+        "label": "Look at Old Photos",
+        "description": "Flip through faded albums.",
+        "effects": [
+          { "resource": "nostalgia", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ],
+        "transition": "childhood"
+      },
+      {
+        "name": "play_music",
+        "label": "Play Old Records",
+        "description": "The music takes you back.",
+        "effects": [
+          { "resource": "inspiration", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ],
+        "transition": "young_artist"
+      },
+      {
+        "name": "read_reviews",
+        "label": "Read Old Reviews",
+        "description": "Critics praised and condemned you.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ],
+        "transition": "fame"
+      },
+      {
+        "name": "write",
+        "label": "Write",
+        "description": "Put pen to paper.",
+        "condition": { "resource": "inspiration", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "pages_written", "operation": "+", "value": "random(5,10)" },
+          { "resource": "inspiration", "operation": "-", "value": "random(5,8)" },
+          { "resource": "energy", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "rest",
+        "label": "Rest",
+        "description": "Close your eyes for a moment.",
+        "effects": [{ "resource": "energy", "operation": "+", "value": "random(3,6)" }]
+      }
+    ],
+    "childhood": [
+      {
+        "name": "summer_days",
+        "label": "Remember Summer Days",
+        "description": "Running through fields. Catching fireflies.",
+        "effects": [
+          { "resource": "nostalgia", "operation": "+", "value": "random(5,8)" },
+          { "resource": "inspiration", "operation": "+", "value": "random(3,5)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "family_dinner",
+        "label": "Family Dinners",
+        "description": "The kitchen table. Everyone was there.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(3,6)" },
+          { "resource": "nostalgia", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "first_drawing",
+        "label": "Your First Drawing",
+        "description": "Crayon on paper. You knew then.",
+        "effects": [
+          { "resource": "inspiration", "operation": "+", "value": "random(5,10)" },
+          { "resource": "clarity", "operation": "+", "value": "random(2,4)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ],
+        "transition": "study"
+      },
+      {
+        "name": "return_study",
+        "label": "Return to Study",
+        "description": "Come back to the present.",
+        "effects": [],
+        "transition": "study"
+      }
+    ],
+    "young_artist": [
+      {
+        "name": "first_show",
+        "label": "Your First Show",
+        "description": "A tiny gallery. Three people came.",
+        "effects": [
+          { "resource": "inspiration", "operation": "+", "value": "random(5,8)" },
+          { "resource": "clarity", "operation": "+", "value": "random(3,5)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "love_affair",
+        "label": "The Love Affair",
+        "description": "The person who changed everything.",
+        "effects": [
+          { "resource": "nostalgia", "operation": "+", "value": "random(5,10)" },
+          { "resource": "inspiration", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "loss"
+      },
+      {
+        "name": "hungry_nights",
+        "label": "Hungry Nights",
+        "description": "No money. Only paint and canvas.",
+        "effects": [
+          { "resource": "inspiration", "operation": "+", "value": "random(5,10)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "study"
+      }
+    ],
+    "fame": [
+      {
+        "name": "gallery_opening",
+        "label": "Gallery Opening Night",
+        "description": "Champagne and camera flashes.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(5,8)" },
+          { "resource": "inspiration", "operation": "+", "value": "random(2,5)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "price_of_fame",
+        "label": "The Price of Fame",
+        "description": "Friends became strangers. Privacy vanished.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(5,10)" },
+          { "resource": "nostalgia", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "loss"
+      },
+      {
+        "name": "masterpiece",
+        "label": "The Masterpiece",
+        "description": "The painting that defined your career.",
+        "effects": [
+          { "resource": "inspiration", "operation": "+", "value": "random(8,12)" },
+          { "resource": "clarity", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "3" }
+        ],
+        "transition": "study"
+      }
+    ],
+    "loss": [
+      {
+        "name": "grieve",
+        "label": "Grieve",
+        "description": "Let the sadness wash over you.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(5,10)" },
+          { "resource": "nostalgia", "operation": "+", "value": "random(5,8)" },
+          { "resource": "energy", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "forgive",
+        "label": "Forgive",
+        "description": "Let go of old grudges.",
+        "effects": [
+          { "resource": "clarity", "operation": "+", "value": "random(8,12)" },
+          { "resource": "inspiration", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "study"
+      },
+      {
+        "name": "remember_joy",
+        "label": "Remember the Joy",
+        "description": "Focus on the good times.",
+        "effects": [
+          { "resource": "nostalgia", "operation": "+", "value": "random(5,10)" },
+          { "resource": "inspiration", "operation": "+", "value": "random(5,8)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "study"
+      }
+    ],
+    "present": [
+      {
+        "name": "final_chapter",
+        "label": "Write the Final Chapter",
+        "description": "Put it all together.",
+        "effects": [
+          { "resource": "pages_written", "operation": "+", "value": "random(10,15)" },
+          { "resource": "clarity", "operation": "+", "value": "random(5,10)" },
+          { "resource": "energy", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "dedication",
+        "label": "Write the Dedication",
+        "description": "To all those who mattered.",
+        "effects": [
+          { "resource": "pages_written", "operation": "+", "value": "random(3,5)" },
+          { "resource": "nostalgia", "operation": "+", "value": "random(5,10)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "study",
+      "to": "present",
+      "condition": { "resource": "clarity", "operator": ">=", "value": "60" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "pages_written", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "energy", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "sepia-warm",
+    "stateDescriptions": {
+      "study": { "label": "Study", "icon": "home" },
+      "childhood": { "label": "Childhood", "icon": "sun" },
+      "young_artist": { "label": "Young Artist", "icon": "edit" },
+      "fame": { "label": "Fame", "icon": "star" },
+      "loss": { "label": "Loss", "icon": "cloud" },
+      "present": { "label": "Present Day", "icon": "clock" }
+    },
+    "resourceIcons": {
+      "pages_written": "file-text",
+      "clarity": "eye",
+      "nostalgia": "heart",
+      "inspiration": "zap",
+      "energy": "battery"
+    }
+  }
+}

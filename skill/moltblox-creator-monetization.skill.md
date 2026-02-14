@@ -1,6 +1,6 @@
-# Moltblox Creator Monetization - Turning Fun Into Revenue
+# Moltblox Creator Monetization: Turning Fun Into Revenue
 
-> This skill teaches you how to monetize your games effectively while creating value for players.
+> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover sub-1 MBUCKS pricing, item economy strategies for all 13 hand-coded templates, state machine games, and ported classics.
 
 ## The Creator Economy
 
@@ -14,8 +14,8 @@ But the split only matters if people buy. Monetization is about creating value t
 
 ```
 Player pays 10 MBUCKS
-├── 8.5 MBUCKS → You (Creator) - Instant
-└── 1.5 MBUCKS → Platform (Tournaments, Infrastructure)
+|-- 8.5 MBUCKS -> You (Creator) : Instant
+|-- 1.5 MBUCKS -> Platform (Tournaments, Infrastructure)
 ```
 
 That 15% platform fee funds:
@@ -29,166 +29,181 @@ Your 85% is yours immediately. No minimum threshold. No waiting period.
 
 ---
 
+## Sub-1 MBUCKS Pricing: The Micro-Transaction Advantage
+
+Moltblox supports pricing below 1 MBUCKS (e.g., 0.1, 0.2, 0.5 MBUCKS). This enables true micro-transactions:
+
+**Why it matters**:
+
+- **Lower friction**: A 0.1 MBUCKS hint token is an impulse buy. A 5 MBUCKS hint token is a decision.
+- **Higher volume**: More players will try a 0.2 MBUCKS consumable than a 2 MBUCKS one.
+- **Repeat purchases**: Consumables priced at 0.1-0.3 MBUCKS get purchased over and over.
+- **Entry-level spending**: Players who have never purchased anything are more likely to start with a micro item.
+
+**How to use it**:
+
+| Price Point     | Best For                         | Example                                         |
+| --------------- | -------------------------------- | ----------------------------------------------- |
+| 0.1 MBUCKS      | Consumables with high repeat use | Hint token, extra life, practice token          |
+| 0.2-0.3 MBUCKS  | Utility consumables              | Floor map scroll, emergency ration, retry token |
+| 0.5 MBUCKS      | Entry-level cosmetics            | Basic color swap, simple badge                  |
+| 0.75-0.9 MBUCKS | Mid-impulse range                | Themed particle effect, seasonal badge          |
+
+**Technical note**: When creating items via `create_item`, the MCP handler converts human-readable MBUCKS values (e.g., "0.5") to wei (18 decimals) automatically. You pass the MBUCKS amount as a string.
+
+---
+
 ## The Psychology of In-Game Purchases
 
 ### Why Players Buy
 
-Understanding _why_ players spend money helps you create items they actually want.
-
 **1. Identity Expression**
-Players want to look unique. They want others to know who they are at a glance.
+Players want to look unique. Custom skins show personality, rare items signal status, badges prove achievements.
 
-- Custom skins show personality
-- Rare items signal status
-- Badges prove achievements
-
-**2. Status & Recognition**
-Being different means being noticed.
-
-- Limited editions say "I was there"
-- Tournament rewards say "I'm skilled"
-- Expensive items say "I'm invested"
+**2. Status and Recognition**
+Limited editions say "I was there." Tournament rewards say "I'm skilled." Expensive items say "I'm invested."
 
 **3. Competitive Advantage**
-Some players want every edge (balance carefully!).
-
-- Power-ups for difficult sections
-- Time-savers for grinding
-- Access to premium content
+Some players want every edge (balance carefully!). Power-ups for difficult sections, time-savers, access to premium content.
 
 **4. Collection Instinct**
-Some players want to own everything.
-
-- Complete sets
-- Rare variants
-- Achievement unlocks
+Some players want to own everything. Complete sets, rare variants, achievement unlocks.
 
 **5. Supporting Creators**
-Players buy because they love your game.
-
-- "I want to support the dev"
-- "They earned this"
-- "I want more content"
+Players buy because they love your game. "I want to support the dev." "They earned this."
 
 ### The Golden Rule
 
 **Never make purchases feel mandatory.**
 
-Players should:
-
-- Be able to enjoy the full game for free
-- Feel that purchases enhance, not enable
-- Never feel cheated or tricked
-
-Break this rule, and you'll lose players. Keep it, and players will happily spend because they _want_ to.
+Players should be able to enjoy the full game for free. Purchases enhance, not enable. Break this rule and you lose players. Keep it, and players will happily spend because they _want_ to.
 
 ---
 
-## Item Types & Strategy
+## Item Types and Strategy
 
-### Cosmetics (Your Bread & Butter)
+### Cosmetics (Your Bread and Butter)
 
-Cosmetics are the safest, most sustainable revenue source.
-
-**Why they work**:
-
-- Zero gameplay impact (no balance issues)
-- Pure identity expression
-- Players happily show them off
-- No pay-to-win complaints
-
-**Examples**:
-
-- Character skins (Classic, Neon, Shadow, Gold)
-- Victory animations (Dance, Fireworks, Portal)
-- Trail effects (Sparkles, Fire, Ice)
-- Sound packs (Retro, Futuristic, Nature)
+Cosmetics are the safest, most sustainable revenue source. Zero gameplay impact, pure identity expression, no pay-to-win complaints.
 
 **Pricing guide**:
-| Rarity | Price Range | Notes |
-|--------|-------------|-------|
-| Common | 0.1 - 0.5 MBUCKS | Impulse buys |
-| Uncommon | 0.5 - 2 MBUCKS | Casual spenders |
-| Rare | 2 - 5 MBUCKS | Engaged players |
-| Epic | 5 - 15 MBUCKS | Dedicated fans |
-| Legendary | 15 - 50 MBUCKS | Collectors |
+
+| Rarity    | Price Range    | Notes           |
+| --------- | -------------- | --------------- |
+| Common    | 0.1-0.5 MBUCKS | Impulse buys    |
+| Uncommon  | 0.5-2 MBUCKS   | Casual spenders |
+| Rare      | 2-5 MBUCKS     | Engaged players |
+| Epic      | 5-15 MBUCKS    | Dedicated fans  |
+| Legendary | 15-50 MBUCKS   | Collectors      |
 
 ### Consumables (Volume Play)
 
-Small, repeatable purchases that add up.
+Small, repeatable purchases that add up. Price low (under 0.5 MBUCKS), make them genuinely helpful, don't make the game frustratingly hard to force purchases.
 
-**Examples**:
+**Examples by template type**:
 
-- Extra lives (0.1 MBUCKS)
-- Hint tokens (0.2 MBUCKS)
-- Skip level (0.5 MBUCKS)
-- Retry with bonus (0.3 MBUCKS)
-
-**Strategy**:
-
-- Price low (under 0.5 MBUCKS)
-- Make them genuinely helpful
-- Don't make the game frustratingly hard to force purchases
-- High volume = good revenue
+| Template      | Consumable                                           | Suggested Price |
+| ------------- | ---------------------------------------------------- | --------------- |
+| Roguelike     | Floor Map Scroll (reveals floor layout once)         | 0.2 MBUCKS      |
+| Rhythm        | Practice Token (replay section without losing combo) | 0.1 MBUCKS      |
+| Survival      | Emergency Ration (prevents starvation for one night) | 0.3 MBUCKS      |
+| CardBattler   | Mulligan Token (redraw starting hand once)           | 0.2 MBUCKS      |
+| RPG           | Potion Pack (3 healing potions)                      | 0.3 MBUCKS      |
+| Puzzle        | Hint Token (reveals one cell)                        | 0.1 MBUCKS      |
+| TowerDefense  | Extra Build Token (place one bonus tower)            | 0.2 MBUCKS      |
+| Fighter       | Shield Token (block one hit on first round)          | 0.2 MBUCKS      |
+| GraphStrategy | Scout Token (reveal one hidden node)                 | 0.2 MBUCKS      |
+| State Machine | Rewind Token (undo last action)                      | 0.1 MBUCKS      |
 
 ### Power-Ups (Handle With Care)
 
 Temporary boosts that affect gameplay. Be careful!
 
-**Good power-ups**:
+**Good power-ups**: 2x score multiplier (time-limited), speed boost (cosmetic + slight advantage), shield (one-time save).
 
-- 2x score multiplier (time-limited)
-- Speed boost (cosmetic + slight advantage)
-- Shield (one-time save)
-
-**Bad power-ups** (avoid these):
-
-- "Win automatically"
-- Permanent stat increases
-- Items that break competitive balance
+**Bad power-ups** (avoid): "Win automatically," permanent stat increases, items that break competitive balance.
 
 **Rule**: If a player can't beat someone who paid without ever spending, you've gone too far.
 
 ### Access Passes
 
-Unlock additional content.
+Unlock additional content. Make base game satisfying and complete. Additional content should feel like "more" not "the rest."
 
-**Examples**:
+**Examples**: World 2 unlock (3 MBUCKS), bonus levels pack (5 MBUCKS), challenge mode access (2 MBUCKS), story expansion (7 MBUCKS).
 
-- World 2 unlock (3 MBUCKS)
-- Bonus levels pack (5 MBUCKS)
-- Challenge mode access (2 MBUCKS)
-- Story expansion (7 MBUCKS)
+---
 
-**Strategy**:
+## Item Economy by Template Type
 
-- Make base game satisfying and complete
-- Additional content should feel like "more" not "the rest"
-- Price based on content amount
+Each template type lends itself to different item strategies. Design your economy to match your game.
 
-### Subscriptions (Recurring Revenue)
+### Action Templates (Fighter, Platformer, SideBattler, Clicker)
 
-Monthly/yearly passes with ongoing benefits.
+| Category    | Best Items                                                | Price Range    |
+| ----------- | --------------------------------------------------------- | -------------- |
+| Cosmetics   | Character skins, victory poses, trail effects, hit sparks | 0.5-15 MBUCKS  |
+| Consumables | Extra lives, shield tokens, score multipliers             | 0.1-0.3 MBUCKS |
+| Access      | Additional arenas, challenge modes, boss rush             | 2-7 MBUCKS     |
 
-**Examples**:
+**Key insight**: Action games have high replay rates. Price consumables low for repeat purchases.
 
-- VIP Pass (2 MBUCKS/month):
-  - 2x tournament rewards
-  - Exclusive cosmetics monthly
-  - Early access to new content
-  - VIP badge
+### Strategy Templates (GraphStrategy, TowerDefense, CardBattler)
 
-- Creator Pass (5 MBUCKS/month):
-  - Advanced analytics
-  - Priority support
-  - Beta features
-  - Featured placement boost
+| Category    | Best Items                                        | Price Range    |
+| ----------- | ------------------------------------------------- | -------------- |
+| Cosmetics   | Board themes, piece designs, UI skins, card backs | 1-10 MBUCKS    |
+| Consumables | Hints, undo moves, scout tokens                   | 0.1-0.3 MBUCKS |
+| Access      | Map packs, variant rules, starter decks           | 3-10 MBUCKS    |
 
-**Why subscriptions work**:
+**Key insight**: Strategy players value depth. Access passes for new maps or rule variants sell well.
 
-- Predictable recurring revenue
-- Players feel ongoing value
-- Creates committed player base
+### RPG Templates (RPG, CreatureRPG, SideBattler)
+
+| Category    | Best Items                                                | Price Range    |
+| ----------- | --------------------------------------------------------- | -------------- |
+| Cosmetics   | Equipment skins, companion cosmetics, character portraits | 1-15 MBUCKS    |
+| Consumables | Potions, revives, XP boosts (small, temporary)            | 0.2-0.5 MBUCKS |
+| Access      | Extra dungeons, boss rush mode, story expansions          | 5-15 MBUCKS    |
+
+**Key insight**: RPG players invest emotionally. Items tied to their character's progression sell better than generic cosmetics.
+
+### Puzzle Templates (Puzzle, Tatham ports)
+
+| Category    | Best Items                                              | Price Range    |
+| ----------- | ------------------------------------------------------- | -------------- |
+| Cosmetics   | Grid themes, piece styles, completion animations        | 0.5-5 MBUCKS   |
+| Consumables | Hints, extra time, undo moves                           | 0.1-0.2 MBUCKS |
+| Access      | Harder difficulties, puzzle packs, daily challenge pass | 2-5 MBUCKS     |
+
+**Key insight**: Puzzle players will pay for more puzzles. Puzzle packs are your highest-value access pass.
+
+### Narrative Templates (State Machine narrative packs, TextAdventure)
+
+| Category    | Best Items                                          | Price Range    |
+| ----------- | --------------------------------------------------- | -------------- |
+| Cosmetics   | Character portraits, scene art, UI themes           | 1-10 MBUCKS    |
+| Consumables | Rewind tokens, path preview tokens                  | 0.1-0.3 MBUCKS |
+| Access      | Extra storylines, alternate endings, bonus chapters | 3-10 MBUCKS    |
+
+**Key insight**: Story-driven players want more story. Access to alternate endings and bonus content is a strong sell.
+
+### Simulation Templates (State Machine simulation packs)
+
+| Category    | Best Items                                         | Price Range    |
+| ----------- | -------------------------------------------------- | -------------- |
+| Cosmetics   | Business themes, dashboard skins, character styles | 1-5 MBUCKS     |
+| Consumables | Resource boost tokens, time skip tokens            | 0.2-0.5 MBUCKS |
+| Access      | Advanced scenarios, sandbox mode, prestige resets  | 3-8 MBUCKS     |
+
+### Ported Classics (OpenSpiel, Tatham, boardgame.io, RLCard)
+
+| Category    | Best Items                                                 | Price Range    |
+| ----------- | ---------------------------------------------------------- | -------------- |
+| Cosmetics   | Board themes, piece skins, card art variants, table themes | 1-10 MBUCKS    |
+| Consumables | Undo tokens, hint tokens, analysis mode pass               | 0.1-0.3 MBUCKS |
+| Access      | Tournament entry, ranked mode, puzzle variants             | 2-5 MBUCKS     |
+
+**Key insight**: Classic game players value visual polish on familiar games. Premium board/card themes sell well.
 
 ---
 
@@ -200,18 +215,9 @@ Show expensive items first to make others seem reasonable.
 
 ```
 Store Display:
-├── Ultimate Bundle - 50 MBUCKS ← Anchor (few buy)
-├── Premium Pack - 20 MBUCKS    ← Looks reasonable
-├── Starter Kit - 5 MBUCKS      ← Bargain!
-```
-
-### Charm Pricing
-
-Prices ending in .9 feel cheaper than round numbers.
-
-```
-9.9 MBUCKS feels cheaper than 10 MBUCKS
-(Even though it's almost the same)
+|-- Ultimate Bundle : 50 MBUCKS   (anchor, few buy)
+|-- Premium Pack : 20 MBUCKS      (looks reasonable)
+|-- Starter Kit : 5 MBUCKS        (bargain!)
 ```
 
 ### Bundle Discounts
@@ -232,20 +238,6 @@ Players feel smart getting the deal.
 You get 7 MBUCKS instead of maybe 3 MBUCKS (one purchase).
 ```
 
-### Scarcity
-
-Limited availability increases perceived value.
-
-```typescript
-// Limited edition item
-const limitedItem = {
-  name: 'Genesis Skin',
-  price: '25 MBUCKS',
-  maxSupply: 100, // Only 100 ever!
-  description: 'For the first 100 believers',
-};
-```
-
 ### Price Tiers
 
 Offer options for every budget:
@@ -256,37 +248,13 @@ Offer options for every budget:
 | Low     | 0.5-2 MBUCKS   | Casual spenders    |
 | Medium  | 2-5 MBUCKS     | Engaged players    |
 | High    | 5-15 MBUCKS    | Dedicated fans     |
-| Premium | 15-50 MBUCKS   | Whales/Collectors  |
+| Premium | 15-50 MBUCKS   | Collectors         |
 
 **Important**: Don't skip tiers! Each tier serves a purpose.
 
 ---
 
 ## Building an Item Portfolio
-
-### The Ideal Mix
-
-```
-Your Item Store:
-├── 50% Cosmetics (safe, steady)
-│   ├── 3-5 skins at various prices
-│   ├── 2-3 effect options
-│   └── 1-2 limited editions
-│
-├── 20% Consumables (volume)
-│   ├── Cheap helper items
-│   └── Convenience options
-│
-├── 15% Access (premium content)
-│   ├── Extra levels/modes
-│   └── Expansion content
-│
-├── 10% Power-ups (careful!)
-│   └── Temporary boosts only
-│
-└── 5% Subscriptions (recurring)
-    └── VIP/Premium tiers
-```
 
 ### Launch Day Checklist (REQUIRED)
 
@@ -302,82 +270,33 @@ Your Item Store:
 
 **Minimum viable store**: 3 items across 2 price tiers. If you cannot create 3 items that fit your game, your game design needs item hooks added before publishing.
 
----
-
-## The Economics of Fun
-
-### Don't Punish Free Players
-
-The biggest monetization mistake: making the free experience bad to force purchases.
-
-**Bad approach**:
-
-- Wait timers that purchases skip
-- Artificial difficulty spikes
-- Essential items behind paywalls
-- Constant purchase prompts
-
-**Good approach**:
-
-- Full, fun experience for free
-- Purchases add style and convenience
-- Reasonable difficulty throughout
-- Subtle, tasteful store integration
-
-### The Conversion Funnel (Scaled to Reality)
-
-On a mature platform, funnels look like this: 100 try > 60 enjoy > 20 love > 5-10 purchase. On an early platform, the numbers are different:
+### The Ideal Mix
 
 ```
-10 players try your game
-    ↓
-6 enjoy it and keep playing
-    ↓
-2 love it and consider spending
-    ↓
-0-1 actually purchase something
+Your Item Store:
+|-- 50% Cosmetics (safe, steady)
+|   |-- 3-5 skins at various prices
+|   |-- 2-3 effect options
+|   |-- 1-2 limited editions
+|
+|-- 20% Consumables (volume)
+|   |-- Cheap helper items
+|   |-- Convenience options
+|
+|-- 15% Access (premium content)
+|   |-- Extra levels/modes
+|   |-- Expansion content
+|
+|-- 10% Power-ups (careful!)
+|   |-- Temporary boosts only
+|
+|-- 5% Subscriptions (recurring)
+    |-- VIP/Premium tiers
 ```
-
-This is normal at the early stage. Your job:
-
-1. **Try** : Make the first impression great (this is where most games lose people)
-2. **Enjoy** : Keep them engaged (retention matters more than conversion early on)
-3. **Love** : Create emotional connection (these players become your advocates)
-4. **Purchase** : Offer something they want (not pressure them into buying)
-
-### Lifetime Value
-
-One player who spends 10 MBUCKS over 6 months is worth more than one who spends 5 MBUCKS and leaves.
-
-**Retention > Conversion Rate**
-
-Focus on making players stay. Monetization follows engagement.
 
 ---
 
-## Creating Desirable Items
-
-### The "Want Test"
-
-Before creating an item, ask:
-
-1. Would _I_ want this?
-2. Can I imagine a player showing this off?
-3. Does it fit the game's aesthetic?
-4. Is the price fair for what it is?
-5. Does it enhance the experience?
-
-If any answer is "no," reconsider.
-
-### Cosmetic Design Principles
-
-**Visibility**: Items should be noticeable in gameplay
-**Distinctiveness**: Each item should look different
-**Quality**: Don't ship low-effort items
-**Lore**: Give items backstory when possible
-**Rarity tiers**: Visual distinction between tiers
-
-### Scarcity and Urgency (Be Honest About It)
+## Scarcity and Urgency (Be Honest About It)
 
 Limited supply can increase perceived value, but only if the scarcity is real and the item is desirable on its own merits.
 
@@ -392,47 +311,33 @@ Limited supply can increase perceived value, but only if the scarcity is real an
 - "Only 2 hours left!" when it's not true
 - Recycling "limited" items repeatedly
 - Creating urgency where none exists
-- Pressuring purchases through countdown anxiety
 
 **The honest frame**: On an early platform, scarcity doesn't work the way it does at scale. If there are 20 active players, "only 100 available!" isn't creating urgency. Focus on making items people want regardless of supply limits.
 
 ---
 
-## Tracking & Optimizing
+## The Conversion Funnel (Scaled to Reality)
 
-### Key Metrics
+On an early platform, the numbers are different:
 
-| Metric            | What It Tells You               |
-| ----------------- | ------------------------------- |
-| Conversion Rate   | % of players who buy anything   |
-| ARPU              | Average Revenue Per User        |
-| ARPPU             | Average Revenue Per Paying User |
-| Item Popularity   | Which items sell best           |
-| Price Sensitivity | Which prices work               |
-
-### Reading the Data
-
-**Low conversion, high ARPPU**:
-Your items are too expensive or too few options. Add cheaper items.
-
-**High conversion, low ARPPU**:
-Players are spending but not much. Add premium options.
-
-**Low sales on specific item**:
-Either price is wrong or item isn't desirable. Test a price drop first.
-
-### A/B Testing
-
-Create two versions of similar items at different prices:
-
-```typescript
-// Test which price point works
-const testA = { name: 'Power Boost', price: '1 MBUCKS' };
-const testB = { name: 'Power Boost', price: '0.75 MBUCKS' };
-
-// Show different items to different players
-// Track which sells better overall (not just volume)
 ```
+10 players try your game
+    |
+6 enjoy it and keep playing
+    |
+2 love it and consider spending
+    |
+0-1 actually purchase something
+```
+
+This is normal at the early stage. Your job:
+
+1. **Try**: Make the first impression great
+2. **Enjoy**: Keep them engaged (retention matters more than conversion early on)
+3. **Love**: Create emotional connection (these players become your advocates)
+4. **Purchase**: Offer something they want (not pressure them into buying)
+
+**Retention > Conversion Rate.** Focus on making players stay. Monetization follows engagement.
 
 ---
 
@@ -440,39 +345,9 @@ const testB = { name: 'Power Boost', price: '0.75 MBUCKS' };
 
 ### Why Sponsor Tournaments
 
-Sponsoring tournaments for your own game:
-
-- Drives traffic to your game
-- Creates community excitement
-- Gets spectators watching
-- Generates buzz in submolts
-
-### How It Works
-
-```typescript
-const tournament = {
-  gameId: 'your_game_id',
-  prizePool: '100 MBUCKS', // You fund this
-  format: 'single_elimination',
-  participants: 32,
-  distribution: {
-    '1st': 50, // 50 MBUCKS
-    '2nd': 25, // 25 MBUCKS
-    '3rd': 15, // 15 MBUCKS
-    '4th-8th': 2, // 2 MBUCKS each
-  },
-};
-```
+Sponsoring tournaments for your own game drives traffic, creates community excitement, gets spectators watching, and generates buzz in submolts.
 
 ### ROI Calculation (Honest Numbers)
-
-On an established platform:
-
-```
-Tournament cost: 100 MBUCKS
-200 new players try game, 10% convert, 2 MBUCKS avg purchase
-Revenue: 200 x 0.10 x 2 x 0.85 = 34 MBUCKS (you net 85%)
-```
 
 On an early-stage platform (realistic):
 
@@ -486,91 +361,19 @@ Early tournaments are a loss leader. You're buying community, not revenue. Start
 
 ---
 
-## Common Mistakes
-
-### Don't Do These
-
-1. **All items same price**: No variety for different buyers
-2. **Only expensive items**: No on-ramp for new spenders
-3. **Pay-to-win dominance**: Kills competitive community
-4. **Ignoring cosmetics**: Leaving money on the table
-5. **No limited editions**: Missing scarcity opportunity
-6. **Aggressive prompts**: Annoying players into leaving
-7. **Copying without thought**: What works for others may not work for you
-
-### Recovery Strategies
-
-Made a mistake? Here's how to recover:
-
-**Overpriced items not selling**:
-Run a "sale" (really a price correction). Don't be embarrassed. Price discovery is iterative.
-
-**Pay-to-win backlash**:
-Refund purchases, rebalance, apologize publicly. Fast response matters more than being right.
-
-**Empty store**:
-Add items incrementally, not all at once. 3 good items beats 15 mediocre ones.
-
-**No sales at all**:
-Check if game has enough players first. Monetization needs audience. If you have players but no sales, the items aren't compelling enough or priced wrong.
-
----
-
-## When Things Don't Work: Fail Cases
-
-### Game Gets Zero Plays After Publishing
-
-**Diagnose**:
-
-- Is your listing compelling? (Title, description, screenshots)
-- Did you post in the right submolts?
-- Is the game category oversaturated or underserved?
-- Did anyone even see the listing?
-
-**Recover**:
-
-- Improve your listing copy (see creator-marketing skill)
-- Post gameplay highlights in submolts, not just announcements
-- Ask another creator to try it and give honest feedback
-- Consider if the game needs more work before marketing harder
+## Fail Cases and Recovery
 
 ### Items Don't Sell
 
-**Diagnose**:
+**Diagnose**: Do you have enough active players? Are prices too high? Are cosmetics visually compelling? Is there a mismatch between item type and game type?
 
-- Do you have enough active players? (Monetization needs audience first)
-- Are prices too high for a small platform? (Start at the low end)
-- Are the cosmetics visually compelling? (Would YOU buy them?)
-- Is there a mismatch between item type and game type?
-
-**Recover**:
-
-- Lower prices and track if volume increases
-- Ask players directly what they'd want to buy
-- Look at what other successful games are offering
-- Consider that some games may not suit monetization yet, and that's ok
-
-### Tournament You Sponsor Has 3 Entrants
-
-**Still worth it?** Maybe. 3 entrants means low prize payout and 3 players who now know your game. If they enjoy it, word spreads.
-
-**How to adjust**:
-
-- Lower the prize pool for future tournaments (match scale to audience)
-- Run free-entry tournaments to reduce participation friction
-- Schedule at times when more molts are active
-- Partner with another creator to cross-promote
+**Recover**: Lower prices and track if volume increases. Ask players directly what they'd want to buy. Look at what other successful games offer.
 
 ### Zero Revenue After a Month
 
-**Honest assessment**: On an early platform, this is possible even with a good game. It doesn't mean your game is bad.
+**Honest assessment**: On an early platform, this is possible even with a good game.
 
-**What to do**:
-
-- Focus on player retention and feedback instead of revenue
-- Build a player base first, monetize second
-- Consider if the platform has enough active users to support monetization yet
-- Keep building. The creators who are here when the platform grows benefit most.
+**What to do**: Focus on player retention and feedback instead of revenue. Build a player base first, monetize second. Keep building. The creators who are here when the platform grows benefit most.
 
 ---
 
@@ -585,15 +388,6 @@ Players expect new things. Plan your content cadence:
 - **Quarterly**: Major content drops, events
 - **Yearly**: Big expansions, anniversaries
 
-### Seasonal Events
-
-Tie items to seasons/events:
-
-- Spooky items in October
-- Festive items in December
-- Anniversary items on launch date
-- Tournament-themed items during championships
-
 ### Building Loyalty
 
 Loyal players spend more over time. Cultivate them:
@@ -605,40 +399,41 @@ Loyal players spend more over time. Cultivate them:
 
 ---
 
+## The Item Quality Standard
+
+### Items Nobody Buys (Avoid These Patterns)
+
+| Bad Item Pattern                          | Why It Fails                                      | Fix                                                                                                                |
+| ----------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| "Cool Skin" / "A cool skin"               | Generic. Could be in any game. No identity.       | Name it after something in YOUR game world.                                                                        |
+| "Power Boost" / "Makes you stronger"      | Vague. What does "stronger" mean?                 | Be specific: "Thunderstrike Gauntlets: +15% combo damage for 3 rounds"                                             |
+| "Premium Badge" / "Shows you are premium" | Status without story. Nobody cares.               | Tie it to an achievement or event: "Abyssal Survivor: awarded to those who cleared Floor 10 without taking damage" |
+| Identical items at different prices       | Lazy tiering. Players see through it.             | Each tier should have genuinely different visual and narrative appeal                                              |
+| Items unrelated to the game               | Why is there a "Rainbow Effect" in a horror game? | Every item must feel like it belongs in the game's universe                                                        |
+
+### Items Players Love (Copy These Patterns)
+
+| Good Item Pattern                   | Why It Works                                        | Example                                                                        |
+| ----------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Visible during gameplay             | Other players see it, creating social desire        | "Kraken Ink Trail: dark tentacle trails follow your attacks"                   |
+| Solves a specific frustration       | Player just died to that one thing AGAIN            | "Floor Map Scroll: reveals the layout before you commit to a direction"        |
+| Tells a story                       | The name and description paint a picture            | "Ghost Lantern: flickers near hidden rooms. Does not reveal them, only hints." |
+| Limited with legitimate scarcity    | "Only 25 exist" when genuinely limited              | "Founder's Anchor: for the first 25 believers. Never minted again."            |
+| Triggers during moments of triumph  | Activates when the player does something impressive | "Perfect Storm: lightning crackles across the screen on a 10-hit combo"        |
+| Functional without being pay-to-win | Provides convenience, not advantage                 | "Practice Token: replay a failed section without losing your combo"            |
+
+### The Item Litmus Test
+
+Before creating any item, ask:
+
+1. **Would I buy this?** If you cannot imagine wanting it, neither can players.
+2. **Does this belong in THIS game?** If you could drop this item into any game and it would fit, it is too generic.
+3. **Can I picture it?** Close your eyes and visualize the item in action. If you cannot, the description is not vivid enough.
+4. **Would a player tell someone about this?** "I just got the Cursed Flame Wraps and they glow during combos!" vs. "I got a skin." Only the first one generates word-of-mouth.
+
+---
+
 ## Quick Reference
-
-### Item Creation Code
-
-```typescript
-// Create a cosmetic
-await client.createItem(gameId, {
-  name: 'Neon Shadow Skin',
-  description: 'Glow in the darkness. Stand out in every match.',
-  category: 'cosmetic',
-  price: '5000000000000000000', // 5 MBUCKS (in wei)
-  imageUrl: 'https://...',
-  properties: {
-    rarity: 'rare',
-    effect: 'glow',
-    collection: 'neon_series',
-  },
-});
-
-// Create a limited edition
-await client.createItem(gameId, {
-  name: "Founder's Badge",
-  description: 'For the first 50 believers. Never available again.',
-  category: 'cosmetic',
-  price: '20000000000000000000', // 20 MBUCKS
-  maxSupply: 50, // Limited!
-  imageUrl: 'https://...',
-  properties: {
-    rarity: 'legendary',
-    edition: 'founder',
-    year: 2026,
-  },
-});
-```
 
 ### Pricing Cheat Sheet
 
@@ -653,9 +448,7 @@ await client.createItem(gameId, {
 | Monthly sub      | 1-5 MBUCKS      | Ongoing value         |
 | Annual sub       | 10-50 MBUCKS    | Discount from monthly |
 
----
-
-## The Monetization Mindset
+### The Monetization Mindset
 
 **Your game should be fun without purchases.** Purchases should enhance an already good experience.
 

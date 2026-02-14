@@ -1061,4 +1061,305 @@ describe('CreatureRPGGame', () => {
       expect(getEffectiveStat(c, 'atk')).toBe(Math.floor(c.stats.atk * 1.5));
     });
   });
+
+  // =========================================================================
+  // Config: starterChoices
+  // =========================================================================
+
+  describe('config: starterChoices', () => {
+    it('default allows only the 3 base starters', () => {
+      const game = createGame();
+      // zappup is the 4th species, not a valid default starter
+      const result = act(game, 'choose_starter', { species: 'zappup' });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid starter');
+    });
+
+    it('starterChoices=5 allows picking the 4th and 5th species', () => {
+      const game = new CreatureRPGGame({ starterChoices: 5 });
+      game.initialize(['player-1']);
+      // zappup is 4th in SPECIES order, should now be valid
+      const result = game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'zappup' },
+        timestamp: Date.now(),
+      });
+      expect(result.success).toBe(true);
+      const data = game.getState().data as CreatureRPGState;
+      expect(data.party[0].species).toBe('zappup');
+    });
+
+    it('starterChoices=2 limits to only 2 starters', () => {
+      const game = new CreatureRPGGame({ starterChoices: 2 });
+      game.initialize(['player-1']);
+      // thornvine is the 3rd starter, should now be invalid
+      const result = game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'thornvine' },
+        timestamp: Date.now(),
+      });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Invalid starter');
+    });
+  });
+
+  // =========================================================================
+  // Config: captureChance
+  // =========================================================================
+
+  describe('config: captureChance', () => {
+    it('higher captureChance makes catching easier', () => {
+      const game = new CreatureRPGGame({ captureChance: 0.9 });
+      game.initialize(['player-1']);
+      game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'emberfox' },
+        timestamp: Date.now(),
+      });
+      forceBattle(game, 'pebblecrab', 4);
+
+      const data = game.getState().data as CreatureRPGState;
+      // Enemy at half HP
+      data.battleState!.enemyCreature.stats.hp = Math.floor(
+        data.battleState!.enemyCreature.stats.maxHp / 2,
+      );
+
+      // With captureChance 0.9, the catch rate is very high even at half HP
+      // catchChance = min(0.95, 0.9 * (1 - 0.5*0.7) + 0) = min(0.95, 0.585) = 0.585
+      // So random 0.5 should catch it
+      const spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      game.handleAction('player-1', {
+        type: 'catch',
+        payload: {},
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const after = game.getState().data as CreatureRPGState;
+      expect(after.party).toHaveLength(2);
+      expect(after.combatLog.some((l: string) => l.includes('was caught'))).toBe(true);
+    });
+
+    it('lower captureChance makes catching harder', () => {
+      const game = new CreatureRPGGame({ captureChance: 0.1 });
+      game.initialize(['player-1']);
+      game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'emberfox' },
+        timestamp: Date.now(),
+      });
+      forceBattle(game, 'pebblecrab', 4);
+
+      const data = game.getState().data as CreatureRPGState;
+      // Enemy at full HP
+      // catchChance = min(0.95, 0.1 * (1 - 1.0*0.7) + 0) = min(0.95, 0.03) = 0.03
+      // random 0.5 should NOT catch
+      const spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      game.handleAction('player-1', {
+        type: 'catch',
+        payload: {},
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const after = game.getState().data as CreatureRPGState;
+      expect(after.party).toHaveLength(1);
+      expect(after.combatLog.some((l: string) => l.includes('broke free'))).toBe(true);
+    });
+  });
+
+  // =========================================================================
+  // Config: gymCount
+  // =========================================================================
+
+  describe('config: gymCount', () => {
+    it('single gym (default) triggers victory immediately', () => {
+      const game = createGame();
+      act(game, 'choose_starter', { species: 'emberfox' });
+
+      const data = getData(game);
+      const enemy = createCreature('pebblecrab', 5, 'gym_enemy');
+      enemy.stats.hp = 1;
+
+      data.battleState = {
+        type: 'gym',
+        activeIndex: 0,
+        enemyCreature: enemy,
+        enemyParty: [enemy],
+        enemyPartyIndex: 0,
+        canCatch: false,
+        canFlee: false,
+        trainerId: 'gym_leader',
+        trainerName: 'Gym Leader',
+        turnCount: 0,
+        leechSeedActive: false,
+        leechSeedSource: null,
+        message: 'Gym Leader wants to battle!',
+        awaitingAction: true,
+      };
+      data.gamePhase = 'battle';
+
+      const spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      act(game, 'fight', { moveIndex: 2 }); // Quick Strike (normal vs normal)
+      spy.mockRestore();
+
+      const after = getData(game);
+      expect(after.gymDefeated).toBe(true);
+      expect(after.gamePhase).toBe('victory');
+    });
+
+    it('gymCount=2 requires defeating the gym leader twice', () => {
+      const game = new CreatureRPGGame({ gymCount: 2 });
+      game.initialize(['player-1']);
+      game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'emberfox' },
+        timestamp: Date.now(),
+      });
+
+      const data = game.getState().data as CreatureRPGState;
+      const enemy = createCreature('pebblecrab', 5, 'gym_enemy');
+      enemy.stats.hp = 1;
+
+      data.battleState = {
+        type: 'gym',
+        activeIndex: 0,
+        enemyCreature: enemy,
+        enemyParty: [enemy],
+        enemyPartyIndex: 0,
+        canCatch: false,
+        canFlee: false,
+        trainerId: 'gym_leader',
+        trainerName: 'Gym Leader',
+        turnCount: 0,
+        leechSeedActive: false,
+        leechSeedSource: null,
+        message: 'Gym Leader wants to battle!',
+        awaitingAction: true,
+      };
+      data.gamePhase = 'battle';
+
+      // First gym defeat
+      let spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      game.handleAction('player-1', {
+        type: 'fight',
+        payload: { moveIndex: 2 },
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const mid = game.getState().data as CreatureRPGState;
+      expect(mid.gymDefeated).toBe(false);
+      expect(mid.gymsDefeatedCount).toBe(1);
+      expect(mid.gamePhase).toBe('overworld'); // Back to overworld, not victory
+      expect(mid.combatLog.some((l: string) => l.includes('1/2 defeated'))).toBe(true);
+
+      // Second gym defeat
+      const enemy2 = createCreature('pebblecrab', 5, 'gym_enemy_2');
+      enemy2.stats.hp = 1;
+      mid.battleState = {
+        type: 'gym',
+        activeIndex: 0,
+        enemyCreature: enemy2,
+        enemyParty: [enemy2],
+        enemyPartyIndex: 0,
+        canCatch: false,
+        canFlee: false,
+        trainerId: 'gym_leader',
+        trainerName: 'Gym Leader',
+        turnCount: 0,
+        leechSeedActive: false,
+        leechSeedSource: null,
+        message: 'Gym Leader wants to battle!',
+        awaitingAction: true,
+      };
+      mid.gamePhase = 'battle';
+
+      spy = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+      game.handleAction('player-1', {
+        type: 'fight',
+        payload: { moveIndex: 2 },
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const after = game.getState().data as CreatureRPGState;
+      expect(after.gymDefeated).toBe(true);
+      expect(after.gymsDefeatedCount).toBe(2);
+      expect(after.gamePhase).toBe('victory');
+    });
+  });
+
+  // =========================================================================
+  // Config: wildCreatureLevel
+  // =========================================================================
+
+  describe('config: wildCreatureLevel', () => {
+    it('fixed mode produces creatures at the midpoint of the level range', () => {
+      const game = new CreatureRPGGame({ wildCreatureLevel: 'fixed' });
+      game.initialize(['player-1']);
+      game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'emberfox' },
+        timestamp: Date.now(),
+      });
+
+      // Force encounters on route_1 and check levels
+      // route_1 encounter table has levelRange [2,5] for most entries
+      // midpoint of [2,5] = floor(3.5) = 3
+      const data = game.getState().data as CreatureRPGState;
+      data.mapId = 'route_1';
+      data.playerPos = { x: 3, y: 1 }; // tall grass
+
+      // Mock random: first call is encounter check (needs < rate), second is species roll
+      const spy = vi.spyOn(Math, 'random').mockReturnValue(0.01);
+      game.handleAction('player-1', {
+        type: 'move',
+        payload: { direction: 'down' },
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const after = game.getState().data as CreatureRPGState;
+      if (after.gamePhase === 'battle' && after.battleState) {
+        // With fixed mode, level should be the midpoint of the range
+        // Route 1 ranges are [2,5] and [3,5], midpoints are 3 and 4
+        expect(after.battleState.enemyCreature.level).toBeGreaterThanOrEqual(3);
+        expect(after.battleState.enemyCreature.level).toBeLessThanOrEqual(4);
+      }
+    });
+
+    it('random mode can produce level 1 creatures', () => {
+      const game = new CreatureRPGGame({ wildCreatureLevel: 'random' });
+      game.initialize(['player-1']);
+      game.handleAction('player-1', {
+        type: 'choose_starter',
+        payload: { species: 'emberfox' },
+        timestamp: Date.now(),
+      });
+
+      const data = game.getState().data as CreatureRPGState;
+      data.mapId = 'route_1';
+      data.playerPos = { x: 3, y: 1 };
+
+      // Mock random: encounter check passes, species roll picks first entry,
+      // level roll produces 0 => level = 1 + floor(0) = 1
+      const spy = vi
+        .spyOn(Math, 'random')
+        .mockReturnValueOnce(0.01) // encounter rate check passes
+        .mockReturnValueOnce(0.01) // species weight roll
+        .mockReturnValueOnce(0.0); // level roll => floor(0*cap)=0 => level 1
+      game.handleAction('player-1', {
+        type: 'move',
+        payload: { direction: 'down' },
+        timestamp: Date.now(),
+      });
+      spy.mockRestore();
+
+      const after = game.getState().data as CreatureRPGState;
+      if (after.gamePhase === 'battle' && after.battleState) {
+        expect(after.battleState.enemyCreature.level).toBe(1);
+      }
+    });
+  });
 });

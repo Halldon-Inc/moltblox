@@ -32,15 +32,22 @@ export interface RhythmConfig {
   songLengthBeats?: number;
   bpm?: number;
   difficulty?: 'easy' | 'normal' | 'hard';
+  /** Number of note lanes (3-6, default 4). */
+  lanes?: number;
+  /** Note speed: slow = 2x wider windows, fast = 0.5x narrower (default 'medium'). */
+  noteSpeed?: 'slow' | 'medium' | 'fast';
+  /** Max misses before forced game over (0 = unlimited, default 0). */
+  missLimit?: number;
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
 /**
  * Note lanes (like Guitar Hero's colored frets).
  * WHY 4 lanes: Fewer than 3 feels trivial. More than 5 becomes overwhelming.
  * 4 lanes hit the sweet spot where players must divide attention without
- * feeling paralyzed by options.
+ * feeling paralyzed by options. Configurable via RhythmConfig.lanes (2-6).
  */
-type Lane = 0 | 1 | 2 | 3;
+type Lane = number;
 
 interface Note {
   id: number;
@@ -72,6 +79,10 @@ interface RhythmState {
   difficulty: 'easy' | 'normal' | 'hard';
   nextNoteId: number;
   songComplete: boolean;
+  totalLanes: number;
+  noteSpeedMultiplier: number;
+  missLimit: number; // 0 = unlimited
+  totalMisses: Record<string, number>; // Per-player total miss count
 }
 
 /**
@@ -117,13 +128,18 @@ export class RhythmGame extends BaseGame {
     const songLengthBeats = cfg.songLengthBeats ?? 64;
     const bpm = cfg.bpm ?? 120;
     const difficulty = cfg.difficulty ?? 'normal';
-    const notes = this.generateNoteChart(difficulty, songLengthBeats);
+    const totalLanes = Math.max(3, Math.min(cfg.lanes ?? 4, 6));
+    const speedMap: Record<string, number> = { slow: 0.5, medium: 1.0, fast: 2.0 };
+    const noteSpeedMultiplier = speedMap[cfg.noteSpeed ?? 'medium'] ?? 1.0;
+    const missLimit = Math.max(0, cfg.missLimit ?? 0);
+    const notes = this.generateNoteChart(difficulty, songLengthBeats, totalLanes);
 
     const scores: Record<string, number> = {};
     const combos: Record<string, number> = {};
     const maxCombos: Record<string, number> = {};
     const multipliers: Record<string, number> = {};
     const hitCounts: Record<string, Record<HitRating, number>> = {};
+    const totalMisses: Record<string, number> = {};
 
     for (const pid of playerIds) {
       scores[pid] = 0;
@@ -131,6 +147,7 @@ export class RhythmGame extends BaseGame {
       maxCombos[pid] = 0;
       multipliers[pid] = 1;
       hitCounts[pid] = { perfect: 0, good: 0, ok: 0, miss: 0 };
+      totalMisses[pid] = 0;
     }
 
     return {
@@ -146,6 +163,10 @@ export class RhythmGame extends BaseGame {
       difficulty,
       nextNoteId: notes.length + 1,
       songComplete: false,
+      totalLanes,
+      noteSpeedMultiplier,
+      missLimit,
+      totalMisses,
     };
   }
 
@@ -162,14 +183,16 @@ export class RhythmGame extends BaseGame {
        */
       case 'advance_beat': {
         data.currentBeat++;
+        const okWindow = TIMING_WINDOWS.ok / data.noteSpeedMultiplier;
 
         // Check for missed notes (past the OK window)
         for (const note of data.notes) {
-          if (!note.hit && !note.missed && data.currentBeat - note.beatTime > TIMING_WINDOWS.ok) {
+          if (!note.hit && !note.missed && data.currentBeat - note.beatTime >= okWindow) {
             note.missed = true;
             // All players miss this note if they haven't hit it
             for (const pid of this.getPlayers()) {
               data.hitCounts[pid].miss++;
+              data.totalMisses[pid]++;
               data.combos[pid] = 0;
               data.multipliers[pid] = 1;
             }
@@ -180,6 +203,15 @@ export class RhythmGame extends BaseGame {
         // Check if song is complete
         if (data.currentBeat >= data.totalBeats) {
           data.songComplete = true;
+        }
+
+        // Check missLimit game over
+        if (data.missLimit > 0) {
+          for (const pid of this.getPlayers()) {
+            if (data.totalMisses[pid] >= data.missLimit) {
+              data.songComplete = true;
+            }
+          }
         }
 
         this.setData(data);
@@ -196,13 +228,15 @@ export class RhythmGame extends BaseGame {
       case 'hit_note': {
         // Auto-advance beat so testers don't need separate advance_beat calls
         data.currentBeat++;
+        const hitOkWindow = TIMING_WINDOWS.ok / data.noteSpeedMultiplier;
 
         // Check for missed notes (past the OK window) on beat advance
         for (const note of data.notes) {
-          if (!note.hit && !note.missed && data.currentBeat - note.beatTime > TIMING_WINDOWS.ok) {
+          if (!note.hit && !note.missed && data.currentBeat - note.beatTime > hitOkWindow) {
             note.missed = true;
             for (const pid of this.getPlayers()) {
               data.hitCounts[pid].miss++;
+              data.totalMisses[pid]++;
               data.combos[pid] = 0;
               data.multipliers[pid] = 1;
             }
@@ -215,7 +249,22 @@ export class RhythmGame extends BaseGame {
           data.songComplete = true;
         }
 
+        // Check missLimit game over
+        if (data.missLimit > 0) {
+          for (const pid of this.getPlayers()) {
+            if (data.totalMisses[pid] >= data.missLimit) {
+              data.songComplete = true;
+            }
+          }
+        }
+
         const lane = action.payload.lane != null ? (Number(action.payload.lane) as Lane) : null;
+
+        // Validate lane bounds
+        if (lane != null && (lane < 0 || lane >= data.totalLanes)) {
+          this.setData(data);
+          return { success: false, error: `Invalid lane: must be 0 to ${data.totalLanes - 1}` };
+        }
 
         // Find the closest unhit note within the OK window
         // First try the specified lane, then fall back to any lane
@@ -227,7 +276,7 @@ export class RhythmGame extends BaseGame {
           if (lane != null && note.lane !== lane) continue;
 
           const distance = Math.abs(data.currentBeat - note.beatTime);
-          if (distance <= TIMING_WINDOWS.ok && distance < closestDistance) {
+          if (distance <= hitOkWindow && distance < closestDistance) {
             closestNote = note;
             closestDistance = distance;
           }
@@ -239,7 +288,7 @@ export class RhythmGame extends BaseGame {
             if (note.hit || note.missed) continue;
 
             const distance = Math.abs(data.currentBeat - note.beatTime);
-            if (distance <= TIMING_WINDOWS.ok && distance < closestDistance) {
+            if (distance <= hitOkWindow && distance < closestDistance) {
               closestNote = note;
               closestDistance = distance;
             }
@@ -252,8 +301,8 @@ export class RhythmGame extends BaseGame {
           return { success: true, newState: this.getState() };
         }
 
-        // Rate the hit based on timing precision
-        const rating = this.rateHit(closestDistance);
+        // Rate the hit based on timing precision, scaled by noteSpeed
+        const rating = this.rateHit(closestDistance, data.noteSpeedMultiplier);
 
         if (rating === 'miss') {
           // Somehow in window but rated miss — shouldn't happen but handle it
@@ -306,7 +355,7 @@ export class RhythmGame extends BaseGame {
 
         data.difficulty = newDifficulty as RhythmState['difficulty'];
         // Regenerate note chart with the new difficulty
-        data.notes = this.generateNoteChart(newDifficulty, data.totalBeats);
+        data.notes = this.generateNoteChart(newDifficulty, data.totalBeats, data.totalLanes);
         data.nextNoteId = data.notes.length + 1;
         this.emitEvent('difficulty_changed', playerId, { difficulty: newDifficulty });
         this.setData(data);
@@ -363,10 +412,10 @@ export class RhythmGame extends BaseGame {
   /**
    * Rate a hit based on timing distance from the target beat.
    */
-  private rateHit(distance: number): HitRating {
-    if (distance <= TIMING_WINDOWS.perfect) return 'perfect';
-    if (distance <= TIMING_WINDOWS.good) return 'good';
-    if (distance <= TIMING_WINDOWS.ok) return 'ok';
+  private rateHit(distance: number, speedMultiplier = 1): HitRating {
+    if (distance <= TIMING_WINDOWS.perfect / speedMultiplier) return 'perfect';
+    if (distance <= TIMING_WINDOWS.good / speedMultiplier) return 'good';
+    if (distance <= TIMING_WINDOWS.ok / speedMultiplier) return 'ok';
     return 'miss';
   }
 
@@ -377,7 +426,7 @@ export class RhythmGame extends BaseGame {
    * A well-tuned generator respects musical principles: notes cluster in
    * patterns, leave breathing room, and vary density to create dynamics.
    */
-  private generateNoteChart(difficulty: string, songLengthBeats?: number): Note[] {
+  private generateNoteChart(difficulty: string, songLengthBeats?: number, lanes = 4): Note[] {
     const totalBeats = songLengthBeats ?? 64;
     const notes: Note[] = [];
     const density = DIFFICULTY_NOTE_DENSITY[difficulty] || 0.5;
@@ -388,7 +437,7 @@ export class RhythmGame extends BaseGame {
       // WHY deterministic: Random notes feel chaotic. Patterns based on beat
       // position create musical structure that feels intentional.
       if (this.shouldPlaceNote(beat, density)) {
-        const lane = ((beat * 7 + Math.floor(beat / 4)) % 4) as Lane;
+        const lane = ((beat * 7 + Math.floor(beat / 4)) % lanes) as Lane;
         notes.push({
           id: noteId++,
           lane,
@@ -399,7 +448,7 @@ export class RhythmGame extends BaseGame {
 
         // On hard difficulty, add chord notes (multiple lanes at once)
         if (difficulty === 'hard' && beat % 8 === 0) {
-          const secondLane = ((lane + 2) % 4) as Lane;
+          const secondLane = ((lane + Math.floor(lanes / 2)) % lanes) as Lane;
           notes.push({
             id: noteId++,
             lane: secondLane,

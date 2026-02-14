@@ -1,0 +1,240 @@
+{
+  "name": "Diplomacy",
+  "description": "Navigate international politics as a head of state. Form alliances, negotiate treaties, and expand your nation's influence.",
+  "states": [
+    {
+      "name": "throne_room",
+      "description": "Your seat of power. Receive envoys and make decrees.",
+      "onEnter": []
+    },
+    { "name": "summit", "description": "A diplomatic summit with rival nations.", "onEnter": [] },
+    { "name": "spy_network", "description": "Your intelligence operations abroad.", "onEnter": [] },
+    { "name": "trade_council", "description": "Negotiating trade agreements.", "onEnter": [] },
+    { "name": "war_council", "description": "Military advisors present options.", "onEnter": [] },
+    {
+      "name": "crisis",
+      "description": "An international crisis demands a response.",
+      "onEnter": [{ "resource": "stability", "operation": "-", "value": "3" }]
+    }
+  ],
+  "initialState": "throne_room",
+  "resources": {
+    "influence": { "initial": 10, "min": 0, "max": 30, "label": "Global Influence" },
+    "gold": { "initial": 200, "min": 0, "label": "Treasury" },
+    "military": { "initial": 5, "min": 0, "max": 15, "label": "Military Power" },
+    "allies": { "initial": 1, "min": 0, "max": 8, "label": "Allies" },
+    "stability": { "initial": 7, "min": 0, "max": 10, "label": "Stability" },
+    "reputation": { "initial": 5, "min": 0, "max": 15, "label": "Reputation" }
+  },
+  "actions": {
+    "throne_room": [
+      {
+        "name": "decree",
+        "label": "Issue Decree",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(1,2)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      { "name": "go_summit", "label": "Attend Summit", "effects": [], "transition": "summit" },
+      {
+        "name": "go_spy",
+        "label": "Check Intelligence",
+        "effects": [],
+        "transition": "spy_network"
+      },
+      {
+        "name": "go_trade",
+        "label": "Trade Negotiations",
+        "effects": [],
+        "transition": "trade_council"
+      },
+      { "name": "go_military", "label": "War Council", "effects": [], "transition": "war_council" },
+      {
+        "name": "collect_taxes",
+        "label": "Collect Revenue",
+        "effects": [{ "resource": "gold", "operation": "+", "value": "random(20,40)" }]
+      }
+    ],
+    "summit": [
+      {
+        "name": "propose_alliance",
+        "label": "Propose Alliance",
+        "condition": { "resource": "reputation", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "allies", "operation": "+", "value": "1" },
+          { "resource": "influence", "operation": "+", "value": "random(2,4)" },
+          { "resource": "gold", "operation": "-", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "sign_treaty",
+        "label": "Sign Peace Treaty",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" },
+          { "resource": "stability", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "demand_concessions",
+        "label": "Demand Concessions",
+        "condition": { "resource": "military", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(30,60)" },
+          { "resource": "reputation", "operation": "-", "value": "random(1,3)" },
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      { "name": "back", "label": "Return Home", "effects": [], "transition": "throne_room" }
+    ],
+    "spy_network": [
+      {
+        "name": "gather_intel",
+        "label": "Gather Intel",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "15" },
+          { "resource": "influence", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "sabotage",
+        "label": "Sabotage Rival",
+        "condition": { "resource": "gold", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "25" },
+          { "resource": "influence", "operation": "+", "value": "random(2,5)" },
+          { "resource": "reputation", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "counter_intel",
+        "label": "Counter Intelligence",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(1,2)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      { "name": "back", "label": "Return Home", "effects": [], "transition": "throne_room" }
+    ],
+    "trade_council": [
+      {
+        "name": "open_trade",
+        "label": "Open Trade Route",
+        "condition": { "resource": "allies", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(20,40)" },
+          { "resource": "influence", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "embargo",
+        "label": "Impose Embargo",
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(2,4)" },
+          { "resource": "gold", "operation": "-", "value": "random(10,20)" },
+          { "resource": "reputation", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "aid_package",
+        "label": "Send Aid Package",
+        "condition": { "resource": "gold", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "30" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,5)" },
+          { "resource": "allies", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      { "name": "back", "label": "Return Home", "effects": [], "transition": "throne_room" }
+    ],
+    "war_council": [
+      {
+        "name": "build_army",
+        "label": "Expand Military",
+        "condition": { "resource": "gold", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "military", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "40" }
+        ]
+      },
+      {
+        "name": "show_force",
+        "label": "Military Parade",
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(2,4)" },
+          { "resource": "gold", "operation": "-", "value": "15" }
+        ]
+      },
+      {
+        "name": "declare_war",
+        "label": "Declare War",
+        "condition": { "resource": "military", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "influence", "operation": "+", "value": "random(3,6)" },
+          { "resource": "military", "operation": "-", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "-", "value": "random(3,5)" },
+          { "resource": "gold", "operation": "-", "value": "random(30,50)" }
+        ]
+      },
+      { "name": "back", "label": "Return Home", "effects": [], "transition": "throne_room" }
+    ],
+    "crisis": [
+      {
+        "name": "negotiate",
+        "label": "Negotiate",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" },
+          { "resource": "stability", "operation": "+", "value": "2" },
+          { "resource": "gold", "operation": "-", "value": "random(10,20)" }
+        ],
+        "transition": "throne_room"
+      },
+      {
+        "name": "military_response",
+        "label": "Military Response",
+        "condition": { "resource": "military", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "military", "operation": "-", "value": "random(1,3)" },
+          { "resource": "influence", "operation": "+", "value": "random(3,5)" },
+          { "resource": "stability", "operation": "+", "value": "1" }
+        ],
+        "transition": "throne_room"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "throne_room",
+      "to": "crisis",
+      "condition": { "resource": "stability", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "influence", "operator": ">=", "value": "25" },
+      { "resource": "allies", "operator": ">=", "value": "5" }
+    ]
+  },
+  "loseCondition": { "resource": "stability", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "royal-purple",
+    "stateDescriptions": {
+      "throne_room": { "label": "Throne Room", "icon": "crown" },
+      "summit": { "label": "Diplomatic Summit", "icon": "globe" },
+      "spy_network": { "label": "Intelligence", "icon": "eye" },
+      "trade_council": { "label": "Trade Council", "icon": "briefcase" },
+      "war_council": { "label": "War Council", "icon": "shield" },
+      "crisis": { "label": "Crisis!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "influence": "globe",
+      "gold": "coin",
+      "military": "shield",
+      "allies": "users",
+      "stability": "lock",
+      "reputation": "star"
+    }
+  }
+}

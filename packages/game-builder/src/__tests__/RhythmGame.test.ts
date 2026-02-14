@@ -207,4 +207,56 @@ describe('RhythmGame', () => {
       expect(result.error).toContain('Not a valid player');
     });
   });
+
+  describe('config: lanes', () => {
+    it('generates notes only in configured lanes', () => {
+      const game = new RhythmGame({ lanes: 3 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.totalLanes).toBe(3);
+      // All notes should be in lanes 0, 1, or 2
+      for (const note of data.notes) {
+        expect(note.lane).toBeGreaterThanOrEqual(0);
+        expect(note.lane).toBeLessThan(3);
+      }
+    });
+  });
+
+  describe('config: noteSpeed', () => {
+    it('fast note speed produces tighter timing (higher noteSpeedMultiplier)', () => {
+      const game = new RhythmGame({ noteSpeed: 'fast' });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.noteSpeedMultiplier).toBeGreaterThan(1.0);
+    });
+
+    it('slow note speed produces looser timing (lower noteSpeedMultiplier)', () => {
+      const game = new RhythmGame({ noteSpeed: 'slow' });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.noteSpeedMultiplier).toBeLessThan(1.0);
+    });
+  });
+
+  describe('config: missLimit', () => {
+    it('ends song early when miss limit is reached', () => {
+      const game = new RhythmGame({ missLimit: 2, songLengthBeats: 64 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      expect(data.missLimit).toBe(2);
+
+      // Advance many beats to trigger misses on notes
+      for (let i = 0; i < 30; i++) {
+        act(game, 'player-1', 'advance_beat');
+        const d = getData(game);
+        if (d.songComplete) break;
+      }
+
+      const after = getData(game);
+      // Song should be marked complete due to miss limit
+      if (after.totalMisses['player-1'] >= 2) {
+        expect(after.songComplete).toBe(true);
+      }
+    });
+  });
 });

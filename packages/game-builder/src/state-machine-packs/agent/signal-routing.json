@@ -1,0 +1,485 @@
+{
+  "name": "Signal Routing",
+  "description": "You are a network engineer routing data signals through a complex grid. Optimize paths, avoid interference, and deliver all packets before bandwidth runs out.",
+  "states": [
+    {
+      "name": "control_panel",
+      "description": "The main routing dashboard. Signal flows visualized.",
+      "onEnter": []
+    },
+    {
+      "name": "routing",
+      "description": "Actively directing signals through the network.",
+      "onEnter": [
+        {
+          "resource": "packets_delivered",
+          "operation": "+",
+          "value": "random(1,3)"
+        }
+      ]
+    },
+    {
+      "name": "interference",
+      "description": "Signal noise is corrupting data paths.",
+      "onEnter": [
+        {
+          "resource": "noise",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "optimization",
+      "description": "Analyzing paths for maximum efficiency.",
+      "onEnter": [
+        {
+          "resource": "efficiency",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "overload",
+      "description": "Too many signals on one path. System strain.",
+      "onEnter": [
+        {
+          "resource": "bandwidth",
+          "operation": "-",
+          "value": "random(8,15)"
+        }
+      ]
+    },
+    {
+      "name": "upgrade",
+      "description": "Installing new hardware to expand capacity.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "control_panel",
+  "resources": {
+    "bandwidth": {
+      "initial": 80,
+      "min": 0,
+      "max": 100,
+      "label": "Bandwidth"
+    },
+    "packets_delivered": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Packets Delivered"
+    },
+    "efficiency": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Efficiency"
+    },
+    "noise": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Signal Noise"
+    },
+    "nodes": {
+      "initial": 5,
+      "min": 0,
+      "max": 20,
+      "label": "Active Nodes"
+    }
+  },
+  "actions": {
+    "control_panel": [
+      {
+        "name": "route_signal",
+        "label": "Route a Signal",
+        "description": "Direct a data packet through the network.",
+        "effects": [
+          {
+            "resource": "bandwidth",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "packets_delivered",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ],
+        "transition": "routing"
+      },
+      {
+        "name": "scan_network",
+        "label": "Scan Network",
+        "description": "Check for issues and bottlenecks.",
+        "effects": [
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(2,5)"
+          }
+        ]
+      },
+      {
+        "name": "add_node",
+        "label": "Add Network Node",
+        "description": "Expand the network with a new relay.",
+        "effects": [
+          {
+            "resource": "nodes",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "optimize",
+        "label": "Run Optimization",
+        "description": "Recalculate all paths.",
+        "effects": [],
+        "transition": "optimization"
+      }
+    ],
+    "routing": [
+      {
+        "name": "direct_path",
+        "label": "Direct Path",
+        "description": "Send through the shortest route.",
+        "effects": [
+          {
+            "resource": "packets_delivered",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "noise",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "redundant_path",
+        "label": "Redundant Path",
+        "description": "Send copies through multiple routes.",
+        "effects": [
+          {
+            "resource": "packets_delivered",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "queue_packet",
+        "label": "Queue for Later",
+        "description": "Buffer the packet for optimal timing.",
+        "effects": [
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "control_panel"
+      }
+    ],
+    "interference": [
+      {
+        "name": "filter_noise",
+        "label": "Apply Noise Filter",
+        "description": "Clean up the signal.",
+        "effects": [
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "control_panel"
+      },
+      {
+        "name": "reroute",
+        "label": "Reroute Around",
+        "description": "Find a path that avoids the interference.",
+        "effects": [
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "efficiency",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "routing"
+      },
+      {
+        "name": "boost_signal",
+        "label": "Boost Signal Power",
+        "description": "Overpower the noise with a stronger signal.",
+        "effects": [
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "control_panel"
+      }
+    ],
+    "optimization": [
+      {
+        "name": "compress_data",
+        "label": "Compress Data",
+        "description": "Reduce packet sizes for faster delivery.",
+        "effects": [
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "balance_load",
+        "label": "Load Balance",
+        "description": "Distribute traffic across all nodes.",
+        "effects": [
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "control_panel"
+      },
+      {
+        "name": "defragment",
+        "label": "Defragment Paths",
+        "description": "Clear unused route fragments.",
+        "effects": [
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "control_panel"
+      }
+    ],
+    "overload": [
+      {
+        "name": "throttle",
+        "label": "Throttle Traffic",
+        "description": "Slow everything down to prevent crash.",
+        "effects": [
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "efficiency",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "control_panel"
+      },
+      {
+        "name": "emergency_reboot",
+        "label": "Emergency Reboot",
+        "description": "Restart overloaded nodes.",
+        "effects": [
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(10,20)"
+          },
+          {
+            "resource": "packets_delivered",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "control_panel"
+      }
+    ],
+    "upgrade": [
+      {
+        "name": "install_fiber",
+        "label": "Install Fiber Optic",
+        "description": "Upgrade to faster connections.",
+        "effects": [
+          {
+            "resource": "bandwidth",
+            "operation": "+",
+            "value": "random(15,25)"
+          },
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "nodes",
+            "operation": "+",
+            "value": "random(1,2)"
+          }
+        ],
+        "transition": "control_panel"
+      },
+      {
+        "name": "add_cache",
+        "label": "Add Cache Layer",
+        "description": "Store frequently requested data locally.",
+        "effects": [
+          {
+            "resource": "efficiency",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "noise",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "control_panel"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "routing",
+      "to": "interference",
+      "condition": {
+        "resource": "noise",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "control_panel",
+      "to": "overload",
+      "condition": {
+        "resource": "bandwidth",
+        "operator": "<=",
+        "value": "15"
+      },
+      "auto": true
+    },
+    {
+      "from": "control_panel",
+      "to": "upgrade",
+      "condition": {
+        "resource": "efficiency",
+        "operator": ">=",
+        "value": "60"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "packets_delivered",
+    "operator": ">=",
+    "value": "80"
+  },
+  "loseCondition": {
+    "resource": "bandwidth",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "circuit-green",
+    "stateDescriptions": {
+      "control_panel": {
+        "label": "Control Panel",
+        "icon": "monitor"
+      },
+      "routing": {
+        "label": "Routing",
+        "icon": "send"
+      },
+      "interference": {
+        "label": "Interference!",
+        "icon": "alert"
+      },
+      "optimization": {
+        "label": "Optimization",
+        "icon": "trending-up"
+      },
+      "overload": {
+        "label": "Overload!",
+        "icon": "zap"
+      },
+      "upgrade": {
+        "label": "Upgrade",
+        "icon": "plus-circle"
+      }
+    },
+    "resourceIcons": {
+      "bandwidth": "wifi",
+      "packets_delivered": "check-circle",
+      "efficiency": "trending-up",
+      "noise": "volume-x",
+      "nodes": "share-2"
+    }
+  }
+}

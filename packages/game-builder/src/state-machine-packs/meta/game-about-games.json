@@ -1,0 +1,267 @@
+{
+  "name": "Game About Games",
+  "description": "Design, test, and publish mini-games within a virtual studio. Manage creativity, budget, and audience reception to become a legendary game designer.",
+  "states": [
+    {
+      "name": "brainstorm",
+      "description": "Your studio whiteboard is covered in ideas. Pick a direction.",
+      "onEnter": [{ "resource": "creativity", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "prototype",
+      "description": "Build a rough version of your game concept.",
+      "onEnter": []
+    },
+    {
+      "name": "playtest",
+      "description": "Testers are trying your prototype. Watch for reactions.",
+      "onEnter": [{ "resource": "bugs", "operation": "+", "value": "random(1,4)" }]
+    },
+    {
+      "name": "polish",
+      "description": "Fix bugs and add visual flair to the build.",
+      "onEnter": []
+    },
+    {
+      "name": "marketing",
+      "description": "Spread the word about your upcoming release.",
+      "onEnter": []
+    },
+    {
+      "name": "launch",
+      "description": "Release day. The reviews are rolling in.",
+      "onEnter": [{ "resource": "fame", "operation": "+", "value": "random(5,15)" }]
+    },
+    {
+      "name": "post_launch",
+      "description": "Handle patches, DLC plans, and community feedback.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "brainstorm",
+  "resources": {
+    "creativity": { "initial": 30, "min": 0, "max": 100, "label": "Creativity" },
+    "budget": { "initial": 50, "min": 0, "max": 200, "label": "Budget" },
+    "quality": { "initial": 0, "min": 0, "max": 100, "label": "Game Quality" },
+    "bugs": { "initial": 0, "min": 0, "max": 50, "label": "Bug Count" },
+    "fame": { "initial": 0, "min": 0, "max": 100, "label": "Fame" },
+    "morale": { "initial": 70, "min": 0, "max": 100, "label": "Team Morale" }
+  },
+  "actions": {
+    "brainstorm": [
+      {
+        "name": "wild_idea",
+        "label": "Go Wild",
+        "description": "Chase an ambitious, risky concept.",
+        "effects": [
+          { "resource": "creativity", "operation": "+", "value": "15" },
+          { "resource": "budget", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "safe_idea",
+        "label": "Play It Safe",
+        "description": "Choose a proven genre with a twist.",
+        "effects": [
+          { "resource": "creativity", "operation": "+", "value": "5" },
+          { "resource": "quality", "operation": "+", "value": "5" }
+        ]
+      },
+      {
+        "name": "start_build",
+        "label": "Start Building",
+        "description": "Move from ideas to code.",
+        "effects": [{ "resource": "budget", "operation": "-", "value": "10" }],
+        "transition": "prototype"
+      }
+    ],
+    "prototype": [
+      {
+        "name": "code_feature",
+        "label": "Code a Feature",
+        "description": "Implement a core mechanic.",
+        "effects": [
+          { "resource": "quality", "operation": "+", "value": "random(5,12)" },
+          { "resource": "budget", "operation": "-", "value": "8" },
+          { "resource": "bugs", "operation": "+", "value": "random(0,3)" }
+        ]
+      },
+      {
+        "name": "hire_artist",
+        "label": "Hire an Artist",
+        "description": "Bring in help for visuals.",
+        "effects": [
+          { "resource": "quality", "operation": "+", "value": "8" },
+          { "resource": "budget", "operation": "-", "value": "15" },
+          { "resource": "morale", "operation": "+", "value": "5" }
+        ]
+      },
+      {
+        "name": "send_to_testers",
+        "label": "Send to Playtest",
+        "description": "Let testers find the problems.",
+        "effects": [],
+        "transition": "playtest"
+      }
+    ],
+    "playtest": [
+      {
+        "name": "observe",
+        "label": "Watch Testers",
+        "description": "Take notes on player behavior.",
+        "effects": [
+          { "resource": "creativity", "operation": "+", "value": "5" },
+          { "resource": "quality", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "collect_feedback",
+        "label": "Gather Feedback",
+        "description": "Ask for detailed opinions.",
+        "effects": [
+          { "resource": "quality", "operation": "+", "value": "random(3,8)" },
+          { "resource": "morale", "operation": "-", "value": "random(0,5)" }
+        ],
+        "transition": "polish"
+      }
+    ],
+    "polish": [
+      {
+        "name": "fix_bugs",
+        "label": "Fix Bugs",
+        "description": "Squash reported issues.",
+        "effects": [
+          { "resource": "bugs", "operation": "-", "value": "random(3,6)" },
+          { "resource": "budget", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "add_juice",
+        "label": "Add Polish",
+        "description": "Screen shake, particles, sound effects.",
+        "effects": [
+          { "resource": "quality", "operation": "+", "value": "random(5,10)" },
+          { "resource": "budget", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "go_to_marketing",
+        "label": "Prepare Launch",
+        "description": "The game is ready for the world.",
+        "effects": [],
+        "transition": "marketing"
+      }
+    ],
+    "marketing": [
+      {
+        "name": "trailer",
+        "label": "Make a Trailer",
+        "description": "Cut a hype video.",
+        "effects": [
+          { "resource": "fame", "operation": "+", "value": "random(5,12)" },
+          { "resource": "budget", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "streamer_keys",
+        "label": "Send Streamer Keys",
+        "description": "Get influencers to play your game.",
+        "effects": [
+          { "resource": "fame", "operation": "+", "value": "random(3,10)" },
+          { "resource": "budget", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "launch_it",
+        "label": "Launch the Game",
+        "description": "Hit the publish button.",
+        "effects": [{ "resource": "budget", "operation": "-", "value": "5" }],
+        "transition": "launch"
+      }
+    ],
+    "launch": [
+      {
+        "name": "read_reviews",
+        "label": "Read Reviews",
+        "description": "See what players think.",
+        "effects": [
+          { "resource": "fame", "operation": "+", "value": "random(3,8)" },
+          { "resource": "morale", "operation": "+", "value": "random(-5,10)" }
+        ]
+      },
+      {
+        "name": "hotfix",
+        "label": "Release Hotfix",
+        "description": "Patch the worst bugs quickly.",
+        "effects": [
+          { "resource": "bugs", "operation": "-", "value": "random(2,5)" },
+          { "resource": "quality", "operation": "+", "value": "3" }
+        ],
+        "transition": "post_launch"
+      }
+    ],
+    "post_launch": [
+      {
+        "name": "dlc_plan",
+        "label": "Plan DLC",
+        "description": "Design expansion content.",
+        "effects": [
+          { "resource": "fame", "operation": "+", "value": "random(5,10)" },
+          { "resource": "budget", "operation": "+", "value": "random(10,20)" },
+          { "resource": "creativity", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "community_event",
+        "label": "Host Community Event",
+        "description": "Engage your player base.",
+        "effects": [
+          { "resource": "fame", "operation": "+", "value": "random(5,15)" },
+          { "resource": "morale", "operation": "+", "value": "10" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "prototype",
+      "to": "playtest",
+      "condition": { "resource": "quality", "operator": ">=", "value": "20" },
+      "auto": false
+    },
+    {
+      "from": "polish",
+      "to": "playtest",
+      "condition": { "resource": "bugs", "operator": ">=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "launch",
+      "to": "post_launch",
+      "condition": { "resource": "bugs", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "fame", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "budget", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "neon-studio",
+    "stateDescriptions": {
+      "brainstorm": { "label": "Idea Lab", "icon": "lightbulb" },
+      "prototype": { "label": "Dev Floor", "icon": "code" },
+      "playtest": { "label": "Test Chamber", "icon": "gamepad" },
+      "polish": { "label": "Polish Bay", "icon": "sparkle" },
+      "marketing": { "label": "Hype Machine", "icon": "megaphone" },
+      "launch": { "label": "Launch Pad", "icon": "rocket" },
+      "post_launch": { "label": "Live Ops", "icon": "chart" }
+    },
+    "resourceIcons": {
+      "creativity": "brain",
+      "budget": "coin",
+      "quality": "star",
+      "bugs": "bug",
+      "fame": "trophy",
+      "morale": "heart"
+    }
+  }
+}

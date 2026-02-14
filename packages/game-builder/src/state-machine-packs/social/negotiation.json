@@ -1,0 +1,240 @@
+{
+  "name": "Negotiation",
+  "description": "Close a major business deal through rounds of negotiation. Read the room, make strategic offers, and walk away with the best terms.",
+  "states": [
+    {
+      "name": "preparation",
+      "description": "Prepare your strategy before the meeting.",
+      "onEnter": []
+    },
+    { "name": "opening", "description": "Initial positions are stated.", "onEnter": [] },
+    { "name": "bargaining", "description": "Back and forth on the terms.", "onEnter": [] },
+    {
+      "name": "impasse",
+      "description": "Talks have stalled.",
+      "onEnter": [{ "resource": "pressure", "operation": "+", "value": "3" }]
+    },
+    { "name": "closing", "description": "Final terms being hammered out.", "onEnter": [] },
+    {
+      "name": "break_room",
+      "description": "Take a break to regroup.",
+      "onEnter": [{ "resource": "energy", "operation": "+", "value": "3" }]
+    }
+  ],
+  "initialState": "preparation",
+  "resources": {
+    "leverage": { "initial": 5, "min": 0, "max": 15, "label": "Leverage" },
+    "rapport": { "initial": 3, "min": 0, "max": 10, "label": "Rapport" },
+    "energy": { "initial": 10, "min": 0, "max": 12, "label": "Energy" },
+    "deal_value": { "initial": 30, "min": 0, "max": 100, "label": "Deal Value" },
+    "pressure": { "initial": 0, "min": 0, "max": 15, "label": "Pressure" },
+    "intel": { "initial": 2, "min": 0, "max": 10, "label": "Intel" }
+  },
+  "actions": {
+    "preparation": [
+      {
+        "name": "research",
+        "label": "Research Counterpart",
+        "effects": [{ "resource": "intel", "operation": "+", "value": "random(2,4)" }]
+      },
+      {
+        "name": "plan_strategy",
+        "label": "Plan Strategy",
+        "effects": [{ "resource": "leverage", "operation": "+", "value": "random(1,3)" }]
+      },
+      {
+        "name": "start_talks",
+        "label": "Enter Negotiations",
+        "effects": [],
+        "transition": "opening"
+      }
+    ],
+    "opening": [
+      {
+        "name": "strong_open",
+        "label": "Strong Opening",
+        "effects": [
+          { "resource": "leverage", "operation": "+", "value": "random(1,3)" },
+          { "resource": "rapport", "operation": "-", "value": "random(0,1)" },
+          { "resource": "deal_value", "operation": "+", "value": "random(3,8)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "friendly_open",
+        "label": "Friendly Opening",
+        "effects": [
+          { "resource": "rapport", "operation": "+", "value": "random(2,4)" },
+          { "resource": "deal_value", "operation": "+", "value": "random(1,5)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "begin_bargaining",
+        "label": "Move to Bargaining",
+        "effects": [],
+        "transition": "bargaining"
+      }
+    ],
+    "bargaining": [
+      {
+        "name": "concede_minor",
+        "label": "Make Small Concession",
+        "effects": [
+          { "resource": "rapport", "operation": "+", "value": "random(1,3)" },
+          { "resource": "deal_value", "operation": "-", "value": "random(1,3)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "push_terms",
+        "label": "Push Your Terms",
+        "condition": { "resource": "leverage", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "deal_value", "operation": "+", "value": "random(5,12)" },
+          { "resource": "rapport", "operation": "-", "value": "random(1,2)" },
+          { "resource": "leverage", "operation": "-", "value": "2" },
+          { "resource": "pressure", "operation": "+", "value": "2" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "trade_points",
+        "label": "Trade Points",
+        "effects": [
+          { "resource": "deal_value", "operation": "+", "value": "random(2,6)" },
+          { "resource": "rapport", "operation": "+", "value": "random(0,2)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "use_intel",
+        "label": "Play Intel Card",
+        "condition": { "resource": "intel", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "intel", "operation": "-", "value": "3" },
+          { "resource": "deal_value", "operation": "+", "value": "random(5,10)" },
+          { "resource": "leverage", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      { "name": "take_break", "label": "Request Break", "effects": [], "transition": "break_room" },
+      {
+        "name": "close",
+        "label": "Move to Close",
+        "condition": { "resource": "deal_value", "operator": ">=", "value": "60" },
+        "effects": [],
+        "transition": "closing"
+      }
+    ],
+    "impasse": [
+      {
+        "name": "compromise",
+        "label": "Offer Compromise",
+        "effects": [
+          { "resource": "deal_value", "operation": "-", "value": "random(3,6)" },
+          { "resource": "rapport", "operation": "+", "value": "random(2,4)" },
+          { "resource": "pressure", "operation": "-", "value": "3" }
+        ],
+        "transition": "bargaining"
+      },
+      {
+        "name": "walk_away_bluff",
+        "label": "Threaten to Walk",
+        "condition": { "resource": "leverage", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "deal_value", "operation": "+", "value": "random(5,10)" },
+          { "resource": "pressure", "operation": "+", "value": "3" },
+          { "resource": "rapport", "operation": "-", "value": "random(1,3)" }
+        ],
+        "transition": "bargaining"
+      },
+      {
+        "name": "reframe",
+        "label": "Reframe the Issue",
+        "effects": [
+          { "resource": "pressure", "operation": "-", "value": "random(2,4)" },
+          { "resource": "rapport", "operation": "+", "value": "random(1,2)" }
+        ],
+        "transition": "bargaining"
+      }
+    ],
+    "closing": [
+      {
+        "name": "finalize",
+        "label": "Finalize Terms",
+        "effects": [
+          { "resource": "deal_value", "operation": "+", "value": "random(3,8)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "last_push",
+        "label": "One Last Push",
+        "condition": { "resource": "leverage", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "deal_value", "operation": "+", "value": "random(5,12)" },
+          { "resource": "rapport", "operation": "-", "value": "random(1,2)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "shake_hands",
+        "label": "Shake Hands",
+        "effects": [{ "resource": "deal_value", "operation": "+", "value": "random(0,5)" }]
+      }
+    ],
+    "break_room": [
+      {
+        "name": "recharge",
+        "label": "Recharge",
+        "effects": [
+          { "resource": "energy", "operation": "+", "value": "random(2,4)" },
+          { "resource": "pressure", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "call_team",
+        "label": "Consult Your Team",
+        "effects": [
+          { "resource": "leverage", "operation": "+", "value": "random(1,2)" },
+          { "resource": "intel", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      { "name": "return", "label": "Return to Table", "effects": [], "transition": "bargaining" }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "bargaining",
+      "to": "impasse",
+      "condition": { "resource": "pressure", "operator": ">=", "value": "10" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "deal_value", "operator": ">=", "value": "80" },
+  "loseCondition": {
+    "or": [
+      { "resource": "energy", "operator": "<=", "value": "0" },
+      { "resource": "rapport", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "business-navy",
+    "stateDescriptions": {
+      "preparation": { "label": "Preparation", "icon": "clipboard" },
+      "opening": { "label": "Opening", "icon": "message-circle" },
+      "bargaining": { "label": "Bargaining", "icon": "repeat" },
+      "impasse": { "label": "Impasse!", "icon": "lock" },
+      "closing": { "label": "Closing", "icon": "check-circle" },
+      "break_room": { "label": "Break Room", "icon": "coffee" }
+    },
+    "resourceIcons": {
+      "leverage": "trending-up",
+      "rapport": "heart",
+      "energy": "battery",
+      "deal_value": "dollar",
+      "pressure": "alert-triangle",
+      "intel": "eye"
+    }
+  }
+}

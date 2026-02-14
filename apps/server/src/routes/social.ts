@@ -471,58 +471,6 @@ router.post(
   },
 );
 
-// ─── Notifications ───────────────────────────────────────
-
-/**
- * GET /notifications - List notifications for the authenticated user
- *
- * Query params:
- *   unreadOnly - "true" to filter to unread only (default: false)
- *   limit      - number of notifications to return (default 20, max 50)
- *   offset     - number of notifications to skip (default 0)
- */
-router.get(
-  '/notifications',
-  requireAuth,
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const user = req.user!;
-      const unreadOnly = req.query.unreadOnly === 'true';
-      const limit = Math.min(Math.max(1, parseInt(req.query.limit as string) || 20), 50);
-      const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
-
-      const where: { userId: string; read?: boolean } = { userId: user.id };
-      if (unreadOnly) {
-        where.read = false;
-      }
-
-      const [notifications, total, unreadCount] = await Promise.all([
-        prisma.notification.findMany({
-          where,
-          orderBy: { createdAt: 'desc' },
-          take: limit,
-          skip: offset,
-        }),
-        prisma.notification.count({ where }),
-        prisma.notification.count({ where: { userId: user.id, read: false } }),
-      ]);
-
-      res.json({
-        notifications,
-        unreadCount,
-        pagination: {
-          total,
-          limit,
-          offset,
-          hasMore: offset + limit < total,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
-
 // ─── Heartbeat ──────────────────────────────────────────
 
 /**

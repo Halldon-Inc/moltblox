@@ -1,0 +1,546 @@
+{
+  "name": "Music Exploration",
+  "description": "You are a traveling musician in an uncharted land. Discover new sounds, learn from local traditions, compose songs, and map the musical landscape of a forgotten continent.",
+  "states": [
+    {
+      "name": "base_camp",
+      "description": "Your camp at the edge of the unknown. Instruments and maps surround you.",
+      "onEnter": []
+    },
+    {
+      "name": "jungle_path",
+      "description": "Dense vegetation. Strange melodies echo from the trees.",
+      "onEnter": [
+        {
+          "resource": "discovery",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "village",
+      "description": "A settlement of people with instruments you have never seen.",
+      "onEnter": [
+        {
+          "resource": "harmony",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "mountain_peak",
+      "description": "Wind howls across stone. Natural resonance fills the air.",
+      "onEnter": [
+        {
+          "resource": "inspiration",
+          "operation": "+",
+          "value": "random(5,8)"
+        }
+      ]
+    },
+    {
+      "name": "underground_cavern",
+      "description": "Stalactites ring like bells when struck. An acoustic wonder.",
+      "onEnter": [
+        {
+          "resource": "discovery",
+          "operation": "+",
+          "value": "random(5,8)"
+        }
+      ]
+    },
+    {
+      "name": "concert_clearing",
+      "description": "A natural amphitheater. The perfect place to perform.",
+      "onEnter": [
+        {
+          "resource": "harmony",
+          "operation": "+",
+          "value": "random(5,8)"
+        }
+      ]
+    }
+  ],
+  "initialState": "base_camp",
+  "resources": {
+    "songs": {
+      "initial": 1,
+      "min": 0,
+      "max": 30,
+      "label": "Songs Composed"
+    },
+    "discovery": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Musical Discovery"
+    },
+    "harmony": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Harmony"
+    },
+    "inspiration": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Inspiration"
+    },
+    "stamina": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Stamina"
+    }
+  },
+  "actions": {
+    "base_camp": [
+      {
+        "name": "compose",
+        "label": "Compose a Song",
+        "description": "Use your notes and memories to write music.",
+        "effects": [
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "explore_jungle",
+        "label": "Enter the Jungle",
+        "description": "Follow the strange sounds deeper.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "jungle_path"
+      },
+      {
+        "name": "climb_mountain",
+        "label": "Climb the Mountain",
+        "description": "Seek inspiration at the summit.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "mountain_peak"
+      },
+      {
+        "name": "rest",
+        "label": "Rest and Tune",
+        "description": "Recover energy and maintain instruments.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      }
+    ],
+    "jungle_path": [
+      {
+        "name": "listen",
+        "label": "Listen to the Forest",
+        "description": "Bird calls, insect rhythms, wind patterns.",
+        "effects": [
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "record_sounds",
+        "label": "Record Natural Sounds",
+        "description": "Capture the jungle's music.",
+        "effects": [
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "find_village",
+        "label": "Follow a Trail",
+        "description": "Footprints lead to a settlement.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "village"
+      },
+      {
+        "name": "descend_cave",
+        "label": "Descend into a Cave",
+        "description": "An opening in the rock reveals stairs going down.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "underground_cavern"
+      }
+    ],
+    "village": [
+      {
+        "name": "learn_tradition",
+        "label": "Learn Local Music",
+        "description": "Sit with the elders and learn their songs.",
+        "effects": [
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "jam_session",
+        "label": "Play Together",
+        "description": "Join the village musicians for a session.",
+        "effects": [
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "trade_songs",
+        "label": "Trade Songs",
+        "description": "Share your music and learn theirs.",
+        "effects": [
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "base_camp"
+      },
+      {
+        "name": "perform",
+        "label": "Perform for the Village",
+        "description": "Give a concert with what you have learned.",
+        "effects": [
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "concert_clearing"
+      }
+    ],
+    "mountain_peak": [
+      {
+        "name": "wind_song",
+        "label": "Compose a Wind Song",
+        "description": "Let the mountain winds guide your melody.",
+        "effects": [
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "echo_experiment",
+        "label": "Experiment with Echoes",
+        "description": "Shout and play into the canyon.",
+        "effects": [
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "descend",
+        "label": "Descend the Mountain",
+        "description": "Head back down with new ideas.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "base_camp"
+      }
+    ],
+    "underground_cavern": [
+      {
+        "name": "play_stalactites",
+        "label": "Play the Stalactites",
+        "description": "Strike the formations. Each one rings differently.",
+        "effects": [
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "water_rhythm",
+        "label": "Follow the Water Rhythm",
+        "description": "Dripping water creates a natural beat.",
+        "effects": [
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "surface",
+        "label": "Return to Surface",
+        "description": "Climb back up with new sounds in your ears.",
+        "effects": [
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "jungle_path"
+      }
+    ],
+    "concert_clearing": [
+      {
+        "name": "grand_performance",
+        "label": "Grand Performance",
+        "description": "Play everything you have learned.",
+        "effects": [
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "inspiration",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "fusion_piece",
+        "label": "Fusion Composition",
+        "description": "Blend all traditions into one new piece.",
+        "effects": [
+          {
+            "resource": "songs",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "discovery",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "harmony",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "return_camp",
+        "label": "Return to Camp",
+        "description": "Rest and reflect on the journey.",
+        "effects": [],
+        "transition": "base_camp"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "jungle_path",
+      "to": "concert_clearing",
+      "condition": {
+        "resource": "discovery",
+        "operator": ">=",
+        "value": "60"
+      },
+      "auto": true
+    },
+    {
+      "from": "base_camp",
+      "to": "concert_clearing",
+      "condition": {
+        "resource": "songs",
+        "operator": ">=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "songs",
+    "operator": ">=",
+    "value": "20"
+  },
+  "loseCondition": {
+    "resource": "stamina",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "forest-green",
+    "stateDescriptions": {
+      "base_camp": {
+        "label": "Base Camp",
+        "icon": "home"
+      },
+      "jungle_path": {
+        "label": "Jungle Path",
+        "icon": "map"
+      },
+      "village": {
+        "label": "Village",
+        "icon": "users"
+      },
+      "mountain_peak": {
+        "label": "Mountain Peak",
+        "icon": "triangle"
+      },
+      "underground_cavern": {
+        "label": "Underground Cavern",
+        "icon": "moon"
+      },
+      "concert_clearing": {
+        "label": "Concert Clearing",
+        "icon": "music"
+      }
+    },
+    "resourceIcons": {
+      "songs": "music",
+      "discovery": "compass",
+      "harmony": "heart",
+      "inspiration": "sun",
+      "stamina": "activity"
+    }
+  }
+}

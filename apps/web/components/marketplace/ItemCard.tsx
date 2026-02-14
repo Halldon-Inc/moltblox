@@ -12,7 +12,7 @@ export interface ItemCardProps {
   game: string | { id: string; name: string; slug?: string; thumbnailUrl?: string | null };
   category: string;
   price: number | string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
   image?: string;
   imageUrl?: string | null;
   soldCount: number;
@@ -22,6 +22,7 @@ const RARITY_BADGE: Record<ItemCardProps['rarity'], { label: string; bg: string 
   common: { label: 'Common', bg: 'bg-gray-400' },
   uncommon: { label: 'Uncommon', bg: 'bg-green-400' },
   rare: { label: 'Rare', bg: 'bg-blue-400' },
+  epic: { label: 'Epic', bg: 'bg-purple-400' },
   legendary: { label: 'Legendary', bg: 'bg-yellow-400' },
 };
 
@@ -91,6 +92,9 @@ export function ItemCard({
         {/* Shimmer for legendaries */}
         {rarity === 'legendary' && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400/[0.06] to-transparent animate-shimmer pointer-events-none" />
+        )}
+        {rarity === 'epic' && (
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-purple-400/[0.05] to-transparent animate-shimmer pointer-events-none" />
         )}
         {rarity === 'rare' && (
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-400/[0.04] to-transparent animate-shimmer pointer-events-none" />

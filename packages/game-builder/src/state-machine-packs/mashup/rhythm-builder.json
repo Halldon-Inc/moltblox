@@ -1,0 +1,576 @@
+{
+  "name": "Rhythm Builder",
+  "description": "You are an architect who builds structures by maintaining rhythm. Each construction phase has a beat. Stay in sync to build higher, lose the rhythm and the building collapses.",
+  "states": [
+    {
+      "name": "foundation",
+      "description": "Laying the groundwork. A steady beat pulses from the earth.",
+      "onEnter": [
+        {
+          "resource": "stability",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "framing",
+      "description": "Steel beams rise. The rhythm quickens.",
+      "onEnter": [
+        {
+          "resource": "height",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "electrical",
+      "description": "Wiring the building. Precision timing required.",
+      "onEnter": [
+        {
+          "resource": "complexity",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "exterior",
+      "description": "Glass and stone. The building takes its final form.",
+      "onEnter": [
+        {
+          "resource": "height",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "crisis",
+      "description": "Something went wrong. The structure sways.",
+      "onEnter": [
+        {
+          "resource": "stability",
+          "operation": "-",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "grand_opening",
+      "description": "The building is nearly complete. One last push.",
+      "onEnter": [
+        {
+          "resource": "reputation",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    }
+  ],
+  "initialState": "foundation",
+  "resources": {
+    "height": {
+      "initial": 0,
+      "min": 0,
+      "max": 50,
+      "label": "Building Height"
+    },
+    "stability": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Stability"
+    },
+    "rhythm": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Rhythm"
+    },
+    "complexity": {
+      "initial": 0,
+      "min": 0,
+      "max": 50,
+      "label": "Complexity"
+    },
+    "reputation": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Reputation"
+    }
+  },
+  "actions": {
+    "foundation": [
+      {
+        "name": "pour_concrete",
+        "label": "Pour Concrete (Steady Beat)",
+        "description": "Keep the rhythm steady as concrete flows.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(1,2)"
+          }
+        ]
+      },
+      {
+        "name": "deep_pilings",
+        "label": "Drive Deep Pilings",
+        "description": "A powerful, slow rhythm. Foundations that last.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "rush_foundation",
+        "label": "Rush the Foundation",
+        "description": "Fast tempo. Risky but saves time.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "stability",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "start_framing",
+        "label": "Begin Framing",
+        "description": "The foundation is set. Build upward.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(1,2)"
+          }
+        ],
+        "transition": "framing"
+      }
+    ],
+    "framing": [
+      {
+        "name": "steel_rhythm",
+        "label": "Steel Beam Rhythm",
+        "description": "Lift, place, weld. Lift, place, weld.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "double_time",
+        "label": "Double Time",
+        "description": "Twice the speed, twice the risk.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "stability",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "reinforce",
+        "label": "Reinforce Structure",
+        "description": "Add extra bracing. Slow but safe.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "wire_up",
+        "label": "Start Electrical Work",
+        "description": "Time for the intricate wiring phase.",
+        "effects": [],
+        "transition": "electrical"
+      }
+    ],
+    "electrical": [
+      {
+        "name": "precision_wiring",
+        "label": "Precision Wiring",
+        "description": "Careful, measured work. Every connection counts.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "rapid_install",
+        "label": "Rapid Install",
+        "description": "Fast wiring. Hope nothing shorts out.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "stability",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "smart_systems",
+        "label": "Install Smart Systems",
+        "description": "Advanced automation. Impressive and complex.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "exterior_work",
+        "label": "Move to Exterior",
+        "description": "The inside is done. Finish the outside.",
+        "effects": [],
+        "transition": "exterior"
+      }
+    ],
+    "exterior": [
+      {
+        "name": "glass_curtain",
+        "label": "Glass Curtain Wall",
+        "description": "Reflective panels catch the sun.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "stone_facade",
+        "label": "Stone Facade",
+        "description": "Classic and timeless. Heavy lifting.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "rooftop",
+        "label": "Crown the Rooftop",
+        "description": "The signature piece at the very top.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      }
+    ],
+    "crisis": [
+      {
+        "name": "emergency_brace",
+        "label": "Emergency Bracing",
+        "description": "Quick fixes to stop the swaying.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "framing"
+      },
+      {
+        "name": "controlled_demo",
+        "label": "Controlled Demolition",
+        "description": "Take down the unstable section and rebuild.",
+        "effects": [
+          {
+            "resource": "height",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(10,15)"
+          }
+        ],
+        "transition": "framing"
+      },
+      {
+        "name": "ride_it_out",
+        "label": "Ride It Out",
+        "description": "Trust the structure. Keep building.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "exterior"
+      }
+    ],
+    "grand_opening": [
+      {
+        "name": "ribbon_cutting",
+        "label": "Ribbon Cutting Ceremony",
+        "description": "Celebrate the achievement.",
+        "effects": [
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "rhythm",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "final_inspection",
+        "label": "Final Inspection",
+        "description": "Make sure everything is perfect.",
+        "effects": [
+          {
+            "resource": "stability",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "framing",
+      "to": "crisis",
+      "condition": {
+        "resource": "stability",
+        "operator": "<=",
+        "value": "10"
+      },
+      "auto": true
+    },
+    {
+      "from": "exterior",
+      "to": "grand_opening",
+      "condition": {
+        "resource": "height",
+        "operator": ">=",
+        "value": "30"
+      },
+      "auto": true
+    },
+    {
+      "from": "exterior",
+      "to": "crisis",
+      "condition": {
+        "resource": "stability",
+        "operator": "<=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "reputation",
+    "operator": ">=",
+    "value": "85"
+  },
+  "loseCondition": {
+    "resource": "stability",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "blueprint-blue",
+    "stateDescriptions": {
+      "foundation": {
+        "label": "Foundation",
+        "icon": "square"
+      },
+      "framing": {
+        "label": "Framing",
+        "icon": "grid"
+      },
+      "electrical": {
+        "label": "Electrical",
+        "icon": "zap"
+      },
+      "exterior": {
+        "label": "Exterior",
+        "icon": "layers"
+      },
+      "crisis": {
+        "label": "Crisis",
+        "icon": "alert-triangle"
+      },
+      "grand_opening": {
+        "label": "Grand Opening",
+        "icon": "award"
+      }
+    },
+    "resourceIcons": {
+      "height": "arrow-up",
+      "stability": "shield",
+      "rhythm": "activity",
+      "complexity": "cpu",
+      "reputation": "star"
+    }
+  }
+}

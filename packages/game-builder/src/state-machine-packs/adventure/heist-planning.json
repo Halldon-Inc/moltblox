@@ -1,0 +1,322 @@
+{
+  "name": "Heist Planning",
+  "description": "Plan and execute the perfect heist on a high-security vault. Recruit specialists, gather intel, and pull off the job.",
+  "states": [
+    {
+      "name": "hideout",
+      "description": "Your safe house. Plan the operation from here.",
+      "onEnter": []
+    },
+    { "name": "scouting", "description": "Case the target building.", "onEnter": [] },
+    {
+      "name": "recruiting",
+      "description": "Find the right specialists for the job.",
+      "onEnter": []
+    },
+    { "name": "acquiring_gear", "description": "Get the equipment you need.", "onEnter": [] },
+    {
+      "name": "infiltrating",
+      "description": "You are inside the building.",
+      "onEnter": [{ "resource": "heat", "operation": "+", "value": "2" }]
+    },
+    { "name": "vault_room", "description": "The vault is right there.", "onEnter": [] },
+    {
+      "name": "escape",
+      "description": "Time to get out with the goods!",
+      "onEnter": [{ "resource": "heat", "operation": "+", "value": "3" }]
+    }
+  ],
+  "initialState": "hideout",
+  "resources": {
+    "cash": { "initial": 20, "min": 0, "label": "Cash (thousands)" },
+    "crew_size": { "initial": 1, "min": 1, "max": 6, "label": "Crew" },
+    "intel": { "initial": 0, "min": 0, "max": 15, "label": "Intel" },
+    "gear": { "initial": 0, "min": 0, "max": 10, "label": "Gear" },
+    "heat": { "initial": 0, "min": 0, "max": 15, "label": "Heat" },
+    "loot": { "initial": 0, "min": 0, "label": "Loot Value" },
+    "trust": { "initial": 5, "min": 0, "max": 10, "label": "Crew Trust" }
+  },
+  "actions": {
+    "hideout": [
+      {
+        "name": "plan",
+        "label": "Review Plan",
+        "description": "Go over the blueprints and intel.",
+        "effects": [{ "resource": "intel", "operation": "+", "value": "1" }]
+      },
+      {
+        "name": "go_scout",
+        "label": "Scout the Target",
+        "description": "Head out to case the building.",
+        "effects": [{ "resource": "heat", "operation": "+", "value": "1" }],
+        "transition": "scouting"
+      },
+      {
+        "name": "go_recruit",
+        "label": "Find Specialists",
+        "description": "Look for skilled people to join.",
+        "effects": [],
+        "transition": "recruiting"
+      },
+      {
+        "name": "go_gear",
+        "label": "Get Equipment",
+        "description": "Acquire tools for the job.",
+        "effects": [],
+        "transition": "acquiring_gear"
+      },
+      {
+        "name": "execute_heist",
+        "label": "Execute the Heist",
+        "description": "Go time. Infiltrate the building.",
+        "condition": {
+          "and": [
+            { "resource": "intel", "operator": ">=", "value": "8" },
+            { "resource": "gear", "operator": ">=", "value": "5" }
+          ]
+        },
+        "effects": [{ "resource": "heat", "operation": "+", "value": "3" }],
+        "transition": "infiltrating"
+      }
+    ],
+    "scouting": [
+      {
+        "name": "watch_guards",
+        "label": "Watch Guard Patrols",
+        "description": "Note the timing and routes.",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(1,3)" },
+          { "resource": "heat", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "map_cameras",
+        "label": "Map Security Cameras",
+        "description": "Identify blind spots.",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(2,4)" },
+          { "resource": "heat", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "bribe_insider",
+        "label": "Bribe an Insider",
+        "description": "Pay someone on the inside for intel.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(3,5)" },
+          { "resource": "cash", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "return_hideout",
+        "label": "Return to Hideout",
+        "description": "Head back to base.",
+        "effects": [],
+        "transition": "hideout"
+      }
+    ],
+    "recruiting": [
+      {
+        "name": "hire_hacker",
+        "label": "Recruit Hacker",
+        "description": "A tech expert who can disable alarms.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "crew_size", "operation": "+", "value": "1" },
+          { "resource": "gear", "operation": "+", "value": "2" },
+          { "resource": "cash", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "hire_muscle",
+        "label": "Recruit Muscle",
+        "description": "Someone who handles physical obstacles.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "crew_size", "operation": "+", "value": "1" },
+          { "resource": "trust", "operation": "-", "value": "1" },
+          { "resource": "cash", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "hire_driver",
+        "label": "Recruit Getaway Driver",
+        "description": "Fast wheels for the escape.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "6" },
+        "effects": [
+          { "resource": "crew_size", "operation": "+", "value": "1" },
+          { "resource": "cash", "operation": "-", "value": "6" }
+        ]
+      },
+      {
+        "name": "return_hideout",
+        "label": "Return to Hideout",
+        "description": "Head back to base.",
+        "effects": [],
+        "transition": "hideout"
+      }
+    ],
+    "acquiring_gear": [
+      {
+        "name": "buy_tools",
+        "label": "Buy Lockpick Set",
+        "description": "Essential tools for any heist.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "gear", "operation": "+", "value": "2" },
+          { "resource": "cash", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "buy_tech",
+        "label": "Buy Signal Jammer",
+        "description": "Disable communications during the heist.",
+        "condition": { "resource": "cash", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "gear", "operation": "+", "value": "3" },
+          { "resource": "cash", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "steal_gear",
+        "label": "Steal Equipment",
+        "description": "Risky but free.",
+        "effects": [
+          { "resource": "gear", "operation": "+", "value": "random(1,3)" },
+          { "resource": "heat", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "return_hideout",
+        "label": "Return to Hideout",
+        "description": "Head back to base.",
+        "effects": [],
+        "transition": "hideout"
+      }
+    ],
+    "infiltrating": [
+      {
+        "name": "disable_alarm",
+        "label": "Disable Alarms",
+        "description": "Use your gear to shut down the alarm system.",
+        "condition": { "resource": "gear", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "gear", "operation": "-", "value": "2" },
+          { "resource": "heat", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "sneak_past",
+        "label": "Sneak Past Guards",
+        "description": "Use intel to navigate guard patterns.",
+        "effects": [
+          { "resource": "intel", "operation": "-", "value": "2" },
+          { "resource": "heat", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "reach_vault",
+        "label": "Reach the Vault",
+        "description": "Navigate to the vault room.",
+        "condition": { "resource": "heat", "operator": "<", "value": "10" },
+        "effects": [{ "resource": "heat", "operation": "+", "value": "2" }],
+        "transition": "vault_room"
+      },
+      {
+        "name": "abort",
+        "label": "Abort Mission",
+        "description": "Too hot. Get out now.",
+        "effects": [{ "resource": "heat", "operation": "-", "value": "5" }],
+        "transition": "hideout"
+      }
+    ],
+    "vault_room": [
+      {
+        "name": "crack_vault",
+        "label": "Crack the Vault",
+        "description": "Use all your skills to open it.",
+        "condition": { "resource": "gear", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "loot", "operation": "+", "value": "random(50,150)" },
+          { "resource": "gear", "operation": "-", "value": "2" },
+          { "resource": "heat", "operation": "+", "value": "3" }
+        ],
+        "transition": "escape"
+      },
+      {
+        "name": "grab_extras",
+        "label": "Grab Side Loot",
+        "description": "Take valuables from nearby offices.",
+        "effects": [
+          { "resource": "loot", "operation": "+", "value": "random(10,30)" },
+          { "resource": "heat", "operation": "+", "value": "2" }
+        ]
+      }
+    ],
+    "escape": [
+      {
+        "name": "drive_away",
+        "label": "Getaway Drive",
+        "description": "Speed away in the getaway car.",
+        "condition": { "resource": "crew_size", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "heat", "operation": "-", "value": "5" },
+          { "resource": "loot", "operation": "+", "value": "0" }
+        ]
+      },
+      {
+        "name": "split_up",
+        "label": "Split Up",
+        "description": "Everyone goes their own way.",
+        "effects": [
+          { "resource": "trust", "operation": "-", "value": "2" },
+          { "resource": "heat", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "lay_low",
+        "label": "Lay Low",
+        "description": "Hide and wait for things to cool down.",
+        "effects": [{ "resource": "heat", "operation": "-", "value": "random(2,5)" }]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "infiltrating",
+      "to": "escape",
+      "condition": { "resource": "heat", "operator": ">=", "value": "12" },
+      "auto": true
+    },
+    {
+      "from": "escape",
+      "to": "hideout",
+      "condition": { "resource": "heat", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "loot", "operator": ">=", "value": "100" },
+  "loseCondition": { "resource": "heat", "operator": ">=", "value": "15" },
+  "theme": {
+    "palette": "midnight",
+    "stateDescriptions": {
+      "hideout": { "label": "Safe House", "icon": "home" },
+      "scouting": { "label": "Recon", "icon": "binoculars" },
+      "recruiting": { "label": "Recruitment", "icon": "users" },
+      "acquiring_gear": { "label": "Black Market", "icon": "briefcase" },
+      "infiltrating": { "label": "Inside!", "icon": "lock" },
+      "vault_room": { "label": "The Vault", "icon": "safe" },
+      "escape": { "label": "Escape!", "icon": "truck" }
+    },
+    "resourceIcons": {
+      "cash": "dollar",
+      "crew_size": "users",
+      "intel": "eye",
+      "gear": "tool",
+      "heat": "flame",
+      "loot": "gem",
+      "trust": "handshake"
+    }
+  }
+}

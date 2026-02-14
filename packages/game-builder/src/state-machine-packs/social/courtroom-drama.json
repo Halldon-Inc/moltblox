@@ -1,0 +1,191 @@
+{
+  "name": "Courtroom Drama",
+  "description": "Defend your client in a complex trial. Question witnesses, present evidence, and sway the jury.",
+  "states": [
+    { "name": "office", "description": "Your law office. Prepare your case.", "onEnter": [] },
+    { "name": "courtroom", "description": "The trial is in session.", "onEnter": [] },
+    { "name": "witness_stand", "description": "A witness is being examined.", "onEnter": [] },
+    { "name": "jury_deliberation", "description": "Final arguments to the jury.", "onEnter": [] },
+    {
+      "name": "recess",
+      "description": "Court is in recess.",
+      "onEnter": [{ "resource": "stamina", "operation": "+", "value": "2" }]
+    }
+  ],
+  "initialState": "office",
+  "resources": {
+    "evidence": { "initial": 3, "min": 0, "max": 12, "label": "Evidence" },
+    "credibility": { "initial": 5, "min": 0, "max": 10, "label": "Credibility" },
+    "jury_favor": { "initial": 5, "min": 0, "max": 15, "label": "Jury Favor" },
+    "stamina": { "initial": 8, "min": 0, "max": 10, "label": "Stamina" },
+    "objections": { "initial": 3, "min": 0, "max": 5, "label": "Objections Left" },
+    "witnesses_called": { "initial": 0, "min": 0, "max": 6, "label": "Witnesses Called" }
+  },
+  "actions": {
+    "office": [
+      {
+        "name": "research",
+        "label": "Research Case Law",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(1,3)" },
+          { "resource": "credibility", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "prep_witness",
+        "label": "Prep a Witness",
+        "effects": [
+          { "resource": "witnesses_called", "operation": "+", "value": "1" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "go_court", "label": "Go to Court", "effects": [], "transition": "courtroom" }
+    ],
+    "courtroom": [
+      {
+        "name": "opening_statement",
+        "label": "Make a Statement",
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(1,3)" },
+          { "resource": "credibility", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "call_witness",
+        "label": "Call Witness",
+        "condition": { "resource": "witnesses_called", "operator": ">=", "value": "1" },
+        "effects": [{ "resource": "witnesses_called", "operation": "-", "value": "1" }],
+        "transition": "witness_stand"
+      },
+      {
+        "name": "present_evidence",
+        "label": "Present Evidence",
+        "condition": { "resource": "evidence", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "evidence", "operation": "-", "value": "2" },
+          { "resource": "jury_favor", "operation": "+", "value": "random(2,5)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "request_recess",
+        "label": "Request Recess",
+        "effects": [],
+        "transition": "recess"
+      },
+      {
+        "name": "closing",
+        "label": "Closing Arguments",
+        "condition": { "resource": "jury_favor", "operator": ">=", "value": "8" },
+        "effects": [],
+        "transition": "jury_deliberation"
+      }
+    ],
+    "witness_stand": [
+      {
+        "name": "direct_exam",
+        "label": "Direct Examination",
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(2,4)" },
+          { "resource": "credibility", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "cross_exam",
+        "label": "Cross Examination",
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(1,5)" },
+          { "resource": "credibility", "operation": "+", "value": "random(0,2)" },
+          { "resource": "stamina", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "object",
+        "label": "Objection!",
+        "condition": { "resource": "objections", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "objections", "operation": "-", "value": "1" },
+          { "resource": "jury_favor", "operation": "+", "value": "random(1,3)" },
+          { "resource": "credibility", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "dismiss", "label": "Dismiss Witness", "effects": [], "transition": "courtroom" }
+    ],
+    "jury_deliberation": [
+      {
+        "name": "passionate_plea",
+        "label": "Passionate Closing",
+        "condition": { "resource": "stamina", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(3,6)" },
+          { "resource": "stamina", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "logical_summary",
+        "label": "Logical Summary",
+        "condition": { "resource": "evidence", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(2,5)" },
+          { "resource": "evidence", "operation": "-", "value": "2" },
+          { "resource": "stamina", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "final_appeal",
+        "label": "Final Appeal",
+        "effects": [
+          { "resource": "jury_favor", "operation": "+", "value": "random(1,4)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "recess": [
+      {
+        "name": "review_notes",
+        "label": "Review Notes",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(0,2)" },
+          { "resource": "stamina", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "talk_client",
+        "label": "Consult Client",
+        "effects": [
+          { "resource": "credibility", "operation": "+", "value": "1" },
+          { "resource": "stamina", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "return", "label": "Return to Court", "effects": [], "transition": "courtroom" }
+    ]
+  },
+  "transitions": [],
+  "winCondition": { "resource": "jury_favor", "operator": ">=", "value": "14" },
+  "loseCondition": {
+    "or": [
+      { "resource": "credibility", "operator": "<=", "value": "0" },
+      { "resource": "stamina", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "justice-brown",
+    "stateDescriptions": {
+      "office": { "label": "Law Office", "icon": "briefcase" },
+      "courtroom": { "label": "Courtroom", "icon": "gavel" },
+      "witness_stand": { "label": "Witness Stand", "icon": "user" },
+      "jury_deliberation": { "label": "Jury", "icon": "users" },
+      "recess": { "label": "Recess", "icon": "coffee" }
+    },
+    "resourceIcons": {
+      "evidence": "file-text",
+      "credibility": "shield",
+      "jury_favor": "heart",
+      "stamina": "battery",
+      "objections": "alert-circle",
+      "witnesses_called": "user"
+    }
+  }
+}

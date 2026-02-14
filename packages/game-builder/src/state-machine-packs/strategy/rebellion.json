@@ -1,0 +1,261 @@
+{
+  "name": "Rebellion",
+  "description": "Lead an underground rebellion against a tyrannical regime. Build support, plan operations, and topple the government.",
+  "states": [
+    { "name": "hideout", "description": "The secret rebel base.", "onEnter": [] },
+    { "name": "propaganda", "description": "Spreading the message to the people.", "onEnter": [] },
+    { "name": "supply_raid", "description": "Raiding regime supply depots.", "onEnter": [] },
+    {
+      "name": "uprising",
+      "description": "Open revolt in the streets.",
+      "onEnter": [{ "resource": "heat", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "negotiation",
+      "description": "Secret talks with sympathetic officials.",
+      "onEnter": []
+    },
+    {
+      "name": "crackdown",
+      "description": "The regime cracks down on dissenters.",
+      "onEnter": [
+        { "resource": "fighters", "operation": "-", "value": "random(3,8)" },
+        { "resource": "popular_support", "operation": "-", "value": "random(3,6)" }
+      ]
+    }
+  ],
+  "initialState": "hideout",
+  "resources": {
+    "fighters": { "initial": 10, "min": 0, "max": 60, "label": "Fighters" },
+    "supplies": { "initial": 15, "min": 0, "max": 40, "label": "Supplies" },
+    "popular_support": { "initial": 20, "min": 0, "max": 100, "label": "Popular Support" },
+    "heat": { "initial": 5, "min": 0, "max": 25, "label": "Regime Awareness" },
+    "morale": { "initial": 7, "min": 0, "max": 10, "label": "Morale" },
+    "regime_power": { "initial": 80, "min": 0, "max": 100, "label": "Regime Power" }
+  },
+  "actions": {
+    "hideout": [
+      {
+        "name": "recruit",
+        "label": "Recruit Fighters",
+        "condition": { "resource": "popular_support", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "fighters", "operation": "+", "value": "random(2,6)" },
+          { "resource": "heat", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "train",
+        "label": "Train Fighters",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "1" },
+          { "resource": "supplies", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_propaganda",
+        "label": "Spread Propaganda",
+        "effects": [],
+        "transition": "propaganda"
+      },
+      {
+        "name": "go_raid",
+        "label": "Plan Supply Raid",
+        "condition": { "resource": "fighters", "operator": ">=", "value": "5" },
+        "effects": [],
+        "transition": "supply_raid"
+      },
+      {
+        "name": "go_negotiate",
+        "label": "Secret Negotiations",
+        "condition": { "resource": "popular_support", "operator": ">=", "value": "40" },
+        "effects": [],
+        "transition": "negotiation"
+      },
+      {
+        "name": "go_uprising",
+        "label": "Launch Uprising",
+        "condition": {
+          "and": [
+            { "resource": "fighters", "operator": ">=", "value": "30" },
+            { "resource": "popular_support", "operator": ">=", "value": "60" }
+          ]
+        },
+        "effects": [],
+        "transition": "uprising"
+      },
+      {
+        "name": "lay_low",
+        "label": "Lay Low",
+        "effects": [
+          { "resource": "heat", "operation": "-", "value": "random(2,4)" },
+          { "resource": "supplies", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "propaganda": [
+      {
+        "name": "leaflets",
+        "label": "Distribute Leaflets",
+        "effects": [
+          { "resource": "popular_support", "operation": "+", "value": "random(3,8)" },
+          { "resource": "heat", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "graffiti",
+        "label": "Graffiti Campaign",
+        "effects": [
+          { "resource": "popular_support", "operation": "+", "value": "random(2,5)" },
+          { "resource": "morale", "operation": "+", "value": "1" },
+          { "resource": "heat", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "radio",
+        "label": "Pirate Radio Broadcast",
+        "condition": { "resource": "supplies", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "popular_support", "operation": "+", "value": "random(5,12)" },
+          { "resource": "heat", "operation": "+", "value": "random(2,4)" },
+          { "resource": "supplies", "operation": "-", "value": "3" }
+        ]
+      },
+      { "name": "back", "label": "Return to Hideout", "effects": [], "transition": "hideout" }
+    ],
+    "supply_raid": [
+      {
+        "name": "raid_depot",
+        "label": "Raid Supply Depot",
+        "effects": [
+          { "resource": "supplies", "operation": "+", "value": "random(5,12)" },
+          { "resource": "fighters", "operation": "-", "value": "random(1,4)" },
+          { "resource": "heat", "operation": "+", "value": "random(3,5)" },
+          { "resource": "regime_power", "operation": "-", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "steal_weapons",
+        "label": "Steal Weapons",
+        "effects": [
+          { "resource": "fighters", "operation": "+", "value": "random(2,5)" },
+          { "resource": "heat", "operation": "+", "value": "random(2,4)" },
+          { "resource": "regime_power", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Hideout", "effects": [], "transition": "hideout" }
+    ],
+    "uprising": [
+      {
+        "name": "mass_protest",
+        "label": "Mass Protest",
+        "effects": [
+          { "resource": "popular_support", "operation": "+", "value": "random(5,15)" },
+          { "resource": "regime_power", "operation": "-", "value": "random(8,15)" },
+          { "resource": "fighters", "operation": "-", "value": "random(3,8)" },
+          { "resource": "heat", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "seize_building",
+        "label": "Seize Government Building",
+        "condition": { "resource": "fighters", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "regime_power", "operation": "-", "value": "random(10,20)" },
+          { "resource": "fighters", "operation": "-", "value": "random(5,12)" },
+          { "resource": "popular_support", "operation": "+", "value": "random(5,10)" },
+          { "resource": "morale", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Retreat Underground",
+        "effects": [{ "resource": "morale", "operation": "-", "value": "2" }],
+        "transition": "hideout"
+      }
+    ],
+    "negotiation": [
+      {
+        "name": "win_defector",
+        "label": "Win Over Defector",
+        "effects": [
+          { "resource": "regime_power", "operation": "-", "value": "random(5,10)" },
+          { "resource": "fighters", "operation": "+", "value": "random(3,6)" },
+          { "resource": "popular_support", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "demand_reforms",
+        "label": "Demand Reforms",
+        "condition": { "resource": "popular_support", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "regime_power", "operation": "-", "value": "random(8,15)" },
+          { "resource": "popular_support", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Hideout", "effects": [], "transition": "hideout" }
+    ],
+    "crackdown": [
+      {
+        "name": "scatter",
+        "label": "Scatter and Hide",
+        "effects": [
+          { "resource": "heat", "operation": "-", "value": "random(3,6)" },
+          { "resource": "morale", "operation": "-", "value": "2" }
+        ],
+        "transition": "hideout"
+      },
+      {
+        "name": "resist",
+        "label": "Resist the Crackdown",
+        "effects": [
+          { "resource": "fighters", "operation": "-", "value": "random(3,8)" },
+          { "resource": "popular_support", "operation": "+", "value": "random(5,10)" },
+          { "resource": "regime_power", "operation": "-", "value": "random(3,8)" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ],
+        "transition": "hideout"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "hideout",
+      "to": "crackdown",
+      "condition": { "resource": "heat", "operator": ">=", "value": "18" },
+      "auto": true
+    },
+    {
+      "from": "propaganda",
+      "to": "crackdown",
+      "condition": { "resource": "heat", "operator": ">=", "value": "20" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "regime_power", "operator": "<=", "value": "0" },
+  "loseCondition": {
+    "or": [
+      { "resource": "fighters", "operator": "<=", "value": "0" },
+      { "resource": "morale", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "revolt-red",
+    "stateDescriptions": {
+      "hideout": { "label": "Secret Hideout", "icon": "home" },
+      "propaganda": { "label": "Propaganda", "icon": "megaphone" },
+      "supply_raid": { "label": "Supply Raid", "icon": "target" },
+      "uprising": { "label": "Uprising!", "icon": "flag" },
+      "negotiation": { "label": "Negotiations", "icon": "message-circle" },
+      "crackdown": { "label": "Crackdown!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "fighters": "users",
+      "supplies": "package",
+      "popular_support": "heart",
+      "heat": "flame",
+      "morale": "flag",
+      "regime_power": "shield"
+    }
+  }
+}

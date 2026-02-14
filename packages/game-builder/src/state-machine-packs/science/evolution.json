@@ -1,0 +1,318 @@
+{
+  "name": "Evolution",
+  "description": "Guide a species through millions of years of evolution. Develop traits, adapt to environments, and survive mass extinctions.",
+  "states": [
+    { "name": "ocean", "description": "The primordial ocean. Life begins here.", "onEnter": [] },
+    { "name": "shore", "description": "The shore between water and land.", "onEnter": [] },
+    { "name": "forest", "description": "Dense forest environments.", "onEnter": [] },
+    { "name": "plains", "description": "Open plains and grasslands.", "onEnter": [] },
+    {
+      "name": "extinction_event",
+      "description": "A mass extinction event! Adapt or perish.",
+      "onEnter": [{ "resource": "population", "operation": "-", "value": "random(3,6)" }]
+    },
+    {
+      "name": "ice_age",
+      "description": "An ice age descends upon the world.",
+      "onEnter": [{ "resource": "population", "operation": "-", "value": "random(2,4)" }]
+    }
+  ],
+  "initialState": "ocean",
+  "resources": {
+    "population": { "initial": 10, "min": 0, "max": 20, "label": "Population" },
+    "adaptability": { "initial": 3, "min": 0, "max": 10, "label": "Adaptability" },
+    "strength": { "initial": 2, "min": 0, "max": 10, "label": "Strength" },
+    "intelligence": { "initial": 1, "min": 0, "max": 10, "label": "Intelligence" },
+    "mutations": { "initial": 3, "min": 0, "max": 8, "label": "Mutation Points" },
+    "food_supply": { "initial": 8, "min": 0, "max": 15, "label": "Food Supply" }
+  },
+  "actions": {
+    "ocean": [
+      {
+        "name": "hunt_fish",
+        "label": "Hunt in the Ocean",
+        "effects": [
+          { "resource": "food_supply", "operation": "+", "value": "random(2,4)" },
+          { "resource": "strength", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "evolve_fins",
+        "label": "Evolve Better Fins",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "1" },
+          { "resource": "adaptability", "operation": "+", "value": "random(1,2)" },
+          { "resource": "strength", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "evolve_lungs",
+        "label": "Develop Proto-Lungs",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "2" },
+          { "resource": "adaptability", "operation": "+", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "reproduce",
+        "label": "Reproduce",
+        "condition": { "resource": "food_supply", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "population", "operation": "+", "value": "random(2,4)" },
+          { "resource": "food_supply", "operation": "-", "value": "3" },
+          { "resource": "mutations", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "crawl_ashore",
+        "label": "Crawl to Shore",
+        "condition": { "resource": "adaptability", "operator": ">=", "value": "4" },
+        "effects": [],
+        "transition": "shore"
+      }
+    ],
+    "shore": [
+      {
+        "name": "forage",
+        "label": "Forage for Food",
+        "effects": [
+          { "resource": "food_supply", "operation": "+", "value": "random(1,3)" },
+          { "resource": "intelligence", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "evolve_legs",
+        "label": "Develop Stronger Legs",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "1" },
+          { "resource": "strength", "operation": "+", "value": "random(1,2)" },
+          { "resource": "adaptability", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "evolve_skin",
+        "label": "Toughen Skin",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "1" },
+          { "resource": "adaptability", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "reproduce",
+        "label": "Reproduce",
+        "condition": { "resource": "food_supply", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "population", "operation": "+", "value": "random(2,3)" },
+          { "resource": "food_supply", "operation": "-", "value": "3" },
+          { "resource": "mutations", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "go_forest",
+        "label": "Move to Forest",
+        "condition": { "resource": "adaptability", "operator": ">=", "value": "5" },
+        "effects": [],
+        "transition": "forest"
+      },
+      { "name": "go_ocean", "label": "Return to Ocean", "effects": [], "transition": "ocean" }
+    ],
+    "forest": [
+      {
+        "name": "climb_trees",
+        "label": "Climb Trees",
+        "effects": [
+          { "resource": "food_supply", "operation": "+", "value": "random(2,4)" },
+          { "resource": "adaptability", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "evolve_claws",
+        "label": "Evolve Claws",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "1" },
+          { "resource": "strength", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "evolve_brain",
+        "label": "Evolve Larger Brain",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "2" },
+          { "resource": "intelligence", "operation": "+", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "reproduce",
+        "label": "Reproduce",
+        "condition": { "resource": "food_supply", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "population", "operation": "+", "value": "random(1,3)" },
+          { "resource": "food_supply", "operation": "-", "value": "3" },
+          { "resource": "mutations", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "go_plains",
+        "label": "Move to Plains",
+        "condition": { "resource": "adaptability", "operator": ">=", "value": "6" },
+        "effects": [],
+        "transition": "plains"
+      },
+      { "name": "go_shore", "label": "Return to Shore", "effects": [], "transition": "shore" }
+    ],
+    "plains": [
+      {
+        "name": "hunt_herds",
+        "label": "Hunt in Packs",
+        "condition": { "resource": "intelligence", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "food_supply", "operation": "+", "value": "random(3,6)" },
+          { "resource": "strength", "operation": "+", "value": "random(0,1)" },
+          { "resource": "intelligence", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "tool_use",
+        "label": "Develop Tool Use",
+        "condition": { "resource": "intelligence", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "intelligence", "operation": "+", "value": "random(2,3)" },
+          { "resource": "adaptability", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "evolve_upright",
+        "label": "Walk Upright",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "2" },
+          { "resource": "intelligence", "operation": "+", "value": "random(1,3)" },
+          { "resource": "adaptability", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "reproduce",
+        "label": "Reproduce",
+        "condition": { "resource": "food_supply", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "population", "operation": "+", "value": "random(1,3)" },
+          { "resource": "food_supply", "operation": "-", "value": "4" },
+          { "resource": "mutations", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      { "name": "go_forest", "label": "Return to Forest", "effects": [], "transition": "forest" }
+    ],
+    "extinction_event": [
+      {
+        "name": "hide",
+        "label": "Go Underground",
+        "effects": [
+          { "resource": "population", "operation": "-", "value": "random(1,2)" },
+          { "resource": "adaptability", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "shore"
+      },
+      {
+        "name": "adapt_fast",
+        "label": "Rapid Adaptation",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "2" },
+          { "resource": "adaptability", "operation": "+", "value": "random(2,4)" },
+          { "resource": "population", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "forest"
+      },
+      {
+        "name": "migrate",
+        "label": "Mass Migration",
+        "effects": [
+          { "resource": "population", "operation": "-", "value": "random(1,3)" },
+          { "resource": "food_supply", "operation": "+", "value": "random(2,4)" }
+        ],
+        "transition": "plains"
+      }
+    ],
+    "ice_age": [
+      {
+        "name": "grow_fur",
+        "label": "Develop Fur",
+        "condition": { "resource": "mutations", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "mutations", "operation": "-", "value": "1" },
+          { "resource": "adaptability", "operation": "+", "value": "random(2,3)" }
+        ],
+        "transition": "plains"
+      },
+      {
+        "name": "hibernate",
+        "label": "Hibernate",
+        "effects": [
+          { "resource": "population", "operation": "-", "value": "random(1,2)" },
+          { "resource": "food_supply", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "forest"
+      },
+      {
+        "name": "fire",
+        "label": "Discover Fire",
+        "condition": { "resource": "intelligence", "operator": ">=", "value": "6" },
+        "effects": [
+          { "resource": "intelligence", "operation": "+", "value": "random(2,3)" },
+          { "resource": "population", "operation": "+", "value": "random(2,4)" }
+        ],
+        "transition": "plains"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "plains",
+      "to": "extinction_event",
+      "condition": { "resource": "food_supply", "operator": "<=", "value": "2" },
+      "auto": false
+    },
+    {
+      "from": "forest",
+      "to": "ice_age",
+      "condition": { "resource": "adaptability", "operator": "<=", "value": "2" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [
+    { "resource": "food_supply", "operation": "-", "value": "1" },
+    { "resource": "mutations", "operation": "+", "value": "1" }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "intelligence", "operator": ">=", "value": "8" },
+      { "resource": "population", "operator": ">=", "value": "10" }
+    ]
+  },
+  "loseCondition": { "resource": "population", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "amber-earth",
+    "stateDescriptions": {
+      "ocean": { "label": "Ocean", "icon": "droplet" },
+      "shore": { "label": "Shore", "icon": "sunset" },
+      "forest": { "label": "Forest", "icon": "feather" },
+      "plains": { "label": "Plains", "icon": "wind" },
+      "extinction_event": { "label": "Extinction!", "icon": "alert-triangle" },
+      "ice_age": { "label": "Ice Age", "icon": "snowflake" }
+    },
+    "resourceIcons": {
+      "population": "users",
+      "adaptability": "refresh-cw",
+      "strength": "shield",
+      "intelligence": "brain",
+      "mutations": "zap",
+      "food_supply": "apple"
+    }
+  }
+}

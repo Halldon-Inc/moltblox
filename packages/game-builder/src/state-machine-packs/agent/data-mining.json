@@ -1,0 +1,418 @@
+{
+  "name": "Data Mining",
+  "description": "Dig through massive datasets to find valuable insights. Clean data, run queries, build models, and discover hidden connections.",
+  "states": [
+    {
+      "name": "raw_data",
+      "description": "Messy, unprocessed data. Millions of records.",
+      "onEnter": []
+    },
+    {
+      "name": "cleaning",
+      "description": "Removing duplicates, fixing errors, normalizing.",
+      "onEnter": [
+        {
+          "resource": "quality",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "querying",
+      "description": "Running queries against the processed data.",
+      "onEnter": [
+        {
+          "resource": "discoveries",
+          "operation": "+",
+          "value": "random(1,2)"
+        }
+      ]
+    },
+    {
+      "name": "modeling",
+      "description": "Building predictive models from the data.",
+      "onEnter": [
+        {
+          "resource": "accuracy",
+          "operation": "+",
+          "value": "random(2,5)"
+        }
+      ]
+    },
+    {
+      "name": "gold_strike",
+      "description": "A major discovery in the data!",
+      "onEnter": [
+        {
+          "resource": "discoveries",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    }
+  ],
+  "initialState": "raw_data",
+  "resources": {
+    "records": {
+      "initial": 100,
+      "min": 0,
+      "max": 200,
+      "label": "Records Processed"
+    },
+    "quality": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Data Quality"
+    },
+    "discoveries": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Discoveries"
+    },
+    "accuracy": {
+      "initial": 15,
+      "min": 0,
+      "max": 100,
+      "label": "Model Accuracy"
+    },
+    "compute": {
+      "initial": 50,
+      "min": 0,
+      "max": 50,
+      "label": "Compute Budget"
+    }
+  },
+  "actions": {
+    "raw_data": [
+      {
+        "name": "ingest",
+        "label": "Ingest Data",
+        "description": "Load more records into the system.",
+        "effects": [
+          {
+            "resource": "records",
+            "operation": "+",
+            "value": "random(10,20)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "clean",
+        "label": "Clean the Data",
+        "description": "Start the cleaning process.",
+        "effects": [
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "cleaning"
+      },
+      {
+        "name": "quick_query",
+        "label": "Quick Query",
+        "description": "Run a basic query on raw data.",
+        "effects": [
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(0,1)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(1,2)"
+          }
+        ]
+      }
+    ],
+    "cleaning": [
+      {
+        "name": "deduplicate",
+        "label": "Remove Duplicates",
+        "description": "Find and remove duplicate records.",
+        "effects": [
+          {
+            "resource": "quality",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "records",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "normalize",
+        "label": "Normalize Fields",
+        "description": "Standardize data formats.",
+        "effects": [
+          {
+            "resource": "quality",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "raw_data"
+      },
+      {
+        "name": "enrich",
+        "label": "Enrich Data",
+        "description": "Add context from external sources.",
+        "effects": [
+          {
+            "resource": "quality",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "records",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(3,4)"
+          }
+        ],
+        "transition": "raw_data"
+      }
+    ],
+    "querying": [
+      {
+        "name": "aggregate",
+        "label": "Run Aggregation",
+        "description": "Group and summarize the data.",
+        "effects": [
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "correlation",
+        "label": "Find Correlations",
+        "description": "Look for relationships between fields.",
+        "effects": [
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(3,4)"
+          }
+        ],
+        "transition": "raw_data"
+      },
+      {
+        "name": "build_model",
+        "label": "Build a Model",
+        "description": "Train a predictive model.",
+        "condition": {
+          "resource": "quality",
+          "operator": ">=",
+          "value": "30"
+        },
+        "effects": [
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "modeling"
+      }
+    ],
+    "modeling": [
+      {
+        "name": "train",
+        "label": "Train Model",
+        "description": "Feed data into the model.",
+        "effects": [
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "validate",
+        "label": "Validate Results",
+        "description": "Test the model against held-out data.",
+        "effects": [
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ],
+        "transition": "raw_data"
+      },
+      {
+        "name": "predict",
+        "label": "Run Predictions",
+        "description": "Use the model to find insights.",
+        "condition": {
+          "resource": "accuracy",
+          "operator": ">=",
+          "value": "40"
+        },
+        "effects": [
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "raw_data"
+      }
+    ],
+    "gold_strike": [
+      {
+        "name": "deep_dive",
+        "label": "Deep Dive",
+        "description": "Investigate the discovery thoroughly.",
+        "effects": [
+          {
+            "resource": "discoveries",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "compute",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "raw_data"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "raw_data",
+      "to": "querying",
+      "condition": {
+        "resource": "quality",
+        "operator": ">=",
+        "value": "30"
+      },
+      "auto": true
+    },
+    {
+      "from": "querying",
+      "to": "gold_strike",
+      "condition": {
+        "resource": "discoveries",
+        "operator": ">=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "discoveries",
+    "operator": ">=",
+    "value": "25"
+  },
+  "loseCondition": {
+    "resource": "compute",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "data-teal",
+    "stateDescriptions": {
+      "raw_data": {
+        "label": "Raw Data",
+        "icon": "database"
+      },
+      "cleaning": {
+        "label": "Cleaning",
+        "icon": "filter"
+      },
+      "querying": {
+        "label": "Querying",
+        "icon": "search"
+      },
+      "modeling": {
+        "label": "Modeling",
+        "icon": "trending-up"
+      },
+      "gold_strike": {
+        "label": "Gold Strike!",
+        "icon": "star"
+      }
+    },
+    "resourceIcons": {
+      "records": "database",
+      "quality": "check-circle",
+      "discoveries": "star",
+      "accuracy": "target",
+      "compute": "cpu"
+    }
+  }
+}

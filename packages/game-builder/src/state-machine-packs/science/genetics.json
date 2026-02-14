@@ -1,0 +1,256 @@
+{
+  "name": "Genetics Lab",
+  "description": "Run a genetics research lab. Map genomes, splice genes, and develop breakthrough treatments while managing ethical concerns.",
+  "states": [
+    { "name": "office", "description": "Your research office. Plan experiments.", "onEnter": [] },
+    { "name": "sequencing", "description": "The genome sequencing lab.", "onEnter": [] },
+    {
+      "name": "splicing",
+      "description": "The gene splicing facility. Handle with care.",
+      "onEnter": []
+    },
+    { "name": "clinical", "description": "Clinical trials and testing.", "onEnter": [] },
+    {
+      "name": "ethics_hearing",
+      "description": "Facing an ethics board review!",
+      "onEnter": [{ "resource": "ethics", "operation": "-", "value": "2" }]
+    }
+  ],
+  "initialState": "office",
+  "resources": {
+    "funding": { "initial": 80, "min": 0, "label": "Funding" },
+    "genome_data": { "initial": 2, "min": 0, "max": 12, "label": "Genome Data" },
+    "breakthroughs": { "initial": 0, "min": 0, "max": 8, "label": "Breakthroughs" },
+    "ethics": { "initial": 7, "min": 0, "max": 10, "label": "Ethical Standing" },
+    "accuracy": { "initial": 5, "min": 0, "max": 10, "label": "Research Accuracy" },
+    "treatments": { "initial": 0, "min": 0, "max": 6, "label": "Treatments Developed" }
+  },
+  "actions": {
+    "office": [
+      {
+        "name": "apply_funding",
+        "label": "Apply for Funding",
+        "effects": [{ "resource": "funding", "operation": "+", "value": "random(15,30)" }]
+      },
+      {
+        "name": "literature_review",
+        "label": "Review Literature",
+        "effects": [
+          { "resource": "genome_data", "operation": "+", "value": "random(0,1)" },
+          { "resource": "accuracy", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "hire_staff",
+        "label": "Hire Specialists",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "15" },
+          { "resource": "accuracy", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "go_sequencing",
+        "label": "Go to Sequencing Lab",
+        "effects": [],
+        "transition": "sequencing"
+      },
+      {
+        "name": "go_splicing",
+        "label": "Go to Gene Splicing",
+        "condition": { "resource": "genome_data", "operator": ">=", "value": "4" },
+        "effects": [],
+        "transition": "splicing"
+      },
+      {
+        "name": "go_clinical",
+        "label": "Start Clinical Trials",
+        "condition": { "resource": "breakthroughs", "operator": ">=", "value": "2" },
+        "effects": [],
+        "transition": "clinical"
+      }
+    ],
+    "sequencing": [
+      {
+        "name": "run_sequencer",
+        "label": "Run Gene Sequencer",
+        "condition": { "resource": "funding", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "8" },
+          { "resource": "genome_data", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "analyze_markers",
+        "label": "Analyze Genetic Markers",
+        "condition": { "resource": "genome_data", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "genome_data", "operation": "-", "value": "1" },
+          { "resource": "breakthroughs", "operation": "+", "value": "random(0,1)" },
+          { "resource": "accuracy", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "compare_genomes",
+        "label": "Compare Genomes",
+        "condition": { "resource": "genome_data", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "genome_data", "operation": "-", "value": "2" },
+          { "resource": "breakthroughs", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Office", "effects": [], "transition": "office" }
+    ],
+    "splicing": [
+      {
+        "name": "precise_splice",
+        "label": "Precision Gene Splice",
+        "condition": { "resource": "accuracy", "operator": ">=", "value": "6" },
+        "effects": [
+          { "resource": "breakthroughs", "operation": "+", "value": "random(1,2)" },
+          { "resource": "genome_data", "operation": "-", "value": "2" },
+          { "resource": "ethics", "operation": "-", "value": "random(0,1)" },
+          { "resource": "funding", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "experimental_splice",
+        "label": "Experimental Splice",
+        "effects": [
+          { "resource": "breakthroughs", "operation": "+", "value": "random(0,2)" },
+          { "resource": "genome_data", "operation": "-", "value": "1" },
+          { "resource": "ethics", "operation": "-", "value": "random(1,2)" },
+          { "resource": "accuracy", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "crispr_edit",
+        "label": "CRISPR Editing",
+        "condition": {
+          "and": [
+            { "resource": "accuracy", "operator": ">=", "value": "7" },
+            { "resource": "genome_data", "operator": ">=", "value": "3" }
+          ]
+        },
+        "effects": [
+          { "resource": "genome_data", "operation": "-", "value": "2" },
+          { "resource": "breakthroughs", "operation": "+", "value": "random(1,3)" },
+          { "resource": "ethics", "operation": "-", "value": "random(1,2)" },
+          { "resource": "funding", "operation": "-", "value": "random(8,12)" }
+        ]
+      },
+      {
+        "name": "safety_review",
+        "label": "Safety Review",
+        "effects": [
+          { "resource": "ethics", "operation": "+", "value": "random(1,2)" },
+          { "resource": "accuracy", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Office", "effects": [], "transition": "office" }
+    ],
+    "clinical": [
+      {
+        "name": "small_trial",
+        "label": "Small Trial",
+        "condition": { "resource": "funding", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "12" },
+          { "resource": "treatments", "operation": "+", "value": "random(0,1)" },
+          { "resource": "ethics", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "large_trial",
+        "label": "Large Scale Trial",
+        "condition": {
+          "and": [
+            { "resource": "funding", "operator": ">=", "value": "20" },
+            { "resource": "breakthroughs", "operator": ">=", "value": "4" }
+          ]
+        },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "20" },
+          { "resource": "treatments", "operation": "+", "value": "random(1,2)" },
+          { "resource": "ethics", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "publish_results",
+        "label": "Publish Trial Results",
+        "condition": { "resource": "treatments", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "funding", "operation": "+", "value": "random(10,20)" },
+          { "resource": "ethics", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Office", "effects": [], "transition": "office" }
+    ],
+    "ethics_hearing": [
+      {
+        "name": "present_data",
+        "label": "Present Research Data",
+        "condition": { "resource": "accuracy", "operator": ">=", "value": "6" },
+        "effects": [{ "resource": "ethics", "operation": "+", "value": "random(2,4)" }],
+        "transition": "office"
+      },
+      {
+        "name": "promise_oversight",
+        "label": "Promise More Oversight",
+        "effects": [
+          { "resource": "ethics", "operation": "+", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(5,10)" }
+        ],
+        "transition": "office"
+      },
+      {
+        "name": "defend_work",
+        "label": "Defend Your Methods",
+        "effects": [
+          { "resource": "ethics", "operation": "+", "value": "random(0,2)" },
+          { "resource": "breakthroughs", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "office"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "splicing",
+      "to": "ethics_hearing",
+      "condition": { "resource": "ethics", "operator": "<=", "value": "3" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "funding", "operation": "-", "value": "3" }],
+  "winCondition": {
+    "and": [
+      { "resource": "treatments", "operator": ">=", "value": "4" },
+      { "resource": "ethics", "operator": ">=", "value": "5" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "ethics", "operator": "<=", "value": "0" },
+      { "resource": "funding", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "bio-green",
+    "stateDescriptions": {
+      "office": { "label": "Office", "icon": "briefcase" },
+      "sequencing": { "label": "Sequencing", "icon": "database" },
+      "splicing": { "label": "Gene Splicing", "icon": "scissors" },
+      "clinical": { "label": "Clinical Trials", "icon": "heart" },
+      "ethics_hearing": { "label": "Ethics Review", "icon": "alert-circle" }
+    },
+    "resourceIcons": {
+      "funding": "dollar",
+      "genome_data": "database",
+      "breakthroughs": "star",
+      "ethics": "shield",
+      "accuracy": "target",
+      "treatments": "heart"
+    }
+  }
+}

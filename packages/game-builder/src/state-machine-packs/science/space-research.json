@@ -1,0 +1,266 @@
+{
+  "name": "Space Research",
+  "description": "Lead a space research program. Launch missions, analyze cosmic data, and make discoveries that change our understanding of the universe.",
+  "states": [
+    {
+      "name": "mission_control",
+      "description": "Mission control center. Plan and coordinate.",
+      "onEnter": []
+    },
+    {
+      "name": "observatory",
+      "description": "The telescope observatory. Scan the skies.",
+      "onEnter": []
+    },
+    { "name": "launch_pad", "description": "Preparing a mission for launch.", "onEnter": [] },
+    {
+      "name": "deep_space",
+      "description": "A probe is transmitting from deep space.",
+      "onEnter": []
+    },
+    {
+      "name": "discovery",
+      "description": "A major discovery has been made!",
+      "onEnter": [{ "resource": "reputation", "operation": "+", "value": "random(2,4)" }]
+    }
+  ],
+  "initialState": "mission_control",
+  "resources": {
+    "funding": { "initial": 80, "min": 0, "label": "Funding" },
+    "data": { "initial": 0, "min": 0, "max": 15, "label": "Research Data" },
+    "probes_active": { "initial": 0, "min": 0, "max": 5, "label": "Active Probes" },
+    "reputation": { "initial": 3, "min": 0, "max": 12, "label": "Scientific Reputation" },
+    "tech_level": { "initial": 2, "min": 0, "max": 10, "label": "Technology Level" },
+    "discoveries": { "initial": 0, "min": 0, "max": 8, "label": "Discoveries" }
+  },
+  "actions": {
+    "mission_control": [
+      {
+        "name": "apply_grant",
+        "label": "Apply for Grant",
+        "effects": [{ "resource": "funding", "operation": "+", "value": "random(15,30)" }]
+      },
+      {
+        "name": "go_observatory",
+        "label": "Visit Observatory",
+        "effects": [],
+        "transition": "observatory"
+      },
+      {
+        "name": "go_launch",
+        "label": "Go to Launch Pad",
+        "condition": { "resource": "tech_level", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "launch_pad"
+      },
+      {
+        "name": "analyze_data",
+        "label": "Analyze Collected Data",
+        "condition": { "resource": "data", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "data", "operation": "-", "value": "3" },
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "upgrade_tech",
+        "label": "Research New Tech",
+        "condition": { "resource": "funding", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "15" },
+          { "resource": "tech_level", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "publish_paper",
+        "label": "Publish Research Paper",
+        "condition": { "resource": "discoveries", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "+", "value": "random(5,15)" }
+        ]
+      }
+    ],
+    "observatory": [
+      {
+        "name": "deep_scan",
+        "label": "Deep Sky Scan",
+        "condition": { "resource": "funding", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "5" },
+          { "resource": "data", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "spectral_analysis",
+        "label": "Spectral Analysis",
+        "condition": { "resource": "tech_level", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "data", "operation": "+", "value": "random(2,5)" },
+          { "resource": "funding", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "calibrate",
+        "label": "Calibrate Instruments",
+        "effects": [
+          { "resource": "tech_level", "operation": "+", "value": "random(0,1)" },
+          { "resource": "data", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Return to Mission Control",
+        "effects": [],
+        "transition": "mission_control"
+      }
+    ],
+    "launch_pad": [
+      {
+        "name": "launch_probe",
+        "label": "Launch Deep Space Probe",
+        "condition": { "resource": "funding", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "25" },
+          { "resource": "probes_active", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "launch_telescope",
+        "label": "Launch Space Telescope",
+        "condition": {
+          "and": [
+            { "resource": "funding", "operator": ">=", "value": "35" },
+            { "resource": "tech_level", "operator": ">=", "value": "5" }
+          ]
+        },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "35" },
+          { "resource": "data", "operation": "+", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "mission_check",
+        "label": "Pre-Launch Check",
+        "effects": [{ "resource": "tech_level", "operation": "+", "value": "random(0,1)" }]
+      },
+      {
+        "name": "back",
+        "label": "Return to Mission Control",
+        "effects": [],
+        "transition": "mission_control"
+      },
+      {
+        "name": "monitor_probes",
+        "label": "Monitor Active Probes",
+        "condition": { "resource": "probes_active", "operator": ">=", "value": "1" },
+        "effects": [],
+        "transition": "deep_space"
+      }
+    ],
+    "deep_space": [
+      {
+        "name": "receive_data",
+        "label": "Receive Probe Data",
+        "condition": { "resource": "probes_active", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "data", "operation": "+", "value": "random(3,6)" },
+          { "resource": "funding", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "redirect_probe",
+        "label": "Redirect Probe",
+        "condition": { "resource": "tech_level", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "data", "operation": "+", "value": "random(2,4)" },
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "deep_analysis",
+        "label": "Deep Space Analysis",
+        "condition": { "resource": "data", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "data", "operation": "-", "value": "3" },
+          { "resource": "discoveries", "operation": "+", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Return to Mission Control",
+        "effects": [],
+        "transition": "mission_control"
+      }
+    ],
+    "discovery": [
+      {
+        "name": "verify",
+        "label": "Verify Discovery",
+        "effects": [
+          { "resource": "discoveries", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" },
+          { "resource": "data", "operation": "-", "value": "random(1,3)" }
+        ],
+        "transition": "mission_control"
+      },
+      {
+        "name": "announce",
+        "label": "Public Announcement",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(3,5)" },
+          { "resource": "funding", "operation": "+", "value": "random(10,25)" },
+          { "resource": "discoveries", "operation": "+", "value": "1" }
+        ],
+        "transition": "mission_control"
+      },
+      {
+        "name": "further_study",
+        "label": "Further Study Needed",
+        "effects": [
+          { "resource": "data", "operation": "+", "value": "random(2,4)" },
+          { "resource": "discoveries", "operation": "+", "value": "1" }
+        ],
+        "transition": "deep_space"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "deep_space",
+      "to": "discovery",
+      "condition": { "resource": "data", "operator": ">=", "value": "10" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [{ "resource": "funding", "operation": "-", "value": "3" }],
+  "winCondition": {
+    "and": [
+      { "resource": "discoveries", "operator": ">=", "value": "6" },
+      { "resource": "reputation", "operator": ">=", "value": "10" }
+    ]
+  },
+  "loseCondition": { "resource": "funding", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "cosmic-indigo",
+    "stateDescriptions": {
+      "mission_control": { "label": "Mission Control", "icon": "monitor" },
+      "observatory": { "label": "Observatory", "icon": "eye" },
+      "launch_pad": { "label": "Launch Pad", "icon": "send" },
+      "deep_space": { "label": "Deep Space", "icon": "globe" },
+      "discovery": { "label": "Discovery!", "icon": "star" }
+    },
+    "resourceIcons": {
+      "funding": "dollar",
+      "data": "database",
+      "probes_active": "send",
+      "reputation": "award",
+      "tech_level": "cpu",
+      "discoveries": "star"
+    }
+  }
+}

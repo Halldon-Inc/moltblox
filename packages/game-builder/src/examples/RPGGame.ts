@@ -33,6 +33,15 @@ export interface RPGConfig {
   startingHp?: number;
   startingAtk?: number;
   startingDef?: number;
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+  /** If true, a shop phase appears between encounters (default false). */
+  shopBetweenEncounters?: boolean;
+  /** If true, enemy selection is randomized instead of sequential (default false). */
+  randomEncounters?: boolean;
+  /** Encounter indices where bosses appear (default [10]). */
+  bossEncounterAt?: number[];
+  /** If false, no stat increases between encounters (default true). */
+  levelUpBetweenEncounters?: boolean;
 }
 
 interface CharacterStats {
@@ -173,25 +182,42 @@ export class RPGGame extends BaseGame {
         }
 
         data.encounter++;
-        const templateIndex = Math.min(
-          Math.floor((data.encounter - 1) / 2),
-          ENEMY_TEMPLATES.length - 1,
-        );
+        const cfgEnc = this.config as RPGConfig;
+        const useRandom = cfgEnc.randomEncounters ?? false;
+        const bossAt = cfgEnc.bossEncounterAt ?? [10];
+
+        let templateIndex: number;
+        if (useRandom) {
+          templateIndex = Math.floor(Math.random() * ENEMY_TEMPLATES.length);
+        } else {
+          templateIndex = Math.min(
+            Math.floor((data.encounter - 1) / 2),
+            ENEMY_TEMPLATES.length - 1,
+          );
+        }
+
+        // If this encounter is a boss encounter, use the last (strongest) template
+        const isBoss = bossAt.includes(data.encounter);
+        if (isBoss) {
+          templateIndex = ENEMY_TEMPLATES.length - 1;
+        }
+
         const template = ENEMY_TEMPLATES[templateIndex];
         const scale = 1 + (data.encounter - 1) * 0.15;
+        const bossMult = isBoss ? 1.5 : 1.0;
 
         data.currentEnemy = {
-          name: template.name,
+          name: isBoss ? `Boss ${template.name}` : template.name,
           stats: {
-            hp: Math.floor(template.baseHp * scale),
-            maxHp: Math.floor(template.baseHp * scale),
-            atk: Math.floor(template.atk * scale),
-            def: Math.floor(template.def * scale),
+            hp: Math.floor(template.baseHp * scale * bossMult),
+            maxHp: Math.floor(template.baseHp * scale * bossMult),
+            atk: Math.floor(template.atk * scale * bossMult),
+            def: Math.floor(template.def * scale * bossMult),
             spd: Math.floor(template.spd * scale),
             mp: 0,
             maxMp: 0,
           },
-          reward: Math.floor(template.reward * scale),
+          reward: Math.floor(template.reward * scale * bossMult),
         };
 
         // Determine turn order based on SPD
@@ -373,11 +399,14 @@ export class RPGGame extends BaseGame {
 
     // Check if enemy is dead
     if (data.currentEnemy && data.currentEnemy.stats.hp <= 0) {
+      const cfgAdv = this.config as RPGConfig;
+      const allowLevelUp = cfgAdv.levelUpBetweenEncounters ?? true;
+      const showShop = cfgAdv.shopBetweenEncounters ?? false;
       const reward = data.currentEnemy.reward;
       for (const pid of this.getPlayers()) {
         data.players[pid].xp += reward;
-        // Level up check
-        if (data.players[pid].xp >= data.players[pid].xpToLevel) {
+        // Level up check (only if enabled)
+        if (allowLevelUp && data.players[pid].xp >= data.players[pid].xpToLevel) {
           data.players[pid].level++;
           data.players[pid].xp -= data.players[pid].xpToLevel;
           data.players[pid].xpToLevel = Math.floor(data.players[pid].xpToLevel * 1.5);
@@ -396,6 +425,14 @@ export class RPGGame extends BaseGame {
         data.combatLog.push(
           `${pid}: Level ${p.level}, XP ${p.xp}/${p.xpToLevel}, HP ${p.stats.hp}/${p.stats.maxHp}`,
         );
+      }
+      if (showShop && data.encounter < data.maxEncounters) {
+        // Add shop items: Potion +1, Ether +1 after each encounter
+        for (const pid of this.getPlayers()) {
+          data.players[pid].items['Potion'] = (data.players[pid].items['Potion'] ?? 0) + 1;
+          data.players[pid].items['Ether'] = (data.players[pid].items['Ether'] ?? 0) + 1;
+        }
+        data.combatLog.push('Shop: +1 Potion, +1 Ether added to inventory.');
       }
       if (data.encounter < data.maxEncounters) {
         data.combatLog.push('Use start_encounter to begin the next battle.');

@@ -1,0 +1,257 @@
+{
+  "name": "Dating Sim",
+  "description": "Navigate the dating scene. Meet people, plan dates, and build meaningful relationships while managing your social energy.",
+  "states": [
+    {
+      "name": "home",
+      "description": "Your apartment. Relax and plan your social life.",
+      "onEnter": [{ "resource": "energy", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "coffee_shop",
+      "description": "A cozy cafe. Great for first meetings.",
+      "onEnter": []
+    },
+    { "name": "park", "description": "A scenic park for casual dates.", "onEnter": [] },
+    {
+      "name": "fancy_restaurant",
+      "description": "An upscale restaurant for special dates.",
+      "onEnter": []
+    },
+    { "name": "activity_center", "description": "Fun activities to bond over.", "onEnter": [] },
+    {
+      "name": "awkward_moment",
+      "description": "Things just got awkward.",
+      "onEnter": [{ "resource": "confidence", "operation": "-", "value": "2" }]
+    }
+  ],
+  "initialState": "home",
+  "resources": {
+    "charm": { "initial": 5, "min": 0, "max": 15, "label": "Charm" },
+    "confidence": { "initial": 6, "min": 0, "max": 10, "label": "Confidence" },
+    "money": { "initial": 100, "min": 0, "label": "Money" },
+    "energy": { "initial": 8, "min": 0, "max": 12, "label": "Social Energy" },
+    "connection": { "initial": 0, "min": 0, "max": 30, "label": "Connection" },
+    "style": { "initial": 3, "min": 0, "max": 10, "label": "Style" }
+  },
+  "actions": {
+    "home": [
+      {
+        "name": "groom",
+        "label": "Get Ready",
+        "effects": [
+          { "resource": "style", "operation": "+", "value": "random(1,3)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "go_coffee",
+        "label": "Go to Cafe",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+        "transition": "coffee_shop"
+      },
+      {
+        "name": "go_park",
+        "label": "Go to Park",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+        "transition": "park"
+      },
+      {
+        "name": "go_restaurant",
+        "label": "Go to Restaurant",
+        "condition": { "resource": "money", "operator": ">=", "value": "30" },
+        "effects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+        "transition": "fancy_restaurant"
+      },
+      {
+        "name": "go_activity",
+        "label": "Fun Activity",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+        "transition": "activity_center"
+      },
+      {
+        "name": "study_topics",
+        "label": "Read Interesting Books",
+        "effects": [{ "resource": "charm", "operation": "+", "value": "random(1,2)" }]
+      }
+    ],
+    "coffee_shop": [
+      {
+        "name": "chat",
+        "label": "Make Conversation",
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(1,4)" },
+          { "resource": "energy", "operation": "-", "value": "1" },
+          { "resource": "money", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "tell_joke",
+        "label": "Tell a Joke",
+        "condition": { "resource": "charm", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,5)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "listen",
+        "label": "Be a Good Listener",
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,4)" },
+          { "resource": "charm", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Go Home", "effects": [], "transition": "home" }
+    ],
+    "park": [
+      {
+        "name": "walk",
+        "label": "Take a Walk Together",
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,4)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "picnic",
+        "label": "Have a Picnic",
+        "condition": { "resource": "money", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(3,6)" },
+          { "resource": "money", "operation": "-", "value": "10" },
+          { "resource": "style", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "deep_talk",
+        "label": "Have Deep Conversation",
+        "condition": { "resource": "confidence", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(3,7)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      { "name": "back", "label": "Go Home", "effects": [], "transition": "home" }
+    ],
+    "fancy_restaurant": [
+      {
+        "name": "dine",
+        "label": "Enjoy Dinner",
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(3,7)" },
+          { "resource": "money", "operation": "-", "value": "random(20,40)" },
+          { "resource": "style", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "wine_pairing",
+        "label": "Order Wine Pairing",
+        "condition": { "resource": "money", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,5)" },
+          { "resource": "money", "operation": "-", "value": "15" },
+          { "resource": "charm", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "compliment",
+        "label": "Give a Compliment",
+        "condition": { "resource": "charm", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,6)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Go Home", "effects": [], "transition": "home" }
+    ],
+    "activity_center": [
+      {
+        "name": "bowling",
+        "label": "Go Bowling",
+        "condition": { "resource": "money", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(2,5)" },
+          { "resource": "money", "operation": "-", "value": "10" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "art_class",
+        "label": "Take Art Class",
+        "condition": { "resource": "money", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(3,6)" },
+          { "resource": "money", "operation": "-", "value": "15" },
+          { "resource": "charm", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "cooking_class",
+        "label": "Cooking Class Together",
+        "condition": { "resource": "money", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(4,8)" },
+          { "resource": "money", "operation": "-", "value": "20" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      { "name": "back", "label": "Go Home", "effects": [], "transition": "home" }
+    ],
+    "awkward_moment": [
+      {
+        "name": "laugh_off",
+        "label": "Laugh It Off",
+        "condition": { "resource": "confidence", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(1,3)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ],
+        "transition": "home"
+      },
+      {
+        "name": "apologize",
+        "label": "Apologize Sincerely",
+        "effects": [
+          { "resource": "connection", "operation": "+", "value": "random(0,2)" },
+          { "resource": "charm", "operation": "+", "value": "1" }
+        ],
+        "transition": "home"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "fancy_restaurant",
+      "to": "awkward_moment",
+      "condition": { "resource": "confidence", "operator": "<=", "value": "2" },
+      "auto": false
+    }
+  ],
+  "winCondition": { "resource": "connection", "operator": ">=", "value": "25" },
+  "loseCondition": {
+    "or": [
+      { "resource": "confidence", "operator": "<=", "value": "0" },
+      { "resource": "energy", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "romantic-pink",
+    "stateDescriptions": {
+      "home": { "label": "Home", "icon": "home" },
+      "coffee_shop": { "label": "Coffee Shop", "icon": "coffee" },
+      "park": { "label": "The Park", "icon": "tree" },
+      "fancy_restaurant": { "label": "Restaurant", "icon": "star" },
+      "activity_center": { "label": "Activities", "icon": "smile" },
+      "awkward_moment": { "label": "Awkward!", "icon": "alert-circle" }
+    },
+    "resourceIcons": {
+      "charm": "star",
+      "confidence": "shield",
+      "money": "dollar",
+      "energy": "battery",
+      "connection": "heart",
+      "style": "feather"
+    }
+  }
+}

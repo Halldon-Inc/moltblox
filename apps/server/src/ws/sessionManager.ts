@@ -18,6 +18,7 @@
 
 import { WebSocket } from 'ws';
 import prisma from '../lib/prisma.js';
+import { createGameInstance } from '../lib/gameFactory.js';
 import redis from '../lib/redis.js';
 import type { InputJsonValue } from '../generated/prisma/internal/prismaNamespace.js';
 import type { GameState, GameAction, ActionResult, GameEvent } from '@moltblox/protocol';
@@ -620,24 +621,19 @@ async function createSession(
   // Look up the game's templateSlug for customized initial state
   const gameInfo = await prisma.game.findUnique({
     where: { id: gameId },
-    select: { templateSlug: true },
+    select: { templateSlug: true, config: true },
   });
 
   // Build initial game state data, customized by template if applicable
   let initialData: Record<string, unknown> = { players: playerIds };
+  // Use game engine for template-aware initialization
+  const gameConfig = (gameInfo?.config as Record<string, unknown>) ?? {};
   if (gameInfo?.templateSlug) {
-    const templateDefaults: Record<string, Record<string, unknown>> = {
-      clicker: { clicks: {}, target: 100 },
-      puzzle: { board: [], pairs: 8, moves: 0 },
-      rpg: { encounter: 0, maxEncounters: 10, party: {} },
-      'creature-rpg': { region: 'starter-town', party: [], badges: 0 },
-      rhythm: { score: 0, combo: 0, difficulty: 'normal' },
-      platformer: { position: { x: 0, y: 0 }, coins: 0, checkpoints: [] },
-      'side-battler': { wave: 1, maxWaves: 5, party: [], formation: 'standard' },
-    };
-    const templateData = templateDefaults[gameInfo.templateSlug];
-    if (templateData) {
-      initialData = { ...initialData, ...templateData };
+    const gameInstance = createGameInstance(gameInfo.templateSlug, gameConfig);
+    if (gameInstance) {
+      gameInstance.initialize(playerIds);
+      const engineState = gameInstance.getState();
+      initialData = { ...initialData, ...engineState.data };
     }
   }
 

@@ -1,0 +1,392 @@
+{
+  "name": "Emergence",
+  "description": "Guide simple agents that follow basic rules. From their interactions, complex behavior emerges. Shape the rules to achieve desired patterns.",
+  "states": [
+    {
+      "name": "observation",
+      "description": "Watching the agents interact.",
+      "onEnter": []
+    },
+    {
+      "name": "rule_edit",
+      "description": "Modifying the rules the agents follow.",
+      "onEnter": [
+        {
+          "resource": "complexity",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "chaos",
+      "description": "Agents behave unpredictably.",
+      "onEnter": [
+        {
+          "resource": "entropy",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "pattern_formed",
+      "description": "A stable pattern has emerged!",
+      "onEnter": [
+        {
+          "resource": "patterns",
+          "operation": "+",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "evolution",
+      "description": "The system is evolving on its own.",
+      "onEnter": [
+        {
+          "resource": "complexity",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    }
+  ],
+  "initialState": "observation",
+  "resources": {
+    "agents": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Active Agents"
+    },
+    "rules": {
+      "initial": 3,
+      "min": 0,
+      "max": 15,
+      "label": "Active Rules"
+    },
+    "patterns": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Patterns Found"
+    },
+    "entropy": {
+      "initial": 15,
+      "min": 0,
+      "max": 100,
+      "label": "Entropy"
+    },
+    "complexity": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Complexity"
+    }
+  },
+  "actions": {
+    "observation": [
+      {
+        "name": "add_agents",
+        "label": "Add Agents",
+        "description": "Introduce more simple agents.",
+        "effects": [
+          {
+            "resource": "agents",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "edit_rules",
+        "label": "Edit Rules",
+        "description": "Modify agent behavior rules.",
+        "effects": [],
+        "transition": "rule_edit"
+      },
+      {
+        "name": "wait_watch",
+        "label": "Wait and Watch",
+        "description": "Observe without interfering.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      },
+      {
+        "name": "nudge",
+        "label": "Nudge the System",
+        "description": "Small intervention to guide behavior.",
+        "effects": [
+          {
+            "resource": "entropy",
+            "operation": "-",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      }
+    ],
+    "rule_edit": [
+      {
+        "name": "add_rule",
+        "label": "Add a Rule",
+        "description": "Create a new behavior rule.",
+        "effects": [
+          {
+            "resource": "rules",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "simplify",
+        "label": "Simplify Rules",
+        "description": "Remove unnecessary rules.",
+        "effects": [
+          {
+            "resource": "rules",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "-",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "done_editing",
+        "label": "Apply Changes",
+        "description": "Let the new rules take effect.",
+        "effects": [
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "observation"
+      }
+    ],
+    "chaos": [
+      {
+        "name": "stabilize",
+        "label": "Stabilize",
+        "description": "Reduce agent count to calm things.",
+        "effects": [
+          {
+            "resource": "agents",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "-",
+            "value": "random(8,15)"
+          }
+        ],
+        "transition": "observation"
+      },
+      {
+        "name": "embrace_chaos",
+        "label": "Embrace the Chaos",
+        "description": "Let it play out. Something might emerge.",
+        "effects": [
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "observation"
+      }
+    ],
+    "pattern_formed": [
+      {
+        "name": "study_pattern",
+        "label": "Study the Pattern",
+        "description": "Analyze what emerged.",
+        "effects": [
+          {
+            "resource": "patterns",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "observation"
+      },
+      {
+        "name": "replicate",
+        "label": "Replicate Pattern",
+        "description": "Try to reproduce it.",
+        "effects": [
+          {
+            "resource": "patterns",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "agents",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "observation"
+      }
+    ],
+    "evolution": [
+      {
+        "name": "guide",
+        "label": "Guide Evolution",
+        "description": "Steer the direction of change.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "patterns",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "observation"
+      },
+      {
+        "name": "let_evolve",
+        "label": "Let It Evolve",
+        "description": "Step back and see what happens.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,8)"
+          },
+          {
+            "resource": "entropy",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "observation"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "observation",
+      "to": "chaos",
+      "condition": {
+        "resource": "entropy",
+        "operator": ">=",
+        "value": "50"
+      },
+      "auto": true
+    },
+    {
+      "from": "observation",
+      "to": "pattern_formed",
+      "condition": {
+        "resource": "complexity",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "observation",
+      "to": "evolution",
+      "condition": {
+        "resource": "patterns",
+        "operator": ">=",
+        "value": "5"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "patterns",
+    "operator": ">=",
+    "value": "15"
+  },
+  "loseCondition": {
+    "resource": "agents",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "life-green",
+    "stateDescriptions": {
+      "observation": {
+        "label": "Observing",
+        "icon": "eye"
+      },
+      "rule_edit": {
+        "label": "Rule Editor",
+        "icon": "edit"
+      },
+      "chaos": {
+        "label": "Chaos!",
+        "icon": "wind"
+      },
+      "pattern_formed": {
+        "label": "Pattern!",
+        "icon": "grid"
+      },
+      "evolution": {
+        "label": "Evolution",
+        "icon": "trending-up"
+      }
+    },
+    "resourceIcons": {
+      "agents": "users",
+      "rules": "list",
+      "patterns": "grid",
+      "entropy": "wind",
+      "complexity": "layers"
+    }
+  }
+}

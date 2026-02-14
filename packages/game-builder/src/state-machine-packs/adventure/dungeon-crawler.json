@@ -1,0 +1,277 @@
+{
+  "name": "Dungeon Crawler",
+  "description": "Descend through dungeon floors, fight monsters, collect loot, and reach the treasure vault before your health runs out.",
+  "states": [
+    {
+      "name": "entrance",
+      "description": "The dungeon entrance. Torchlight flickers ahead.",
+      "onEnter": []
+    },
+    {
+      "name": "corridor",
+      "description": "A narrow stone corridor stretching into darkness.",
+      "onEnter": []
+    },
+    {
+      "name": "combat",
+      "description": "A monster blocks your path!",
+      "onEnter": [{ "resource": "danger", "operation": "+", "value": "1" }]
+    },
+    { "name": "treasure_room", "description": "A room glittering with treasure.", "onEnter": [] },
+    { "name": "trap_hall", "description": "The floor is rigged with traps.", "onEnter": [] },
+    {
+      "name": "rest_shrine",
+      "description": "A glowing shrine offers rest.",
+      "onEnter": [{ "resource": "hp", "operation": "+", "value": "10" }]
+    },
+    {
+      "name": "boss_lair",
+      "description": "The final boss awaits.",
+      "onEnter": [{ "resource": "danger", "operation": "+", "value": "5" }]
+    },
+    { "name": "vault", "description": "The legendary treasure vault.", "onEnter": [] }
+  ],
+  "initialState": "entrance",
+  "resources": {
+    "hp": { "initial": 100, "min": 0, "max": 100, "label": "Health" },
+    "gold": { "initial": 0, "min": 0, "label": "Gold" },
+    "armor": { "initial": 1, "min": 0, "max": 10, "label": "Armor" },
+    "potions": { "initial": 2, "min": 0, "max": 5, "label": "Potions" },
+    "keys": { "initial": 0, "min": 0, "max": 3, "label": "Keys" },
+    "danger": { "initial": 0, "min": 0, "max": 20, "label": "Danger Level" },
+    "floor": { "initial": 1, "min": 1, "max": 10, "label": "Floor" }
+  },
+  "actions": {
+    "entrance": [
+      {
+        "name": "enter",
+        "label": "Enter the Dungeon",
+        "description": "Step into the darkness.",
+        "effects": [{ "resource": "danger", "operation": "+", "value": "1" }],
+        "transition": "corridor"
+      }
+    ],
+    "corridor": [
+      {
+        "name": "sneak",
+        "label": "Sneak Forward",
+        "description": "Move quietly to avoid detection.",
+        "effects": [{ "resource": "danger", "operation": "+", "value": "random(0,2)" }]
+      },
+      {
+        "name": "search",
+        "label": "Search Walls",
+        "description": "Look for hidden passages or loot.",
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(0,8)" },
+          { "resource": "danger", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "advance",
+        "label": "Push Deeper",
+        "description": "Move to the next room.",
+        "effects": [
+          { "resource": "floor", "operation": "+", "value": "1" },
+          { "resource": "danger", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "use_potion",
+        "label": "Drink Potion",
+        "description": "Restore some health.",
+        "condition": { "resource": "potions", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "potions", "operation": "-", "value": "1" },
+          { "resource": "hp", "operation": "+", "value": "25" }
+        ]
+      }
+    ],
+    "combat": [
+      {
+        "name": "attack",
+        "label": "Attack",
+        "description": "Swing your weapon at the monster.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(5,15)" },
+          { "resource": "gold", "operation": "+", "value": "random(3,12)" },
+          { "resource": "danger", "operation": "-", "value": "3" }
+        ],
+        "transition": "corridor"
+      },
+      {
+        "name": "defend",
+        "label": "Defend",
+        "description": "Block the attack with your shield.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(1,5)" },
+          { "resource": "armor", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "flee",
+        "label": "Flee",
+        "description": "Run back to the corridor.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(3,8)" },
+          { "resource": "danger", "operation": "-", "value": "2" }
+        ],
+        "transition": "corridor"
+      }
+    ],
+    "treasure_room": [
+      {
+        "name": "loot",
+        "label": "Grab Treasure",
+        "description": "Fill your pockets with gold.",
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(10,30)" },
+          { "resource": "danger", "operation": "+", "value": "3" }
+        ],
+        "transition": "corridor"
+      },
+      {
+        "name": "search_chest",
+        "label": "Open Chest",
+        "description": "A locked chest sits in the corner.",
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(5,20)" },
+          { "resource": "keys", "operation": "+", "value": "random(0,1)" },
+          { "resource": "potions", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "corridor"
+      }
+    ],
+    "trap_hall": [
+      {
+        "name": "disarm",
+        "label": "Disarm Trap",
+        "description": "Attempt to disarm the trap mechanism.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(0,10)" },
+          { "resource": "gold", "operation": "+", "value": "random(5,15)" }
+        ],
+        "transition": "corridor"
+      },
+      {
+        "name": "jump_over",
+        "label": "Jump Over",
+        "description": "Leap across the trapped floor.",
+        "effects": [{ "resource": "hp", "operation": "-", "value": "random(0,20)" }],
+        "transition": "corridor"
+      }
+    ],
+    "rest_shrine": [
+      {
+        "name": "pray",
+        "label": "Pray at Shrine",
+        "description": "Ask for blessings before continuing.",
+        "effects": [
+          { "resource": "hp", "operation": "+", "value": "15" },
+          { "resource": "potions", "operation": "+", "value": "1" }
+        ],
+        "transition": "corridor"
+      },
+      {
+        "name": "leave",
+        "label": "Continue On",
+        "description": "Leave the shrine behind.",
+        "effects": [],
+        "transition": "corridor"
+      }
+    ],
+    "boss_lair": [
+      {
+        "name": "fight_boss",
+        "label": "Fight the Boss",
+        "description": "Engage the dungeon boss in combat.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(15,35)" },
+          { "resource": "gold", "operation": "+", "value": "random(20,50)" },
+          { "resource": "keys", "operation": "+", "value": "1" }
+        ],
+        "transition": "vault"
+      },
+      {
+        "name": "use_potion_boss",
+        "label": "Drink Potion First",
+        "description": "Heal before fighting.",
+        "condition": { "resource": "potions", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "potions", "operation": "-", "value": "1" },
+          { "resource": "hp", "operation": "+", "value": "25" }
+        ]
+      }
+    ],
+    "vault": [
+      {
+        "name": "claim_treasure",
+        "label": "Claim the Vault",
+        "description": "Take the legendary treasure.",
+        "condition": { "resource": "keys", "operator": ">=", "value": "2" },
+        "effects": [{ "resource": "gold", "operation": "+", "value": "100" }]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "corridor",
+      "to": "combat",
+      "condition": { "resource": "danger", "operator": ">=", "value": "8" },
+      "auto": true
+    },
+    {
+      "from": "corridor",
+      "to": "trap_hall",
+      "condition": {
+        "and": [
+          { "resource": "danger", "operator": ">=", "value": "5" },
+          { "resource": "danger", "operator": "<", "value": "8" }
+        ]
+      },
+      "auto": true
+    },
+    {
+      "from": "corridor",
+      "to": "treasure_room",
+      "condition": { "resource": "floor", "operator": ">=", "value": "3" },
+      "auto": false
+    },
+    {
+      "from": "corridor",
+      "to": "rest_shrine",
+      "condition": { "resource": "hp", "operator": "<=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "corridor",
+      "to": "boss_lair",
+      "condition": { "resource": "floor", "operator": ">=", "value": "8" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "gold", "operator": ">=", "value": "200" },
+  "loseCondition": { "resource": "hp", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "dark-stone",
+    "stateDescriptions": {
+      "entrance": { "label": "Dungeon Gate", "icon": "door" },
+      "corridor": { "label": "Dark Passage", "icon": "hallway" },
+      "combat": { "label": "Monster!", "icon": "skull" },
+      "treasure_room": { "label": "Treasure Trove", "icon": "gem" },
+      "trap_hall": { "label": "Trap Zone", "icon": "warning" },
+      "rest_shrine": { "label": "Sacred Shrine", "icon": "sparkle" },
+      "boss_lair": { "label": "Boss Chamber", "icon": "dragon" },
+      "vault": { "label": "Legendary Vault", "icon": "crown" }
+    },
+    "resourceIcons": {
+      "hp": "heart",
+      "gold": "coin",
+      "armor": "shield",
+      "potions": "flask",
+      "keys": "key",
+      "danger": "alert",
+      "floor": "layers"
+    }
+  }
+}

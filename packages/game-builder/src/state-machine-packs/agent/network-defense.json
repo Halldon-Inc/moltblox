@@ -1,0 +1,399 @@
+{
+  "name": "Network Defense",
+  "description": "Protect a corporate network from cyber attacks. Deploy firewalls, patch vulnerabilities, and respond to breaches in real time.",
+  "states": [
+    {
+      "name": "soc",
+      "description": "The Security Operations Center. Screens show network traffic.",
+      "onEnter": []
+    },
+    {
+      "name": "incident",
+      "description": "An active security incident detected!",
+      "onEnter": [
+        {
+          "resource": "threat_level",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "patching",
+      "description": "Applying security patches to vulnerable systems.",
+      "onEnter": [
+        {
+          "resource": "vulnerabilities",
+          "operation": "-",
+          "value": "random(1,2)"
+        }
+      ]
+    },
+    {
+      "name": "forensics",
+      "description": "Investigating what happened after a breach.",
+      "onEnter": [
+        {
+          "resource": "intelligence",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "breach",
+      "description": "Attackers are inside the network!",
+      "onEnter": [
+        {
+          "resource": "threat_level",
+          "operation": "+",
+          "value": "random(10,15)"
+        },
+        {
+          "resource": "data_integrity",
+          "operation": "-",
+          "value": "random(5,10)"
+        }
+      ]
+    }
+  ],
+  "initialState": "soc",
+  "resources": {
+    "data_integrity": {
+      "initial": 80,
+      "min": 0,
+      "max": 100,
+      "label": "Data Integrity"
+    },
+    "threat_level": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Threat Level"
+    },
+    "vulnerabilities": {
+      "initial": 8,
+      "min": 0,
+      "max": 15,
+      "label": "Known Vulnerabilities"
+    },
+    "intelligence": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Threat Intelligence"
+    },
+    "defenses": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Defense Score"
+    }
+  },
+  "actions": {
+    "soc": [
+      {
+        "name": "monitor",
+        "label": "Monitor Traffic",
+        "description": "Watch for suspicious patterns.",
+        "effects": [
+          {
+            "resource": "intelligence",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "threat_level",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ]
+      },
+      {
+        "name": "deploy_firewall",
+        "label": "Deploy Firewall Rule",
+        "description": "Block suspicious traffic.",
+        "effects": [
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(2,5)"
+          }
+        ]
+      },
+      {
+        "name": "patch_systems",
+        "label": "Patch Systems",
+        "description": "Fix known vulnerabilities.",
+        "effects": [],
+        "transition": "patching"
+      },
+      {
+        "name": "scan_network",
+        "label": "Scan for Threats",
+        "description": "Active threat hunting.",
+        "effects": [
+          {
+            "resource": "intelligence",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      }
+    ],
+    "incident": [
+      {
+        "name": "contain",
+        "label": "Contain the Threat",
+        "description": "Isolate affected systems.",
+        "effects": [
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "soc"
+      },
+      {
+        "name": "investigate_incident",
+        "label": "Investigate",
+        "description": "Determine the attack vector.",
+        "effects": [
+          {
+            "resource": "intelligence",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "threat_level",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "forensics"
+      },
+      {
+        "name": "lockdown",
+        "label": "Full Lockdown",
+        "description": "Shut everything down.",
+        "effects": [
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "data_integrity",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "soc"
+      }
+    ],
+    "patching": [
+      {
+        "name": "critical_patch",
+        "label": "Critical Patches",
+        "description": "Fix the most dangerous vulnerabilities.",
+        "effects": [
+          {
+            "resource": "vulnerabilities",
+            "operation": "-",
+            "value": "random(2,3)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "soc"
+      },
+      {
+        "name": "full_update",
+        "label": "Full System Update",
+        "description": "Update everything.",
+        "effects": [
+          {
+            "resource": "vulnerabilities",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "threat_level",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "soc"
+      }
+    ],
+    "forensics": [
+      {
+        "name": "analyze_logs",
+        "label": "Analyze Logs",
+        "description": "Review system and network logs.",
+        "effects": [
+          {
+            "resource": "intelligence",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "soc"
+      },
+      {
+        "name": "trace_attacker",
+        "label": "Trace the Attacker",
+        "description": "Follow the digital trail.",
+        "effects": [
+          {
+            "resource": "intelligence",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "soc"
+      }
+    ],
+    "breach": [
+      {
+        "name": "emergency_response",
+        "label": "Emergency Response",
+        "description": "All hands on deck. Contain the breach.",
+        "effects": [
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "defenses",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "data_integrity",
+            "operation": "-",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "forensics"
+      },
+      {
+        "name": "kill_switch",
+        "label": "Kill Switch",
+        "description": "Cut all external connections.",
+        "effects": [
+          {
+            "resource": "threat_level",
+            "operation": "-",
+            "value": "random(15,20)"
+          },
+          {
+            "resource": "data_integrity",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "soc"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "soc",
+      "to": "incident",
+      "condition": {
+        "resource": "threat_level",
+        "operator": ">=",
+        "value": "35"
+      },
+      "auto": true
+    },
+    {
+      "from": "incident",
+      "to": "breach",
+      "condition": {
+        "resource": "threat_level",
+        "operator": ">=",
+        "value": "60"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "defenses",
+    "operator": ">=",
+    "value": "90"
+  },
+  "loseCondition": {
+    "resource": "data_integrity",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "cyber-blue",
+    "stateDescriptions": {
+      "soc": {
+        "label": "SOC",
+        "icon": "monitor"
+      },
+      "incident": {
+        "label": "Incident!",
+        "icon": "alert"
+      },
+      "patching": {
+        "label": "Patching",
+        "icon": "tool"
+      },
+      "forensics": {
+        "label": "Forensics",
+        "icon": "search"
+      },
+      "breach": {
+        "label": "Breach!",
+        "icon": "shield-off"
+      }
+    },
+    "resourceIcons": {
+      "data_integrity": "database",
+      "threat_level": "alert",
+      "vulnerabilities": "unlock",
+      "intelligence": "eye",
+      "defenses": "shield"
+    }
+  }
+}

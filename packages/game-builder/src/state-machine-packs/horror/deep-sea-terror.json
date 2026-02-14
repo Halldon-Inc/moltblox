@@ -1,0 +1,271 @@
+{
+  "name": "Deep Sea Terror",
+  "description": "Your research submarine is stranded on the ocean floor. Something massive lurks in the darkness. Repair the sub and surface before it finds you.",
+  "states": [
+    {
+      "name": "control_room",
+      "description": "The main bridge. Red emergency lights flash.",
+      "onEnter": []
+    },
+    {
+      "name": "engine_room",
+      "description": "The reactor hums weakly. Critical systems need repair.",
+      "onEnter": []
+    },
+    {
+      "name": "observation_deck",
+      "description": "The glass dome shows only blackness. And something moving.",
+      "onEnter": [{ "resource": "terror", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "diving_bell",
+      "description": "A cramped chamber for exterior repairs.",
+      "onEnter": [{ "resource": "terror", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "creature_alert",
+      "description": "Proximity alarms blare. Something huge brushes against the hull.",
+      "onEnter": [
+        { "resource": "terror", "operation": "+", "value": "10" },
+        { "resource": "hull", "operation": "-", "value": "random(3,8)" }
+      ]
+    },
+    {
+      "name": "surfacing",
+      "description": "The submarine rises. Light grows brighter above.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "control_room",
+  "resources": {
+    "hull": { "initial": 60, "min": 0, "max": 100, "label": "Hull Integrity" },
+    "power": { "initial": 30, "min": 0, "max": 100, "label": "Power" },
+    "oxygen": { "initial": 80, "min": 0, "max": 100, "label": "Oxygen" },
+    "repairs": { "initial": 0, "min": 0, "max": 10, "label": "Repairs Done" },
+    "terror": { "initial": 10, "min": 0, "max": 100, "label": "Terror" },
+    "depth": { "initial": 100, "min": 0, "max": 100, "label": "Depth" }
+  },
+  "actions": {
+    "control_room": [
+      {
+        "name": "check_systems",
+        "label": "Check Systems",
+        "description": "Run diagnostics on all sub systems.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "3" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_engine",
+        "label": "Go to Engine Room",
+        "description": "Head to the back of the sub.",
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "2" }],
+        "transition": "engine_room"
+      },
+      {
+        "name": "go_observation",
+        "label": "Check Observation Deck",
+        "description": "Look outside to assess the situation.",
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "1" }],
+        "transition": "observation_deck"
+      },
+      {
+        "name": "attempt_surface",
+        "label": "Attempt to Surface",
+        "description": "Try to rise if repairs are sufficient.",
+        "condition": { "resource": "repairs", "operator": ">=", "value": "6" },
+        "effects": [{ "resource": "power", "operation": "-", "value": "20" }],
+        "transition": "surfacing"
+      }
+    ],
+    "engine_room": [
+      {
+        "name": "repair_reactor",
+        "label": "Repair the Reactor",
+        "description": "Restore power generation systems.",
+        "effects": [
+          { "resource": "repairs", "operation": "+", "value": "1" },
+          { "resource": "power", "operation": "+", "value": "random(10,20)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "fix_life_support",
+        "label": "Fix Life Support",
+        "description": "Get oxygen scrubbers running.",
+        "effects": [
+          { "resource": "repairs", "operation": "+", "value": "1" },
+          { "resource": "oxygen", "operation": "+", "value": "random(10,20)" },
+          { "resource": "power", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "patch_hull_inside",
+        "label": "Patch Hull (Interior)",
+        "description": "Seal leaks from the inside.",
+        "effects": [
+          { "resource": "repairs", "operation": "+", "value": "1" },
+          { "resource": "hull", "operation": "+", "value": "random(5,12)" },
+          { "resource": "power", "operation": "-", "value": "3" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "back_to_control",
+        "label": "Return to Bridge",
+        "description": "Head back to the control room.",
+        "effects": [],
+        "transition": "control_room"
+      }
+    ],
+    "observation_deck": [
+      {
+        "name": "scan_depths",
+        "label": "Scan the Depths",
+        "description": "Use sonar to map surroundings.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "5" },
+          { "resource": "terror", "operation": "+", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "go_silent",
+        "label": "Go Silent",
+        "description": "Cut all non-essential systems to avoid detection.",
+        "effects": [
+          { "resource": "terror", "operation": "-", "value": "random(5,10)" },
+          { "resource": "power", "operation": "-", "value": "2" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "exterior_repair",
+        "label": "Suit Up for EVA",
+        "description": "Exit the sub to repair the hull.",
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "5" }],
+        "transition": "diving_bell"
+      }
+    ],
+    "diving_bell": [
+      {
+        "name": "weld_hull",
+        "label": "Weld Hull Plates",
+        "description": "Repair exterior damage in the crushing darkness.",
+        "effects": [
+          { "resource": "hull", "operation": "+", "value": "random(10,20)" },
+          { "resource": "repairs", "operation": "+", "value": "2" },
+          { "resource": "oxygen", "operation": "-", "value": "8" },
+          { "resource": "terror", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "control_room"
+      },
+      {
+        "name": "retrieve_debris",
+        "label": "Salvage Parts",
+        "description": "Grab useful debris from the ocean floor.",
+        "effects": [
+          { "resource": "repairs", "operation": "+", "value": "1" },
+          { "resource": "power", "operation": "+", "value": "random(5,10)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" },
+          { "resource": "terror", "operation": "+", "value": "random(3,8)" }
+        ],
+        "transition": "control_room"
+      },
+      {
+        "name": "abort_eva",
+        "label": "Abort EVA",
+        "description": "Get back inside quickly.",
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "3" }],
+        "transition": "control_room"
+      }
+    ],
+    "creature_alert": [
+      {
+        "name": "go_dark",
+        "label": "Go Dark",
+        "description": "Kill all lights and power. Hold your breath.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "5" },
+          { "resource": "terror", "operation": "+", "value": "random(5,10)" },
+          { "resource": "hull", "operation": "-", "value": "random(0,5)" }
+        ],
+        "transition": "control_room"
+      },
+      {
+        "name": "active_sonar",
+        "label": "Blast Active Sonar",
+        "description": "A loud ping might scare it away. Or attract it.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "10" },
+          { "resource": "terror", "operation": "+", "value": "random(0,15)" },
+          { "resource": "hull", "operation": "-", "value": "random(0,10)" }
+        ],
+        "transition": "control_room"
+      }
+    ],
+    "surfacing": [
+      {
+        "name": "full_power",
+        "label": "Full Power to Engines",
+        "description": "Push everything into the ascent.",
+        "effects": [
+          { "resource": "depth", "operation": "-", "value": "random(30,50)" },
+          { "resource": "power", "operation": "-", "value": "random(15,25)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "steady_rise",
+        "label": "Steady Ascent",
+        "description": "Rise slowly to conserve power.",
+        "effects": [
+          { "resource": "depth", "operation": "-", "value": "random(15,25)" },
+          { "resource": "power", "operation": "-", "value": "random(5,10)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "control_room",
+      "to": "creature_alert",
+      "condition": { "resource": "terror", "operator": ">=", "value": "50" },
+      "auto": true
+    },
+    {
+      "from": "observation_deck",
+      "to": "creature_alert",
+      "condition": { "resource": "terror", "operator": ">=", "value": "40" },
+      "auto": true
+    },
+    {
+      "from": "diving_bell",
+      "to": "creature_alert",
+      "condition": { "resource": "terror", "operator": ">=", "value": "35" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "depth", "operator": "<=", "value": "0" },
+  "loseCondition": { "resource": "hull", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "abyss-blue",
+    "stateDescriptions": {
+      "control_room": { "label": "Bridge", "icon": "monitor" },
+      "engine_room": { "label": "Engine Room", "icon": "wrench" },
+      "observation_deck": { "label": "Observation", "icon": "eye" },
+      "diving_bell": { "label": "Diving Bell", "icon": "anchor" },
+      "creature_alert": { "label": "Creature Alert!", "icon": "alert" },
+      "surfacing": { "label": "Surfacing", "icon": "arrow-up" }
+    },
+    "resourceIcons": {
+      "hull": "shield",
+      "power": "zap",
+      "oxygen": "wind",
+      "repairs": "wrench",
+      "terror": "skull",
+      "depth": "layers"
+    }
+  }
+}

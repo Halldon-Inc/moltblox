@@ -1,0 +1,300 @@
+{
+  "name": "Treasure Hunt",
+  "description": "Follow an ancient map across islands to find buried treasure before rival pirates beat you to it.",
+  "states": [
+    {
+      "name": "port",
+      "description": "A bustling port town. Hire crew and buy supplies.",
+      "onEnter": []
+    },
+    {
+      "name": "sailing",
+      "description": "Open ocean. Watch for storms and rival ships.",
+      "onEnter": []
+    },
+    {
+      "name": "island",
+      "description": "A mysterious island appears on the horizon.",
+      "onEnter": []
+    },
+    { "name": "digging", "description": "X marks the spot. Start digging.", "onEnter": [] },
+    {
+      "name": "storm",
+      "description": "A terrible storm batters the ship.",
+      "onEnter": [{ "resource": "hull", "operation": "-", "value": "random(5,15)" }]
+    },
+    { "name": "rival_encounter", "description": "A rival pirate crew approaches.", "onEnter": [] },
+    { "name": "cave", "description": "A hidden sea cave filled with relics.", "onEnter": [] }
+  ],
+  "initialState": "port",
+  "resources": {
+    "gold": { "initial": 50, "min": 0, "label": "Gold" },
+    "crew": { "initial": 5, "min": 0, "max": 20, "label": "Crew" },
+    "supplies": { "initial": 10, "min": 0, "max": 30, "label": "Supplies" },
+    "hull": { "initial": 100, "min": 0, "max": 100, "label": "Hull Integrity" },
+    "map_pieces": { "initial": 0, "min": 0, "max": 5, "label": "Map Pieces" },
+    "treasure": { "initial": 0, "min": 0, "label": "Treasure Found" },
+    "reputation": { "initial": 0, "min": 0, "max": 20, "label": "Reputation" }
+  },
+  "actions": {
+    "port": [
+      {
+        "name": "hire_crew",
+        "label": "Hire Crew",
+        "description": "Recruit sailors for the voyage.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "crew", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "buy_supplies",
+        "label": "Buy Supplies",
+        "description": "Stock up on food and water.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "supplies", "operation": "+", "value": "random(3,8)" },
+          { "resource": "gold", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "repair_ship",
+        "label": "Repair Ship",
+        "description": "Patch up the hull.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "hull", "operation": "+", "value": "25" },
+          { "resource": "gold", "operation": "-", "value": "15" }
+        ]
+      },
+      {
+        "name": "buy_map",
+        "label": "Buy Map Fragment",
+        "description": "A shady merchant has a map piece.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "map_pieces", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "20" }
+        ]
+      },
+      {
+        "name": "set_sail",
+        "label": "Set Sail",
+        "description": "Leave port and head to open waters.",
+        "condition": { "resource": "crew", "operator": ">=", "value": "3" },
+        "effects": [{ "resource": "supplies", "operation": "-", "value": "2" }],
+        "transition": "sailing"
+      }
+    ],
+    "sailing": [
+      {
+        "name": "navigate",
+        "label": "Navigate",
+        "description": "Chart a course through the waters.",
+        "effects": [
+          { "resource": "supplies", "operation": "-", "value": "random(1,3)" },
+          { "resource": "map_pieces", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "fish",
+        "label": "Fish",
+        "description": "Catch fish to extend supplies.",
+        "effects": [{ "resource": "supplies", "operation": "+", "value": "random(1,4)" }]
+      },
+      {
+        "name": "approach_island",
+        "label": "Approach Island",
+        "description": "Land on a nearby island.",
+        "effects": [{ "resource": "supplies", "operation": "-", "value": "1" }],
+        "transition": "island"
+      },
+      {
+        "name": "return_port",
+        "label": "Return to Port",
+        "description": "Head back to port to resupply.",
+        "effects": [{ "resource": "supplies", "operation": "-", "value": "2" }],
+        "transition": "port"
+      }
+    ],
+    "island": [
+      {
+        "name": "explore",
+        "label": "Explore Island",
+        "description": "Search the island for clues.",
+        "effects": [
+          { "resource": "map_pieces", "operation": "+", "value": "random(0,1)" },
+          { "resource": "supplies", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "dig",
+        "label": "Start Digging",
+        "description": "Use your map to find the dig site.",
+        "condition": { "resource": "map_pieces", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "digging"
+      },
+      {
+        "name": "explore_cave",
+        "label": "Enter Sea Cave",
+        "description": "A dark cave entrance beckons.",
+        "effects": [],
+        "transition": "cave"
+      },
+      {
+        "name": "leave_island",
+        "label": "Leave Island",
+        "description": "Return to open water.",
+        "effects": [],
+        "transition": "sailing"
+      }
+    ],
+    "digging": [
+      {
+        "name": "dig_deeper",
+        "label": "Keep Digging",
+        "description": "Your crew digs with determination.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(10,40)" },
+          { "resource": "crew", "operation": "-", "value": "random(0,1)" },
+          { "resource": "supplies", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "careful_dig",
+        "label": "Dig Carefully",
+        "description": "Take time to preserve artifacts.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(5,20)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "stop_digging",
+        "label": "Stop and Sail",
+        "description": "Take what you have and go.",
+        "effects": [],
+        "transition": "sailing"
+      }
+    ],
+    "storm": [
+      {
+        "name": "brace",
+        "label": "Brace for Impact",
+        "description": "Hold tight and ride it out.",
+        "effects": [
+          { "resource": "hull", "operation": "-", "value": "random(5,10)" },
+          { "resource": "crew", "operation": "-", "value": "random(0,1)" }
+        ],
+        "transition": "sailing"
+      },
+      {
+        "name": "steer_through",
+        "label": "Steer Through",
+        "description": "Skillful navigation through the storm.",
+        "condition": { "resource": "crew", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "hull", "operation": "-", "value": "random(0,5)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ],
+        "transition": "sailing"
+      }
+    ],
+    "rival_encounter": [
+      {
+        "name": "fight",
+        "label": "Fight Rivals",
+        "description": "Engage the rival crew in battle.",
+        "effects": [
+          { "resource": "crew", "operation": "-", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "+", "value": "random(10,30)" },
+          { "resource": "hull", "operation": "-", "value": "random(5,15)" }
+        ],
+        "transition": "sailing"
+      },
+      {
+        "name": "negotiate",
+        "label": "Negotiate",
+        "description": "Try to talk your way out.",
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "random(5,15)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ],
+        "transition": "sailing"
+      },
+      {
+        "name": "flee",
+        "label": "Flee",
+        "description": "Outrun them if possible.",
+        "effects": [
+          { "resource": "supplies", "operation": "-", "value": "random(2,5)" },
+          { "resource": "hull", "operation": "-", "value": "random(0,5)" }
+        ],
+        "transition": "sailing"
+      }
+    ],
+    "cave": [
+      {
+        "name": "search_cave",
+        "label": "Search Cave",
+        "description": "Look for hidden valuables.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(5,25)" },
+          { "resource": "gold", "operation": "+", "value": "random(5,15)" }
+        ],
+        "transition": "island"
+      },
+      {
+        "name": "leave_cave",
+        "label": "Leave Cave",
+        "description": "Head back to the island surface.",
+        "effects": [],
+        "transition": "island"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "sailing",
+      "to": "storm",
+      "condition": { "resource": "supplies", "operator": "<=", "value": "3" },
+      "auto": true
+    },
+    {
+      "from": "sailing",
+      "to": "rival_encounter",
+      "condition": { "resource": "reputation", "operator": ">=", "value": "8" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "treasure", "operator": ">=", "value": "150" },
+  "loseCondition": {
+    "or": [
+      { "resource": "hull", "operator": "<=", "value": "0" },
+      { "resource": "crew", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "ocean-blue",
+    "stateDescriptions": {
+      "port": { "label": "Harbor Town", "icon": "anchor" },
+      "sailing": { "label": "Open Seas", "icon": "compass" },
+      "island": { "label": "Uncharted Island", "icon": "palm-tree" },
+      "digging": { "label": "Dig Site", "icon": "shovel" },
+      "storm": { "label": "Storm!", "icon": "cloud-lightning" },
+      "rival_encounter": { "label": "Rival Pirates!", "icon": "flag" },
+      "cave": { "label": "Sea Cave", "icon": "mountain" }
+    },
+    "resourceIcons": {
+      "gold": "coin",
+      "crew": "users",
+      "supplies": "package",
+      "hull": "shield",
+      "map_pieces": "map",
+      "treasure": "gem",
+      "reputation": "star"
+    }
+  }
+}

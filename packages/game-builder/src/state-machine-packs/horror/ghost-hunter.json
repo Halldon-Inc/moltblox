@@ -1,0 +1,251 @@
+{
+  "name": "Ghost Hunter",
+  "description": "You are a professional paranormal investigator. Use your equipment to detect, track, and capture ghosts in haunted locations for your agency.",
+  "states": [
+    {
+      "name": "van",
+      "description": "Your mobile command center packed with ghost-hunting gear.",
+      "onEnter": []
+    },
+    {
+      "name": "investigation",
+      "description": "Sweeping the location with your instruments.",
+      "onEnter": [{ "resource": "evidence", "operation": "+", "value": "random(1,3)" }]
+    },
+    {
+      "name": "hot_spot",
+      "description": "EMF readings spike. High paranormal activity here.",
+      "onEnter": [{ "resource": "fear", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "manifestation",
+      "description": "A ghost materializes before you!",
+      "onEnter": [{ "resource": "fear", "operation": "+", "value": "8" }]
+    },
+    { "name": "capture_attempt", "description": "You deploy the containment trap.", "onEnter": [] },
+    {
+      "name": "debrief",
+      "description": "Back at the van reviewing evidence.",
+      "onEnter": [{ "resource": "fear", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "van",
+  "resources": {
+    "evidence": { "initial": 0, "min": 0, "max": 50, "label": "Evidence" },
+    "battery": { "initial": 100, "min": 0, "max": 100, "label": "Battery" },
+    "traps": { "initial": 3, "min": 0, "max": 5, "label": "Ghost Traps" },
+    "fear": { "initial": 5, "min": 0, "max": 100, "label": "Fear" },
+    "ghosts_caught": { "initial": 0, "min": 0, "max": 5, "label": "Ghosts Caught" },
+    "reputation": { "initial": 10, "min": 0, "max": 100, "label": "Reputation" }
+  },
+  "actions": {
+    "van": [
+      {
+        "name": "enter_building",
+        "label": "Enter the Building",
+        "description": "Grab your gear and head inside.",
+        "effects": [{ "resource": "battery", "operation": "-", "value": "5" }],
+        "transition": "investigation"
+      },
+      {
+        "name": "review_evidence",
+        "label": "Review Evidence",
+        "description": "Analyze footage and audio.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(3,5)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "recharge",
+        "label": "Recharge Equipment",
+        "description": "Top up batteries.",
+        "effects": [{ "resource": "battery", "operation": "+", "value": "random(20,30)" }]
+      }
+    ],
+    "investigation": [
+      {
+        "name": "emf_sweep",
+        "label": "EMF Sweep",
+        "description": "Scan the area with the EMF detector.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(2,5)" },
+          { "resource": "battery", "operation": "-", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "evp_session",
+        "label": "EVP Session",
+        "description": "Record audio for ghost voices.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(3,6)" },
+          { "resource": "battery", "operation": "-", "value": "random(5,8)" },
+          { "resource": "fear", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "thermal_scan",
+        "label": "Thermal Imaging",
+        "description": "Look for cold spots.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(2,4)" },
+          { "resource": "battery", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Return to Van",
+        "description": "Head back to safety.",
+        "effects": [],
+        "transition": "van"
+      }
+    ],
+    "hot_spot": [
+      {
+        "name": "provoke",
+        "label": "Provoke the Entity",
+        "description": "Call out to trigger a response.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(5,8)" },
+          { "resource": "fear", "operation": "+", "value": "random(5,10)" },
+          { "resource": "battery", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "set_trap",
+        "label": "Set Ghost Trap",
+        "description": "Deploy a containment device.",
+        "condition": { "resource": "traps", "operator": ">=", "value": "1" },
+        "effects": [{ "resource": "traps", "operation": "-", "value": "1" }],
+        "transition": "capture_attempt"
+      },
+      {
+        "name": "document",
+        "label": "Document Everything",
+        "description": "Record all readings carefully.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(4,8)" },
+          { "resource": "battery", "operation": "-", "value": "10" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ],
+        "transition": "investigation"
+      }
+    ],
+    "manifestation": [
+      {
+        "name": "capture_ghost",
+        "label": "Capture It!",
+        "description": "Activate your trap now!",
+        "condition": { "resource": "traps", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "traps", "operation": "-", "value": "1" },
+          { "resource": "ghosts_caught", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(8,15)" },
+          { "resource": "fear", "operation": "-", "value": "5" }
+        ],
+        "transition": "debrief"
+      },
+      {
+        "name": "photograph",
+        "label": "Take Photos",
+        "description": "Capture photographic evidence.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(8,12)" },
+          { "resource": "battery", "operation": "-", "value": "10" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "investigation"
+      },
+      {
+        "name": "flee",
+        "label": "Run Away!",
+        "description": "This is too intense. Get out.",
+        "effects": [{ "resource": "fear", "operation": "+", "value": "10" }],
+        "transition": "van"
+      }
+    ],
+    "capture_attempt": [
+      {
+        "name": "activate_trap",
+        "label": "Activate Trap",
+        "description": "The trap glows and hums. Something is being pulled in.",
+        "effects": [
+          { "resource": "ghosts_caught", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(10,15)" },
+          { "resource": "battery", "operation": "-", "value": "15" }
+        ],
+        "transition": "debrief"
+      },
+      {
+        "name": "trap_fails",
+        "label": "Trap Malfunction",
+        "description": "The trap sparks and fails. The ghost is angry.",
+        "effects": [
+          { "resource": "fear", "operation": "+", "value": "15" },
+          { "resource": "battery", "operation": "-", "value": "10" }
+        ],
+        "transition": "investigation"
+      }
+    ],
+    "debrief": [
+      {
+        "name": "catalog",
+        "label": "Catalog Evidence",
+        "description": "Organize all collected data.",
+        "effects": [
+          { "resource": "evidence", "operation": "+", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,5)" }
+        ],
+        "transition": "van"
+      },
+      {
+        "name": "go_again",
+        "label": "Head Back In",
+        "description": "There are more ghosts to find.",
+        "effects": [{ "resource": "fear", "operation": "+", "value": "3" }],
+        "transition": "investigation"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "investigation",
+      "to": "hot_spot",
+      "condition": { "resource": "evidence", "operator": ">=", "value": "12" },
+      "auto": true
+    },
+    {
+      "from": "hot_spot",
+      "to": "manifestation",
+      "condition": { "resource": "fear", "operator": ">=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "investigation",
+      "to": "van",
+      "condition": { "resource": "battery", "operator": "<=", "value": "10" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "reputation", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "fear", "operator": ">=", "value": "100" },
+  "theme": {
+    "palette": "spectral-green",
+    "stateDescriptions": {
+      "van": { "label": "Command Van", "icon": "truck" },
+      "investigation": { "label": "Investigating", "icon": "search" },
+      "hot_spot": { "label": "Hot Spot!", "icon": "zap" },
+      "manifestation": { "label": "Ghost!", "icon": "ghost" },
+      "capture_attempt": { "label": "Capture!", "icon": "target" },
+      "debrief": { "label": "Debrief", "icon": "clipboard" }
+    },
+    "resourceIcons": {
+      "evidence": "camera",
+      "battery": "zap",
+      "traps": "box",
+      "fear": "ghost",
+      "ghosts_caught": "trophy",
+      "reputation": "star"
+    }
+  }
+}

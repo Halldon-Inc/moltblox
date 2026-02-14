@@ -1,0 +1,240 @@
+{
+  "name": "Spy Social Game",
+  "description": "Infiltrate a high society party as an undercover agent. Charm your way through social circles, gather secrets, and maintain your cover.",
+  "states": [
+    {
+      "name": "ballroom",
+      "description": "The grand ballroom. Everyone who matters is here.",
+      "onEnter": []
+    },
+    { "name": "garden", "description": "A quiet garden for private conversations.", "onEnter": [] },
+    { "name": "vip_lounge", "description": "Exclusive area for important guests.", "onEnter": [] },
+    {
+      "name": "kitchen",
+      "description": "Behind the scenes. Staff have loose lips.",
+      "onEnter": []
+    },
+    {
+      "name": "study",
+      "description": "The host's private study. Documents are here.",
+      "onEnter": []
+    },
+    {
+      "name": "suspicious",
+      "description": "Someone is watching you closely.",
+      "onEnter": [{ "resource": "cover", "operation": "-", "value": "3" }]
+    }
+  ],
+  "initialState": "ballroom",
+  "resources": {
+    "cover": { "initial": 10, "min": 0, "max": 12, "label": "Cover Identity" },
+    "intel": { "initial": 0, "min": 0, "label": "Intelligence" },
+    "charm": { "initial": 5, "min": 0, "max": 10, "label": "Charm" },
+    "contacts": { "initial": 0, "min": 0, "max": 8, "label": "Contacts Made" },
+    "suspicion": { "initial": 0, "min": 0, "max": 15, "label": "Suspicion" },
+    "time": { "initial": 20, "min": 0, "label": "Time Remaining" }
+  },
+  "actions": {
+    "ballroom": [
+      {
+        "name": "mingle",
+        "label": "Mingle with Guests",
+        "effects": [
+          { "resource": "contacts", "operation": "+", "value": "random(1,2)" },
+          { "resource": "charm", "operation": "+", "value": "random(0,1)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "dance",
+        "label": "Ask Someone to Dance",
+        "effects": [
+          { "resource": "contacts", "operation": "+", "value": "1" },
+          { "resource": "intel", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_garden",
+        "label": "Slip to Garden",
+        "effects": [{ "resource": "time", "operation": "-", "value": "1" }],
+        "transition": "garden"
+      },
+      {
+        "name": "go_vip",
+        "label": "Enter VIP Lounge",
+        "condition": { "resource": "contacts", "operator": ">=", "value": "3" },
+        "effects": [{ "resource": "suspicion", "operation": "+", "value": "1" }],
+        "transition": "vip_lounge"
+      },
+      {
+        "name": "go_kitchen",
+        "label": "Sneak to Kitchen",
+        "effects": [{ "resource": "suspicion", "operation": "+", "value": "random(0,1)" }],
+        "transition": "kitchen"
+      }
+    ],
+    "garden": [
+      {
+        "name": "private_chat",
+        "label": "Private Conversation",
+        "condition": { "resource": "contacts", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(2,5)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "eavesdrop",
+        "label": "Eavesdrop",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(3,6)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(1,3)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Return to Ballroom", "effects": [], "transition": "ballroom" }
+    ],
+    "vip_lounge": [
+      {
+        "name": "network",
+        "label": "Network with VIPs",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(3,7)" },
+          { "resource": "contacts", "operation": "+", "value": "random(1,2)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "subtle_probe",
+        "label": "Subtly Probe for Info",
+        "condition": { "resource": "charm", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(4,8)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(0,2)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_study",
+        "label": "Slip Into Study",
+        "effects": [{ "resource": "suspicion", "operation": "+", "value": "2" }],
+        "transition": "study"
+      },
+      { "name": "back", "label": "Return to Ballroom", "effects": [], "transition": "ballroom" }
+    ],
+    "kitchen": [
+      {
+        "name": "chat_staff",
+        "label": "Chat with Staff",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(2,4)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "search_coat_room",
+        "label": "Search Coat Room",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(3,6)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(2,4)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "back", "label": "Return to Ballroom", "effects": [], "transition": "ballroom" }
+    ],
+    "study": [
+      {
+        "name": "photograph_docs",
+        "label": "Photograph Documents",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(8,15)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(3,5)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "hack_computer",
+        "label": "Access Computer",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(10,18)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(4,6)" },
+          { "resource": "time", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "quick_look",
+        "label": "Quick Glance at Desk",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(3,6)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(1,2)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "leave", "label": "Leave Quickly", "effects": [], "transition": "vip_lounge" }
+    ],
+    "suspicious": [
+      {
+        "name": "charm_way_out",
+        "label": "Charm Your Way Out",
+        "condition": { "resource": "charm", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "charm", "operation": "-", "value": "2" },
+          { "resource": "suspicion", "operation": "-", "value": "random(3,5)" },
+          { "resource": "cover", "operation": "+", "value": "2" }
+        ],
+        "transition": "ballroom"
+      },
+      {
+        "name": "create_diversion",
+        "label": "Create a Diversion",
+        "effects": [
+          { "resource": "suspicion", "operation": "-", "value": "random(2,4)" },
+          { "resource": "time", "operation": "-", "value": "2" }
+        ],
+        "transition": "ballroom"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "ballroom",
+      "to": "suspicious",
+      "condition": { "resource": "suspicion", "operator": ">=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "study",
+      "to": "suspicious",
+      "condition": { "resource": "suspicion", "operator": ">=", "value": "8" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "time", "operation": "-", "value": "1" }],
+  "winCondition": { "resource": "intel", "operator": ">=", "value": "40" },
+  "loseCondition": {
+    "or": [
+      { "resource": "cover", "operator": "<=", "value": "0" },
+      { "resource": "time", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "elegant-black",
+    "stateDescriptions": {
+      "ballroom": { "label": "Grand Ballroom", "icon": "star" },
+      "garden": { "label": "Garden", "icon": "tree" },
+      "vip_lounge": { "label": "VIP Lounge", "icon": "crown" },
+      "kitchen": { "label": "Behind Scenes", "icon": "coffee" },
+      "study": { "label": "Private Study", "icon": "lock" },
+      "suspicious": { "label": "Under Suspicion!", "icon": "eye" }
+    },
+    "resourceIcons": {
+      "cover": "shield",
+      "intel": "file-text",
+      "charm": "star",
+      "contacts": "users",
+      "suspicion": "eye",
+      "time": "clock"
+    }
+  }
+}

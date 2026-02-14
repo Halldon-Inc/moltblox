@@ -17,6 +17,13 @@ import type { GameAction, ActionResult } from '@moltblox/protocol';
 export interface ClickerConfig {
   targetClicks?: number;
   clickValue?: number;
+  /** Turns within which consecutive clicks count as a combo (1-10, default 0 = disabled). */
+  comboWindow?: number;
+  /** Emit milestone event every N clicks (default 10). */
+  milestoneEvery?: number;
+  /** Clicks lost per turn of inactivity (0 = disabled, default 0). */
+  decayRate?: number;
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
 interface ClickerState {
@@ -24,6 +31,8 @@ interface ClickerState {
   clicks: Record<string, number>; // Player ID -> click count
   targetClicks: number; // First to reach this wins
   lastAction: string | null; // Last player who acted
+  lastClickTurn: Record<string, number>; // Turn of each player's last click (for combo/decay)
+  combos: Record<string, number>; // Current combo streak per player
 }
 
 export class ClickerGame extends BaseGame {
@@ -45,10 +54,19 @@ export class ClickerGame extends BaseGame {
       clicks[playerId] = 0;
     }
 
+    const lastClickTurn: Record<string, number> = {};
+    const combos: Record<string, number> = {};
+    for (const playerId of playerIds) {
+      lastClickTurn[playerId] = -1;
+      combos[playerId] = 0;
+    }
+
     return {
       clicks,
       targetClicks,
       lastAction: null,
+      lastClickTurn,
+      combos,
     };
   }
 
@@ -60,18 +78,46 @@ export class ClickerGame extends BaseGame {
 
     switch (action.type) {
       case 'click': {
-        // Increment click count by configured value
         const cfg = this.config as ClickerConfig;
-        data.clicks[playerId] += cfg.clickValue ?? 1;
+        const currentTurn = this.getTurn();
+        const comboWindow = cfg.comboWindow ?? 0;
+        const milestoneEvery = cfg.milestoneEvery ?? 10;
+        const decayRate = cfg.decayRate ?? 0;
+
+        // Apply decay: if player hasn't clicked within comboWindow turns, lose clicks
+        if (decayRate > 0 && data.lastClickTurn[playerId] >= 0) {
+          const turnsSinceLast = currentTurn - data.lastClickTurn[playerId];
+          if (turnsSinceLast > 1) {
+            const decayAmount = (turnsSinceLast - 1) * decayRate;
+            data.clicks[playerId] = Math.max(0, data.clicks[playerId] - decayAmount);
+          }
+        }
+
+        // Track combo
+        if (comboWindow > 0) {
+          const turnsSinceLast = currentTurn - data.lastClickTurn[playerId];
+          if (turnsSinceLast <= comboWindow && data.lastClickTurn[playerId] >= 0) {
+            data.combos[playerId]++;
+          } else {
+            data.combos[playerId] = 1;
+          }
+        }
+
+        // Increment click count by configured value, scaled by combo multiplier
+        const baseClick = cfg.clickValue ?? 1;
+        const comboMultiplier =
+          comboWindow > 0 && data.combos[playerId] > 1 ? 1 + data.combos[playerId] * 0.1 : 1;
+        const clickAmount = Math.floor(baseClick * comboMultiplier);
+        data.clicks[playerId] += clickAmount;
         data.lastAction = playerId;
+        data.lastClickTurn[playerId] = currentTurn;
 
         // Emit event for click milestones
         const clicks = data.clicks[playerId];
-        if (clicks % 10 === 0) {
+        if (milestoneEvery > 0 && clicks % milestoneEvery === 0) {
           this.emitEvent('milestone', playerId, { clicks });
         }
 
-        // Update state
         this.setData(data);
 
         return {
@@ -82,8 +128,16 @@ export class ClickerGame extends BaseGame {
 
       case 'multi_click': {
         // Power-up: multiple clicks at once (if purchased)
+        const mcCfg = this.config as ClickerConfig;
+        const mcDecay = mcCfg.decayRate ?? 0;
+
+        // Apply decay before adding clicks
+        if (mcDecay > 0) {
+          data.clicks[playerId] = Math.max(0, data.clicks[playerId] - mcDecay);
+        }
+
         const amount = Number(action.payload.amount || action.payload.count) || 1;
-        data.clicks[playerId] += Math.min(amount, 100); // Max 100 per action
+        data.clicks[playerId] += Math.min(amount, 5); // Max 5 per action
         data.lastAction = playerId;
         this.setData(data);
 

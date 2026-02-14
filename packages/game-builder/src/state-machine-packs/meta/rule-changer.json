@@ -1,0 +1,233 @@
+{
+  "name": "Rule Changer",
+  "description": "A game where the rules shift every few turns. Collect rule tokens to bend mechanics in your favor while adapting to chaotic new conditions.",
+  "states": [
+    {
+      "name": "stable_phase",
+      "description": "Rules are fixed. Play normally while you can.",
+      "onEnter": []
+    },
+    {
+      "name": "flux_warning",
+      "description": "The rules flicker. A shift is imminent.",
+      "onEnter": [{ "resource": "chaos", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "rule_shift",
+      "description": "Everything changes. New rules take effect.",
+      "onEnter": [{ "resource": "chaos", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "bonus_round",
+      "description": "A rare stable window with doubled rewards.",
+      "onEnter": [{ "resource": "points", "operation": "+", "value": "10" }]
+    },
+    {
+      "name": "paradox_zone",
+      "description": "Contradictory rules create strange outcomes.",
+      "onEnter": [{ "resource": "chaos", "operation": "+", "value": "8" }]
+    },
+    {
+      "name": "mastery",
+      "description": "You have learned to control the shifting rules.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "stable_phase",
+  "resources": {
+    "points": { "initial": 0, "min": 0, "max": 200, "label": "Points" },
+    "rule_tokens": { "initial": 3, "min": 0, "max": 10, "label": "Rule Tokens" },
+    "chaos": { "initial": 0, "min": 0, "max": 50, "label": "Chaos Level" },
+    "adaptability": { "initial": 5, "min": 0, "max": 20, "label": "Adaptability" },
+    "turns": { "initial": 0, "min": 0, "label": "Turns Played" }
+  },
+  "actions": {
+    "stable_phase": [
+      {
+        "name": "gather_points",
+        "label": "Gather Points",
+        "description": "Score while the rules are clear.",
+        "effects": [
+          { "resource": "points", "operation": "+", "value": "random(5,12)" },
+          { "resource": "turns", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "stockpile_tokens",
+        "label": "Stockpile Tokens",
+        "description": "Save rule tokens for emergencies.",
+        "effects": [
+          { "resource": "rule_tokens", "operation": "+", "value": "random(1,2)" },
+          { "resource": "turns", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "study_patterns",
+        "label": "Study Patterns",
+        "description": "Learn how shifts work to adapt faster.",
+        "effects": [
+          { "resource": "adaptability", "operation": "+", "value": "2" },
+          { "resource": "turns", "operation": "+", "value": "1" }
+        ]
+      }
+    ],
+    "flux_warning": [
+      {
+        "name": "brace",
+        "label": "Brace Yourself",
+        "description": "Prepare for the incoming shift.",
+        "effects": [
+          { "resource": "adaptability", "operation": "+", "value": "3" },
+          { "resource": "chaos", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "rush_score",
+        "label": "Rush for Points",
+        "description": "Grab points before the rules change.",
+        "effects": [
+          { "resource": "points", "operation": "+", "value": "random(8,15)" },
+          { "resource": "chaos", "operation": "+", "value": "2" }
+        ]
+      }
+    ],
+    "rule_shift": [
+      {
+        "name": "adapt",
+        "label": "Adapt Quickly",
+        "description": "Use your training to handle the new rules.",
+        "effects": [
+          { "resource": "points", "operation": "+", "value": "random(3,10)" },
+          { "resource": "adaptability", "operation": "-", "value": "2" },
+          { "resource": "chaos", "operation": "-", "value": "3" }
+        ],
+        "transition": "stable_phase"
+      },
+      {
+        "name": "use_token",
+        "label": "Spend Rule Token",
+        "description": "Override the new rules with a token.",
+        "condition": { "resource": "rule_tokens", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "rule_tokens", "operation": "-", "value": "1" },
+          { "resource": "chaos", "operation": "-", "value": "5" },
+          { "resource": "points", "operation": "+", "value": "10" }
+        ],
+        "transition": "stable_phase"
+      },
+      {
+        "name": "embrace_chaos",
+        "label": "Embrace the Chaos",
+        "description": "Let the chaos flow and hope for the best.",
+        "effects": [
+          { "resource": "chaos", "operation": "+", "value": "random(3,8)" },
+          { "resource": "points", "operation": "+", "value": "random(0,20)" }
+        ]
+      }
+    ],
+    "bonus_round": [
+      {
+        "name": "double_score",
+        "label": "Score Big",
+        "description": "Take advantage of doubled rewards.",
+        "effects": [
+          { "resource": "points", "operation": "+", "value": "random(15,25)" },
+          { "resource": "turns", "operation": "+", "value": "1" }
+        ],
+        "transition": "stable_phase"
+      },
+      {
+        "name": "store_tokens",
+        "label": "Bank Tokens",
+        "description": "Stock up on rule tokens during calm.",
+        "effects": [
+          { "resource": "rule_tokens", "operation": "+", "value": "2" },
+          { "resource": "turns", "operation": "+", "value": "1" }
+        ],
+        "transition": "stable_phase"
+      }
+    ],
+    "paradox_zone": [
+      {
+        "name": "solve_paradox",
+        "label": "Solve the Paradox",
+        "description": "Use logic to resolve the contradiction.",
+        "effects": [
+          { "resource": "chaos", "operation": "-", "value": "10" },
+          { "resource": "points", "operation": "+", "value": "20" },
+          { "resource": "adaptability", "operation": "+", "value": "3" }
+        ],
+        "transition": "stable_phase"
+      },
+      {
+        "name": "exploit_paradox",
+        "label": "Exploit the Glitch",
+        "description": "Use the contradiction to your advantage.",
+        "effects": [
+          { "resource": "points", "operation": "+", "value": "random(10,30)" },
+          { "resource": "chaos", "operation": "+", "value": "5" }
+        ]
+      }
+    ],
+    "mastery": [
+      {
+        "name": "final_score",
+        "label": "Final Performance",
+        "description": "Demonstrate your mastery for a final score boost.",
+        "effects": [{ "resource": "points", "operation": "+", "value": "30" }]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "stable_phase",
+      "to": "flux_warning",
+      "condition": { "resource": "turns", "operator": ">=", "value": "5" },
+      "auto": true
+    },
+    {
+      "from": "flux_warning",
+      "to": "rule_shift",
+      "condition": { "resource": "chaos", "operator": ">=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "rule_shift",
+      "to": "paradox_zone",
+      "condition": { "resource": "chaos", "operator": ">=", "value": "25" },
+      "auto": true
+    },
+    {
+      "from": "stable_phase",
+      "to": "bonus_round",
+      "condition": { "resource": "adaptability", "operator": ">=", "value": "12" },
+      "auto": false
+    },
+    {
+      "from": "stable_phase",
+      "to": "mastery",
+      "condition": { "resource": "adaptability", "operator": ">=", "value": "18" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "points", "operator": ">=", "value": "150" },
+  "loseCondition": { "resource": "chaos", "operator": ">=", "value": "50" },
+  "theme": {
+    "palette": "glitch-purple",
+    "stateDescriptions": {
+      "stable_phase": { "label": "Stable Rules", "icon": "check" },
+      "flux_warning": { "label": "Flux Alert", "icon": "warning" },
+      "rule_shift": { "label": "Rules Shifting", "icon": "shuffle" },
+      "bonus_round": { "label": "Bonus Time", "icon": "star" },
+      "paradox_zone": { "label": "Paradox!", "icon": "infinity" },
+      "mastery": { "label": "Rule Master", "icon": "crown" }
+    },
+    "resourceIcons": {
+      "points": "target",
+      "rule_tokens": "ticket",
+      "chaos": "zap",
+      "adaptability": "brain",
+      "turns": "clock"
+    }
+  }
+}

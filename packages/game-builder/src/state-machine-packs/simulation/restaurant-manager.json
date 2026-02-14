@@ -1,0 +1,304 @@
+{
+  "name": "Restaurant Manager",
+  "description": "Open and run a restaurant. Hire staff, design menus, and earn Michelin stars through excellent food and service.",
+  "states": [
+    {
+      "name": "kitchen",
+      "description": "The heart of the restaurant. Prepare dishes.",
+      "onEnter": []
+    },
+    { "name": "dining_room", "description": "Guests are seated and waiting.", "onEnter": [] },
+    { "name": "office", "description": "Handle finances and planning.", "onEnter": [] },
+    {
+      "name": "market_shopping",
+      "description": "Buy fresh ingredients from the market.",
+      "onEnter": []
+    },
+    {
+      "name": "rush_hour",
+      "description": "The restaurant is packed! Orders flying in.",
+      "onEnter": [{ "resource": "stress", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "critic_visit",
+      "description": "A food critic has arrived incognito.",
+      "onEnter": [{ "resource": "stress", "operation": "+", "value": "5" }]
+    }
+  ],
+  "initialState": "office",
+  "resources": {
+    "money": { "initial": 300, "min": 0, "label": "Money" },
+    "ingredients": { "initial": 10, "min": 0, "max": 30, "label": "Ingredients" },
+    "staff": { "initial": 2, "min": 1, "max": 8, "label": "Staff" },
+    "reputation": { "initial": 10, "min": 0, "max": 50, "label": "Reputation" },
+    "quality": { "initial": 5, "min": 0, "max": 15, "label": "Food Quality" },
+    "stress": { "initial": 0, "min": 0, "max": 15, "label": "Stress" },
+    "stars": { "initial": 0, "min": 0, "max": 3, "label": "Stars" }
+  },
+  "actions": {
+    "kitchen": [
+      {
+        "name": "cook_standard",
+        "label": "Cook Standard Dishes",
+        "description": "Prepare reliable, well-made food.",
+        "condition": { "resource": "ingredients", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "ingredients", "operation": "-", "value": "2" },
+          { "resource": "money", "operation": "+", "value": "random(10,25)" },
+          { "resource": "quality", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "cook_special",
+        "label": "Prepare Special Menu",
+        "description": "Create an ambitious tasting menu.",
+        "condition": { "resource": "ingredients", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "ingredients", "operation": "-", "value": "5" },
+          { "resource": "money", "operation": "+", "value": "random(20,50)" },
+          { "resource": "quality", "operation": "+", "value": "random(1,3)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stress", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "experiment",
+        "label": "Experiment with Recipes",
+        "description": "Try new flavor combinations.",
+        "condition": { "resource": "ingredients", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "ingredients", "operation": "-", "value": "3" },
+          { "resource": "quality", "operation": "+", "value": "random(0,3)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "go_dining",
+        "label": "Check Dining Room",
+        "description": "See how guests are doing.",
+        "effects": [],
+        "transition": "dining_room"
+      },
+      {
+        "name": "go_office",
+        "label": "Go to Office",
+        "description": "Handle business matters.",
+        "effects": [],
+        "transition": "office"
+      }
+    ],
+    "dining_room": [
+      {
+        "name": "greet_guests",
+        "label": "Greet Guests",
+        "description": "Welcome diners personally.",
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "serve_wine",
+        "label": "Serve Wine Pairing",
+        "description": "Suggest wine to complement the meal.",
+        "effects": [
+          { "resource": "money", "operation": "+", "value": "random(5,15)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "handle_complaint",
+        "label": "Handle Complaint",
+        "description": "Address an unhappy diner.",
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "random(5,10)" },
+          { "resource": "reputation", "operation": "+", "value": "random(0,2)" },
+          { "resource": "stress", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_kitchen",
+        "label": "Back to Kitchen",
+        "description": "Return to cooking.",
+        "effects": [],
+        "transition": "kitchen"
+      }
+    ],
+    "office": [
+      {
+        "name": "hire_staff",
+        "label": "Hire Staff",
+        "description": "Bring on more help.",
+        "condition": { "resource": "money", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "staff", "operation": "+", "value": "1" },
+          { "resource": "money", "operation": "-", "value": "40" }
+        ]
+      },
+      {
+        "name": "train_staff",
+        "label": "Train Staff",
+        "description": "Improve your team's skills.",
+        "condition": { "resource": "money", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "20" },
+          { "resource": "quality", "operation": "+", "value": "1" },
+          { "resource": "stress", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "advertise",
+        "label": "Run Advertisement",
+        "description": "Promote the restaurant.",
+        "condition": { "resource": "money", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "30" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "take_break",
+        "label": "Take a Break",
+        "description": "Relax and de-stress.",
+        "effects": [{ "resource": "stress", "operation": "-", "value": "random(3,5)" }]
+      },
+      {
+        "name": "go_market",
+        "label": "Go Shopping",
+        "description": "Buy ingredients at the market.",
+        "effects": [],
+        "transition": "market_shopping"
+      },
+      {
+        "name": "go_kitchen",
+        "label": "Go to Kitchen",
+        "description": "Start cooking.",
+        "effects": [],
+        "transition": "kitchen"
+      }
+    ],
+    "market_shopping": [
+      {
+        "name": "buy_standard",
+        "label": "Buy Standard Ingredients",
+        "description": "Affordable, reliable ingredients.",
+        "condition": { "resource": "money", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "ingredients", "operation": "+", "value": "random(5,8)" },
+          { "resource": "money", "operation": "-", "value": "15" }
+        ]
+      },
+      {
+        "name": "buy_premium",
+        "label": "Buy Premium Ingredients",
+        "description": "Top-tier ingredients for exceptional dishes.",
+        "condition": { "resource": "money", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "ingredients", "operation": "+", "value": "random(4,6)" },
+          { "resource": "quality", "operation": "+", "value": "2" },
+          { "resource": "money", "operation": "-", "value": "40" }
+        ]
+      },
+      {
+        "name": "return",
+        "label": "Return to Office",
+        "description": "Head back to the restaurant.",
+        "effects": [],
+        "transition": "office"
+      }
+    ],
+    "rush_hour": [
+      {
+        "name": "hustle",
+        "label": "Hustle Through Orders",
+        "description": "Work fast to serve everyone.",
+        "effects": [
+          { "resource": "money", "operation": "+", "value": "random(30,60)" },
+          { "resource": "stress", "operation": "+", "value": "random(2,4)" },
+          { "resource": "ingredients", "operation": "-", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ],
+        "transition": "kitchen"
+      },
+      {
+        "name": "stay_calm",
+        "label": "Stay Calm and Methodical",
+        "description": "Prioritize quality over speed.",
+        "effects": [
+          { "resource": "money", "operation": "+", "value": "random(15,30)" },
+          { "resource": "quality", "operation": "+", "value": "1" },
+          { "resource": "ingredients", "operation": "-", "value": "random(2,4)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ],
+        "transition": "kitchen"
+      }
+    ],
+    "critic_visit": [
+      {
+        "name": "serve_best",
+        "label": "Serve Your Best",
+        "description": "Put everything into this meal.",
+        "condition": { "resource": "quality", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "ingredients", "operation": "-", "value": "random(3,5)" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,10)" },
+          { "resource": "stars", "operation": "+", "value": "1" },
+          { "resource": "stress", "operation": "+", "value": "3" }
+        ],
+        "transition": "kitchen"
+      },
+      {
+        "name": "normal_service",
+        "label": "Normal Service",
+        "description": "Serve them like any other guest.",
+        "effects": [
+          { "resource": "ingredients", "operation": "-", "value": "2" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,4)" },
+          { "resource": "stress", "operation": "+", "value": "1" }
+        ],
+        "transition": "kitchen"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "kitchen",
+      "to": "rush_hour",
+      "condition": { "resource": "reputation", "operator": ">=", "value": "25" },
+      "auto": false
+    },
+    {
+      "from": "dining_room",
+      "to": "critic_visit",
+      "condition": { "resource": "reputation", "operator": ">=", "value": "35" },
+      "auto": false
+    }
+  ],
+  "winCondition": { "resource": "stars", "operator": ">=", "value": "3" },
+  "loseCondition": {
+    "or": [
+      { "resource": "money", "operator": "<=", "value": "0" },
+      { "resource": "stress", "operator": ">=", "value": "15" }
+    ]
+  },
+  "theme": {
+    "palette": "warm-amber",
+    "stateDescriptions": {
+      "kitchen": { "label": "Kitchen", "icon": "flame" },
+      "dining_room": { "label": "Dining Room", "icon": "users" },
+      "office": { "label": "Office", "icon": "clipboard" },
+      "market_shopping": { "label": "Market", "icon": "shopping-cart" },
+      "rush_hour": { "label": "Rush Hour!", "icon": "clock" },
+      "critic_visit": { "label": "Critic Visit!", "icon": "star" }
+    },
+    "resourceIcons": {
+      "money": "dollar",
+      "ingredients": "leaf",
+      "staff": "users",
+      "reputation": "award",
+      "quality": "star",
+      "stress": "activity",
+      "stars": "star"
+    }
+  }
+}

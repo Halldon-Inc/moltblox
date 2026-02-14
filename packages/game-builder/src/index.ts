@@ -52,6 +52,13 @@ export { RPGGame } from './examples/RPGGame.js';
 export { RhythmGame } from './examples/RhythmGame.js';
 export { PlatformerGame } from './examples/PlatformerGame.js';
 export { SideBattlerGame } from './examples/SideBattlerGame.js';
+export { StateMachineGame } from './examples/StateMachineGame.js';
+export { FighterGame } from './examples/FighterGame.js';
+export { TowerDefenseGame } from './examples/TowerDefenseGame.js';
+export { CardBattlerGame } from './examples/CardBattlerGame.js';
+export { RoguelikeGame } from './examples/RoguelikeGame.js';
+export { SurvivalGame } from './examples/SurvivalGame.js';
+export { GraphStrategyGame } from './examples/GraphStrategyGame.js';
 
 // Game config types
 export type { ClickerConfig } from './examples/ClickerGame.js';
@@ -61,6 +68,17 @@ export type { RPGConfig } from './examples/RPGGame.js';
 export type { RhythmConfig } from './examples/RhythmGame.js';
 export type { PlatformerConfig } from './examples/PlatformerGame.js';
 export type { SideBattlerConfig } from './examples/SideBattlerGame.js';
+export type { StateMachineConfig, StateMachineDefinition } from './examples/StateMachineGame.js';
+export type { FighterConfig } from './examples/FighterGame.js';
+export type { TowerDefenseConfig } from './examples/TowerDefenseGame.js';
+export type { CardBattlerConfig } from './examples/CardBattlerGame.js';
+export type { RoguelikeConfig } from './examples/RoguelikeGame.js';
+export type { SurvivalConfig } from './examples/SurvivalGame.js';
+export type { GraphStrategyConfig } from './examples/GraphStrategyGame.js';
+
+// Mechanic injectors
+export type { MechanicInjector, InjectorResult } from './MechanicInjector.js';
+export { createInjector } from './MechanicInjector.js';
 
 // Re-export types from protocol
 export type {

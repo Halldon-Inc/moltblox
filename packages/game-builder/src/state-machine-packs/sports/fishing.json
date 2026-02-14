@@ -1,0 +1,432 @@
+{
+  "name": "Fishing",
+  "description": "Spend a day at the lake trying to catch the legendary fish. Manage your bait, patience, and technique to land the big one.",
+  "states": [
+    {
+      "name": "shore",
+      "description": "Standing on the bank with your tackle box.",
+      "onEnter": []
+    },
+    {
+      "name": "casting",
+      "description": "Line in the water. Watching the bobber.",
+      "onEnter": []
+    },
+    {
+      "name": "nibble",
+      "description": "Something is tugging at the line!",
+      "onEnter": [
+        {
+          "resource": "excitement",
+          "operation": "+",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "name": "fighting",
+      "description": "A fish is on the hook! Reel it in!",
+      "onEnter": [
+        {
+          "resource": "excitement",
+          "operation": "+",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "boat",
+      "description": "Out on the deeper water in your small boat.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "shore",
+  "resources": {
+    "fish_caught": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Fish Caught"
+    },
+    "bait": {
+      "initial": 10,
+      "min": 0,
+      "max": 15,
+      "label": "Bait"
+    },
+    "line_strength": {
+      "initial": 100,
+      "min": 0,
+      "max": 100,
+      "label": "Line Strength"
+    },
+    "patience": {
+      "initial": 80,
+      "min": 0,
+      "max": 100,
+      "label": "Patience"
+    },
+    "excitement": {
+      "initial": 0,
+      "min": 0,
+      "max": 50,
+      "label": "Excitement"
+    },
+    "time": {
+      "initial": 60,
+      "min": 0,
+      "max": 60,
+      "label": "Time Left"
+    }
+  },
+  "actions": {
+    "shore": [
+      {
+        "name": "cast_line",
+        "label": "Cast Your Line",
+        "description": "Throw a line into the water.",
+        "effects": [
+          {
+            "resource": "bait",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "2"
+          }
+        ],
+        "transition": "casting"
+      },
+      {
+        "name": "change_bait",
+        "label": "Change Bait",
+        "description": "Switch to a different lure.",
+        "effects": [
+          {
+            "resource": "bait",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "take_boat",
+        "label": "Go to Deeper Water",
+        "description": "Row out in the boat.",
+        "effects": [
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "5"
+          }
+        ],
+        "transition": "boat"
+      },
+      {
+        "name": "rest",
+        "label": "Take a Break",
+        "description": "Relax and enjoy the scenery.",
+        "effects": [
+          {
+            "resource": "patience",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "3"
+          }
+        ]
+      }
+    ],
+    "casting": [
+      {
+        "name": "wait_patiently",
+        "label": "Wait Patiently",
+        "description": "Keep still and watch the water.",
+        "effects": [
+          {
+            "resource": "patience",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "jig_line",
+        "label": "Jig the Line",
+        "description": "Move the bait to attract fish.",
+        "effects": [
+          {
+            "resource": "excitement",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "name": "reel_in",
+        "label": "Reel In and Recast",
+        "description": "Try a different spot.",
+        "effects": [
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "2"
+          }
+        ],
+        "transition": "shore"
+      }
+    ],
+    "nibble": [
+      {
+        "name": "set_hook",
+        "label": "Set the Hook!",
+        "description": "Yank the rod to hook the fish.",
+        "effects": [
+          {
+            "resource": "line_strength",
+            "operation": "-",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "fighting"
+      },
+      {
+        "name": "wait_more",
+        "label": "Wait for Solid Bite",
+        "description": "Be patient for a better hookset.",
+        "effects": [
+          {
+            "resource": "patience",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "excitement",
+            "operation": "+",
+            "value": "2"
+          }
+        ]
+      }
+    ],
+    "fighting": [
+      {
+        "name": "reel_hard",
+        "label": "Reel Hard",
+        "description": "Crank the reel with all your strength.",
+        "effects": [
+          {
+            "resource": "fish_caught",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "line_strength",
+            "operation": "-",
+            "value": "random(10,20)"
+          },
+          {
+            "resource": "excitement",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "shore"
+      },
+      {
+        "name": "play_fish",
+        "label": "Play the Fish",
+        "description": "Tire it out before reeling in.",
+        "effects": [
+          {
+            "resource": "line_strength",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "patience",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "net_it",
+        "label": "Use the Net",
+        "description": "Scoop it up while it is close.",
+        "condition": {
+          "resource": "excitement",
+          "operator": ">=",
+          "value": "15"
+        },
+        "effects": [
+          {
+            "resource": "fish_caught",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "excitement",
+            "operation": "+",
+            "value": "5"
+          }
+        ],
+        "transition": "shore"
+      }
+    ],
+    "boat": [
+      {
+        "name": "deep_cast",
+        "label": "Deep Water Cast",
+        "description": "Fish in deeper water for bigger catches.",
+        "effects": [
+          {
+            "resource": "bait",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "3"
+          },
+          {
+            "resource": "excitement",
+            "operation": "+",
+            "value": "random(2,5)"
+          }
+        ],
+        "transition": "casting"
+      },
+      {
+        "name": "troll",
+        "label": "Trolling",
+        "description": "Drag bait behind the moving boat.",
+        "effects": [
+          {
+            "resource": "bait",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "fish_caught",
+            "operation": "+",
+            "value": "random(0,1)"
+          }
+        ]
+      },
+      {
+        "name": "row_back",
+        "label": "Row Back to Shore",
+        "description": "Head back to the bank.",
+        "effects": [
+          {
+            "resource": "time",
+            "operation": "-",
+            "value": "3"
+          }
+        ],
+        "transition": "shore"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "casting",
+      "to": "nibble",
+      "condition": {
+        "resource": "patience",
+        "operator": "<=",
+        "value": "40"
+      },
+      "auto": false
+    },
+    {
+      "from": "casting",
+      "to": "nibble",
+      "condition": {
+        "resource": "excitement",
+        "operator": ">=",
+        "value": "10"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "fish_caught",
+    "operator": ">=",
+    "value": "8"
+  },
+  "loseCondition": {
+    "resource": "time",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "lake-blue",
+    "stateDescriptions": {
+      "shore": {
+        "label": "Lakeside",
+        "icon": "anchor"
+      },
+      "casting": {
+        "label": "Casting",
+        "icon": "target"
+      },
+      "nibble": {
+        "label": "Nibble!",
+        "icon": "alert"
+      },
+      "fighting": {
+        "label": "Fish On!",
+        "icon": "zap"
+      },
+      "boat": {
+        "label": "Deep Water",
+        "icon": "ship"
+      }
+    },
+    "resourceIcons": {
+      "fish_caught": "trophy",
+      "bait": "box",
+      "line_strength": "shield",
+      "patience": "clock",
+      "excitement": "heart",
+      "time": "clock"
+    }
+  }
+}

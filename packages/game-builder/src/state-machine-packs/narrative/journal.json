@@ -1,0 +1,274 @@
+{
+  "name": "Journal",
+  "description": "You found a journal on a park bench. Each entry reveals more about the writer's mysterious disappearance. Piece together the clues before the trail goes cold.",
+  "states": [
+    {
+      "name": "first_entry",
+      "description": "The journal opens to a cheerful entry about a new job.",
+      "onEnter": [{ "resource": "clues", "operation": "+", "value": "random(1,3)" }]
+    },
+    {
+      "name": "middle_entries",
+      "description": "The tone shifts. Something is wrong at work.",
+      "onEnter": [
+        { "resource": "clues", "operation": "+", "value": "random(2,4)" },
+        { "resource": "suspicion", "operation": "+", "value": "random(3,5)" }
+      ]
+    },
+    {
+      "name": "coded_pages",
+      "description": "Some entries are written in code. Hidden messages.",
+      "onEnter": [{ "resource": "suspicion", "operation": "+", "value": "random(5,8)" }]
+    },
+    {
+      "name": "investigation",
+      "description": "You visit locations mentioned in the journal.",
+      "onEnter": [{ "resource": "clues", "operation": "+", "value": "random(2,5)" }]
+    },
+    {
+      "name": "confrontation",
+      "description": "You find someone who knows the writer.",
+      "onEnter": [{ "resource": "danger", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "final_entry",
+      "description": "The last page. The handwriting is shaky.",
+      "onEnter": [{ "resource": "clues", "operation": "+", "value": "random(5,8)" }]
+    }
+  ],
+  "initialState": "first_entry",
+  "resources": {
+    "clues": { "initial": 0, "min": 0, "max": 100, "label": "Clues Found" },
+    "suspicion": { "initial": 0, "min": 0, "max": 100, "label": "Suspicion" },
+    "danger": { "initial": 0, "min": 0, "max": 100, "label": "Danger" },
+    "pages_read": { "initial": 0, "min": 0, "max": 50, "label": "Pages Read" },
+    "understanding": { "initial": 0, "min": 0, "max": 100, "label": "Understanding" }
+  },
+  "actions": {
+    "first_entry": [
+      {
+        "name": "read_carefully",
+        "label": "Read Carefully",
+        "description": "Take note of names, dates, and places.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(3,5)" },
+          { "resource": "pages_read", "operation": "+", "value": "random(3,5)" },
+          { "resource": "understanding", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "skip_ahead",
+        "label": "Skip Ahead",
+        "description": "Jump to later entries.",
+        "effects": [{ "resource": "pages_read", "operation": "+", "value": "random(5,8)" }],
+        "transition": "middle_entries"
+      },
+      {
+        "name": "search_name",
+        "label": "Search the Writer's Name",
+        "description": "Look them up online.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(2,4)" },
+          { "resource": "understanding", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "middle_entries": [
+      {
+        "name": "note_changes",
+        "label": "Note the Changes",
+        "description": "The writer's mood is shifting.",
+        "effects": [
+          { "resource": "understanding", "operation": "+", "value": "random(5,8)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(3,5)" },
+          { "resource": "pages_read", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "look_for_names",
+        "label": "Track the Names",
+        "description": "Who keeps appearing in the entries?",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(4,7)" },
+          { "resource": "pages_read", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "go_investigate",
+        "label": "Visit a Location",
+        "description": "Go to a place mentioned in the journal.",
+        "effects": [{ "resource": "pages_read", "operation": "+", "value": "random(1,2)" }],
+        "transition": "investigation"
+      },
+      {
+        "name": "keep_reading",
+        "label": "Keep Reading",
+        "description": "Turn more pages.",
+        "effects": [
+          { "resource": "pages_read", "operation": "+", "value": "random(4,6)" },
+          { "resource": "understanding", "operation": "+", "value": "random(2,4)" }
+        ]
+      }
+    ],
+    "coded_pages": [
+      {
+        "name": "decode",
+        "label": "Decode the Messages",
+        "description": "Work out the cipher.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(8,12)" },
+          { "resource": "understanding", "operation": "+", "value": "random(5,10)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(3,6)" },
+          { "resource": "pages_read", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "photograph",
+        "label": "Photograph the Pages",
+        "description": "Save copies for later analysis.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(3,5)" },
+          { "resource": "pages_read", "operation": "+", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "skip_coded",
+        "label": "Skip the Coded Parts",
+        "description": "Move on to readable entries.",
+        "effects": [{ "resource": "pages_read", "operation": "+", "value": "random(3,5)" }],
+        "transition": "middle_entries"
+      }
+    ],
+    "investigation": [
+      {
+        "name": "visit_workplace",
+        "label": "Visit Their Workplace",
+        "description": "The company still exists.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(5,10)" },
+          { "resource": "danger", "operation": "+", "value": "random(3,6)" },
+          { "resource": "understanding", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "talk_neighbors",
+        "label": "Talk to Neighbors",
+        "description": "Someone must remember them.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(4,8)" },
+          { "resource": "understanding", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "check_records",
+        "label": "Check Public Records",
+        "description": "Police reports, news archives.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(5,8)" },
+          { "resource": "suspicion", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "middle_entries"
+      },
+      {
+        "name": "back_to_journal",
+        "label": "Return to the Journal",
+        "description": "There is more to read.",
+        "effects": [],
+        "transition": "middle_entries"
+      }
+    ],
+    "confrontation": [
+      {
+        "name": "show_journal",
+        "label": "Show the Journal",
+        "description": "Reveal what you know.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(8,15)" },
+          { "resource": "danger", "operation": "+", "value": "random(5,10)" },
+          { "resource": "understanding", "operation": "+", "value": "random(8,12)" }
+        ],
+        "transition": "final_entry"
+      },
+      {
+        "name": "play_dumb",
+        "label": "Play Dumb",
+        "description": "Pretend you know nothing.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(3,6)" },
+          { "resource": "danger", "operation": "-", "value": "random(3,5)" }
+        ],
+        "transition": "middle_entries"
+      },
+      {
+        "name": "threaten_police",
+        "label": "Threaten to Call Police",
+        "description": "Apply pressure.",
+        "effects": [
+          { "resource": "understanding", "operation": "+", "value": "random(5,10)" },
+          { "resource": "danger", "operation": "+", "value": "random(8,12)" }
+        ],
+        "transition": "final_entry"
+      }
+    ],
+    "final_entry": [
+      {
+        "name": "read_last",
+        "label": "Read the Last Words",
+        "description": "The final entry reveals everything.",
+        "effects": [
+          { "resource": "understanding", "operation": "+", "value": "random(10,15)" },
+          { "resource": "clues", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "call_police",
+        "label": "Call the Police",
+        "description": "Hand over all evidence.",
+        "effects": [
+          { "resource": "understanding", "operation": "+", "value": "random(5,10)" },
+          { "resource": "danger", "operation": "-", "value": "random(10,15)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "middle_entries",
+      "to": "coded_pages",
+      "condition": { "resource": "suspicion", "operator": ">=", "value": "20" },
+      "auto": true
+    },
+    {
+      "from": "investigation",
+      "to": "confrontation",
+      "condition": { "resource": "clues", "operator": ">=", "value": "40" },
+      "auto": true
+    },
+    {
+      "from": "middle_entries",
+      "to": "final_entry",
+      "condition": { "resource": "pages_read", "operator": ">=", "value": "35" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "understanding", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "danger", "operator": ">=", "value": "100" },
+  "theme": {
+    "palette": "notebook-blue",
+    "stateDescriptions": {
+      "first_entry": { "label": "First Entry", "icon": "book-open" },
+      "middle_entries": { "label": "Middle Entries", "icon": "book" },
+      "coded_pages": { "label": "Coded Pages", "icon": "lock" },
+      "investigation": { "label": "Investigation", "icon": "search" },
+      "confrontation": { "label": "Confrontation", "icon": "users" },
+      "final_entry": { "label": "Final Entry", "icon": "file-text" }
+    },
+    "resourceIcons": {
+      "clues": "search",
+      "suspicion": "eye",
+      "danger": "alert",
+      "pages_read": "book",
+      "understanding": "target"
+    }
+  }
+}

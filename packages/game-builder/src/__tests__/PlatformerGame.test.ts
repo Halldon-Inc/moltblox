@@ -224,4 +224,65 @@ describe('PlatformerGame', () => {
       expect(result.success).toBe(false);
     });
   });
+
+  describe('config: playerMoveSpeed', () => {
+    it('higher moveSpeed produces faster horizontal velocity', () => {
+      const slowGame = new PlatformerGame({ playerMoveSpeed: 2 });
+      slowGame.initialize(['player-1']);
+      act(slowGame, 'player-1', 'move', { direction: 'right' });
+      const slowData = getData(slowGame);
+      const slowVx = slowData.players['player-1'].physics.velocity.x;
+
+      const fastGame = new PlatformerGame({ playerMoveSpeed: 8 });
+      fastGame.initialize(['player-1']);
+      act(fastGame, 'player-1', 'move', { direction: 'right' });
+      const fastData = getData(fastGame);
+      const fastVx = fastData.players['player-1'].physics.velocity.x;
+
+      expect(fastVx).toBeGreaterThan(slowVx);
+    });
+  });
+
+  describe('config: airControl', () => {
+    it('lower airControl reduces airborne speed', () => {
+      const game = new PlatformerGame({ airControl: 0.3 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      // Set player to airborne
+      data.players['player-1'].physics.onGround = false;
+      data.players['player-1'].physics.coyoteTimer = 100;
+      act(game, 'player-1', 'move', { direction: 'right' });
+      const after = getData(game);
+      // With 0.3 air control and default moveSpeed 4, velocity should be 4 * 0.3 = 1.2
+      expect(after.players['player-1'].physics.velocity.x).toBeCloseTo(1.2, 1);
+    });
+  });
+
+  describe('config: maxFallSpeed', () => {
+    it('lower maxFallSpeed caps falling velocity', () => {
+      const game = new PlatformerGame({ maxFallSpeed: 5 });
+      game.initialize(['player-1']);
+      // Run many ticks to build up falling speed
+      for (let i = 0; i < 30; i++) {
+        act(game, 'player-1', 'tick');
+      }
+      const data = getData(game);
+      const vy = data.players['player-1'].physics.velocity.y;
+      expect(vy).toBeLessThanOrEqual(5);
+    });
+  });
+
+  describe('config: hazardDensity', () => {
+    it('high density spawns more hazards than low', () => {
+      const lowGame = new PlatformerGame({ hazardDensity: 'low' });
+      lowGame.initialize(['player-1']);
+      const lowData = getData(lowGame);
+
+      const highGame = new PlatformerGame({ hazardDensity: 'high' });
+      highGame.initialize(['player-1']);
+      const highData = getData(highGame);
+
+      expect(highData.hazards.length).toBeGreaterThan(lowData.hazards.length);
+    });
+  });
 });

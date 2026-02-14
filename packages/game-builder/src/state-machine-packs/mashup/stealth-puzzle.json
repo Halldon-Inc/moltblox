@@ -1,0 +1,594 @@
+{
+  "name": "Stealth Puzzle",
+  "description": "You are a thief infiltrating a heavily guarded museum. Solve environmental puzzles to bypass security systems while staying hidden. One wrong move and the alarms trigger.",
+  "states": [
+    {
+      "name": "exterior",
+      "description": "Outside the museum. Guards patrol the perimeter.",
+      "onEnter": []
+    },
+    {
+      "name": "ventilation",
+      "description": "Crawling through narrow air ducts above the exhibits.",
+      "onEnter": [
+        {
+          "resource": "stealth",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "gallery",
+      "description": "A room full of priceless art and laser grids.",
+      "onEnter": [
+        {
+          "resource": "alert_level",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "security_room",
+      "description": "Banks of monitors and control panels.",
+      "onEnter": [
+        {
+          "resource": "alert_level",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "vault_corridor",
+      "description": "The final hallway. Pressure plates line the floor.",
+      "onEnter": [
+        {
+          "resource": "alert_level",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "vault",
+      "description": "The vault door stands before you. One last puzzle.",
+      "onEnter": [
+        {
+          "resource": "alert_level",
+          "operation": "+",
+          "value": "random(5,8)"
+        }
+      ]
+    }
+  ],
+  "initialState": "exterior",
+  "resources": {
+    "stealth": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Stealth"
+    },
+    "tools": {
+      "initial": 10,
+      "min": 0,
+      "max": 20,
+      "label": "Tools"
+    },
+    "puzzles_solved": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Puzzles Solved"
+    },
+    "alert_level": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Alert Level"
+    },
+    "intel": {
+      "initial": 5,
+      "min": 0,
+      "max": 50,
+      "label": "Intel"
+    }
+  },
+  "actions": {
+    "exterior": [
+      {
+        "name": "scout",
+        "label": "Scout the Building",
+        "description": "Study guard patterns and camera positions.",
+        "effects": [
+          {
+            "resource": "intel",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "find_vent",
+        "label": "Find a Vent Entrance",
+        "description": "Locate an air duct to slip through.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "ventilation"
+      },
+      {
+        "name": "pick_lock",
+        "label": "Pick the Side Door",
+        "description": "A quiet entrance through the service door.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "gallery"
+      },
+      {
+        "name": "disable_camera",
+        "label": "Disable a Camera",
+        "description": "One less eye watching.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "intel",
+            "operation": "+",
+            "value": "random(2,3)"
+          }
+        ]
+      }
+    ],
+    "ventilation": [
+      {
+        "name": "crawl_silent",
+        "label": "Crawl Silently",
+        "description": "Move slowly through the ducts.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "map_layout",
+        "label": "Map the Layout",
+        "description": "Peek through vents to learn the building.",
+        "effects": [
+          {
+            "resource": "intel",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "drop_gallery",
+        "label": "Drop into Gallery",
+        "description": "Exit the vent into an exhibit room.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "gallery"
+      },
+      {
+        "name": "reach_security",
+        "label": "Crawl to Security Room",
+        "description": "Follow the duct toward the control center.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "security_room"
+      }
+    ],
+    "gallery": [
+      {
+        "name": "dodge_lasers",
+        "label": "Navigate Laser Grid",
+        "description": "Bend, twist, and roll through the beams.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "mirror_trick",
+        "label": "Use Mirrors",
+        "description": "Redirect laser beams with pocket mirrors.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "hide_shadow",
+        "label": "Hide in Shadows",
+        "description": "Wait for the guard patrol to pass.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "find_corridor",
+        "label": "Find the Vault Corridor",
+        "description": "Locate the passage deeper in.",
+        "effects": [
+          {
+            "resource": "intel",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "vault_corridor"
+      }
+    ],
+    "security_room": [
+      {
+        "name": "hack_cameras",
+        "label": "Hack Camera System",
+        "description": "Loop the security footage.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "study_schedule",
+        "label": "Study Guard Schedule",
+        "description": "Learn exactly when guards change.",
+        "effects": [
+          {
+            "resource": "intel",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "disable_alarms",
+        "label": "Disable Alarm Zone",
+        "description": "Cut power to a section of alarms.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "leave_quietly",
+        "label": "Leave Quietly",
+        "description": "Slip out before anyone notices.",
+        "effects": [],
+        "transition": "gallery"
+      }
+    ],
+    "vault_corridor": [
+      {
+        "name": "pressure_puzzle",
+        "label": "Solve Pressure Puzzle",
+        "description": "Step on the right tiles in the right order.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "gas_bypass",
+        "label": "Bypass Gas Trap",
+        "description": "Use tools to reroute the gas system.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "intel",
+            "operation": "-",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Retreat to Gallery",
+        "description": "Go back for more preparation.",
+        "effects": [
+          {
+            "resource": "alert_level",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "gallery"
+      },
+      {
+        "name": "approach_vault",
+        "label": "Approach the Vault",
+        "description": "The final door is within reach.",
+        "effects": [
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "vault"
+      }
+    ],
+    "vault": [
+      {
+        "name": "crack_combination",
+        "label": "Crack the Combination",
+        "description": "Use everything you know to open the lock.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(2,3)"
+          },
+          {
+            "resource": "intel",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "alert_level",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "electronic_bypass",
+        "label": "Electronic Bypass",
+        "description": "Override the digital lock with custom tools.",
+        "effects": [
+          {
+            "resource": "tools",
+            "operation": "-",
+            "value": "random(2,3)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(2,3)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "stethoscope",
+        "label": "Listen for Tumblers",
+        "description": "Old school safe cracking.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "stealth",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "gallery",
+      "to": "vault_corridor",
+      "condition": {
+        "resource": "puzzles_solved",
+        "operator": ">=",
+        "value": "8"
+      },
+      "auto": true
+    },
+    {
+      "from": "vault_corridor",
+      "to": "vault",
+      "condition": {
+        "resource": "puzzles_solved",
+        "operator": ">=",
+        "value": "12"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "puzzles_solved",
+    "operator": ">=",
+    "value": "18"
+  },
+  "loseCondition": {
+    "resource": "alert_level",
+    "operator": ">=",
+    "value": "100"
+  },
+  "theme": {
+    "palette": "midnight-black",
+    "stateDescriptions": {
+      "exterior": {
+        "label": "Exterior",
+        "icon": "moon"
+      },
+      "ventilation": {
+        "label": "Ventilation",
+        "icon": "wind"
+      },
+      "gallery": {
+        "label": "Gallery",
+        "icon": "image"
+      },
+      "security_room": {
+        "label": "Security Room",
+        "icon": "monitor"
+      },
+      "vault_corridor": {
+        "label": "Vault Corridor",
+        "icon": "lock"
+      },
+      "vault": {
+        "label": "The Vault",
+        "icon": "shield"
+      }
+    },
+    "resourceIcons": {
+      "stealth": "eye",
+      "tools": "tool",
+      "puzzles_solved": "target",
+      "alert_level": "alert-triangle",
+      "intel": "search"
+    }
+  }
+}

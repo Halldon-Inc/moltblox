@@ -1,0 +1,347 @@
+{
+  "name": "Underwater Quest",
+  "description": "Dive into the deep ocean in a research submersible. Discover underwater ruins, collect specimens, and surface before your air runs out.",
+  "states": [
+    {
+      "name": "surface",
+      "description": "Your research vessel floats on calm waters.",
+      "onEnter": [{ "resource": "oxygen", "operation": "+", "value": "20" }]
+    },
+    {
+      "name": "shallow_reef",
+      "description": "Colorful coral reefs teeming with life.",
+      "onEnter": []
+    },
+    {
+      "name": "mid_depth",
+      "description": "The twilight zone. Light fades quickly here.",
+      "onEnter": [{ "resource": "oxygen", "operation": "-", "value": "2" }]
+    },
+    {
+      "name": "deep_trench",
+      "description": "The abyssal trench. Crushing pressure surrounds you.",
+      "onEnter": [
+        { "resource": "oxygen", "operation": "-", "value": "3" },
+        { "resource": "hull_integrity", "operation": "-", "value": "3" }
+      ]
+    },
+    {
+      "name": "sunken_city",
+      "description": "An impossibly ancient underwater city.",
+      "onEnter": []
+    },
+    {
+      "name": "thermal_vent",
+      "description": "Geothermal vents heat the surrounding water.",
+      "onEnter": [{ "resource": "power", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "creature_encounter",
+      "description": "Something massive lurks in the dark.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "surface",
+  "resources": {
+    "oxygen": { "initial": 50, "min": 0, "max": 60, "label": "Oxygen" },
+    "hull_integrity": { "initial": 100, "min": 0, "max": 100, "label": "Hull Integrity" },
+    "power": { "initial": 30, "min": 0, "max": 50, "label": "Power" },
+    "specimens": { "initial": 0, "min": 0, "label": "Specimens" },
+    "relics": { "initial": 0, "min": 0, "label": "Relics" },
+    "depth": { "initial": 0, "min": 0, "max": 15, "label": "Depth Level" },
+    "sonar_data": { "initial": 0, "min": 0, "max": 10, "label": "Sonar Data" }
+  },
+  "actions": {
+    "surface": [
+      {
+        "name": "recharge",
+        "label": "Recharge Systems",
+        "description": "Use solar panels to recharge power.",
+        "effects": [{ "resource": "power", "operation": "+", "value": "10" }]
+      },
+      {
+        "name": "refill_oxygen",
+        "label": "Refill Oxygen",
+        "description": "Replenish oxygen from surface air.",
+        "effects": [{ "resource": "oxygen", "operation": "+", "value": "20" }]
+      },
+      {
+        "name": "repair",
+        "label": "Hull Maintenance",
+        "description": "Repair hull damage while surfaced.",
+        "effects": [{ "resource": "hull_integrity", "operation": "+", "value": "15" }]
+      },
+      {
+        "name": "dive",
+        "label": "Begin Descent",
+        "description": "Dive beneath the waves.",
+        "condition": { "resource": "power", "operator": ">=", "value": "10" },
+        "effects": [{ "resource": "depth", "operation": "+", "value": "1" }],
+        "transition": "shallow_reef"
+      }
+    ],
+    "shallow_reef": [
+      {
+        "name": "collect_coral",
+        "label": "Collect Coral Samples",
+        "description": "Carefully take coral specimens.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "random(1,3)" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "photograph",
+        "label": "Photograph Marine Life",
+        "description": "Document the reef ecosystem.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "1" },
+          { "resource": "power", "operation": "-", "value": "1" },
+          { "resource": "oxygen", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "sonar_scan",
+        "label": "Sonar Scan",
+        "description": "Scan the area below for structures.",
+        "effects": [
+          { "resource": "sonar_data", "operation": "+", "value": "random(1,3)" },
+          { "resource": "power", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_deeper",
+        "label": "Descend Further",
+        "description": "Dive into the twilight zone.",
+        "effects": [{ "resource": "depth", "operation": "+", "value": "2" }],
+        "transition": "mid_depth"
+      },
+      {
+        "name": "ascend",
+        "label": "Ascend to Surface",
+        "description": "Return to the surface.",
+        "effects": [{ "resource": "depth", "operation": "-", "value": "2" }],
+        "transition": "surface"
+      }
+    ],
+    "mid_depth": [
+      {
+        "name": "collect_specimens",
+        "label": "Collect Deep Specimens",
+        "description": "Gather unique deep-water organisms.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "random(2,4)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" },
+          { "resource": "power", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "deep_scan",
+        "label": "Deep Sonar Scan",
+        "description": "Scan for the sunken city.",
+        "effects": [
+          { "resource": "sonar_data", "operation": "+", "value": "random(2,4)" },
+          { "resource": "power", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "descend_trench",
+        "label": "Enter the Trench",
+        "description": "Dive into the abyss.",
+        "condition": { "resource": "hull_integrity", "operator": ">=", "value": "30" },
+        "effects": [{ "resource": "depth", "operation": "+", "value": "3" }],
+        "transition": "deep_trench"
+      },
+      {
+        "name": "go_up",
+        "label": "Ascend to Reef",
+        "description": "Rise back to shallower waters.",
+        "effects": [{ "resource": "depth", "operation": "-", "value": "2" }],
+        "transition": "shallow_reef"
+      }
+    ],
+    "deep_trench": [
+      {
+        "name": "explore_trench",
+        "label": "Explore Trench Floor",
+        "description": "Navigate the deepest part of the ocean.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "random(2,5)" },
+          { "resource": "oxygen", "operation": "-", "value": "4" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "find_vent",
+        "label": "Locate Thermal Vent",
+        "description": "Search for geothermal vents.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "2" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ],
+        "transition": "thermal_vent"
+      },
+      {
+        "name": "find_ruins",
+        "label": "Search for Ruins",
+        "description": "Use sonar data to find the sunken city.",
+        "condition": { "resource": "sonar_data", "operator": ">=", "value": "6" },
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "3" }],
+        "transition": "sunken_city"
+      },
+      {
+        "name": "ascend_mid",
+        "label": "Ascend",
+        "description": "Rise to the twilight zone.",
+        "effects": [{ "resource": "depth", "operation": "-", "value": "3" }],
+        "transition": "mid_depth"
+      }
+    ],
+    "sunken_city": [
+      {
+        "name": "explore_ruins",
+        "label": "Explore Ruins",
+        "description": "Navigate the underwater structures.",
+        "effects": [
+          { "resource": "relics", "operation": "+", "value": "random(3,8)" },
+          { "resource": "oxygen", "operation": "-", "value": "4" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "scan_inscriptions",
+        "label": "Scan Inscriptions",
+        "description": "Record the ancient writing on the walls.",
+        "effects": [
+          { "resource": "relics", "operation": "+", "value": "random(2,5)" },
+          { "resource": "power", "operation": "-", "value": "2" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "salvage",
+        "label": "Salvage Artifacts",
+        "description": "Carefully extract relics from the ruins.",
+        "effects": [
+          { "resource": "relics", "operation": "+", "value": "random(4,10)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "leave_city",
+        "label": "Leave City",
+        "description": "Return to the trench.",
+        "effects": [],
+        "transition": "deep_trench"
+      }
+    ],
+    "thermal_vent": [
+      {
+        "name": "harvest_energy",
+        "label": "Harvest Thermal Energy",
+        "description": "Use the heat to recharge power cells.",
+        "effects": [
+          { "resource": "power", "operation": "+", "value": "random(5,12)" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "collect_vent_life",
+        "label": "Collect Extremophiles",
+        "description": "Sample organisms living near the vent.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "random(3,6)" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "leave_vent",
+        "label": "Move On",
+        "description": "Continue exploring the trench.",
+        "effects": [],
+        "transition": "deep_trench"
+      }
+    ],
+    "creature_encounter": [
+      {
+        "name": "observe",
+        "label": "Observe Silently",
+        "description": "Watch the creature from a distance.",
+        "effects": [
+          { "resource": "specimens", "operation": "+", "value": "random(3,6)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ],
+        "transition": "mid_depth"
+      },
+      {
+        "name": "flash_lights",
+        "label": "Flash Floodlights",
+        "description": "Scare it away with bright lights.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "3" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(0,5)" }
+        ],
+        "transition": "mid_depth"
+      },
+      {
+        "name": "evade",
+        "label": "Evasive Maneuvers",
+        "description": "Try to get away quickly.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "5" },
+          { "resource": "hull_integrity", "operation": "-", "value": "random(5,15)" }
+        ],
+        "transition": "deep_trench"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "mid_depth",
+      "to": "creature_encounter",
+      "condition": { "resource": "depth", "operator": ">=", "value": "8" },
+      "auto": false
+    },
+    {
+      "from": "deep_trench",
+      "to": "creature_encounter",
+      "condition": { "resource": "specimens", "operator": ">=", "value": "15" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [{ "resource": "oxygen", "operation": "-", "value": "1" }],
+  "winCondition": {
+    "and": [
+      { "resource": "relics", "operator": ">=", "value": "20" },
+      { "resource": "specimens", "operator": ">=", "value": "15" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "oxygen", "operator": "<=", "value": "0" },
+      { "resource": "hull_integrity", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "deep-ocean",
+    "stateDescriptions": {
+      "surface": { "label": "Surface", "icon": "sun" },
+      "shallow_reef": { "label": "Coral Reef", "icon": "fish" },
+      "mid_depth": { "label": "Twilight Zone", "icon": "moon" },
+      "deep_trench": { "label": "Abyssal Trench", "icon": "arrow-down" },
+      "sunken_city": { "label": "Sunken City", "icon": "landmark" },
+      "thermal_vent": { "label": "Thermal Vent", "icon": "flame" },
+      "creature_encounter": { "label": "Deep Creature!", "icon": "alert" }
+    },
+    "resourceIcons": {
+      "oxygen": "wind",
+      "hull_integrity": "shield",
+      "power": "battery",
+      "specimens": "flask",
+      "relics": "gem",
+      "depth": "arrow-down",
+      "sonar_data": "radio"
+    }
+  }
+}

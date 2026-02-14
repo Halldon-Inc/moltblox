@@ -1,0 +1,202 @@
+{
+  "name": "Recursive Puzzle",
+  "description": "Solve puzzles that contain smaller puzzles inside them. Each layer you crack reveals another deeper challenge. Manage your focus and logic to reach the core.",
+  "states": [
+    {
+      "name": "outer_shell",
+      "description": "The outermost puzzle layer. Shapes and symbols cover the surface.",
+      "onEnter": []
+    },
+    {
+      "name": "layer_two",
+      "description": "Inside the first puzzle sits another. Patterns repeat at a smaller scale.",
+      "onEnter": [{ "resource": "depth", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "layer_three",
+      "description": "Deeper still. The logic bends into recursive loops.",
+      "onEnter": [{ "resource": "depth", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "core_puzzle",
+      "description": "The smallest puzzle at the center. Solve this to unravel everything.",
+      "onEnter": [{ "resource": "depth", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "unwinding",
+      "description": "Solutions cascade outward as layers collapse.",
+      "onEnter": [{ "resource": "insight", "operation": "+", "value": "10" }]
+    },
+    {
+      "name": "solved",
+      "description": "The entire recursive structure is resolved.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "outer_shell",
+  "resources": {
+    "logic": { "initial": 50, "min": 0, "max": 100, "label": "Logic" },
+    "focus": { "initial": 80, "min": 0, "max": 100, "label": "Focus" },
+    "insight": { "initial": 0, "min": 0, "max": 100, "label": "Insight" },
+    "depth": { "initial": 0, "min": 0, "max": 5, "label": "Depth" },
+    "fragments": { "initial": 0, "min": 0, "max": 20, "label": "Solution Fragments" }
+  },
+  "actions": {
+    "outer_shell": [
+      {
+        "name": "analyze",
+        "label": "Analyze Patterns",
+        "description": "Study the symbols on the outer layer.",
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "random(3,8)" },
+          { "resource": "focus", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "crack_layer",
+        "label": "Crack the Shell",
+        "description": "Attempt to solve the outer puzzle.",
+        "condition": { "resource": "insight", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "fragments", "operation": "+", "value": "random(2,4)" },
+          { "resource": "focus", "operation": "-", "value": "10" }
+        ],
+        "transition": "layer_two"
+      },
+      {
+        "name": "meditate",
+        "label": "Clear Your Mind",
+        "description": "Restore focus before diving deeper.",
+        "effects": [{ "resource": "focus", "operation": "+", "value": "15" }]
+      }
+    ],
+    "layer_two": [
+      {
+        "name": "trace_recursion",
+        "label": "Trace the Recursion",
+        "description": "Follow the pattern as it repeats.",
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "random(5,10)" },
+          { "resource": "logic", "operation": "-", "value": "5" },
+          { "resource": "focus", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "solve_layer",
+        "label": "Solve Layer Two",
+        "description": "Break through to the next depth.",
+        "condition": { "resource": "insight", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "fragments", "operation": "+", "value": "random(3,5)" },
+          { "resource": "focus", "operation": "-", "value": "12" }
+        ],
+        "transition": "layer_three"
+      }
+    ],
+    "layer_three": [
+      {
+        "name": "deep_logic",
+        "label": "Apply Deep Logic",
+        "description": "Use advanced reasoning to decode the layer.",
+        "effects": [
+          { "resource": "logic", "operation": "-", "value": "10" },
+          { "resource": "insight", "operation": "+", "value": "random(8,15)" },
+          { "resource": "focus", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "reach_core",
+        "label": "Reach the Core",
+        "description": "Push through to the central puzzle.",
+        "condition": { "resource": "insight", "operator": ">=", "value": "45" },
+        "effects": [
+          { "resource": "fragments", "operation": "+", "value": "random(3,6)" },
+          { "resource": "focus", "operation": "-", "value": "15" }
+        ],
+        "transition": "core_puzzle"
+      }
+    ],
+    "core_puzzle": [
+      {
+        "name": "final_solve",
+        "label": "Solve the Core",
+        "description": "Apply everything you have learned to crack the center.",
+        "condition": { "resource": "fragments", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "20" },
+          { "resource": "logic", "operation": "-", "value": "15" }
+        ],
+        "transition": "unwinding"
+      },
+      {
+        "name": "study_core",
+        "label": "Study the Core",
+        "description": "Gather more fragments before attempting the solution.",
+        "effects": [
+          { "resource": "fragments", "operation": "+", "value": "random(2,4)" },
+          { "resource": "focus", "operation": "-", "value": "10" }
+        ]
+      }
+    ],
+    "unwinding": [
+      {
+        "name": "cascade_solve",
+        "label": "Cascade Solutions",
+        "description": "Watch as each layer resolves from the inside out.",
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "15" },
+          { "resource": "fragments", "operation": "+", "value": "5" }
+        ],
+        "transition": "solved"
+      }
+    ],
+    "solved": [
+      {
+        "name": "admire",
+        "label": "Admire Your Work",
+        "description": "The entire recursive structure lays flat before you, solved.",
+        "effects": [{ "resource": "insight", "operation": "+", "value": "10" }]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "layer_two",
+      "to": "outer_shell",
+      "condition": { "resource": "focus", "operator": "<=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "layer_three",
+      "to": "layer_two",
+      "condition": { "resource": "focus", "operator": "<=", "value": "10" },
+      "auto": true
+    },
+    {
+      "from": "core_puzzle",
+      "to": "layer_three",
+      "condition": { "resource": "focus", "operator": "<=", "value": "5" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "insight", "operator": ">=", "value": "90" },
+  "loseCondition": { "resource": "logic", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "fractal-blue",
+    "stateDescriptions": {
+      "outer_shell": { "label": "Outer Shell", "icon": "circle" },
+      "layer_two": { "label": "Layer 2", "icon": "layers" },
+      "layer_three": { "label": "Layer 3", "icon": "layers" },
+      "core_puzzle": { "label": "The Core", "icon": "target" },
+      "unwinding": { "label": "Unwinding", "icon": "rewind" },
+      "solved": { "label": "Solved!", "icon": "check" }
+    },
+    "resourceIcons": {
+      "logic": "brain",
+      "focus": "eye",
+      "insight": "lightbulb",
+      "depth": "layers",
+      "fragments": "puzzle"
+    }
+  }
+}

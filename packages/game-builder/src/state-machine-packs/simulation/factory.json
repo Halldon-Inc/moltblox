@@ -1,0 +1,285 @@
+{
+  "name": "Factory Manager",
+  "description": "Run an industrial factory. Optimize production lines, manage workers, and fulfill orders to grow your manufacturing business.",
+  "states": [
+    { "name": "production_floor", "description": "The main manufacturing area.", "onEnter": [] },
+    {
+      "name": "warehouse",
+      "description": "Storage for raw materials and finished goods.",
+      "onEnter": []
+    },
+    { "name": "quality_control", "description": "Inspection and testing area.", "onEnter": [] },
+    { "name": "office", "description": "Management and order processing.", "onEnter": [] },
+    { "name": "shipping_dock", "description": "Load trucks and ship products.", "onEnter": [] },
+    {
+      "name": "breakdown",
+      "description": "A machine has broken down!",
+      "onEnter": [{ "resource": "efficiency", "operation": "-", "value": "10" }]
+    }
+  ],
+  "initialState": "office",
+  "resources": {
+    "money": { "initial": 500, "min": 0, "label": "Money" },
+    "raw_materials": { "initial": 20, "min": 0, "max": 50, "label": "Raw Materials" },
+    "products": { "initial": 0, "min": 0, "max": 40, "label": "Finished Products" },
+    "workers": { "initial": 8, "min": 2, "max": 30, "label": "Workers" },
+    "efficiency": { "initial": 60, "min": 0, "max": 100, "label": "Efficiency" },
+    "orders": { "initial": 3, "min": 0, "max": 15, "label": "Pending Orders" },
+    "machines": { "initial": 3, "min": 1, "max": 10, "label": "Machines" }
+  },
+  "actions": {
+    "production_floor": [
+      {
+        "name": "produce",
+        "label": "Run Production",
+        "description": "Manufacture products from raw materials.",
+        "condition": { "resource": "raw_materials", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "raw_materials", "operation": "-", "value": "5" },
+          { "resource": "products", "operation": "+", "value": "random(3,8)" },
+          { "resource": "efficiency", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "overtime",
+        "label": "Run Overtime Shift",
+        "description": "Extra production hours.",
+        "condition": { "resource": "raw_materials", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "raw_materials", "operation": "-", "value": "8" },
+          { "resource": "products", "operation": "+", "value": "random(5,12)" },
+          { "resource": "money", "operation": "-", "value": "random(10,20)" },
+          { "resource": "efficiency", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "maintain",
+        "label": "Maintain Equipment",
+        "description": "Keep machines running smoothly.",
+        "condition": { "resource": "money", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "15" },
+          { "resource": "efficiency", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "go_warehouse",
+        "label": "Go to Warehouse",
+        "effects": [],
+        "transition": "warehouse"
+      },
+      {
+        "name": "go_qc",
+        "label": "Quality Control",
+        "effects": [],
+        "transition": "quality_control"
+      },
+      {
+        "name": "go_office",
+        "label": "Go to Office",
+        "effects": [],
+        "transition": "office"
+      }
+    ],
+    "warehouse": [
+      {
+        "name": "order_materials",
+        "label": "Order Raw Materials",
+        "description": "Purchase supplies for production.",
+        "condition": { "resource": "money", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "30" },
+          { "resource": "raw_materials", "operation": "+", "value": "random(8,15)" }
+        ]
+      },
+      {
+        "name": "organize",
+        "label": "Organize Inventory",
+        "description": "Better organization improves efficiency.",
+        "effects": [{ "resource": "efficiency", "operation": "+", "value": "random(2,5)" }]
+      },
+      {
+        "name": "go_shipping",
+        "label": "Go to Shipping",
+        "effects": [],
+        "transition": "shipping_dock"
+      },
+      {
+        "name": "go_floor",
+        "label": "Go to Floor",
+        "effects": [],
+        "transition": "production_floor"
+      }
+    ],
+    "quality_control": [
+      {
+        "name": "inspect",
+        "label": "Inspect Products",
+        "description": "Check quality of finished goods.",
+        "effects": [
+          { "resource": "products", "operation": "-", "value": "random(0,2)" },
+          { "resource": "efficiency", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "upgrade_process",
+        "label": "Improve QC Process",
+        "description": "Better quality standards.",
+        "condition": { "resource": "money", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "25" },
+          { "resource": "efficiency", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "go_floor",
+        "label": "Go to Floor",
+        "effects": [],
+        "transition": "production_floor"
+      }
+    ],
+    "office": [
+      {
+        "name": "hire_workers",
+        "label": "Hire Workers",
+        "description": "Recruit production staff.",
+        "condition": { "resource": "money", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "30" },
+          { "resource": "workers", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "buy_machine",
+        "label": "Buy Machine",
+        "description": "Add new production equipment.",
+        "condition": { "resource": "money", "operator": ">=", "value": "100" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "100" },
+          { "resource": "machines", "operation": "+", "value": "1" },
+          { "resource": "efficiency", "operation": "+", "value": "5" }
+        ]
+      },
+      {
+        "name": "take_order",
+        "label": "Accept New Order",
+        "description": "Take on a customer order.",
+        "effects": [
+          { "resource": "orders", "operation": "+", "value": "random(1,3)" },
+          { "resource": "money", "operation": "+", "value": "random(20,40)" }
+        ]
+      },
+      {
+        "name": "go_floor",
+        "label": "Go to Floor",
+        "effects": [],
+        "transition": "production_floor"
+      }
+    ],
+    "shipping_dock": [
+      {
+        "name": "ship_order",
+        "label": "Ship Order",
+        "description": "Fulfill a customer order.",
+        "condition": {
+          "and": [
+            { "resource": "products", "operator": ">=", "value": "5" },
+            { "resource": "orders", "operator": ">=", "value": "1" }
+          ]
+        },
+        "effects": [
+          { "resource": "products", "operation": "-", "value": "5" },
+          { "resource": "orders", "operation": "-", "value": "1" },
+          { "resource": "money", "operation": "+", "value": "random(40,80)" }
+        ]
+      },
+      {
+        "name": "rush_ship",
+        "label": "Rush Shipment",
+        "description": "Express shipping for urgent orders.",
+        "condition": {
+          "and": [
+            { "resource": "products", "operator": ">=", "value": "3" },
+            { "resource": "orders", "operator": ">=", "value": "1" }
+          ]
+        },
+        "effects": [
+          { "resource": "products", "operation": "-", "value": "3" },
+          { "resource": "orders", "operation": "-", "value": "1" },
+          { "resource": "money", "operation": "+", "value": "random(50,90)" },
+          { "resource": "money", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "go_warehouse",
+        "label": "Go to Warehouse",
+        "effects": [],
+        "transition": "warehouse"
+      }
+    ],
+    "breakdown": [
+      {
+        "name": "repair",
+        "label": "Repair Machine",
+        "description": "Fix the broken equipment.",
+        "condition": { "resource": "money", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "money", "operation": "-", "value": "40" },
+          { "resource": "efficiency", "operation": "+", "value": "15" }
+        ],
+        "transition": "production_floor"
+      },
+      {
+        "name": "workaround",
+        "label": "Work Around It",
+        "description": "Continue with reduced capacity.",
+        "effects": [
+          { "resource": "machines", "operation": "-", "value": "1" },
+          { "resource": "efficiency", "operation": "-", "value": "5" }
+        ],
+        "transition": "production_floor"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "production_floor",
+      "to": "breakdown",
+      "condition": { "resource": "efficiency", "operator": "<=", "value": "20" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "money", "operation": "-", "value": "10" }],
+  "winCondition": {
+    "and": [
+      { "resource": "money", "operator": ">=", "value": "2000" },
+      { "resource": "machines", "operator": ">=", "value": "8" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "money", "operator": "<=", "value": "0" },
+      { "resource": "orders", "operator": ">=", "value": "15" }
+    ]
+  },
+  "theme": {
+    "palette": "industrial-grey",
+    "stateDescriptions": {
+      "production_floor": { "label": "Production Floor", "icon": "settings" },
+      "warehouse": { "label": "Warehouse", "icon": "box" },
+      "quality_control": { "label": "Quality Control", "icon": "check-circle" },
+      "office": { "label": "Office", "icon": "briefcase" },
+      "shipping_dock": { "label": "Shipping Dock", "icon": "truck" },
+      "breakdown": { "label": "Breakdown!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "money": "dollar",
+      "raw_materials": "layers",
+      "products": "package",
+      "workers": "users",
+      "efficiency": "activity",
+      "orders": "clipboard",
+      "machines": "settings"
+    }
+  }
+}

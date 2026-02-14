@@ -1,0 +1,283 @@
+{
+  "name": "Myth Maker",
+  "description": "You are the spirit of creation itself. Shape a new mythology from nothing. Create gods, forge the world, breathe life into mortals, and establish the cosmic order.",
+  "states": [
+    {
+      "name": "void",
+      "description": "Before everything. Pure potential in the darkness.",
+      "onEnter": []
+    },
+    {
+      "name": "creation",
+      "description": "Light erupts. Matter forms. The world takes shape.",
+      "onEnter": [{ "resource": "order", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "pantheon",
+      "description": "The gods awaken. Each claims a domain.",
+      "onEnter": [{ "resource": "power", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "mortal_age",
+      "description": "Mortals appear. They look up at the sky and wonder.",
+      "onEnter": [{ "resource": "worship", "operation": "+", "value": "random(3,8)" }]
+    },
+    {
+      "name": "war_of_gods",
+      "description": "The gods quarrel. Thunder and fire shake the world.",
+      "onEnter": [{ "resource": "chaos", "operation": "+", "value": "random(8,12)" }]
+    },
+    {
+      "name": "golden_age",
+      "description": "Peace and prosperity. The world is in balance.",
+      "onEnter": [{ "resource": "order", "operation": "+", "value": "random(5,10)" }]
+    }
+  ],
+  "initialState": "void",
+  "resources": {
+    "power": { "initial": 50, "min": 0, "max": 200, "label": "Cosmic Power" },
+    "order": { "initial": 0, "min": 0, "max": 100, "label": "World Order" },
+    "chaos": { "initial": 30, "min": 0, "max": 100, "label": "Chaos" },
+    "worship": { "initial": 0, "min": 0, "max": 100, "label": "Mortal Worship" },
+    "domains": { "initial": 0, "min": 0, "max": 10, "label": "Domains Created" }
+  },
+  "actions": {
+    "void": [
+      {
+        "name": "speak_light",
+        "label": "Speak Light into Being",
+        "description": "Let there be light.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(5,10)" },
+          { "resource": "order", "operation": "+", "value": "random(5,10)" },
+          { "resource": "domains", "operation": "+", "value": "1" }
+        ],
+        "transition": "creation"
+      },
+      {
+        "name": "dream_world",
+        "label": "Dream a World",
+        "description": "Imagine land, sea, and sky.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(8,12)" },
+          { "resource": "order", "operation": "+", "value": "random(8,12)" },
+          { "resource": "domains", "operation": "+", "value": "random(1,2)" }
+        ],
+        "transition": "creation"
+      }
+    ],
+    "creation": [
+      {
+        "name": "shape_mountains",
+        "label": "Raise Mountains",
+        "description": "Push rock skyward from the plains.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(5,8)" },
+          { "resource": "order", "operation": "+", "value": "random(3,6)" },
+          { "resource": "domains", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "fill_oceans",
+        "label": "Fill the Oceans",
+        "description": "Water rushes to fill the basins.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(5,8)" },
+          { "resource": "order", "operation": "+", "value": "random(3,6)" },
+          { "resource": "domains", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "create_gods",
+        "label": "Create the Gods",
+        "description": "Beings of immense power to rule domains.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(10,15)" },
+          { "resource": "domains", "operation": "+", "value": "random(1,2)" }
+        ],
+        "transition": "pantheon"
+      },
+      {
+        "name": "plant_life",
+        "label": "Seed Life",
+        "description": "Forests and creatures emerge.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(5,8)" },
+          { "resource": "order", "operation": "+", "value": "random(5,8)" }
+        ]
+      }
+    ],
+    "pantheon": [
+      {
+        "name": "assign_domains",
+        "label": "Assign Domains",
+        "description": "Give each god a purpose: sun, sea, war, love.",
+        "effects": [
+          { "resource": "order", "operation": "+", "value": "random(5,10)" },
+          { "resource": "chaos", "operation": "-", "value": "random(3,6)" },
+          { "resource": "domains", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "set_rules",
+        "label": "Establish Divine Law",
+        "description": "Create rules the gods must follow.",
+        "effects": [
+          { "resource": "order", "operation": "+", "value": "random(8,12)" },
+          { "resource": "chaos", "operation": "-", "value": "random(5,8)" },
+          { "resource": "power", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "create_mortals",
+        "label": "Create Mortals",
+        "description": "Shape beings from clay and breath.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(8,12)" },
+          { "resource": "worship", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "mortal_age"
+      },
+      {
+        "name": "let_chaos",
+        "label": "Let Chaos Reign",
+        "description": "Give the gods free will. What could go wrong?",
+        "effects": [{ "resource": "chaos", "operation": "+", "value": "random(8,15)" }]
+      }
+    ],
+    "mortal_age": [
+      {
+        "name": "teach_mortals",
+        "label": "Teach the Mortals",
+        "description": "Give them fire, language, and art.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(8,12)" },
+          { "resource": "order", "operation": "+", "value": "random(3,6)" },
+          { "resource": "power", "operation": "-", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "test_faith",
+        "label": "Test Their Faith",
+        "description": "Send trials to see if they are worthy.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(3,8)" },
+          { "resource": "chaos", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "send_hero",
+        "label": "Send a Hero",
+        "description": "A mortal of divine blood to inspire the rest.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(5,10)" },
+          { "resource": "order", "operation": "+", "value": "random(3,6)" },
+          { "resource": "power", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "let_mortals_grow",
+        "label": "Step Back",
+        "description": "Let mortals find their own way.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(2,5)" },
+          { "resource": "chaos", "operation": "+", "value": "random(2,5)" }
+        ]
+      }
+    ],
+    "war_of_gods": [
+      {
+        "name": "intervene",
+        "label": "Intervene",
+        "description": "Use your remaining power to stop the war.",
+        "effects": [
+          { "resource": "power", "operation": "-", "value": "random(15,25)" },
+          { "resource": "chaos", "operation": "-", "value": "random(15,20)" },
+          { "resource": "order", "operation": "+", "value": "random(10,15)" }
+        ],
+        "transition": "golden_age"
+      },
+      {
+        "name": "choose_side",
+        "label": "Choose a Side",
+        "description": "Back one faction of gods.",
+        "effects": [
+          { "resource": "chaos", "operation": "+", "value": "random(5,10)" },
+          { "resource": "power", "operation": "-", "value": "random(8,12)" },
+          { "resource": "worship", "operation": "-", "value": "random(5,10)" }
+        ],
+        "transition": "pantheon"
+      },
+      {
+        "name": "let_burn",
+        "label": "Let It Burn",
+        "description": "War will forge a new order from the ashes.",
+        "effects": [
+          { "resource": "chaos", "operation": "+", "value": "random(10,15)" },
+          { "resource": "worship", "operation": "-", "value": "random(8,12)" }
+        ]
+      }
+    ],
+    "golden_age": [
+      {
+        "name": "bless_world",
+        "label": "Bless the World",
+        "description": "Grant abundance and peace.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(10,15)" },
+          { "resource": "order", "operation": "+", "value": "random(5,10)" },
+          { "resource": "power", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "ascend",
+        "label": "Ascend Beyond",
+        "description": "Your work is done. Rise above it all.",
+        "effects": [
+          { "resource": "worship", "operation": "+", "value": "random(5,10)" },
+          { "resource": "order", "operation": "+", "value": "random(5,10)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "pantheon",
+      "to": "war_of_gods",
+      "condition": { "resource": "chaos", "operator": ">=", "value": "50" },
+      "auto": true
+    },
+    {
+      "from": "mortal_age",
+      "to": "golden_age",
+      "condition": { "resource": "order", "operator": ">=", "value": "60" },
+      "auto": true
+    },
+    {
+      "from": "mortal_age",
+      "to": "war_of_gods",
+      "condition": { "resource": "chaos", "operator": ">=", "value": "60" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "worship", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "power", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "cosmic-purple",
+    "stateDescriptions": {
+      "void": { "label": "The Void", "icon": "circle" },
+      "creation": { "label": "Creation", "icon": "sun" },
+      "pantheon": { "label": "Pantheon", "icon": "users" },
+      "mortal_age": { "label": "Mortal Age", "icon": "user" },
+      "war_of_gods": { "label": "War of Gods", "icon": "zap" },
+      "golden_age": { "label": "Golden Age", "icon": "star" }
+    },
+    "resourceIcons": {
+      "power": "zap",
+      "order": "compass",
+      "chaos": "wind",
+      "worship": "heart",
+      "domains": "globe"
+    }
+  }
+}

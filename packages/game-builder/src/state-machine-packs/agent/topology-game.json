@@ -1,0 +1,561 @@
+{
+  "name": "Topology Game",
+  "description": "Manipulate the shape of a mathematical surface. Stretch, fold, and connect edges to transform one topology into another and solve spatial puzzles.",
+  "states": [
+    {
+      "name": "flat_plane",
+      "description": "A simple flat surface. The starting topology.",
+      "onEnter": []
+    },
+    {
+      "name": "folding",
+      "description": "Bending the surface along an axis.",
+      "onEnter": [
+        {
+          "resource": "complexity",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "twisting",
+      "description": "Rotating one end while holding the other fixed.",
+      "onEnter": [
+        {
+          "resource": "complexity",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "connecting",
+      "description": "Joining two edges to form a new shape.",
+      "onEnter": [
+        {
+          "resource": "transformations",
+          "operation": "+",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "higher_dimension",
+      "description": "The shape transcends into higher dimensional space.",
+      "onEnter": [
+        {
+          "resource": "insight",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "target_shape",
+      "description": "The goal topology is within reach.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "flat_plane",
+  "resources": {
+    "moves": {
+      "initial": 30,
+      "min": 0,
+      "max": 30,
+      "label": "Moves Left"
+    },
+    "complexity": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Complexity"
+    },
+    "insight": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Spatial Insight"
+    },
+    "transformations": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Transformations Done"
+    },
+    "symmetry": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Symmetry"
+    }
+  },
+  "actions": {
+    "flat_plane": [
+      {
+        "name": "fold",
+        "label": "Fold the Surface",
+        "description": "Create a crease along an axis.",
+        "effects": [
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "folding"
+      },
+      {
+        "name": "twist",
+        "label": "Apply a Twist",
+        "description": "Rotate part of the surface.",
+        "effects": [
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "twisting"
+      },
+      {
+        "name": "study",
+        "label": "Study the Shape",
+        "description": "Analyze current properties.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      }
+    ],
+    "folding": [
+      {
+        "name": "fold_half",
+        "label": "Fold in Half",
+        "description": "A simple symmetric fold.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "accordion_fold",
+        "label": "Accordion Fold",
+        "description": "Multiple parallel folds.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "2"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "connect_edges",
+        "label": "Join the Edges",
+        "description": "Connect folded edges together.",
+        "effects": [
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "connecting"
+      },
+      {
+        "name": "unfold",
+        "label": "Unfold",
+        "description": "Return to the flat state.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "flat_plane"
+      }
+    ],
+    "twisting": [
+      {
+        "name": "half_twist",
+        "label": "Half Twist",
+        "description": "180 degree rotation. Creates a Mobius-like form.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "full_twist",
+        "label": "Full Twist",
+        "description": "360 degree rotation. Preserves orientation.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "connect_twisted",
+        "label": "Connect Twisted Ends",
+        "description": "Join the twisted edges.",
+        "effects": [
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "connecting"
+      }
+    ],
+    "connecting": [
+      {
+        "name": "cylinder",
+        "label": "Form a Cylinder",
+        "description": "Connect opposite edges straight.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "flat_plane"
+      },
+      {
+        "name": "torus",
+        "label": "Form a Torus",
+        "description": "Connect both pairs of edges.",
+        "condition": {
+          "resource": "complexity",
+          "operator": ">=",
+          "value": "20"
+        },
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "2"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "2"
+          }
+        ],
+        "transition": "flat_plane"
+      },
+      {
+        "name": "klein_bottle",
+        "label": "Attempt Klein Bottle",
+        "description": "Connect with a twist. Needs higher dimensions.",
+        "condition": {
+          "resource": "insight",
+          "operator": ">=",
+          "value": "30"
+        },
+        "effects": [
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "2"
+          },
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "2"
+          }
+        ],
+        "transition": "higher_dimension"
+      }
+    ],
+    "higher_dimension": [
+      {
+        "name": "visualize",
+        "label": "Visualize in 4D",
+        "description": "Project the shape into your mind.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "project_back",
+        "label": "Project Back to 3D",
+        "description": "Bring the shape back to manageable dimensions.",
+        "effects": [
+          {
+            "resource": "complexity",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "flat_plane"
+      },
+      {
+        "name": "transcend",
+        "label": "Complete the Form",
+        "description": "Finalize the higher-dimensional shape.",
+        "condition": {
+          "resource": "insight",
+          "operator": ">=",
+          "value": "50"
+        },
+        "effects": [
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "random(2,3)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "target_shape"
+      }
+    ],
+    "target_shape": [
+      {
+        "name": "verify",
+        "label": "Verify Topology",
+        "description": "Check if the shape matches the target.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "refine",
+        "label": "Refine the Shape",
+        "description": "Make final adjustments.",
+        "effects": [
+          {
+            "resource": "transformations",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "symmetry",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "moves",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "flat_plane",
+      "to": "target_shape",
+      "condition": {
+        "resource": "transformations",
+        "operator": ">=",
+        "value": "10"
+      },
+      "auto": true
+    },
+    {
+      "from": "connecting",
+      "to": "higher_dimension",
+      "condition": {
+        "resource": "complexity",
+        "operator": ">=",
+        "value": "50"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "symmetry",
+    "operator": ">=",
+    "value": "90"
+  },
+  "loseCondition": {
+    "resource": "moves",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "geometry-blue",
+    "stateDescriptions": {
+      "flat_plane": {
+        "label": "Flat Plane",
+        "icon": "square"
+      },
+      "folding": {
+        "label": "Folding",
+        "icon": "layers"
+      },
+      "twisting": {
+        "label": "Twisting",
+        "icon": "rotate-cw"
+      },
+      "connecting": {
+        "label": "Connecting",
+        "icon": "link"
+      },
+      "higher_dimension": {
+        "label": "4th Dimension",
+        "icon": "globe"
+      },
+      "target_shape": {
+        "label": "Target Shape",
+        "icon": "target"
+      }
+    },
+    "resourceIcons": {
+      "moves": "move",
+      "complexity": "layers",
+      "insight": "eye",
+      "transformations": "repeat",
+      "symmetry": "compass"
+    }
+  }
+}

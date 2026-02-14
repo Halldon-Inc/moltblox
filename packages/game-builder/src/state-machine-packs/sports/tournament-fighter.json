@@ -1,0 +1,419 @@
+{
+  "name": "Tournament Fighter",
+  "description": "Enter a martial arts tournament. Train your techniques, manage stamina, and fight through brackets to become champion.",
+  "states": [
+    {
+      "name": "dojo",
+      "description": "Training hall. Perfect your technique.",
+      "onEnter": []
+    },
+    {
+      "name": "bracket_draw",
+      "description": "The tournament bracket is revealed.",
+      "onEnter": []
+    },
+    {
+      "name": "match",
+      "description": "You face your opponent on the mat.",
+      "onEnter": []
+    },
+    {
+      "name": "recovery",
+      "description": "Between matches. Tend to injuries.",
+      "onEnter": [
+        {
+          "resource": "stamina",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "finals",
+      "description": "The championship match. Everything comes down to this.",
+      "onEnter": [
+        {
+          "resource": "focus",
+          "operation": "+",
+          "value": "5"
+        }
+      ]
+    }
+  ],
+  "initialState": "dojo",
+  "resources": {
+    "technique": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Technique"
+    },
+    "stamina": {
+      "initial": 80,
+      "min": 0,
+      "max": 100,
+      "label": "Stamina"
+    },
+    "focus": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Focus"
+    },
+    "wins": {
+      "initial": 0,
+      "min": 0,
+      "max": 5,
+      "label": "Wins"
+    },
+    "injuries": {
+      "initial": 0,
+      "min": 0,
+      "max": 50,
+      "label": "Injuries"
+    },
+    "reputation": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Reputation"
+    }
+  },
+  "actions": {
+    "dojo": [
+      {
+        "name": "drill_strikes",
+        "label": "Drill Strikes",
+        "description": "Practice punches and kicks.",
+        "effects": [
+          {
+            "resource": "technique",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "spar",
+        "label": "Sparring Session",
+        "description": "Train with a partner.",
+        "effects": [
+          {
+            "resource": "technique",
+            "operation": "+",
+            "value": "random(3,8)"
+          },
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "8"
+          }
+        ]
+      },
+      {
+        "name": "meditate",
+        "label": "Meditate",
+        "description": "Clear your mind before the tournament.",
+        "effects": [
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "+",
+            "value": "5"
+          }
+        ]
+      },
+      {
+        "name": "enter_tournament",
+        "label": "Enter Tournament",
+        "description": "Sign up and prepare.",
+        "effects": [],
+        "transition": "bracket_draw"
+      }
+    ],
+    "bracket_draw": [
+      {
+        "name": "study_opponent",
+        "label": "Study Opponent",
+        "description": "Watch footage of your first matchup.",
+        "effects": [
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "technique",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "begin_match",
+        "label": "Step on the Mat",
+        "description": "Time to fight.",
+        "effects": [],
+        "transition": "match"
+      }
+    ],
+    "match": [
+      {
+        "name": "aggressive",
+        "label": "Aggressive Attack",
+        "description": "Go on the offensive.",
+        "effects": [
+          {
+            "resource": "wins",
+            "operation": "+",
+            "value": "random(0,1)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "injuries",
+            "operation": "+",
+            "value": "random(3,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "technical",
+        "label": "Technical Fighting",
+        "description": "Use precise technique.",
+        "condition": {
+          "resource": "technique",
+          "operator": ">=",
+          "value": "40"
+        },
+        "effects": [
+          {
+            "resource": "wins",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "injuries",
+            "operation": "+",
+            "value": "random(1,4)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(8,12)"
+          }
+        ],
+        "transition": "recovery"
+      },
+      {
+        "name": "defensive",
+        "label": "Counter Fighting",
+        "description": "Wait and counter.",
+        "condition": {
+          "resource": "focus",
+          "operator": ">=",
+          "value": "40"
+        },
+        "effects": [
+          {
+            "resource": "wins",
+            "operation": "+",
+            "value": "random(0,1)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(3,8)"
+          }
+        ],
+        "transition": "recovery"
+      }
+    ],
+    "recovery": [
+      {
+        "name": "ice_bath",
+        "label": "Ice Bath",
+        "description": "Reduce inflammation.",
+        "effects": [
+          {
+            "resource": "injuries",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "stamina",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "mental_prep",
+        "label": "Mental Prep",
+        "description": "Visualize your next fight.",
+        "effects": [
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "next_match",
+        "label": "Next Match",
+        "description": "Step back onto the mat.",
+        "effects": [],
+        "transition": "match"
+      }
+    ],
+    "finals": [
+      {
+        "name": "all_out",
+        "label": "Leave It All Out There",
+        "description": "Give everything you have.",
+        "effects": [
+          {
+            "resource": "wins",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(15,20)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(15,25)"
+          }
+        ]
+      },
+      {
+        "name": "smart_fight",
+        "label": "Fight Smart",
+        "description": "Use your experience.",
+        "condition": {
+          "resource": "technique",
+          "operator": ">=",
+          "value": "60"
+        },
+        "effects": [
+          {
+            "resource": "wins",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "stamina",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "reputation",
+            "operation": "+",
+            "value": "random(20,30)"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "recovery",
+      "to": "finals",
+      "condition": {
+        "resource": "wins",
+        "operator": ">=",
+        "value": "3"
+      },
+      "auto": true
+    },
+    {
+      "from": "match",
+      "to": "recovery",
+      "condition": {
+        "resource": "stamina",
+        "operator": "<=",
+        "value": "20"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "wins",
+    "operator": ">=",
+    "value": "5"
+  },
+  "loseCondition": {
+    "resource": "injuries",
+    "operator": ">=",
+    "value": "50"
+  },
+  "theme": {
+    "palette": "dojo-red",
+    "stateDescriptions": {
+      "dojo": {
+        "label": "Training Dojo",
+        "icon": "shield"
+      },
+      "bracket_draw": {
+        "label": "Bracket",
+        "icon": "list"
+      },
+      "match": {
+        "label": "Match!",
+        "icon": "swords"
+      },
+      "recovery": {
+        "label": "Recovery",
+        "icon": "heart"
+      },
+      "finals": {
+        "label": "Finals!",
+        "icon": "trophy"
+      }
+    },
+    "resourceIcons": {
+      "technique": "star",
+      "stamina": "battery",
+      "focus": "eye",
+      "wins": "trophy",
+      "injuries": "alert",
+      "reputation": "trending-up"
+    }
+  }
+}

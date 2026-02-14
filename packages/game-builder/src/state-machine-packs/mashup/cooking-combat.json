@@ -1,0 +1,528 @@
+{
+  "name": "Cooking Combat",
+  "description": "You are a warrior chef in a culinary arena. Cook dishes and fight opponents with your creations. The tastier your food, the stronger your attacks.",
+  "states": [
+    {
+      "name": "kitchen",
+      "description": "Your battle kitchen. Ingredients line the walls, weapons hang from hooks.",
+      "onEnter": []
+    },
+    {
+      "name": "prep_phase",
+      "description": "Chopping, dicing, marinating. Every second counts.",
+      "onEnter": [
+        {
+          "resource": "ingredients",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "cooking",
+      "description": "Flames roar. Pots bubble. The dish takes shape.",
+      "onEnter": [
+        {
+          "resource": "flavor",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "combat_round",
+      "description": "You face your opponent across the arena. Dishes at the ready.",
+      "onEnter": [
+        {
+          "resource": "adrenaline",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "taste_test",
+      "description": "The judges evaluate your creation.",
+      "onEnter": [
+        {
+          "resource": "score",
+          "operation": "+",
+          "value": "random(3,8)"
+        }
+      ]
+    },
+    {
+      "name": "final_showdown",
+      "description": "The championship round. Everything rides on this dish.",
+      "onEnter": [
+        {
+          "resource": "adrenaline",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    }
+  ],
+  "initialState": "kitchen",
+  "resources": {
+    "ingredients": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Ingredients"
+    },
+    "flavor": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Flavor Power"
+    },
+    "health": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Health"
+    },
+    "adrenaline": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Adrenaline"
+    },
+    "score": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Judge Score"
+    }
+  },
+  "actions": {
+    "kitchen": [
+      {
+        "name": "gather_ingredients",
+        "label": "Gather Ingredients",
+        "description": "Raid the pantry for the best supplies.",
+        "effects": [
+          {
+            "resource": "ingredients",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "prep_phase"
+      },
+      {
+        "name": "sharpen_knives",
+        "label": "Sharpen Your Knives",
+        "description": "A sharp blade cuts faster and fights harder.",
+        "effects": [
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "study_opponent",
+        "label": "Study Your Opponent",
+        "description": "Watch their technique for weaknesses.",
+        "effects": [
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "challenge",
+        "label": "Issue a Challenge",
+        "description": "Step into the arena.",
+        "effects": [],
+        "transition": "combat_round"
+      }
+    ],
+    "prep_phase": [
+      {
+        "name": "chop_fast",
+        "label": "Speed Chop",
+        "description": "Rapid knife work. Impressive and efficient.",
+        "effects": [
+          {
+            "resource": "ingredients",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "marinate",
+        "label": "Marinate",
+        "description": "Let the flavors soak deep.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "secret_spice",
+        "label": "Add Secret Spice",
+        "description": "Your grandmother's recipe. Unbeatable.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "cooking"
+      },
+      {
+        "name": "start_cooking",
+        "label": "Start Cooking",
+        "description": "Time to apply heat.",
+        "effects": [],
+        "transition": "cooking"
+      }
+    ],
+    "cooking": [
+      {
+        "name": "flame_sear",
+        "label": "Flame Sear",
+        "description": "High heat for a perfect crust.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "slow_simmer",
+        "label": "Slow Simmer",
+        "description": "Patience builds depth of flavor.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "plate_dish",
+        "label": "Plate the Dish",
+        "description": "Present your creation to the judges.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "taste_test"
+      },
+      {
+        "name": "weapon_sauce",
+        "label": "Weaponize the Sauce",
+        "description": "Turn your hottest sauce into a combat tool.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "combat_round"
+      }
+    ],
+    "combat_round": [
+      {
+        "name": "dish_attack",
+        "label": "Dish Attack",
+        "description": "Hurl your creation at the opponent. Flavor equals damage.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "-",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "health",
+            "operation": "-",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "block_with_pan",
+        "label": "Block with Pan",
+        "description": "Use your trusty skillet as a shield.",
+        "effects": [
+          {
+            "resource": "health",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "counter_cook",
+        "label": "Counter Cook",
+        "description": "Dodge and cook simultaneously.",
+        "effects": [
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "retreat_kitchen",
+        "label": "Retreat to Kitchen",
+        "description": "Fall back and prepare a stronger dish.",
+        "effects": [],
+        "transition": "kitchen"
+      }
+    ],
+    "taste_test": [
+      {
+        "name": "present_boldly",
+        "label": "Present Boldly",
+        "description": "Describe your dish with passion.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "let_food_speak",
+        "label": "Let the Food Speak",
+        "description": "No words needed. The taste says it all.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "kitchen"
+      },
+      {
+        "name": "challenge_judges",
+        "label": "Challenge the Judges",
+        "description": "Demand they taste again.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(3,8)"
+          },
+          {
+            "resource": "adrenaline",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "combat_round"
+      }
+    ],
+    "final_showdown": [
+      {
+        "name": "ultimate_dish",
+        "label": "Cook the Ultimate Dish",
+        "description": "Everything you have, on one plate.",
+        "effects": [
+          {
+            "resource": "ingredients",
+            "operation": "-",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "flavor",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(10,15)"
+          }
+        ]
+      },
+      {
+        "name": "combat_finish",
+        "label": "Combat Finish",
+        "description": "Defeat your opponent with culinary fury.",
+        "effects": [
+          {
+            "resource": "adrenaline",
+            "operation": "-",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "health",
+            "operation": "-",
+            "value": "random(5,8)"
+          }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "taste_test",
+      "to": "final_showdown",
+      "condition": {
+        "resource": "score",
+        "operator": ">=",
+        "value": "60"
+      },
+      "auto": true
+    },
+    {
+      "from": "combat_round",
+      "to": "final_showdown",
+      "condition": {
+        "and": [
+          {
+            "resource": "score",
+            "operator": ">=",
+            "value": "50"
+          },
+          {
+            "resource": "adrenaline",
+            "operator": ">=",
+            "value": "40"
+          }
+        ]
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "score",
+    "operator": ">=",
+    "value": "85"
+  },
+  "loseCondition": {
+    "resource": "health",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "fire-red",
+    "stateDescriptions": {
+      "kitchen": {
+        "label": "Battle Kitchen",
+        "icon": "home"
+      },
+      "prep_phase": {
+        "label": "Prep Phase",
+        "icon": "scissors"
+      },
+      "cooking": {
+        "label": "Cooking",
+        "icon": "flame"
+      },
+      "combat_round": {
+        "label": "Combat Round",
+        "icon": "sword"
+      },
+      "taste_test": {
+        "label": "Taste Test",
+        "icon": "star"
+      },
+      "final_showdown": {
+        "label": "Final Showdown",
+        "icon": "award"
+      }
+    },
+    "resourceIcons": {
+      "ingredients": "box",
+      "flavor": "zap",
+      "health": "heart",
+      "adrenaline": "activity",
+      "score": "award"
+    }
+  }
+}

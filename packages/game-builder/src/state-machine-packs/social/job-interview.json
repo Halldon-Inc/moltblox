@@ -1,0 +1,249 @@
+{
+  "name": "Job Interview",
+  "description": "Ace a series of job interviews at a top company. Prepare, impress interviewers, and land the dream job.",
+  "states": [
+    { "name": "preparation", "description": "At home preparing for the interview.", "onEnter": [] },
+    {
+      "name": "lobby",
+      "description": "Waiting in the company lobby.",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "2" }]
+    },
+    { "name": "hr_round", "description": "Initial screening with HR.", "onEnter": [] },
+    {
+      "name": "technical",
+      "description": "Technical skills assessment.",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "panel",
+      "description": "Panel interview with senior leaders.",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "2" }]
+    },
+    {
+      "name": "final_round",
+      "description": "Final interview with the CEO.",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "3" }]
+    }
+  ],
+  "initialState": "preparation",
+  "resources": {
+    "confidence": { "initial": 6, "min": 0, "max": 10, "label": "Confidence" },
+    "knowledge": { "initial": 3, "min": 0, "max": 10, "label": "Knowledge" },
+    "impression": { "initial": 0, "min": 0, "max": 30, "label": "Impression Score" },
+    "nerves": { "initial": 2, "min": 0, "max": 12, "label": "Nervousness" },
+    "charm": { "initial": 4, "min": 0, "max": 10, "label": "Charm" },
+    "energy": { "initial": 10, "min": 0, "max": 10, "label": "Energy" }
+  },
+  "actions": {
+    "preparation": [
+      {
+        "name": "study_company",
+        "label": "Research the Company",
+        "effects": [{ "resource": "knowledge", "operation": "+", "value": "random(2,4)" }]
+      },
+      {
+        "name": "practice_answers",
+        "label": "Practice Answers",
+        "effects": [
+          { "resource": "confidence", "operation": "+", "value": "random(1,2)" },
+          { "resource": "nerves", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "pick_outfit",
+        "label": "Choose Best Outfit",
+        "effects": [
+          { "resource": "charm", "operation": "+", "value": "random(1,2)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "go_interview", "label": "Head to Interview", "effects": [], "transition": "lobby" }
+    ],
+    "lobby": [
+      {
+        "name": "deep_breathe",
+        "label": "Deep Breathing",
+        "effects": [
+          { "resource": "nerves", "operation": "-", "value": "random(1,3)" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "chat_receptionist",
+        "label": "Chat with Receptionist",
+        "effects": [
+          { "resource": "charm", "operation": "+", "value": "random(0,1)" },
+          { "resource": "nerves", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "enter_hr", "label": "Enter HR Round", "effects": [], "transition": "hr_round" }
+    ],
+    "hr_round": [
+      {
+        "name": "tell_story",
+        "label": "Tell Your Story",
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(2,5)" },
+          { "resource": "charm", "operation": "+", "value": "random(0,1)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "show_enthusiasm",
+        "label": "Show Enthusiasm",
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(2,4)" },
+          { "resource": "confidence", "operation": "+", "value": "1" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "ask_questions",
+        "label": "Ask Thoughtful Questions",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,6)" },
+          { "resource": "knowledge", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "proceed",
+        "label": "Proceed to Technical",
+        "condition": { "resource": "impression", "operator": ">=", "value": "5" },
+        "effects": [],
+        "transition": "technical"
+      }
+    ],
+    "technical": [
+      {
+        "name": "solve_problem",
+        "label": "Solve Technical Problem",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,7)" },
+          { "resource": "knowledge", "operation": "-", "value": "1" },
+          { "resource": "energy", "operation": "-", "value": "2" },
+          { "resource": "nerves", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "explain_thinking",
+        "label": "Explain Your Thinking",
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(2,5)" },
+          { "resource": "confidence", "operation": "+", "value": "random(0,1)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "admit_limit",
+        "label": "Be Honest About Limits",
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(1,3)" },
+          { "resource": "charm", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "proceed",
+        "label": "Proceed to Panel",
+        "condition": { "resource": "impression", "operator": ">=", "value": "12" },
+        "effects": [],
+        "transition": "panel"
+      }
+    ],
+    "panel": [
+      {
+        "name": "present_portfolio",
+        "label": "Present Portfolio",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,7)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "engage_panel",
+        "label": "Engage Each Panelist",
+        "condition": { "resource": "charm", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,6)" },
+          { "resource": "energy", "operation": "-", "value": "2" },
+          { "resource": "confidence", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "handle_curveball",
+        "label": "Handle Tough Question",
+        "condition": { "resource": "confidence", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(4,8)" },
+          { "resource": "nerves", "operation": "+", "value": "2" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "proceed",
+        "label": "Advance to Final Round",
+        "condition": { "resource": "impression", "operator": ">=", "value": "20" },
+        "effects": [],
+        "transition": "final_round"
+      }
+    ],
+    "final_round": [
+      {
+        "name": "vision_talk",
+        "label": "Share Your Vision",
+        "condition": { "resource": "confidence", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(4,8)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "be_authentic",
+        "label": "Be Authentic",
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,6)" },
+          { "resource": "charm", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "negotiate_value",
+        "label": "Show Your Value",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "impression", "operation": "+", "value": "random(3,7)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      }
+    ]
+  },
+  "transitions": [],
+  "winCondition": { "resource": "impression", "operator": ">=", "value": "28" },
+  "loseCondition": {
+    "or": [
+      { "resource": "energy", "operator": "<=", "value": "0" },
+      { "resource": "confidence", "operator": "<=", "value": "0" },
+      { "resource": "nerves", "operator": ">=", "value": "12" }
+    ]
+  },
+  "theme": {
+    "palette": "corporate-blue",
+    "stateDescriptions": {
+      "preparation": { "label": "Prep Time", "icon": "book" },
+      "lobby": { "label": "Lobby", "icon": "clock" },
+      "hr_round": { "label": "HR Round", "icon": "user" },
+      "technical": { "label": "Technical", "icon": "cpu" },
+      "panel": { "label": "Panel Interview", "icon": "users" },
+      "final_round": { "label": "Final Round!", "icon": "star" }
+    },
+    "resourceIcons": {
+      "confidence": "shield",
+      "knowledge": "book",
+      "impression": "trending-up",
+      "nerves": "activity",
+      "charm": "star",
+      "energy": "battery"
+    }
+  }
+}

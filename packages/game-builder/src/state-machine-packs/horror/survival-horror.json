@@ -1,0 +1,250 @@
+{
+  "name": "Survival Horror",
+  "description": "Trapped in an abandoned facility with dwindling supplies and something hunting you. Find a way out before it finds you.",
+  "states": [
+    {
+      "name": "entrance_hall",
+      "description": "The main hall. Dusty chandeliers hang overhead.",
+      "onEnter": []
+    },
+    {
+      "name": "dark_corridor",
+      "description": "Pitch black. Something scrapes along the walls.",
+      "onEnter": [{ "resource": "fear", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "storage_room",
+      "description": "Shelves lined with supplies and old equipment.",
+      "onEnter": []
+    },
+    {
+      "name": "lab",
+      "description": "Broken vials and scattered notes. What happened here?",
+      "onEnter": [{ "resource": "clues", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "creature_encounter",
+      "description": "It found you. Your heart pounds.",
+      "onEnter": [{ "resource": "fear", "operation": "+", "value": "8" }]
+    },
+    {
+      "name": "safe_room",
+      "description": "A locked room with reinforced walls. Breathe.",
+      "onEnter": [{ "resource": "fear", "operation": "-", "value": "5" }]
+    },
+    {
+      "name": "exit_passage",
+      "description": "A hidden tunnel leads toward daylight.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "entrance_hall",
+  "resources": {
+    "hp": { "initial": 100, "min": 0, "max": 100, "label": "Health" },
+    "sanity": { "initial": 80, "min": 0, "max": 100, "label": "Sanity" },
+    "ammo": { "initial": 6, "min": 0, "max": 20, "label": "Ammo" },
+    "medkits": { "initial": 1, "min": 0, "max": 5, "label": "Medkits" },
+    "fear": { "initial": 10, "min": 0, "max": 100, "label": "Fear" },
+    "clues": { "initial": 0, "min": 0, "max": 10, "label": "Clues Found" }
+  },
+  "actions": {
+    "entrance_hall": [
+      {
+        "name": "explore_corridor",
+        "label": "Enter Dark Corridor",
+        "description": "Step into the darkness ahead.",
+        "effects": [{ "resource": "fear", "operation": "+", "value": "2" }],
+        "transition": "dark_corridor"
+      },
+      {
+        "name": "check_map",
+        "label": "Study the Map",
+        "description": "A faded map on the wall shows the layout.",
+        "effects": [{ "resource": "clues", "operation": "+", "value": "random(1,2)" }]
+      }
+    ],
+    "dark_corridor": [
+      {
+        "name": "move_quietly",
+        "label": "Move Quietly",
+        "description": "Creep through without making noise.",
+        "effects": [
+          { "resource": "fear", "operation": "+", "value": "random(2,5)" },
+          { "resource": "sanity", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "use_flashlight",
+        "label": "Use Flashlight",
+        "description": "Light reveals the path but also your position.",
+        "effects": [
+          { "resource": "fear", "operation": "-", "value": "3" },
+          { "resource": "clues", "operation": "+", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "find_room",
+        "label": "Check Nearby Door",
+        "description": "Try a door along the corridor.",
+        "effects": [],
+        "transition": "storage_room"
+      }
+    ],
+    "storage_room": [
+      {
+        "name": "search_supplies",
+        "label": "Search for Supplies",
+        "description": "Rummage through shelves.",
+        "effects": [
+          { "resource": "ammo", "operation": "+", "value": "random(1,4)" },
+          { "resource": "medkits", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "dark_corridor"
+      },
+      {
+        "name": "barricade",
+        "label": "Barricade the Door",
+        "description": "Block the entrance and rest.",
+        "effects": [
+          { "resource": "fear", "operation": "-", "value": "random(3,6)" },
+          { "resource": "sanity", "operation": "+", "value": "5" }
+        ],
+        "transition": "safe_room"
+      }
+    ],
+    "lab": [
+      {
+        "name": "read_notes",
+        "label": "Read Research Notes",
+        "description": "Discover what the scientists were studying.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "random(2,4)" },
+          { "resource": "sanity", "operation": "-", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "grab_chemicals",
+        "label": "Take Chemicals",
+        "description": "Some of these might be useful.",
+        "effects": [{ "resource": "ammo", "operation": "+", "value": "random(2,3)" }],
+        "transition": "dark_corridor"
+      }
+    ],
+    "creature_encounter": [
+      {
+        "name": "shoot",
+        "label": "Open Fire",
+        "description": "Spend precious ammo to fight back.",
+        "condition": { "resource": "ammo", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "ammo", "operation": "-", "value": "random(2,4)" },
+          { "resource": "hp", "operation": "-", "value": "random(5,15)" },
+          { "resource": "fear", "operation": "-", "value": "5" }
+        ],
+        "transition": "dark_corridor"
+      },
+      {
+        "name": "run",
+        "label": "Run!",
+        "description": "Sprint away as fast as you can.",
+        "effects": [
+          { "resource": "hp", "operation": "-", "value": "random(10,20)" },
+          { "resource": "fear", "operation": "+", "value": "random(5,10)" },
+          { "resource": "sanity", "operation": "-", "value": "5" }
+        ],
+        "transition": "dark_corridor"
+      },
+      {
+        "name": "hide",
+        "label": "Hide Under Desk",
+        "description": "Stay perfectly still and pray it passes.",
+        "effects": [
+          { "resource": "sanity", "operation": "-", "value": "random(5,10)" },
+          { "resource": "fear", "operation": "+", "value": "random(3,8)" }
+        ],
+        "transition": "safe_room"
+      }
+    ],
+    "safe_room": [
+      {
+        "name": "heal",
+        "label": "Use Medkit",
+        "description": "Patch your wounds.",
+        "condition": { "resource": "medkits", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "medkits", "operation": "-", "value": "1" },
+          { "resource": "hp", "operation": "+", "value": "30" }
+        ]
+      },
+      {
+        "name": "rest",
+        "label": "Rest Briefly",
+        "description": "Catch your breath and calm down.",
+        "effects": [
+          { "resource": "sanity", "operation": "+", "value": "random(5,10)" },
+          { "resource": "fear", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "move_on",
+        "label": "Move On",
+        "description": "Leave the safety of this room.",
+        "effects": [{ "resource": "fear", "operation": "+", "value": "3" }],
+        "transition": "dark_corridor"
+      }
+    ],
+    "exit_passage": [
+      {
+        "name": "escape",
+        "label": "Run to Freedom",
+        "description": "Sprint through the passage toward daylight.",
+        "effects": [
+          { "resource": "clues", "operation": "+", "value": "5" },
+          { "resource": "fear", "operation": "-", "value": "20" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "dark_corridor",
+      "to": "creature_encounter",
+      "condition": { "resource": "fear", "operator": ">=", "value": "40" },
+      "auto": true
+    },
+    {
+      "from": "dark_corridor",
+      "to": "lab",
+      "condition": { "resource": "clues", "operator": ">=", "value": "3" },
+      "auto": false
+    },
+    {
+      "from": "dark_corridor",
+      "to": "exit_passage",
+      "condition": { "resource": "clues", "operator": ">=", "value": "8" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "clues", "operator": ">=", "value": "10" },
+  "loseCondition": { "resource": "hp", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "blood-red",
+    "stateDescriptions": {
+      "entrance_hall": { "label": "Entrance", "icon": "door" },
+      "dark_corridor": { "label": "Dark Hall", "icon": "moon" },
+      "storage_room": { "label": "Storage", "icon": "package" },
+      "lab": { "label": "Lab", "icon": "flask" },
+      "creature_encounter": { "label": "Creature!", "icon": "skull" },
+      "safe_room": { "label": "Safe Room", "icon": "lock" },
+      "exit_passage": { "label": "Exit!", "icon": "sun" }
+    },
+    "resourceIcons": {
+      "hp": "heart",
+      "sanity": "brain",
+      "ammo": "target",
+      "medkits": "cross",
+      "fear": "ghost",
+      "clues": "search"
+    }
+  }
+}

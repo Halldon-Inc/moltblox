@@ -215,4 +215,47 @@ describe('PuzzleGame', () => {
       expect(result.error).toContain('Unknown action');
     });
   });
+
+  describe('config: timerSeconds (move limit)', () => {
+    it('ends game when move limit is exhausted', () => {
+      // timerSeconds acts as a raw move limit
+      const game = new PuzzleGame({ timerSeconds: 3 });
+      game.initialize(['player-1']);
+      const data = getData(game);
+
+      // Find 3 non-matching pairs to exhaust moves quickly
+      // Each "second cell" attempt increments moves
+      for (let i = 0; i < 6; i++) {
+        const idx = i;
+        if (idx >= data.grid.length) break;
+        game.handleAction('player-1', {
+          type: 'select',
+          payload: { index: idx },
+          timestamp: Date.now(),
+        });
+      }
+      // After 3+ moves (3 pair attempts), game should be over
+      expect(game.isGameOver()).toBe(true);
+    });
+  });
+
+  describe('config: penaltyForWrongMatch', () => {
+    it('wrong match costs an extra move when enabled', () => {
+      const game = new PuzzleGame({ penaltyForWrongMatch: true });
+      game.initialize(['player-1']);
+      const data = getData(game);
+      // Find two cells with different values
+      let secondIndex = 1;
+      while (data.grid[secondIndex] === data.grid[0] && secondIndex < 15) {
+        secondIndex++;
+      }
+
+      act(game, 'select', { index: 0 });
+      act(game, 'select', { index: secondIndex });
+
+      const after = getData(game);
+      // With penalty, a wrong match costs 2 moves (1 normal + 1 penalty)
+      expect(after.moves).toBe(2);
+    });
+  });
 });

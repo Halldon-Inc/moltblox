@@ -1,0 +1,261 @@
+{
+  "name": "School Principal",
+  "description": "Run a school as principal. Hire teachers, manage budgets, and improve student outcomes to become the top school in the district.",
+  "states": [
+    {
+      "name": "principal_office",
+      "description": "Your office. Review reports and make decisions.",
+      "onEnter": []
+    },
+    { "name": "classroom", "description": "Observe teaching and student learning.", "onEnter": [] },
+    { "name": "assembly_hall", "description": "Gather the whole school together.", "onEnter": [] },
+    { "name": "staff_room", "description": "Meet with teachers and staff.", "onEnter": [] },
+    { "name": "board_meeting", "description": "Present to the school board.", "onEnter": [] },
+    { "name": "sports_field", "description": "Athletic facilities and events.", "onEnter": [] }
+  ],
+  "initialState": "principal_office",
+  "resources": {
+    "budget": { "initial": 200, "min": 0, "label": "Budget" },
+    "teachers": { "initial": 5, "min": 2, "max": 15, "label": "Teachers" },
+    "students": { "initial": 100, "min": 20, "max": 500, "label": "Students" },
+    "test_scores": { "initial": 50, "min": 0, "max": 100, "label": "Avg Test Scores" },
+    "morale": { "initial": 6, "min": 0, "max": 10, "label": "School Morale" },
+    "reputation": { "initial": 30, "min": 0, "max": 100, "label": "School Rating" },
+    "programs": { "initial": 1, "min": 0, "max": 8, "label": "Programs" }
+  },
+  "actions": {
+    "principal_office": [
+      {
+        "name": "review_data",
+        "label": "Review Student Data",
+        "description": "Analyze academic performance trends.",
+        "effects": [{ "resource": "test_scores", "operation": "+", "value": "random(1,3)" }]
+      },
+      {
+        "name": "go_classroom",
+        "label": "Visit Classroom",
+        "description": "Observe teaching in action.",
+        "effects": [],
+        "transition": "classroom"
+      },
+      {
+        "name": "go_staff",
+        "label": "Staff Meeting",
+        "description": "Meet with your teachers.",
+        "effects": [],
+        "transition": "staff_room"
+      },
+      {
+        "name": "call_assembly",
+        "label": "Call Assembly",
+        "description": "Address the entire school.",
+        "effects": [],
+        "transition": "assembly_hall"
+      },
+      {
+        "name": "go_board",
+        "label": "Board Meeting",
+        "description": "Present to the school board.",
+        "condition": { "resource": "reputation", "operator": ">=", "value": "50" },
+        "effects": [],
+        "transition": "board_meeting"
+      },
+      {
+        "name": "go_sports",
+        "label": "Visit Sports Field",
+        "description": "Check on athletics.",
+        "effects": [],
+        "transition": "sports_field"
+      }
+    ],
+    "classroom": [
+      {
+        "name": "observe",
+        "label": "Observe and Evaluate",
+        "description": "Watch the lesson and provide feedback.",
+        "effects": [
+          { "resource": "test_scores", "operation": "+", "value": "random(1,3)" },
+          { "resource": "morale", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "new_materials",
+        "label": "Provide New Materials",
+        "description": "Supply textbooks and resources.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "20" },
+          { "resource": "test_scores", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to your office.",
+        "effects": [],
+        "transition": "principal_office"
+      }
+    ],
+    "assembly_hall": [
+      {
+        "name": "motivate",
+        "label": "Motivational Speech",
+        "description": "Inspire students and staff.",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "random(2,4)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "awards",
+        "label": "Awards Ceremony",
+        "description": "Recognize outstanding achievements.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "10" },
+          { "resource": "morale", "operation": "+", "value": "random(3,5)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to your office.",
+        "effects": [],
+        "transition": "principal_office"
+      }
+    ],
+    "staff_room": [
+      {
+        "name": "hire_teacher",
+        "label": "Hire Teacher",
+        "description": "Recruit a new teacher.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "teachers", "operation": "+", "value": "1" },
+          { "resource": "budget", "operation": "-", "value": "40" }
+        ]
+      },
+      {
+        "name": "training",
+        "label": "Professional Development",
+        "description": "Train teachers to improve instruction.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "25" },
+          { "resource": "test_scores", "operation": "+", "value": "random(3,6)" },
+          { "resource": "morale", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "add_program",
+        "label": "Launch New Program",
+        "description": "Start an extracurricular program.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "35" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "35" },
+          { "resource": "programs", "operation": "+", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" },
+          { "resource": "students", "operation": "+", "value": "random(10,25)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to your office.",
+        "effects": [],
+        "transition": "principal_office"
+      }
+    ],
+    "board_meeting": [
+      {
+        "name": "request_funding",
+        "label": "Request More Funding",
+        "description": "Present your case for additional budget.",
+        "condition": { "resource": "test_scores", "operator": ">=", "value": "60" },
+        "effects": [
+          { "resource": "budget", "operation": "+", "value": "random(50,100)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "present_results",
+        "label": "Present Results",
+        "description": "Share student achievement data.",
+        "effects": [{ "resource": "reputation", "operation": "+", "value": "random(2,6)" }]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to your office.",
+        "effects": [],
+        "transition": "principal_office"
+      }
+    ],
+    "sports_field": [
+      {
+        "name": "organize_event",
+        "label": "Sports Event",
+        "description": "Host a sporting event.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "15" },
+          { "resource": "morale", "operation": "+", "value": "random(2,4)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "upgrade_facilities",
+        "label": "Upgrade Facilities",
+        "description": "Improve the sports equipment and fields.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "budget", "operation": "-", "value": "50" },
+          { "resource": "students", "operation": "+", "value": "random(10,20)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Office",
+        "description": "Return to your office.",
+        "effects": [],
+        "transition": "principal_office"
+      }
+    ]
+  },
+  "transitions": [],
+  "perTurnEffects": [{ "resource": "budget", "operation": "-", "value": "5" }],
+  "winCondition": {
+    "and": [
+      { "resource": "test_scores", "operator": ">=", "value": "85" },
+      { "resource": "reputation", "operator": ">=", "value": "80" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "budget", "operator": "<=", "value": "0" },
+      { "resource": "morale", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "academic-blue",
+    "stateDescriptions": {
+      "principal_office": { "label": "Principal's Office", "icon": "briefcase" },
+      "classroom": { "label": "Classroom", "icon": "book" },
+      "assembly_hall": { "label": "Assembly Hall", "icon": "users" },
+      "staff_room": { "label": "Staff Room", "icon": "coffee" },
+      "board_meeting": { "label": "Board Meeting", "icon": "clipboard" },
+      "sports_field": { "label": "Sports Field", "icon": "flag" }
+    },
+    "resourceIcons": {
+      "budget": "dollar",
+      "teachers": "user",
+      "students": "users",
+      "test_scores": "bar-chart",
+      "morale": "smile",
+      "reputation": "star",
+      "programs": "grid"
+    }
+  }
+}

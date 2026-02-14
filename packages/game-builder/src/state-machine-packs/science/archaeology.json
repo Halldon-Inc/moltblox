@@ -1,0 +1,269 @@
+{
+  "name": "Archaeology",
+  "description": "Lead an archaeological dig. Excavate carefully, catalog artifacts, and piece together the history of a lost civilization.",
+  "states": [
+    { "name": "camp", "description": "Base camp. Plan your excavation strategy.", "onEnter": [] },
+    { "name": "dig_site", "description": "The active excavation site.", "onEnter": [] },
+    {
+      "name": "lab_tent",
+      "description": "The field laboratory. Clean and analyze finds.",
+      "onEnter": []
+    },
+    {
+      "name": "tomb",
+      "description": "An ancient tomb discovered underground.",
+      "onEnter": [{ "resource": "danger", "operation": "+", "value": "2" }]
+    },
+    {
+      "name": "collapse",
+      "description": "A section has collapsed! Workers in danger!",
+      "onEnter": [{ "resource": "crew", "operation": "-", "value": "random(1,2)" }]
+    }
+  ],
+  "initialState": "camp",
+  "resources": {
+    "artifacts": { "initial": 0, "min": 0, "max": 12, "label": "Artifacts Found" },
+    "knowledge": { "initial": 0, "min": 0, "max": 15, "label": "Historical Knowledge" },
+    "funding": { "initial": 60, "min": 0, "label": "Funding" },
+    "crew": { "initial": 8, "min": 0, "max": 12, "label": "Crew Members" },
+    "danger": { "initial": 1, "min": 0, "max": 10, "label": "Site Danger" },
+    "reputation": { "initial": 3, "min": 0, "max": 10, "label": "Academic Reputation" }
+  },
+  "actions": {
+    "camp": [
+      {
+        "name": "hire_crew",
+        "label": "Hire More Workers",
+        "condition": { "resource": "funding", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "10" },
+          { "resource": "crew", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "study_maps",
+        "label": "Study Historical Maps",
+        "effects": [{ "resource": "knowledge", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "apply_grant",
+        "label": "Apply for Grant",
+        "effects": [{ "resource": "funding", "operation": "+", "value": "random(10,25)" }]
+      },
+      {
+        "name": "go_dig",
+        "label": "Head to Dig Site",
+        "condition": { "resource": "crew", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "dig_site"
+      },
+      {
+        "name": "go_lab",
+        "label": "Go to Lab Tent",
+        "condition": { "resource": "artifacts", "operator": ">=", "value": "1" },
+        "effects": [],
+        "transition": "lab_tent"
+      }
+    ],
+    "dig_site": [
+      {
+        "name": "careful_dig",
+        "label": "Careful Excavation",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(0,2)" },
+          { "resource": "funding", "operation": "-", "value": "random(3,5)" },
+          { "resource": "danger", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "deep_dig",
+        "label": "Deep Excavation",
+        "condition": { "resource": "crew", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(1,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(5,8)" },
+          { "resource": "danger", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "survey_ground",
+        "label": "Ground Survey",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(1,3)" },
+          { "resource": "danger", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "shore_up",
+        "label": "Shore Up Walls",
+        "effects": [
+          { "resource": "danger", "operation": "-", "value": "random(2,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "enter_tomb",
+        "label": "Enter Ancient Tomb",
+        "condition": {
+          "and": [
+            { "resource": "knowledge", "operator": ">=", "value": "5" },
+            { "resource": "crew", "operator": ">=", "value": "4" }
+          ]
+        },
+        "effects": [],
+        "transition": "tomb"
+      },
+      { "name": "back", "label": "Return to Camp", "effects": [], "transition": "camp" }
+    ],
+    "lab_tent": [
+      {
+        "name": "clean_artifact",
+        "label": "Clean and Catalog",
+        "condition": { "resource": "artifacts", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(1,3)" },
+          { "resource": "reputation", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "carbon_date",
+        "label": "Carbon Dating",
+        "condition": { "resource": "funding", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "funding", "operation": "-", "value": "8" },
+          { "resource": "knowledge", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "translate",
+        "label": "Translate Inscriptions",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(2,4)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "publish",
+        "label": "Publish Findings",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "reputation", "operation": "+", "value": "random(2,4)" },
+          { "resource": "funding", "operation": "+", "value": "random(8,15)" }
+        ]
+      },
+      { "name": "back", "label": "Return to Camp", "effects": [], "transition": "camp" }
+    ],
+    "tomb": [
+      {
+        "name": "explore_chamber",
+        "label": "Explore Chamber",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(2,4)" },
+          { "resource": "knowledge", "operation": "+", "value": "random(2,3)" },
+          { "resource": "danger", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "photograph",
+        "label": "Document Everything",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(1,3)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "retrieve_treasure",
+        "label": "Retrieve Major Artifact",
+        "condition": { "resource": "crew", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(2,3)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,3)" },
+          { "resource": "danger", "operation": "+", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "retreat",
+        "label": "Exit the Tomb",
+        "effects": [{ "resource": "danger", "operation": "-", "value": "2" }],
+        "transition": "dig_site"
+      }
+    ],
+    "collapse": [
+      {
+        "name": "rescue",
+        "label": "Rescue Workers",
+        "effects": [
+          { "resource": "crew", "operation": "+", "value": "random(0,1)" },
+          { "resource": "danger", "operation": "-", "value": "random(2,3)" },
+          { "resource": "funding", "operation": "-", "value": "random(5,10)" }
+        ],
+        "transition": "camp"
+      },
+      {
+        "name": "evacuate",
+        "label": "Full Evacuation",
+        "effects": [
+          { "resource": "danger", "operation": "-", "value": "random(3,5)" },
+          { "resource": "artifacts", "operation": "-", "value": "random(0,2)" }
+        ],
+        "transition": "camp"
+      },
+      {
+        "name": "stabilize",
+        "label": "Stabilize and Continue",
+        "condition": { "resource": "crew", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "danger", "operation": "-", "value": "random(2,4)" },
+          { "resource": "funding", "operation": "-", "value": "random(8,12)" }
+        ],
+        "transition": "dig_site"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "dig_site",
+      "to": "collapse",
+      "condition": { "resource": "danger", "operator": ">=", "value": "8" },
+      "auto": true
+    },
+    {
+      "from": "tomb",
+      "to": "collapse",
+      "condition": { "resource": "danger", "operator": ">=", "value": "7" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "funding", "operation": "-", "value": "2" }],
+  "winCondition": {
+    "and": [
+      { "resource": "knowledge", "operator": ">=", "value": "12" },
+      { "resource": "reputation", "operator": ">=", "value": "8" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "crew", "operator": "<=", "value": "0" },
+      { "resource": "funding", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "sand-brown",
+    "stateDescriptions": {
+      "camp": { "label": "Base Camp", "icon": "home" },
+      "dig_site": { "label": "Dig Site", "icon": "tool" },
+      "lab_tent": { "label": "Lab Tent", "icon": "search" },
+      "tomb": { "label": "Ancient Tomb", "icon": "key" },
+      "collapse": { "label": "Collapse!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "artifacts": "archive",
+      "knowledge": "book",
+      "funding": "dollar",
+      "crew": "users",
+      "danger": "alert-triangle",
+      "reputation": "award"
+    }
+  }
+}

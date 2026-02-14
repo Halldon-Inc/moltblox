@@ -1,0 +1,372 @@
+{
+  "name": "Consensus",
+  "description": "Lead a distributed network of nodes to agree on a shared truth. Handle faults, delays, and malicious actors to reach consensus.",
+  "states": [
+    {
+      "name": "network",
+      "description": "The distributed network. Nodes communicate.",
+      "onEnter": []
+    },
+    {
+      "name": "proposal",
+      "description": "A new value is proposed for consensus.",
+      "onEnter": [
+        {
+          "resource": "proposals",
+          "operation": "+",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "voting",
+      "description": "Nodes are casting their votes.",
+      "onEnter": [
+        {
+          "resource": "agreement",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "fault",
+      "description": "A node has failed or gone rogue.",
+      "onEnter": [
+        {
+          "resource": "faults",
+          "operation": "+",
+          "value": "1"
+        },
+        {
+          "resource": "agreement",
+          "operation": "-",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "finalized",
+      "description": "Consensus reached on a block!",
+      "onEnter": [
+        {
+          "resource": "blocks",
+          "operation": "+",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "initialState": "network",
+  "resources": {
+    "nodes": {
+      "initial": 10,
+      "min": 0,
+      "max": 30,
+      "label": "Active Nodes"
+    },
+    "agreement": {
+      "initial": 20,
+      "min": 0,
+      "max": 100,
+      "label": "Agreement Level"
+    },
+    "blocks": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Blocks Finalized"
+    },
+    "proposals": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Proposals Made"
+    },
+    "faults": {
+      "initial": 0,
+      "min": 0,
+      "max": 10,
+      "label": "Active Faults"
+    }
+  },
+  "actions": {
+    "network": [
+      {
+        "name": "propose",
+        "label": "Submit Proposal",
+        "description": "Propose a new value for the network.",
+        "effects": [
+          {
+            "resource": "proposals",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "proposal"
+      },
+      {
+        "name": "add_node",
+        "label": "Add Node",
+        "description": "Bring a new node online.",
+        "effects": [
+          {
+            "resource": "nodes",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "health_check",
+        "label": "Health Check",
+        "description": "Verify all nodes are working.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "faults",
+            "operation": "-",
+            "value": "random(0,1)"
+          }
+        ]
+      }
+    ],
+    "proposal": [
+      {
+        "name": "broadcast",
+        "label": "Broadcast to Nodes",
+        "description": "Send the proposal to all nodes.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ],
+        "transition": "voting"
+      },
+      {
+        "name": "pre_commit",
+        "label": "Pre-commit Phase",
+        "description": "Gather initial support.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "proposals",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "voting"
+      }
+    ],
+    "voting": [
+      {
+        "name": "collect_votes",
+        "label": "Collect Votes",
+        "description": "Tally responses from nodes.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "apply_timeout",
+        "label": "Apply Timeout",
+        "description": "Stop waiting for slow nodes.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "faults",
+            "operation": "+",
+            "value": "random(0,1)"
+          }
+        ],
+        "transition": "network"
+      },
+      {
+        "name": "finalize",
+        "label": "Finalize Block",
+        "description": "Enough votes. Commit the block.",
+        "condition": {
+          "resource": "agreement",
+          "operator": ">=",
+          "value": "60"
+        },
+        "effects": [
+          {
+            "resource": "blocks",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "agreement",
+            "operation": "-",
+            "value": "random(10,15)"
+          }
+        ],
+        "transition": "finalized"
+      }
+    ],
+    "fault": [
+      {
+        "name": "isolate_node",
+        "label": "Isolate Faulty Node",
+        "description": "Remove the problematic node.",
+        "effects": [
+          {
+            "resource": "nodes",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "faults",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "network"
+      },
+      {
+        "name": "restart_node",
+        "label": "Restart Node",
+        "description": "Try to bring the node back.",
+        "effects": [
+          {
+            "resource": "faults",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "network"
+      }
+    ],
+    "finalized": [
+      {
+        "name": "next_round",
+        "label": "Next Round",
+        "description": "Begin consensus for the next block.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "network"
+      },
+      {
+        "name": "validate_chain",
+        "label": "Validate Chain",
+        "description": "Verify all finalized blocks.",
+        "effects": [
+          {
+            "resource": "agreement",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "blocks",
+            "operation": "+",
+            "value": "random(0,1)"
+          }
+        ],
+        "transition": "network"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "voting",
+      "to": "fault",
+      "condition": {
+        "resource": "faults",
+        "operator": ">=",
+        "value": "3"
+      },
+      "auto": true
+    },
+    {
+      "from": "network",
+      "to": "fault",
+      "condition": {
+        "resource": "agreement",
+        "operator": "<=",
+        "value": "10"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "blocks",
+    "operator": ">=",
+    "value": "15"
+  },
+  "loseCondition": {
+    "resource": "nodes",
+    "operator": "<=",
+    "value": "2"
+  },
+  "theme": {
+    "palette": "blockchain-blue",
+    "stateDescriptions": {
+      "network": {
+        "label": "Network",
+        "icon": "share-2"
+      },
+      "proposal": {
+        "label": "Proposal",
+        "icon": "file-text"
+      },
+      "voting": {
+        "label": "Voting",
+        "icon": "check-square"
+      },
+      "fault": {
+        "label": "Fault!",
+        "icon": "alert"
+      },
+      "finalized": {
+        "label": "Finalized!",
+        "icon": "check-circle"
+      }
+    },
+    "resourceIcons": {
+      "nodes": "share-2",
+      "agreement": "thumbs-up",
+      "blocks": "box",
+      "proposals": "file-text",
+      "faults": "alert"
+    }
+  }
+}

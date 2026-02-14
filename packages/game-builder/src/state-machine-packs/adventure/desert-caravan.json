@@ -1,0 +1,356 @@
+{
+  "name": "Desert Caravan",
+  "description": "Lead a merchant caravan across a vast desert. Trade goods between oasis towns, survive sandstorms, and build your fortune.",
+  "states": [
+    {
+      "name": "oasis_town",
+      "description": "A bustling desert trading post around a spring.",
+      "onEnter": [{ "resource": "water", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "desert_road",
+      "description": "Endless sand dunes under a scorching sun.",
+      "onEnter": []
+    },
+    {
+      "name": "sandstorm",
+      "description": "A wall of sand approaches!",
+      "onEnter": [{ "resource": "camels", "operation": "-", "value": "random(0,2)" }]
+    },
+    {
+      "name": "bandit_ambush",
+      "description": "Bandits emerge from behind the dunes.",
+      "onEnter": []
+    },
+    {
+      "name": "ancient_ruins",
+      "description": "Crumbling stone structures half-buried in sand.",
+      "onEnter": []
+    },
+    { "name": "market_city", "description": "A grand city with a massive bazaar.", "onEnter": [] },
+    {
+      "name": "canyon_pass",
+      "description": "A narrow canyon between towering cliffs.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "oasis_town",
+  "resources": {
+    "gold": { "initial": 50, "min": 0, "label": "Gold" },
+    "goods": { "initial": 5, "min": 0, "max": 30, "label": "Trade Goods" },
+    "water": { "initial": 15, "min": 0, "max": 25, "label": "Water" },
+    "food": { "initial": 10, "min": 0, "max": 20, "label": "Food" },
+    "camels": { "initial": 5, "min": 0, "max": 15, "label": "Camels" },
+    "guards": { "initial": 2, "min": 0, "max": 10, "label": "Guards" },
+    "reputation": { "initial": 3, "min": 0, "max": 15, "label": "Reputation" },
+    "distance": { "initial": 0, "min": 0, "label": "Distance Traveled" }
+  },
+  "actions": {
+    "oasis_town": [
+      {
+        "name": "buy_goods",
+        "label": "Buy Trade Goods",
+        "description": "Purchase goods to sell at the next city.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "goods", "operation": "+", "value": "random(3,6)" },
+          { "resource": "gold", "operation": "-", "value": "15" }
+        ]
+      },
+      {
+        "name": "buy_supplies",
+        "label": "Stock Supplies",
+        "description": "Buy water and food for the journey.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "water", "operation": "+", "value": "random(3,6)" },
+          { "resource": "food", "operation": "+", "value": "random(3,5)" },
+          { "resource": "gold", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "hire_guards",
+        "label": "Hire Guards",
+        "description": "Hire protection for the road.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "guards", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "buy_camels",
+        "label": "Buy Camels",
+        "description": "More camels means carrying more goods.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "12" },
+        "effects": [
+          { "resource": "camels", "operation": "+", "value": "random(1,2)" },
+          { "resource": "gold", "operation": "-", "value": "12" }
+        ]
+      },
+      {
+        "name": "depart",
+        "label": "Depart",
+        "description": "Set out across the desert.",
+        "condition": { "resource": "camels", "operator": ">=", "value": "2" },
+        "effects": [],
+        "transition": "desert_road"
+      }
+    ],
+    "desert_road": [
+      {
+        "name": "march",
+        "label": "March Onward",
+        "description": "Continue the journey.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "random(1,3)" },
+          { "resource": "food", "operation": "-", "value": "random(1,2)" },
+          { "resource": "distance", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "forced_march",
+        "label": "Forced March",
+        "description": "Push hard to cover more ground.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "random(3,5)" },
+          { "resource": "food", "operation": "-", "value": "random(2,3)" },
+          { "resource": "distance", "operation": "+", "value": "random(4,7)" },
+          { "resource": "camels", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "rest",
+        "label": "Make Camp",
+        "description": "Rest until temperatures cool.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "1" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "scout",
+        "label": "Scout Ahead",
+        "description": "Send a scout to check the path.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "1" },
+          { "resource": "distance", "operation": "+", "value": "1" }
+        ]
+      }
+    ],
+    "sandstorm": [
+      {
+        "name": "hunker_down",
+        "label": "Hunker Down",
+        "description": "Shelter behind the camels and wait.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "random(2,4)" },
+          { "resource": "goods", "operation": "-", "value": "random(0,2)" }
+        ],
+        "transition": "desert_road"
+      },
+      {
+        "name": "push_through",
+        "label": "Push Through Storm",
+        "description": "Try to keep moving through the storm.",
+        "effects": [
+          { "resource": "camels", "operation": "-", "value": "random(1,2)" },
+          { "resource": "goods", "operation": "-", "value": "random(1,3)" },
+          { "resource": "distance", "operation": "+", "value": "random(2,4)" }
+        ],
+        "transition": "desert_road"
+      }
+    ],
+    "bandit_ambush": [
+      {
+        "name": "fight",
+        "label": "Fight Back",
+        "description": "Your guards defend the caravan.",
+        "condition": { "resource": "guards", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "guards", "operation": "-", "value": "random(1,2)" },
+          { "resource": "gold", "operation": "+", "value": "random(5,15)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ],
+        "transition": "desert_road"
+      },
+      {
+        "name": "pay_tribute",
+        "label": "Pay Tribute",
+        "description": "Give them gold to let you pass.",
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "random(10,20)" },
+          { "resource": "reputation", "operation": "-", "value": "1" }
+        ],
+        "transition": "desert_road"
+      },
+      {
+        "name": "flee",
+        "label": "Flee",
+        "description": "Abandon some goods and run.",
+        "effects": [
+          { "resource": "goods", "operation": "-", "value": "random(2,5)" },
+          { "resource": "distance", "operation": "+", "value": "2" }
+        ],
+        "transition": "desert_road"
+      }
+    ],
+    "ancient_ruins": [
+      {
+        "name": "explore",
+        "label": "Explore Ruins",
+        "description": "Search for valuable artifacts.",
+        "effects": [
+          { "resource": "goods", "operation": "+", "value": "random(2,5)" },
+          { "resource": "water", "operation": "-", "value": "2" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "rest_in_shade",
+        "label": "Rest in Shade",
+        "description": "Use the ruins for shelter.",
+        "effects": [
+          { "resource": "water", "operation": "-", "value": "1" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "continue",
+        "label": "Continue Journey",
+        "description": "Leave the ruins behind.",
+        "effects": [],
+        "transition": "desert_road"
+      }
+    ],
+    "market_city": [
+      {
+        "name": "sell_goods",
+        "label": "Sell at Bazaar",
+        "description": "Trade your goods for gold.",
+        "condition": { "resource": "goods", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(20,50)" },
+          { "resource": "goods", "operation": "-", "value": "random(3,6)" },
+          { "resource": "reputation", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "buy_luxury",
+        "label": "Buy Luxury Goods",
+        "description": "Purchase expensive goods for higher margins.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "goods", "operation": "+", "value": "random(4,8)" },
+          { "resource": "gold", "operation": "-", "value": "30" }
+        ]
+      },
+      {
+        "name": "resupply",
+        "label": "Resupply",
+        "description": "Stock up on supplies.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "water", "operation": "+", "value": "8" },
+          { "resource": "food", "operation": "+", "value": "6" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "depart_city",
+        "label": "Leave City",
+        "description": "Continue your trade route.",
+        "effects": [],
+        "transition": "desert_road"
+      }
+    ],
+    "canyon_pass": [
+      {
+        "name": "navigate_carefully",
+        "label": "Navigate Carefully",
+        "description": "Move slowly through the narrow pass.",
+        "effects": [
+          { "resource": "distance", "operation": "+", "value": "random(1,3)" },
+          { "resource": "water", "operation": "-", "value": "1" }
+        ],
+        "transition": "desert_road"
+      },
+      {
+        "name": "search_canyon",
+        "label": "Search Canyon",
+        "description": "Look for hidden springs or caves.",
+        "effects": [
+          { "resource": "water", "operation": "+", "value": "random(2,5)" },
+          { "resource": "goods", "operation": "+", "value": "random(0,2)" }
+        ],
+        "transition": "desert_road"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "desert_road",
+      "to": "sandstorm",
+      "condition": { "resource": "distance", "operator": ">=", "value": "8" },
+      "auto": false
+    },
+    {
+      "from": "desert_road",
+      "to": "bandit_ambush",
+      "condition": { "resource": "goods", "operator": ">=", "value": "10" },
+      "auto": false
+    },
+    {
+      "from": "desert_road",
+      "to": "ancient_ruins",
+      "condition": { "resource": "distance", "operator": ">=", "value": "5" },
+      "auto": false
+    },
+    {
+      "from": "desert_road",
+      "to": "canyon_pass",
+      "condition": { "resource": "distance", "operator": ">=", "value": "12" },
+      "auto": false
+    },
+    {
+      "from": "desert_road",
+      "to": "market_city",
+      "condition": { "resource": "distance", "operator": ">=", "value": "15" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "gold", "operator": ">=", "value": "200" },
+      { "resource": "reputation", "operator": ">=", "value": "10" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "water", "operator": "<=", "value": "0" },
+      { "resource": "camels", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "desert-sand",
+    "stateDescriptions": {
+      "oasis_town": { "label": "Oasis Town", "icon": "droplet" },
+      "desert_road": { "label": "Desert Road", "icon": "sun" },
+      "sandstorm": { "label": "Sandstorm!", "icon": "wind" },
+      "bandit_ambush": { "label": "Bandits!", "icon": "alert-triangle" },
+      "ancient_ruins": { "label": "Ancient Ruins", "icon": "landmark" },
+      "market_city": { "label": "Grand Bazaar", "icon": "shopping-bag" },
+      "canyon_pass": { "label": "Canyon Pass", "icon": "mountain" }
+    },
+    "resourceIcons": {
+      "gold": "coin",
+      "goods": "package",
+      "water": "droplet",
+      "food": "apple",
+      "camels": "paw",
+      "guards": "shield",
+      "reputation": "star",
+      "distance": "map-pin"
+    }
+  }
+}

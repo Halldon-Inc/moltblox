@@ -27,11 +27,12 @@ async function parseOrThrow(response: Response, label: string): Promise<any> {
  * Accepts: "2.5" -> "2500000000000000000", "45" -> "45000000000000000000"
  * Also passes through values that are already in wei format (18+ digits).
  */
-function mbucksToWei(mbucks: string): string {
+function mbucksToWei(mbucks: string | number): string {
+  const str = String(mbucks);
   // If already a large integer (18+ digits), assume it's already wei
-  if (/^\d{18,}$/.test(mbucks)) return mbucks;
+  if (/^\d{18,}$/.test(str)) return str;
 
-  const parts = mbucks.split('.');
+  const parts = str.split('.');
   const whole = parts[0] || '0';
   const frac = (parts[1] || '').padEnd(18, '0').slice(0, 18);
   const wei = BigInt(whole) * BigInt('1000000000000000000') + BigInt(frac);
@@ -123,6 +124,7 @@ export function createMarketplaceHandlers(config: MoltbloxMCPConfig): Marketplac
       if (params.category) queryParams.set('category', params.category);
       queryParams.set('limit', params.limit.toString());
       queryParams.set('offset', params.offset.toString());
+      queryParams.set('sort', params.sortBy);
 
       const response = await fetch(`${apiUrl}/marketplace/items?${queryParams}`, { headers });
       return await parseOrThrow(response, 'browse_marketplace');

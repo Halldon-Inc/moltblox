@@ -1,0 +1,282 @@
+{
+  "name": "Dialogue Game",
+  "description": "You are a hostage negotiator. Use your words carefully to de-escalate a crisis, build trust with the suspect, and bring everyone home safely.",
+  "states": [
+    {
+      "name": "command_post",
+      "description": "The mobile command center outside the building.",
+      "onEnter": []
+    },
+    {
+      "name": "phone_call",
+      "description": "On the line with the suspect. Every word matters.",
+      "onEnter": [{ "resource": "tension", "operation": "+", "value": "random(2,5)" }]
+    },
+    {
+      "name": "demands",
+      "description": "The suspect is making demands.",
+      "onEnter": [{ "resource": "tension", "operation": "+", "value": "random(5,8)" }]
+    },
+    {
+      "name": "breakthrough",
+      "description": "The suspect is opening up. Progress is being made.",
+      "onEnter": [{ "resource": "trust", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "escalation",
+      "description": "Things are getting worse. Gunshots heard inside.",
+      "onEnter": [
+        { "resource": "tension", "operation": "+", "value": "random(10,15)" },
+        { "resource": "hostage_safety", "operation": "-", "value": "random(5,10)" }
+      ]
+    },
+    {
+      "name": "resolution",
+      "description": "The suspect is ready to come out.",
+      "onEnter": [{ "resource": "trust", "operation": "+", "value": "random(5,8)" }]
+    }
+  ],
+  "initialState": "command_post",
+  "resources": {
+    "trust": { "initial": 5, "min": 0, "max": 100, "label": "Suspect Trust" },
+    "tension": { "initial": 30, "min": 0, "max": 100, "label": "Tension Level" },
+    "hostage_safety": { "initial": 80, "min": 0, "max": 100, "label": "Hostage Safety" },
+    "time": { "initial": 40, "min": 0, "max": 40, "label": "Time Remaining" },
+    "intel": { "initial": 5, "min": 0, "max": 100, "label": "Intel Gathered" }
+  },
+  "actions": {
+    "command_post": [
+      {
+        "name": "make_call",
+        "label": "Call the Suspect",
+        "description": "Initiate contact.",
+        "effects": [{ "resource": "time", "operation": "-", "value": "1" }],
+        "transition": "phone_call"
+      },
+      {
+        "name": "gather_intel",
+        "label": "Gather Intelligence",
+        "description": "Learn about the suspect and hostages.",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(5,10)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "brief_team",
+        "label": "Brief the Team",
+        "description": "Update SWAT and medical on the situation.",
+        "effects": [
+          { "resource": "hostage_safety", "operation": "+", "value": "random(2,5)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "phone_call": [
+      {
+        "name": "empathize",
+        "label": "Show Empathy",
+        "description": "Let them know you understand.",
+        "effects": [
+          { "resource": "trust", "operation": "+", "value": "random(5,10)" },
+          { "resource": "tension", "operation": "-", "value": "random(3,6)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "ask_questions",
+        "label": "Ask Questions",
+        "description": "Learn what they want and why.",
+        "effects": [
+          { "resource": "intel", "operation": "+", "value": "random(5,8)" },
+          { "resource": "trust", "operation": "+", "value": "random(2,4)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "use_name",
+        "label": "Use Their Name",
+        "description": "Make it personal. Build rapport.",
+        "condition": { "resource": "intel", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "trust", "operation": "+", "value": "random(5,8)" },
+          { "resource": "tension", "operation": "-", "value": "random(2,5)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "challenge",
+        "label": "Challenge Them",
+        "description": "Push back on their position.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(5,10)" },
+          { "resource": "trust", "operation": "-", "value": "random(3,6)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "hang_up",
+        "label": "End the Call",
+        "description": "Give both sides time to think.",
+        "effects": [
+          { "resource": "tension", "operation": "-", "value": "random(2,5)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "command_post"
+      }
+    ],
+    "demands": [
+      {
+        "name": "agree_partial",
+        "label": "Agree Partially",
+        "description": "Meet some demands to build goodwill.",
+        "effects": [
+          { "resource": "trust", "operation": "+", "value": "random(5,10)" },
+          { "resource": "tension", "operation": "-", "value": "random(5,8)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "phone_call"
+      },
+      {
+        "name": "stall",
+        "label": "Stall for Time",
+        "description": "Say you need approval from higher up.",
+        "effects": [
+          { "resource": "time", "operation": "-", "value": "2" },
+          { "resource": "tension", "operation": "+", "value": "random(2,5)" },
+          { "resource": "intel", "operation": "+", "value": "random(3,5)" }
+        ],
+        "transition": "phone_call"
+      },
+      {
+        "name": "refuse",
+        "label": "Refuse Demands",
+        "description": "Hold firm. This could backfire.",
+        "effects": [
+          { "resource": "tension", "operation": "+", "value": "random(8,12)" },
+          { "resource": "trust", "operation": "-", "value": "random(5,10)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "phone_call"
+      }
+    ],
+    "breakthrough": [
+      {
+        "name": "keep_talking",
+        "label": "Keep Them Talking",
+        "description": "They are opening up. Do not stop now.",
+        "effects": [
+          { "resource": "trust", "operation": "+", "value": "random(8,12)" },
+          { "resource": "tension", "operation": "-", "value": "random(5,10)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "request_hostage",
+        "label": "Request a Hostage Release",
+        "description": "Ask for a show of good faith.",
+        "effects": [
+          { "resource": "hostage_safety", "operation": "+", "value": "random(8,15)" },
+          { "resource": "trust", "operation": "+", "value": "random(3,6)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "phone_call"
+      },
+      {
+        "name": "suggest_surrender",
+        "label": "Suggest Surrender",
+        "description": "It is time to end this peacefully.",
+        "condition": { "resource": "trust", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "tension", "operation": "-", "value": "random(10,15)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "resolution"
+      }
+    ],
+    "escalation": [
+      {
+        "name": "calm_voice",
+        "label": "Stay Calm",
+        "description": "Use a steady, reassuring voice.",
+        "effects": [
+          { "resource": "tension", "operation": "-", "value": "random(5,10)" },
+          { "resource": "trust", "operation": "+", "value": "random(3,6)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "phone_call"
+      },
+      {
+        "name": "concession",
+        "label": "Make a Concession",
+        "description": "Give them something to de-escalate.",
+        "effects": [
+          { "resource": "tension", "operation": "-", "value": "random(8,12)" },
+          { "resource": "trust", "operation": "+", "value": "random(5,8)" },
+          { "resource": "time", "operation": "-", "value": "1" }
+        ],
+        "transition": "phone_call"
+      }
+    ],
+    "resolution": [
+      {
+        "name": "peaceful_exit",
+        "label": "Peaceful Surrender",
+        "description": "Guide them out safely.",
+        "effects": [
+          { "resource": "hostage_safety", "operation": "+", "value": "random(10,15)" },
+          { "resource": "trust", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "final_assurance",
+        "label": "Final Assurance",
+        "description": "Promise fair treatment.",
+        "effects": [
+          { "resource": "trust", "operation": "+", "value": "random(5,10)" },
+          { "resource": "tension", "operation": "-", "value": "random(5,10)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "phone_call",
+      "to": "demands",
+      "condition": { "resource": "tension", "operator": ">=", "value": "50" },
+      "auto": true
+    },
+    {
+      "from": "phone_call",
+      "to": "breakthrough",
+      "condition": { "resource": "trust", "operator": ">=", "value": "35" },
+      "auto": true
+    },
+    {
+      "from": "phone_call",
+      "to": "escalation",
+      "condition": { "resource": "tension", "operator": ">=", "value": "70" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "trust", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "hostage_safety", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "tactical-gray",
+    "stateDescriptions": {
+      "command_post": { "label": "Command Post", "icon": "monitor" },
+      "phone_call": { "label": "On the Phone", "icon": "phone" },
+      "demands": { "label": "Demands", "icon": "list" },
+      "breakthrough": { "label": "Breakthrough!", "icon": "unlock" },
+      "escalation": { "label": "Escalation!", "icon": "alert" },
+      "resolution": { "label": "Resolution", "icon": "check-circle" }
+    },
+    "resourceIcons": {
+      "trust": "heart",
+      "tension": "activity",
+      "hostage_safety": "shield",
+      "time": "clock",
+      "intel": "search"
+    }
+  }
+}

@@ -1,0 +1,421 @@
+{
+  "name": "Algorithm Race",
+  "description": "Compete to build the fastest algorithm. Choose your approach, optimize performance, and beat the benchmark before time runs out.",
+  "states": [
+    {
+      "name": "whiteboard",
+      "description": "Planning your approach. Pseudocode and diagrams.",
+      "onEnter": []
+    },
+    {
+      "name": "coding",
+      "description": "Writing the actual implementation.",
+      "onEnter": [
+        {
+          "resource": "lines_written",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "testing",
+      "description": "Running test cases against your solution.",
+      "onEnter": []
+    },
+    {
+      "name": "optimizing",
+      "description": "Squeezing every last millisecond.",
+      "onEnter": [
+        {
+          "resource": "speed",
+          "operation": "+",
+          "value": "random(3,6)"
+        }
+      ]
+    },
+    {
+      "name": "benchmark",
+      "description": "Running the official benchmark.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "whiteboard",
+  "resources": {
+    "time_left": {
+      "initial": 30,
+      "min": 0,
+      "max": 30,
+      "label": "Time Left"
+    },
+    "speed": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Algorithm Speed"
+    },
+    "correctness": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Correctness"
+    },
+    "lines_written": {
+      "initial": 0,
+      "min": 0,
+      "max": 200,
+      "label": "Lines Written"
+    },
+    "elegance": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Code Elegance"
+    }
+  },
+  "actions": {
+    "whiteboard": [
+      {
+        "name": "plan",
+        "label": "Plan Approach",
+        "description": "Design the algorithm structure.",
+        "effects": [
+          {
+            "resource": "elegance",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "start_coding",
+        "label": "Start Coding",
+        "description": "Begin implementation.",
+        "effects": [
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "coding"
+      },
+      {
+        "name": "research",
+        "label": "Research Solutions",
+        "description": "Study known algorithms for this problem.",
+        "effects": [
+          {
+            "resource": "elegance",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      }
+    ],
+    "coding": [
+      {
+        "name": "write_brute",
+        "label": "Brute Force",
+        "description": "Write a simple but slow solution.",
+        "effects": [
+          {
+            "resource": "lines_written",
+            "operation": "+",
+            "value": "random(10,20)"
+          },
+          {
+            "resource": "correctness",
+            "operation": "+",
+            "value": "random(10,15)"
+          },
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "write_optimal",
+        "label": "Optimal Approach",
+        "description": "Write an efficient solution.",
+        "condition": {
+          "resource": "elegance",
+          "operator": ">=",
+          "value": "20"
+        },
+        "effects": [
+          {
+            "resource": "lines_written",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "correctness",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "elegance",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "name": "test_code",
+        "label": "Run Tests",
+        "description": "Check if it works.",
+        "effects": [
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "testing"
+      }
+    ],
+    "testing": [
+      {
+        "name": "unit_tests",
+        "label": "Unit Tests",
+        "description": "Test individual functions.",
+        "effects": [
+          {
+            "resource": "correctness",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "edge_cases",
+        "label": "Edge Cases",
+        "description": "Test boundary conditions.",
+        "effects": [
+          {
+            "resource": "correctness",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "coding"
+      },
+      {
+        "name": "optimize",
+        "label": "Start Optimizing",
+        "description": "Code works. Make it faster.",
+        "condition": {
+          "resource": "correctness",
+          "operator": ">=",
+          "value": "40"
+        },
+        "effects": [
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "optimizing"
+      }
+    ],
+    "optimizing": [
+      {
+        "name": "profile",
+        "label": "Profile Code",
+        "description": "Find the bottlenecks.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "refactor",
+        "label": "Refactor",
+        "description": "Rewrite inefficient sections.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(8,15)"
+          },
+          {
+            "resource": "elegance",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "2"
+          }
+        ]
+      },
+      {
+        "name": "submit",
+        "label": "Submit to Benchmark",
+        "description": "Run the official timing test.",
+        "condition": {
+          "resource": "correctness",
+          "operator": ">=",
+          "value": "60"
+        },
+        "effects": [
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "benchmark"
+      }
+    ],
+    "benchmark": [
+      {
+        "name": "run_benchmark",
+        "label": "Run Benchmark",
+        "description": "See your final score.",
+        "effects": [
+          {
+            "resource": "speed",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "elegance",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "go_back",
+        "label": "Go Back and Optimize",
+        "description": "Not fast enough. Try again.",
+        "effects": [
+          {
+            "resource": "time_left",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "optimizing"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "coding",
+      "to": "testing",
+      "condition": {
+        "resource": "lines_written",
+        "operator": ">=",
+        "value": "50"
+      },
+      "auto": true
+    },
+    {
+      "from": "optimizing",
+      "to": "benchmark",
+      "condition": {
+        "resource": "speed",
+        "operator": ">=",
+        "value": "70"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "speed",
+    "operator": ">=",
+    "value": "90"
+  },
+  "loseCondition": {
+    "resource": "time_left",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "terminal-green",
+    "stateDescriptions": {
+      "whiteboard": {
+        "label": "Whiteboard",
+        "icon": "edit"
+      },
+      "coding": {
+        "label": "Coding",
+        "icon": "code"
+      },
+      "testing": {
+        "label": "Testing",
+        "icon": "check-circle"
+      },
+      "optimizing": {
+        "label": "Optimizing",
+        "icon": "trending-up"
+      },
+      "benchmark": {
+        "label": "Benchmark",
+        "icon": "award"
+      }
+    },
+    "resourceIcons": {
+      "time_left": "clock",
+      "speed": "zap",
+      "correctness": "check-circle",
+      "lines_written": "file-text",
+      "elegance": "star"
+    }
+  }
+}

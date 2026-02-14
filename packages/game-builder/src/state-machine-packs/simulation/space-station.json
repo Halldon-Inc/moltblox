@@ -1,0 +1,316 @@
+{
+  "name": "Space Station",
+  "description": "Command a space station in orbit. Manage crew, power systems, and research projects while handling emergencies.",
+  "states": [
+    { "name": "command_center", "description": "The nerve center of the station.", "onEnter": [] },
+    {
+      "name": "lab_module",
+      "description": "Research laboratories for experiments.",
+      "onEnter": []
+    },
+    { "name": "habitat_ring", "description": "Living quarters for the crew.", "onEnter": [] },
+    { "name": "docking_bay", "description": "Supply ships arrive and depart here.", "onEnter": [] },
+    { "name": "engineering", "description": "Reactors and life support systems.", "onEnter": [] },
+    {
+      "name": "emergency",
+      "description": "Red alert! Something has gone wrong.",
+      "onEnter": [{ "resource": "morale", "operation": "-", "value": "3" }]
+    },
+    {
+      "name": "eva",
+      "description": "Extravehicular activity outside the station.",
+      "onEnter": [{ "resource": "oxygen", "operation": "-", "value": "3" }]
+    }
+  ],
+  "initialState": "command_center",
+  "resources": {
+    "power": { "initial": 50, "min": 0, "max": 80, "label": "Power" },
+    "oxygen": { "initial": 40, "min": 0, "max": 60, "label": "Oxygen" },
+    "crew": { "initial": 6, "min": 0, "max": 12, "label": "Crew" },
+    "supplies": { "initial": 30, "min": 0, "max": 50, "label": "Supplies" },
+    "research": { "initial": 0, "min": 0, "label": "Research Points" },
+    "morale": { "initial": 7, "min": 0, "max": 10, "label": "Morale" },
+    "hull": { "initial": 100, "min": 0, "max": 100, "label": "Hull Integrity" }
+  },
+  "actions": {
+    "command_center": [
+      {
+        "name": "manage_power",
+        "label": "Redistribute Power",
+        "description": "Balance power across station systems.",
+        "effects": [{ "resource": "power", "operation": "+", "value": "random(3,8)" }]
+      },
+      {
+        "name": "go_lab",
+        "label": "Visit Lab Module",
+        "description": "Check on research progress.",
+        "effects": [],
+        "transition": "lab_module"
+      },
+      {
+        "name": "go_habitat",
+        "label": "Visit Habitat",
+        "description": "Check on crew welfare.",
+        "effects": [],
+        "transition": "habitat_ring"
+      },
+      {
+        "name": "go_docking",
+        "label": "Go to Docking Bay",
+        "description": "Manage incoming shipments.",
+        "effects": [],
+        "transition": "docking_bay"
+      },
+      {
+        "name": "go_engineering",
+        "label": "Go to Engineering",
+        "description": "Manage station systems.",
+        "effects": [],
+        "transition": "engineering"
+      },
+      {
+        "name": "authorize_eva",
+        "label": "Authorize EVA",
+        "description": "Send crew outside for repairs.",
+        "condition": { "resource": "crew", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "eva"
+      }
+    ],
+    "lab_module": [
+      {
+        "name": "run_experiment",
+        "label": "Run Experiment",
+        "description": "Conduct scientific research.",
+        "condition": { "resource": "power", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "research", "operation": "+", "value": "random(5,15)" },
+          { "resource": "power", "operation": "-", "value": "5" },
+          { "resource": "supplies", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "analyze_data",
+        "label": "Analyze Data",
+        "description": "Process collected data.",
+        "effects": [
+          { "resource": "research", "operation": "+", "value": "random(3,8)" },
+          { "resource": "power", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Command",
+        "description": "Return to command center.",
+        "effects": [],
+        "transition": "command_center"
+      }
+    ],
+    "habitat_ring": [
+      {
+        "name": "recreation",
+        "label": "Organize Recreation",
+        "description": "Plan activities for the crew.",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "random(1,3)" },
+          { "resource": "supplies", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "ration_food",
+        "label": "Distribute Rations",
+        "description": "Hand out food to the crew.",
+        "condition": { "resource": "supplies", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "supplies", "operation": "-", "value": "3" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "medical_check",
+        "label": "Medical Checkups",
+        "description": "Ensure everyone is healthy.",
+        "effects": [
+          { "resource": "morale", "operation": "+", "value": "1" },
+          { "resource": "supplies", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Command",
+        "description": "Return to command center.",
+        "effects": [],
+        "transition": "command_center"
+      }
+    ],
+    "docking_bay": [
+      {
+        "name": "receive_supply",
+        "label": "Receive Supply Ship",
+        "description": "Unload incoming cargo.",
+        "effects": [
+          { "resource": "supplies", "operation": "+", "value": "random(8,15)" },
+          { "resource": "oxygen", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "receive_crew",
+        "label": "Welcome New Crew",
+        "description": "New personnel arrive.",
+        "effects": [
+          { "resource": "crew", "operation": "+", "value": "random(1,3)" },
+          { "resource": "morale", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "ship_research",
+        "label": "Ship Research Home",
+        "description": "Send research data back to Earth.",
+        "condition": { "resource": "research", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "research", "operation": "-", "value": "10" },
+          { "resource": "morale", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Command",
+        "description": "Return to command center.",
+        "effects": [],
+        "transition": "command_center"
+      }
+    ],
+    "engineering": [
+      {
+        "name": "repair_systems",
+        "label": "Repair Systems",
+        "description": "Fix damaged station components.",
+        "condition": { "resource": "supplies", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "hull", "operation": "+", "value": "random(5,15)" },
+          { "resource": "supplies", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "boost_power",
+        "label": "Boost Reactor",
+        "description": "Increase power output.",
+        "effects": [
+          { "resource": "power", "operation": "+", "value": "random(8,15)" },
+          { "resource": "hull", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "recycle_air",
+        "label": "Improve Air Recycling",
+        "description": "Optimize oxygen generation.",
+        "effects": [
+          { "resource": "oxygen", "operation": "+", "value": "random(5,10)" },
+          { "resource": "power", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Command",
+        "description": "Return to command center.",
+        "effects": [],
+        "transition": "command_center"
+      }
+    ],
+    "emergency": [
+      {
+        "name": "contain",
+        "label": "Contain Emergency",
+        "description": "Seal bulkheads and address the issue.",
+        "effects": [
+          { "resource": "hull", "operation": "-", "value": "random(5,10)" },
+          { "resource": "power", "operation": "-", "value": "random(3,8)" },
+          { "resource": "morale", "operation": "-", "value": "1" }
+        ],
+        "transition": "command_center"
+      },
+      {
+        "name": "evacuate_section",
+        "label": "Evacuate Section",
+        "description": "Move crew away from danger.",
+        "effects": [
+          { "resource": "crew", "operation": "-", "value": "random(0,1)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" },
+          { "resource": "hull", "operation": "-", "value": "random(3,8)" }
+        ],
+        "transition": "command_center"
+      }
+    ],
+    "eva": [
+      {
+        "name": "repair_hull",
+        "label": "Repair Hull Exterior",
+        "description": "Fix hull breaches from outside.",
+        "effects": [
+          { "resource": "hull", "operation": "+", "value": "random(10,20)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" },
+          { "resource": "supplies", "operation": "-", "value": "2" }
+        ],
+        "transition": "command_center"
+      },
+      {
+        "name": "install_panel",
+        "label": "Install Solar Panel",
+        "description": "Add new power generation.",
+        "effects": [
+          { "resource": "power", "operation": "+", "value": "random(8,15)" },
+          { "resource": "oxygen", "operation": "-", "value": "4" },
+          { "resource": "supplies", "operation": "-", "value": "3" }
+        ],
+        "transition": "command_center"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "command_center",
+      "to": "emergency",
+      "condition": { "resource": "hull", "operator": "<=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "engineering",
+      "to": "emergency",
+      "condition": { "resource": "power", "operator": "<=", "value": "10" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [
+    { "resource": "oxygen", "operation": "-", "value": "1" },
+    { "resource": "supplies", "operation": "-", "value": "1" }
+  ],
+  "winCondition": { "resource": "research", "operator": ">=", "value": "100" },
+  "loseCondition": {
+    "or": [
+      { "resource": "hull", "operator": "<=", "value": "0" },
+      { "resource": "oxygen", "operator": "<=", "value": "0" },
+      { "resource": "crew", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "tech-blue",
+    "stateDescriptions": {
+      "command_center": { "label": "Command Center", "icon": "monitor" },
+      "lab_module": { "label": "Lab Module", "icon": "microscope" },
+      "habitat_ring": { "label": "Habitat Ring", "icon": "home" },
+      "docking_bay": { "label": "Docking Bay", "icon": "anchor" },
+      "engineering": { "label": "Engineering", "icon": "tool" },
+      "emergency": { "label": "Emergency!", "icon": "alert-triangle" },
+      "eva": { "label": "EVA", "icon": "user" }
+    },
+    "resourceIcons": {
+      "power": "zap",
+      "oxygen": "wind",
+      "crew": "users",
+      "supplies": "package",
+      "research": "book",
+      "morale": "smile",
+      "hull": "shield"
+    }
+  }
+}

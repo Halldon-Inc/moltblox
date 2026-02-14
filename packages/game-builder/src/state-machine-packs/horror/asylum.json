@@ -1,0 +1,253 @@
+{
+  "name": "Asylum",
+  "description": "Wake up in an abandoned asylum with no memory. Navigate crumbling halls, uncover your past, and find the way out before your mind fractures completely.",
+  "states": [
+    { "name": "cell", "description": "A small padded room. The door hangs open.", "onEnter": [] },
+    {
+      "name": "hallway",
+      "description": "Long corridor with flickering lights and peeling paint.",
+      "onEnter": [{ "resource": "dread", "operation": "+", "value": "2" }]
+    },
+    {
+      "name": "ward",
+      "description": "Rows of empty beds. Some restraints are still buckled.",
+      "onEnter": [{ "resource": "dread", "operation": "+", "value": "4" }]
+    },
+    {
+      "name": "office",
+      "description": "A doctor's office. Files and records everywhere.",
+      "onEnter": [{ "resource": "memory", "operation": "+", "value": "random(2,4)" }]
+    },
+    {
+      "name": "operating_room",
+      "description": "Surgical tools and a stained table. Something terrible happened here.",
+      "onEnter": [{ "resource": "dread", "operation": "+", "value": "8" }]
+    },
+    {
+      "name": "garden",
+      "description": "An overgrown courtyard. Moonlight filters through clouds.",
+      "onEnter": [{ "resource": "dread", "operation": "-", "value": "5" }]
+    },
+    {
+      "name": "exit_gate",
+      "description": "The front gate of the asylum. Rusted but not locked.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "cell",
+  "resources": {
+    "sanity": { "initial": 70, "min": 0, "max": 100, "label": "Sanity" },
+    "memory": { "initial": 0, "min": 0, "max": 50, "label": "Memories Recovered" },
+    "dread": { "initial": 10, "min": 0, "max": 100, "label": "Dread" },
+    "keys": { "initial": 0, "min": 0, "max": 4, "label": "Keys" },
+    "pills": { "initial": 2, "min": 0, "max": 5, "label": "Medication" }
+  },
+  "actions": {
+    "cell": [
+      {
+        "name": "leave_cell",
+        "label": "Step Outside",
+        "description": "Enter the hallway beyond.",
+        "effects": [{ "resource": "dread", "operation": "+", "value": "2" }],
+        "transition": "hallway"
+      },
+      {
+        "name": "search_cell",
+        "label": "Search the Cell",
+        "description": "Look under the mattress and in corners.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(1,3)" },
+          { "resource": "keys", "operation": "+", "value": "random(0,1)" }
+        ]
+      }
+    ],
+    "hallway": [
+      {
+        "name": "go_ward",
+        "label": "Enter the Ward",
+        "description": "Push through the double doors.",
+        "effects": [{ "resource": "dread", "operation": "+", "value": "3" }],
+        "transition": "ward"
+      },
+      {
+        "name": "go_office",
+        "label": "Check the Office",
+        "description": "A door with a nameplate.",
+        "effects": [{ "resource": "dread", "operation": "+", "value": "1" }],
+        "transition": "office"
+      },
+      {
+        "name": "go_garden",
+        "label": "Find Fresh Air",
+        "description": "Follow signs to the courtyard.",
+        "effects": [],
+        "transition": "garden"
+      },
+      {
+        "name": "take_pill",
+        "label": "Take Medication",
+        "description": "Swallow a pill to calm your nerves.",
+        "condition": { "resource": "pills", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "pills", "operation": "-", "value": "1" },
+          { "resource": "sanity", "operation": "+", "value": "15" },
+          { "resource": "dread", "operation": "-", "value": "8" }
+        ]
+      }
+    ],
+    "ward": [
+      {
+        "name": "search_beds",
+        "label": "Search the Beds",
+        "description": "Check under pillows and mattresses.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(2,5)" },
+          { "resource": "dread", "operation": "+", "value": "random(3,6)" },
+          { "resource": "keys", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "read_walls",
+        "label": "Read the Walls",
+        "description": "Patients scratched messages into the paint.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(3,6)" },
+          { "resource": "sanity", "operation": "-", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "leave_ward",
+        "label": "Return to Hallway",
+        "description": "Go back to the corridor.",
+        "effects": [],
+        "transition": "hallway"
+      }
+    ],
+    "office": [
+      {
+        "name": "read_files",
+        "label": "Read Patient Files",
+        "description": "Your name is on one of these folders.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(5,8)" },
+          { "resource": "sanity", "operation": "-", "value": "random(3,6)" },
+          { "resource": "dread", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "find_pills",
+        "label": "Check Medicine Cabinet",
+        "description": "Look for useful medication.",
+        "effects": [{ "resource": "pills", "operation": "+", "value": "random(1,2)" }]
+      },
+      {
+        "name": "take_key",
+        "label": "Take the Desk Key",
+        "description": "A brass key sits in the drawer.",
+        "effects": [{ "resource": "keys", "operation": "+", "value": "1" }],
+        "transition": "hallway"
+      }
+    ],
+    "operating_room": [
+      {
+        "name": "face_truth",
+        "label": "Face the Truth",
+        "description": "The memories come flooding back.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(8,12)" },
+          { "resource": "sanity", "operation": "-", "value": "random(10,15)" },
+          { "resource": "dread", "operation": "+", "value": "10" }
+        ],
+        "transition": "hallway"
+      },
+      {
+        "name": "look_away",
+        "label": "Look Away",
+        "description": "Some things are better left forgotten.",
+        "effects": [
+          { "resource": "sanity", "operation": "+", "value": "5" },
+          { "resource": "dread", "operation": "+", "value": "5" }
+        ],
+        "transition": "hallway"
+      }
+    ],
+    "garden": [
+      {
+        "name": "breathe",
+        "label": "Breathe Deeply",
+        "description": "The night air calms your racing mind.",
+        "effects": [
+          { "resource": "sanity", "operation": "+", "value": "random(5,10)" },
+          { "resource": "dread", "operation": "-", "value": "random(5,8)" }
+        ]
+      },
+      {
+        "name": "explore_garden",
+        "label": "Explore the Grounds",
+        "description": "Wander through overgrown paths.",
+        "effects": [
+          { "resource": "memory", "operation": "+", "value": "random(2,4)" },
+          { "resource": "keys", "operation": "+", "value": "random(0,1)" }
+        ],
+        "transition": "hallway"
+      }
+    ],
+    "exit_gate": [
+      {
+        "name": "leave",
+        "label": "Walk Through the Gate",
+        "description": "Leave the asylum behind. You remember who you are.",
+        "condition": { "resource": "memory", "operator": ">=", "value": "35" },
+        "effects": [{ "resource": "memory", "operation": "+", "value": "10" }]
+      },
+      {
+        "name": "hesitate",
+        "label": "Hesitate",
+        "description": "Something pulls you back. You need to remember more.",
+        "effects": [{ "resource": "dread", "operation": "+", "value": "5" }],
+        "transition": "hallway"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "hallway",
+      "to": "operating_room",
+      "condition": { "resource": "memory", "operator": ">=", "value": "20" },
+      "auto": false
+    },
+    {
+      "from": "hallway",
+      "to": "exit_gate",
+      "condition": { "resource": "keys", "operator": ">=", "value": "3" },
+      "auto": false
+    },
+    {
+      "from": "ward",
+      "to": "operating_room",
+      "condition": { "resource": "dread", "operator": ">=", "value": "50" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "memory", "operator": ">=", "value": "40" },
+  "loseCondition": { "resource": "sanity", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "asylum-white",
+    "stateDescriptions": {
+      "cell": { "label": "Padded Cell", "icon": "lock" },
+      "hallway": { "label": "Dark Hallway", "icon": "hallway" },
+      "ward": { "label": "Patient Ward", "icon": "bed" },
+      "office": { "label": "Office", "icon": "file" },
+      "operating_room": { "label": "Operating Room", "icon": "knife" },
+      "garden": { "label": "Courtyard", "icon": "flower" },
+      "exit_gate": { "label": "Exit Gate", "icon": "door" }
+    },
+    "resourceIcons": {
+      "sanity": "brain",
+      "memory": "puzzle",
+      "dread": "ghost",
+      "keys": "key",
+      "pills": "flask"
+    }
+  }
+}

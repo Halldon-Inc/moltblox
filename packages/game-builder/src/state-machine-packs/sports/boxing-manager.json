@@ -1,0 +1,229 @@
+{
+  "name": "Boxing Manager",
+  "description": "Train and manage a rising boxer from amateur bouts to the championship title fight.",
+  "states": [
+    { "name": "gym", "description": "The training gym. Build your fighter.", "onEnter": [] },
+    {
+      "name": "prefight",
+      "description": "Fight night preparations.",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "2" }]
+    },
+    { "name": "round", "description": "The round is underway!", "onEnter": [] },
+    {
+      "name": "corner",
+      "description": "Between rounds. Strategize and recover.",
+      "onEnter": [{ "resource": "stamina", "operation": "+", "value": "random(1,3)" }]
+    },
+    {
+      "name": "title_fight",
+      "description": "The championship bout!",
+      "onEnter": [{ "resource": "nerves", "operation": "+", "value": "3" }]
+    }
+  ],
+  "initialState": "gym",
+  "resources": {
+    "stamina": { "initial": 8, "min": 0, "max": 10, "label": "Stamina" },
+    "power": { "initial": 3, "min": 0, "max": 10, "label": "Power" },
+    "speed": { "initial": 3, "min": 0, "max": 10, "label": "Speed" },
+    "defense": { "initial": 3, "min": 0, "max": 10, "label": "Defense" },
+    "fight_score": { "initial": 0, "min": 0, "max": 30, "label": "Fight Score" },
+    "nerves": { "initial": 2, "min": 0, "max": 10, "label": "Nerves" }
+  },
+  "actions": {
+    "gym": [
+      {
+        "name": "heavy_bag",
+        "label": "Hit the Heavy Bag",
+        "effects": [
+          { "resource": "power", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "speed_work",
+        "label": "Speed Training",
+        "effects": [
+          { "resource": "speed", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "sparring",
+        "label": "Sparring Session",
+        "effects": [
+          { "resource": "defense", "operation": "+", "value": "random(1,2)" },
+          { "resource": "power", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stamina", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "cardio",
+        "label": "Cardio Training",
+        "effects": [{ "resource": "stamina", "operation": "+", "value": "random(2,3)" }]
+      },
+      {
+        "name": "mental",
+        "label": "Mental Preparation",
+        "effects": [{ "resource": "nerves", "operation": "-", "value": "random(1,3)" }]
+      },
+      {
+        "name": "fight_night",
+        "label": "Enter the Ring",
+        "condition": {
+          "and": [
+            { "resource": "power", "operator": ">=", "value": "4" },
+            { "resource": "speed", "operator": ">=", "value": "4" }
+          ]
+        },
+        "effects": [],
+        "transition": "prefight"
+      }
+    ],
+    "prefight": [
+      {
+        "name": "warmup",
+        "label": "Warm Up",
+        "effects": [
+          { "resource": "stamina", "operation": "+", "value": "random(1,2)" },
+          { "resource": "nerves", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "focus",
+        "label": "Find Your Focus",
+        "effects": [{ "resource": "nerves", "operation": "-", "value": "random(2,3)" }]
+      },
+      {
+        "name": "start_fight",
+        "label": "Touch Gloves and Fight",
+        "effects": [],
+        "transition": "round"
+      }
+    ],
+    "round": [
+      {
+        "name": "jab",
+        "label": "Throw Jabs",
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "power_punch",
+        "label": "Power Punch Combo",
+        "condition": { "resource": "power", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(3,6)" },
+          { "resource": "stamina", "operation": "-", "value": "random(2,3)" }
+        ]
+      },
+      {
+        "name": "counter",
+        "label": "Counter Attack",
+        "condition": { "resource": "speed", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(2,5)" },
+          { "resource": "stamina", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "clinch",
+        "label": "Clinch and Rest",
+        "effects": [
+          { "resource": "stamina", "operation": "+", "value": "random(1,2)" },
+          { "resource": "fight_score", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "defensive",
+        "label": "Go Defensive",
+        "condition": { "resource": "defense", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stamina", "operation": "+", "value": "1" }
+        ]
+      },
+      { "name": "end_round", "label": "End of Round", "effects": [], "transition": "corner" }
+    ],
+    "corner": [
+      {
+        "name": "water",
+        "label": "Hydrate",
+        "effects": [{ "resource": "stamina", "operation": "+", "value": "random(2,3)" }]
+      },
+      {
+        "name": "strategy",
+        "label": "Adjust Strategy",
+        "effects": [
+          { "resource": "power", "operation": "+", "value": "random(0,1)" },
+          { "resource": "speed", "operation": "+", "value": "random(0,1)" },
+          { "resource": "nerves", "operation": "-", "value": "1" }
+        ]
+      },
+      { "name": "next_round", "label": "Next Round", "effects": [], "transition": "round" },
+      {
+        "name": "title_round",
+        "label": "Title Round",
+        "condition": { "resource": "fight_score", "operator": ">=", "value": "15" },
+        "effects": [{ "resource": "fight_score", "operation": "+", "value": "random(2,4)" }],
+        "transition": "title_fight"
+      }
+    ],
+    "title_fight": [
+      {
+        "name": "all_out",
+        "label": "Go All Out",
+        "condition": { "resource": "stamina", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(4,8)" },
+          { "resource": "stamina", "operation": "-", "value": "random(3,4)" }
+        ]
+      },
+      {
+        "name": "calculated",
+        "label": "Calculated Approach",
+        "condition": { "resource": "defense", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(3,6)" },
+          { "resource": "stamina", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "heart",
+        "label": "Fight with Heart",
+        "effects": [
+          { "resource": "fight_score", "operation": "+", "value": "random(2,5)" },
+          { "resource": "stamina", "operation": "-", "value": "random(1,3)" },
+          { "resource": "nerves", "operation": "-", "value": "2" }
+        ]
+      }
+    ]
+  },
+  "transitions": [],
+  "winCondition": { "resource": "fight_score", "operator": ">=", "value": "28" },
+  "loseCondition": {
+    "or": [
+      { "resource": "stamina", "operator": "<=", "value": "0" },
+      { "resource": "nerves", "operator": ">=", "value": "10" }
+    ]
+  },
+  "theme": {
+    "palette": "ring-red",
+    "stateDescriptions": {
+      "gym": { "label": "Gym", "icon": "activity" },
+      "prefight": { "label": "Pre-Fight", "icon": "clock" },
+      "round": { "label": "Round!", "icon": "crosshair" },
+      "corner": { "label": "Corner", "icon": "home" },
+      "title_fight": { "label": "Title Fight!", "icon": "star" }
+    },
+    "resourceIcons": {
+      "stamina": "battery",
+      "power": "zap",
+      "speed": "wind",
+      "defense": "shield",
+      "fight_score": "trending-up",
+      "nerves": "activity"
+    }
+  }
+}

@@ -1,0 +1,347 @@
+{
+  "name": "Pattern Matching",
+  "description": "You are a code analyst. Scan data streams for hidden patterns. Match sequences, classify anomalies, and train your detection algorithms.",
+  "states": [
+    {
+      "name": "scanner",
+      "description": "The main scanning interface. Data flows past.",
+      "onEnter": []
+    },
+    {
+      "name": "analysis",
+      "description": "Deep analysis of a detected pattern.",
+      "onEnter": [
+        {
+          "resource": "insight",
+          "operation": "+",
+          "value": "random(2,5)"
+        }
+      ]
+    },
+    {
+      "name": "anomaly",
+      "description": "Something unusual in the data stream.",
+      "onEnter": [
+        {
+          "resource": "anomalies",
+          "operation": "+",
+          "value": "1"
+        }
+      ]
+    },
+    {
+      "name": "training",
+      "description": "Training the detection algorithm.",
+      "onEnter": [
+        {
+          "resource": "accuracy",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "breakthrough",
+      "description": "A major pattern discovered!",
+      "onEnter": [
+        {
+          "resource": "patterns_found",
+          "operation": "+",
+          "value": "random(2,3)"
+        }
+      ]
+    }
+  ],
+  "initialState": "scanner",
+  "resources": {
+    "data_processed": {
+      "initial": 0,
+      "min": 0,
+      "max": 200,
+      "label": "Data Processed"
+    },
+    "patterns_found": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Patterns Found"
+    },
+    "accuracy": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Accuracy"
+    },
+    "insight": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Insight"
+    },
+    "anomalies": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Anomalies Logged"
+    }
+  },
+  "actions": {
+    "scanner": [
+      {
+        "name": "scan_stream",
+        "label": "Scan Data Stream",
+        "description": "Process the incoming data.",
+        "effects": [
+          {
+            "resource": "data_processed",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "patterns_found",
+            "operation": "+",
+            "value": "random(0,1)"
+          }
+        ]
+      },
+      {
+        "name": "deep_scan",
+        "label": "Deep Scan",
+        "description": "Slow but thorough analysis.",
+        "effects": [
+          {
+            "resource": "data_processed",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ],
+        "transition": "analysis"
+      },
+      {
+        "name": "train_algo",
+        "label": "Train Algorithm",
+        "description": "Improve detection accuracy.",
+        "effects": [],
+        "transition": "training"
+      }
+    ],
+    "analysis": [
+      {
+        "name": "classify",
+        "label": "Classify Pattern",
+        "description": "Categorize what you found.",
+        "effects": [
+          {
+            "resource": "patterns_found",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "scanner"
+      },
+      {
+        "name": "cross_reference",
+        "label": "Cross Reference",
+        "description": "Compare against known patterns.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "scanner"
+      }
+    ],
+    "anomaly": [
+      {
+        "name": "investigate",
+        "label": "Investigate Anomaly",
+        "description": "Dig into the unusual data.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "patterns_found",
+            "operation": "+",
+            "value": "random(1,3)"
+          }
+        ],
+        "transition": "analysis"
+      },
+      {
+        "name": "flag_skip",
+        "label": "Flag and Skip",
+        "description": "Mark it for later review.",
+        "effects": [
+          {
+            "resource": "anomalies",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "data_processed",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "scanner"
+      }
+    ],
+    "training": [
+      {
+        "name": "supervised",
+        "label": "Supervised Training",
+        "description": "Feed labeled examples.",
+        "effects": [
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "data_processed",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "scanner"
+      },
+      {
+        "name": "unsupervised",
+        "label": "Unsupervised Training",
+        "description": "Let the algorithm find patterns on its own.",
+        "effects": [
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "patterns_found",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "scanner"
+      }
+    ],
+    "breakthrough": [
+      {
+        "name": "document",
+        "label": "Document Discovery",
+        "description": "Record the breakthrough.",
+        "effects": [
+          {
+            "resource": "patterns_found",
+            "operation": "+",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "accuracy",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ],
+        "transition": "scanner"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "scanner",
+      "to": "anomaly",
+      "condition": {
+        "resource": "data_processed",
+        "operator": ">=",
+        "value": "30"
+      },
+      "auto": true
+    },
+    {
+      "from": "analysis",
+      "to": "breakthrough",
+      "condition": {
+        "resource": "insight",
+        "operator": ">=",
+        "value": "50"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "patterns_found",
+    "operator": ">=",
+    "value": "25"
+  },
+  "loseCondition": {
+    "resource": "accuracy",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "matrix-green",
+    "stateDescriptions": {
+      "scanner": {
+        "label": "Scanner",
+        "icon": "search"
+      },
+      "analysis": {
+        "label": "Analysis",
+        "icon": "eye"
+      },
+      "anomaly": {
+        "label": "Anomaly!",
+        "icon": "alert"
+      },
+      "training": {
+        "label": "Training",
+        "icon": "trending-up"
+      },
+      "breakthrough": {
+        "label": "Breakthrough!",
+        "icon": "star"
+      }
+    },
+    "resourceIcons": {
+      "data_processed": "database",
+      "patterns_found": "grid",
+      "accuracy": "target",
+      "insight": "eye",
+      "anomalies": "alert"
+    }
+  }
+}

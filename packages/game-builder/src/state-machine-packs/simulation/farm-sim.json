@@ -1,0 +1,290 @@
+{
+  "name": "Farm Simulator",
+  "description": "Build a thriving farm from a small plot of land. Plant crops, raise animals, and grow your farming empire season by season.",
+  "states": [
+    { "name": "farmyard", "description": "Your farmyard. Plan the day's work.", "onEnter": [] },
+    { "name": "fields", "description": "Open fields ready for planting.", "onEnter": [] },
+    { "name": "barn", "description": "The barn where animals are kept.", "onEnter": [] },
+    { "name": "market", "description": "The local farmers market.", "onEnter": [] },
+    { "name": "workshop", "description": "Build and repair farm equipment.", "onEnter": [] },
+    { "name": "weather_event", "description": "Unusual weather threatens the farm.", "onEnter": [] }
+  ],
+  "initialState": "farmyard",
+  "resources": {
+    "gold": { "initial": 100, "min": 0, "label": "Gold" },
+    "crops": { "initial": 0, "min": 0, "max": 50, "label": "Crops" },
+    "livestock": { "initial": 2, "min": 0, "max": 20, "label": "Livestock" },
+    "seeds": { "initial": 10, "min": 0, "max": 30, "label": "Seeds" },
+    "energy": { "initial": 10, "min": 0, "max": 12, "label": "Energy" },
+    "equipment": { "initial": 1, "min": 0, "max": 5, "label": "Equipment" },
+    "farm_level": { "initial": 1, "min": 1, "max": 10, "label": "Farm Level" }
+  },
+  "actions": {
+    "farmyard": [
+      {
+        "name": "go_fields",
+        "label": "Go to Fields",
+        "description": "Head out to work the land.",
+        "effects": [],
+        "transition": "fields"
+      },
+      {
+        "name": "go_barn",
+        "label": "Go to Barn",
+        "description": "Check on the animals.",
+        "effects": [],
+        "transition": "barn"
+      },
+      {
+        "name": "go_market",
+        "label": "Go to Market",
+        "description": "Sell goods and buy supplies.",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+        "transition": "market"
+      },
+      {
+        "name": "go_workshop",
+        "label": "Go to Workshop",
+        "description": "Build or repair equipment.",
+        "effects": [],
+        "transition": "workshop"
+      },
+      {
+        "name": "rest",
+        "label": "Rest for the Day",
+        "description": "Take a well-deserved break.",
+        "effects": [{ "resource": "energy", "operation": "+", "value": "5" }]
+      }
+    ],
+    "fields": [
+      {
+        "name": "plant",
+        "label": "Plant Seeds",
+        "description": "Sow seeds in the prepared soil.",
+        "condition": { "resource": "seeds", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "seeds", "operation": "-", "value": "3" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "harvest",
+        "label": "Harvest Crops",
+        "description": "Collect ripe crops from the fields.",
+        "effects": [
+          { "resource": "crops", "operation": "+", "value": "random(4,10)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "water",
+        "label": "Water Fields",
+        "description": "Irrigate the growing plants.",
+        "effects": [
+          { "resource": "crops", "operation": "+", "value": "random(1,3)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "back_farm",
+        "label": "Return to Farmyard",
+        "description": "Head back to the main area.",
+        "effects": [],
+        "transition": "farmyard"
+      }
+    ],
+    "barn": [
+      {
+        "name": "feed_animals",
+        "label": "Feed Animals",
+        "description": "Give the livestock their daily feed.",
+        "condition": { "resource": "crops", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "crops", "operation": "-", "value": "2" },
+          { "resource": "livestock", "operation": "+", "value": "random(0,1)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "collect_produce",
+        "label": "Collect Animal Produce",
+        "description": "Gather eggs, milk, and wool.",
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(3,8)" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "breed",
+        "label": "Breed Animals",
+        "description": "Encourage livestock reproduction.",
+        "condition": { "resource": "livestock", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "livestock", "operation": "+", "value": "random(1,2)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back_farm",
+        "label": "Return to Farmyard",
+        "description": "Head back.",
+        "effects": [],
+        "transition": "farmyard"
+      }
+    ],
+    "market": [
+      {
+        "name": "sell_crops",
+        "label": "Sell Crops",
+        "description": "Sell harvested crops for gold.",
+        "condition": { "resource": "crops", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(15,35)" },
+          { "resource": "crops", "operation": "-", "value": "5" },
+          { "resource": "farm_level", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "buy_seeds",
+        "label": "Buy Seeds",
+        "description": "Purchase seeds for planting.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "seeds", "operation": "+", "value": "random(5,10)" },
+          { "resource": "gold", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "buy_animals",
+        "label": "Buy Livestock",
+        "description": "Purchase new animals.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "25" },
+        "effects": [
+          { "resource": "livestock", "operation": "+", "value": "random(1,3)" },
+          { "resource": "gold", "operation": "-", "value": "25" }
+        ]
+      },
+      {
+        "name": "sell_livestock",
+        "label": "Sell Livestock",
+        "description": "Sell animals at market price.",
+        "condition": { "resource": "livestock", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "gold", "operation": "+", "value": "random(20,40)" },
+          { "resource": "livestock", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back_farm",
+        "label": "Return to Farm",
+        "description": "Go back home.",
+        "effects": [],
+        "transition": "farmyard"
+      }
+    ],
+    "workshop": [
+      {
+        "name": "build_tool",
+        "label": "Build Equipment",
+        "description": "Craft new farming equipment.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "equipment", "operation": "+", "value": "1" },
+          { "resource": "gold", "operation": "-", "value": "20" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "repair_tool",
+        "label": "Repair Equipment",
+        "description": "Fix worn out tools.",
+        "condition": { "resource": "gold", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "gold", "operation": "-", "value": "5" },
+          { "resource": "energy", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "back_farm",
+        "label": "Return to Farmyard",
+        "description": "Head back.",
+        "effects": [],
+        "transition": "farmyard"
+      }
+    ],
+    "weather_event": [
+      {
+        "name": "protect_crops",
+        "label": "Protect Crops",
+        "description": "Cover and shield the growing plants.",
+        "effects": [
+          { "resource": "crops", "operation": "-", "value": "random(1,3)" },
+          { "resource": "energy", "operation": "-", "value": "3" }
+        ],
+        "transition": "farmyard"
+      },
+      {
+        "name": "shelter_animals",
+        "label": "Shelter Animals",
+        "description": "Get all livestock inside.",
+        "effects": [
+          { "resource": "livestock", "operation": "-", "value": "random(0,1)" },
+          { "resource": "energy", "operation": "-", "value": "2" }
+        ],
+        "transition": "farmyard"
+      },
+      {
+        "name": "ride_it_out",
+        "label": "Wait It Out",
+        "description": "Hope for the best.",
+        "effects": [
+          { "resource": "crops", "operation": "-", "value": "random(2,6)" },
+          { "resource": "livestock", "operation": "-", "value": "random(0,2)" }
+        ],
+        "transition": "farmyard"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "fields",
+      "to": "weather_event",
+      "condition": { "resource": "farm_level", "operator": ">=", "value": "5" },
+      "auto": false
+    }
+  ],
+  "perTurnEffects": [{ "resource": "energy", "operation": "-", "value": "1" }],
+  "winCondition": {
+    "and": [
+      { "resource": "gold", "operator": ">=", "value": "500" },
+      { "resource": "farm_level", "operator": ">=", "value": "8" }
+    ]
+  },
+  "loseCondition": {
+    "and": [
+      { "resource": "gold", "operator": "<=", "value": "0" },
+      { "resource": "crops", "operator": "<=", "value": "0" },
+      { "resource": "livestock", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "pastoral-green",
+    "stateDescriptions": {
+      "farmyard": { "label": "Farmyard", "icon": "home" },
+      "fields": { "label": "Crop Fields", "icon": "sun" },
+      "barn": { "label": "The Barn", "icon": "box" },
+      "market": { "label": "Farmers Market", "icon": "shopping-bag" },
+      "workshop": { "label": "Workshop", "icon": "tool" },
+      "weather_event": { "label": "Bad Weather!", "icon": "cloud-rain" }
+    },
+    "resourceIcons": {
+      "gold": "coin",
+      "crops": "leaf",
+      "livestock": "paw",
+      "seeds": "circle",
+      "energy": "battery",
+      "equipment": "tool",
+      "farm_level": "trending-up"
+    }
+  }
+}

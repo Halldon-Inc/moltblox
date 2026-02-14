@@ -1,0 +1,334 @@
+{
+  "name": "Arctic Survival",
+  "description": "Your plane crashed in the Arctic. Survive the freezing cold, find shelter, and signal for rescue before hypothermia claims you.",
+  "states": [
+    {
+      "name": "crash_site",
+      "description": "The wreckage of your plane. Smoke rises into the sky.",
+      "onEnter": []
+    },
+    {
+      "name": "tundra",
+      "description": "Flat, frozen tundra stretches in every direction.",
+      "onEnter": [{ "resource": "warmth", "operation": "-", "value": "3" }]
+    },
+    {
+      "name": "ice_cave",
+      "description": "A natural ice cave offers shelter from the wind.",
+      "onEnter": [{ "resource": "warmth", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "frozen_lake",
+      "description": "A vast frozen lake. Fish may be below the ice.",
+      "onEnter": []
+    },
+    {
+      "name": "forest_edge",
+      "description": "Sparse trees mark the edge of a boreal forest.",
+      "onEnter": []
+    },
+    {
+      "name": "blizzard",
+      "description": "A blizzard engulfs everything in white.",
+      "onEnter": [{ "resource": "warmth", "operation": "-", "value": "8" }]
+    },
+    { "name": "signal_point", "description": "A high ridge, visible from the air.", "onEnter": [] }
+  ],
+  "initialState": "crash_site",
+  "resources": {
+    "health": { "initial": 80, "min": 0, "max": 100, "label": "Health" },
+    "warmth": { "initial": 50, "min": 0, "max": 80, "label": "Warmth" },
+    "food": { "initial": 5, "min": 0, "max": 20, "label": "Food" },
+    "water": { "initial": 3, "min": 0, "max": 15, "label": "Water" },
+    "firewood": { "initial": 0, "min": 0, "max": 15, "label": "Firewood" },
+    "signal_strength": { "initial": 0, "min": 0, "max": 20, "label": "Signal Strength" },
+    "materials": { "initial": 0, "min": 0, "max": 10, "label": "Materials" }
+  },
+  "actions": {
+    "crash_site": [
+      {
+        "name": "scavenge",
+        "label": "Scavenge Wreckage",
+        "description": "Search the plane for useful items.",
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(1,3)" },
+          { "resource": "materials", "operation": "+", "value": "random(1,3)" },
+          { "resource": "warmth", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "make_fire",
+        "label": "Start a Fire",
+        "description": "Use wreckage to build a warming fire.",
+        "condition": { "resource": "materials", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "warmth", "operation": "+", "value": "15" },
+          { "resource": "materials", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "signal_smoke",
+        "label": "Make Smoke Signal",
+        "description": "Build a smoky fire visible from the air.",
+        "condition": { "resource": "materials", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "signal_strength", "operation": "+", "value": "random(2,5)" },
+          { "resource": "materials", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "head_out",
+        "label": "Venture Out",
+        "description": "Leave the crash site to explore.",
+        "effects": [{ "resource": "warmth", "operation": "-", "value": "3" }],
+        "transition": "tundra"
+      }
+    ],
+    "tundra": [
+      {
+        "name": "walk",
+        "label": "Keep Walking",
+        "description": "Push through the cold and wind.",
+        "effects": [
+          { "resource": "warmth", "operation": "-", "value": "random(2,5)" },
+          { "resource": "food", "operation": "-", "value": "1" },
+          { "resource": "water", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "melt_snow",
+        "label": "Melt Snow for Water",
+        "description": "Scoop snow and warm it in your hands.",
+        "effects": [
+          { "resource": "water", "operation": "+", "value": "random(1,3)" },
+          { "resource": "warmth", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "find_shelter",
+        "label": "Seek Shelter",
+        "description": "Look for any protection from the elements.",
+        "effects": [{ "resource": "warmth", "operation": "-", "value": "1" }],
+        "transition": "ice_cave"
+      },
+      {
+        "name": "go_lake",
+        "label": "Head to Frozen Lake",
+        "description": "A frozen lake is visible in the distance.",
+        "effects": [{ "resource": "warmth", "operation": "-", "value": "2" }],
+        "transition": "frozen_lake"
+      },
+      {
+        "name": "go_forest",
+        "label": "Head to Tree Line",
+        "description": "Trees mean firewood and shelter.",
+        "effects": [{ "resource": "warmth", "operation": "-", "value": "3" }],
+        "transition": "forest_edge"
+      },
+      {
+        "name": "go_ridge",
+        "label": "Climb to High Ground",
+        "description": "A ridge might be visible to rescuers.",
+        "effects": [
+          { "resource": "warmth", "operation": "-", "value": "5" },
+          { "resource": "health", "operation": "-", "value": "5" }
+        ],
+        "transition": "signal_point"
+      }
+    ],
+    "ice_cave": [
+      {
+        "name": "rest",
+        "label": "Rest",
+        "description": "Sleep and recover strength.",
+        "effects": [
+          { "resource": "health", "operation": "+", "value": "10" },
+          { "resource": "warmth", "operation": "+", "value": "5" },
+          { "resource": "food", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "cave_fire",
+        "label": "Build Fire in Cave",
+        "description": "Light a fire for warmth inside.",
+        "condition": { "resource": "firewood", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "warmth", "operation": "+", "value": "20" },
+          { "resource": "firewood", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "leave_cave",
+        "label": "Leave Cave",
+        "description": "Head back out into the cold.",
+        "effects": [],
+        "transition": "tundra"
+      }
+    ],
+    "frozen_lake": [
+      {
+        "name": "ice_fish",
+        "label": "Ice Fishing",
+        "description": "Break through the ice and try to catch fish.",
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(1,5)" },
+          { "resource": "warmth", "operation": "-", "value": "4" },
+          { "resource": "health", "operation": "-", "value": "random(0,5)" }
+        ]
+      },
+      {
+        "name": "collect_ice",
+        "label": "Collect Clean Ice",
+        "description": "Gather ice to melt for drinking water.",
+        "effects": [
+          { "resource": "water", "operation": "+", "value": "random(2,4)" },
+          { "resource": "warmth", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "leave_lake",
+        "label": "Leave Lake",
+        "description": "Head back to the tundra.",
+        "effects": [],
+        "transition": "tundra"
+      }
+    ],
+    "forest_edge": [
+      {
+        "name": "gather_wood",
+        "label": "Gather Firewood",
+        "description": "Collect branches and logs.",
+        "effects": [
+          { "resource": "firewood", "operation": "+", "value": "random(2,5)" },
+          { "resource": "warmth", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "build_shelter",
+        "label": "Build Lean-to Shelter",
+        "description": "Construct a basic shelter from branches.",
+        "condition": { "resource": "materials", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "warmth", "operation": "+", "value": "10" },
+          { "resource": "materials", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "hunt",
+        "label": "Set Snare",
+        "description": "Set a trap for small game.",
+        "effects": [
+          { "resource": "food", "operation": "+", "value": "random(0,4)" },
+          { "resource": "warmth", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "leave_forest",
+        "label": "Return to Tundra",
+        "description": "Head back into the open.",
+        "effects": [],
+        "transition": "tundra"
+      }
+    ],
+    "blizzard": [
+      {
+        "name": "dig_in",
+        "label": "Dig a Snow Trench",
+        "description": "Dig into the snow for insulation.",
+        "effects": [
+          { "resource": "warmth", "operation": "+", "value": "5" },
+          { "resource": "health", "operation": "-", "value": "5" }
+        ]
+      },
+      {
+        "name": "burn_wood",
+        "label": "Burn Firewood",
+        "description": "Use firewood to stay warm.",
+        "condition": { "resource": "firewood", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "warmth", "operation": "+", "value": "12" },
+          { "resource": "firewood", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "endure",
+        "label": "Endure the Storm",
+        "description": "Hunker down and wait it out.",
+        "effects": [
+          { "resource": "warmth", "operation": "-", "value": "random(3,7)" },
+          { "resource": "health", "operation": "-", "value": "random(3,8)" }
+        ],
+        "transition": "tundra"
+      }
+    ],
+    "signal_point": [
+      {
+        "name": "build_signal_fire",
+        "label": "Build Signal Fire",
+        "description": "Create a large fire on the ridge.",
+        "condition": { "resource": "firewood", "operator": ">=", "value": "4" },
+        "effects": [
+          { "resource": "signal_strength", "operation": "+", "value": "random(5,10)" },
+          { "resource": "firewood", "operation": "-", "value": "4" }
+        ]
+      },
+      {
+        "name": "mirror_signal",
+        "label": "Use Mirror",
+        "description": "Flash sunlight toward any aircraft.",
+        "condition": { "resource": "materials", "operator": ">=", "value": "1" },
+        "effects": [{ "resource": "signal_strength", "operation": "+", "value": "random(3,7)" }]
+      },
+      {
+        "name": "wave_flag",
+        "label": "Wave Marker Flag",
+        "description": "Wave bright fabric to attract attention.",
+        "effects": [{ "resource": "signal_strength", "operation": "+", "value": "random(1,4)" }]
+      },
+      {
+        "name": "descend",
+        "label": "Descend Ridge",
+        "description": "Head back down.",
+        "effects": [{ "resource": "warmth", "operation": "-", "value": "3" }],
+        "transition": "tundra"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "tundra",
+      "to": "blizzard",
+      "condition": { "resource": "warmth", "operator": "<=", "value": "15" },
+      "auto": true
+    }
+  ],
+  "perTurnEffects": [{ "resource": "warmth", "operation": "-", "value": "1" }],
+  "winCondition": { "resource": "signal_strength", "operator": ">=", "value": "18" },
+  "loseCondition": {
+    "or": [
+      { "resource": "health", "operator": "<=", "value": "0" },
+      { "resource": "warmth", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "ice-blue",
+    "stateDescriptions": {
+      "crash_site": { "label": "Crash Site", "icon": "alert-triangle" },
+      "tundra": { "label": "Frozen Tundra", "icon": "wind" },
+      "ice_cave": { "label": "Ice Cave", "icon": "mountain" },
+      "frozen_lake": { "label": "Frozen Lake", "icon": "snowflake" },
+      "forest_edge": { "label": "Tree Line", "icon": "tree" },
+      "blizzard": { "label": "Blizzard!", "icon": "cloud-snow" },
+      "signal_point": { "label": "Signal Ridge", "icon": "radio" }
+    },
+    "resourceIcons": {
+      "health": "heart",
+      "warmth": "thermometer",
+      "food": "apple",
+      "water": "droplet",
+      "firewood": "flame",
+      "signal_strength": "radio",
+      "materials": "tool"
+    }
+  }
+}

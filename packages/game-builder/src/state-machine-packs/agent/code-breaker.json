@@ -1,0 +1,382 @@
+{
+  "name": "Code Breaker",
+  "description": "Crack encrypted messages using logic, frequency analysis, and pattern recognition. Each cipher is harder than the last.",
+  "states": [
+    {
+      "name": "desk",
+      "description": "Your cryptanalysis workstation. Encrypted messages wait.",
+      "onEnter": []
+    },
+    {
+      "name": "frequency_analysis",
+      "description": "Counting letter frequencies to find clues.",
+      "onEnter": [
+        {
+          "resource": "insight",
+          "operation": "+",
+          "value": "random(2,5)"
+        }
+      ]
+    },
+    {
+      "name": "substitution",
+      "description": "Testing letter substitutions.",
+      "onEnter": []
+    },
+    {
+      "name": "breakthrough",
+      "description": "A section of the message becomes readable!",
+      "onEnter": [
+        {
+          "resource": "decoded",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    },
+    {
+      "name": "dead_end",
+      "description": "Your approach is not working. Rethink.",
+      "onEnter": [
+        {
+          "resource": "morale",
+          "operation": "-",
+          "value": "random(3,6)"
+        }
+      ]
+    }
+  ],
+  "initialState": "desk",
+  "resources": {
+    "decoded": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Message Decoded %"
+    },
+    "insight": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Cryptographic Insight"
+    },
+    "attempts": {
+      "initial": 30,
+      "min": 0,
+      "max": 30,
+      "label": "Attempts Left"
+    },
+    "morale": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Morale"
+    },
+    "ciphers_cracked": {
+      "initial": 0,
+      "min": 0,
+      "max": 10,
+      "label": "Ciphers Cracked"
+    }
+  },
+  "actions": {
+    "desk": [
+      {
+        "name": "analyze_freq",
+        "label": "Frequency Analysis",
+        "description": "Count letter occurrences.",
+        "effects": [
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "frequency_analysis"
+      },
+      {
+        "name": "try_substitution",
+        "label": "Try Substitution",
+        "description": "Guess letter mappings.",
+        "effects": [
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "substitution"
+      },
+      {
+        "name": "study_cipher",
+        "label": "Study the Cipher",
+        "description": "Look for structural clues.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "take_break",
+        "label": "Take a Break",
+        "description": "Clear your head.",
+        "effects": [
+          {
+            "resource": "morale",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      }
+    ],
+    "frequency_analysis": [
+      {
+        "name": "count_letters",
+        "label": "Count Letters",
+        "description": "Tally each character.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "decoded",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "bigram_analysis",
+        "label": "Bigram Analysis",
+        "description": "Look at letter pairs.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "decoded",
+            "operation": "+",
+            "value": "random(4,8)"
+          },
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "back_desk",
+        "label": "Return to Desk",
+        "description": "Go back with your findings.",
+        "effects": [],
+        "transition": "desk"
+      }
+    ],
+    "substitution": [
+      {
+        "name": "vowel_guess",
+        "label": "Guess Vowels First",
+        "description": "E, T, A, O, I, N are most common.",
+        "effects": [
+          {
+            "resource": "decoded",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "common_words",
+        "label": "Try Common Words",
+        "description": "Look for THE, AND, IS.",
+        "effects": [
+          {
+            "resource": "decoded",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "morale",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "wrong_guess",
+        "label": "Hit a Wall",
+        "description": "The substitution does not fit.",
+        "effects": [
+          {
+            "resource": "attempts",
+            "operation": "-",
+            "value": "1"
+          }
+        ],
+        "transition": "dead_end"
+      }
+    ],
+    "breakthrough": [
+      {
+        "name": "decode_more",
+        "label": "Keep Decoding",
+        "description": "The rest falls into place.",
+        "effects": [
+          {
+            "resource": "decoded",
+            "operation": "+",
+            "value": "random(10,20)"
+          },
+          {
+            "resource": "morale",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "ciphers_cracked",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "desk"
+      }
+    ],
+    "dead_end": [
+      {
+        "name": "new_approach",
+        "label": "Try New Approach",
+        "description": "Switch to a different method.",
+        "effects": [
+          {
+            "resource": "morale",
+            "operation": "+",
+            "value": "random(2,5)"
+          },
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "desk"
+      },
+      {
+        "name": "review_work",
+        "label": "Review Previous Work",
+        "description": "Look for mistakes in your analysis.",
+        "effects": [
+          {
+            "resource": "insight",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "morale",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "frequency_analysis"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "substitution",
+      "to": "breakthrough",
+      "condition": {
+        "resource": "decoded",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "desk",
+      "to": "dead_end",
+      "condition": {
+        "resource": "morale",
+        "operator": "<=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "decoded",
+    "operator": ">=",
+    "value": "100"
+  },
+  "loseCondition": {
+    "resource": "attempts",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "enigma-dark",
+    "stateDescriptions": {
+      "desk": {
+        "label": "Desk",
+        "icon": "monitor"
+      },
+      "frequency_analysis": {
+        "label": "Frequency",
+        "icon": "bar-chart"
+      },
+      "substitution": {
+        "label": "Substitution",
+        "icon": "repeat"
+      },
+      "breakthrough": {
+        "label": "Breakthrough!",
+        "icon": "unlock"
+      },
+      "dead_end": {
+        "label": "Dead End",
+        "icon": "x-circle"
+      }
+    },
+    "resourceIcons": {
+      "decoded": "unlock",
+      "insight": "eye",
+      "attempts": "clock",
+      "morale": "heart",
+      "ciphers_cracked": "award"
+    }
+  }
+}

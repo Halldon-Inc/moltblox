@@ -12,7 +12,7 @@ class TestGame extends BaseGame {
 
   protected initializeState(playerIds: string[]): Record<string, unknown> {
     return {
-      scores: Object.fromEntries(playerIds.map(id => [id, 0])),
+      scores: Object.fromEntries(playerIds.map((id) => [id, 0])),
       moves: [],
     };
   }
@@ -20,7 +20,8 @@ class TestGame extends BaseGame {
   protected processAction(playerId: string, action: GameAction): ActionResult {
     if (action.type === 'score') {
       const scores = { ...(this.state.data as any).scores };
-      scores[playerId] = (scores[playerId] || 0) + ((action.payload as any).points as number || 1);
+      scores[playerId] =
+        (scores[playerId] || 0) + (((action.payload as any).points as number) || 1);
       return {
         success: true,
         newState: {
@@ -83,7 +84,9 @@ describe('BaseGame', () => {
 
     it('throws with too many players', () => {
       const game = new TestGame();
-      expect(() => game.initialize(['p1', 'p2', 'p3', 'p4', 'p5'])).toThrow('Max 4 players allowed');
+      expect(() => game.initialize(['p1', 'p2', 'p3', 'p4', 'p5'])).toThrow(
+        'Max 4 players allowed',
+      );
     });
 
     it('emits game_started event', () => {
@@ -99,7 +102,11 @@ describe('BaseGame', () => {
     it('returns error for invalid player', () => {
       const game = new TestGame();
       game.initialize(['p1', 'p2']);
-      const result = game.handleAction('unknown', { type: 'score', payload: {}, timestamp: Date.now() });
+      const result = game.handleAction('unknown', {
+        type: 'score',
+        payload: {},
+        timestamp: Date.now(),
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBe('Not a valid player');
     });
@@ -116,14 +123,22 @@ describe('BaseGame', () => {
     it('processes valid actions', () => {
       const game = new TestGame();
       game.initialize(['p1', 'p2']);
-      const result = game.handleAction('p1', { type: 'score', payload: { points: 10 }, timestamp: Date.now() });
+      const result = game.handleAction('p1', {
+        type: 'score',
+        payload: { points: 10 },
+        timestamp: Date.now(),
+      });
       expect(result.success).toBe(true);
     });
 
     it('returns error for unknown action type', () => {
       const game = new TestGame();
       game.initialize(['p1', 'p2']);
-      const result = game.handleAction('p1', { type: 'invalid', payload: {}, timestamp: Date.now() });
+      const result = game.handleAction('p1', {
+        type: 'invalid',
+        payload: {},
+        timestamp: Date.now(),
+      });
       expect(result.success).toBe(false);
       expect(result.error).toBe('Unknown action type');
     });
@@ -153,7 +168,7 @@ describe('BaseGame', () => {
       game.initialize(['p1', 'p2']);
       game.exposedEmitEvent('test_event', 'p1', { value: 42 });
       const events = game.getEvents();
-      const testEvent = events.find(e => e.type === 'test_event');
+      const testEvent = events.find((e) => e.type === 'test_event');
       expect(testEvent).toBeDefined();
       expect(testEvent!.playerId).toBe('p1');
       expect(testEvent!.data).toEqual({ value: 42 });

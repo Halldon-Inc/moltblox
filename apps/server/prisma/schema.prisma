@@ -115,6 +115,7 @@ model Game {
   wasmUrl        String?
   templateSlug   String?
   config         Json?      // Template-specific configuration (enemy themes, difficulty, colors, etc.)
+  designBrief    Json?      // Creative design metadata (coreFantasy, coreTension, etc.)
   thumbnailUrl   String?
   screenshots    String[]   @default([])
 

@@ -1,0 +1,324 @@
+{
+  "name": "Space Exploration",
+  "description": "Pilot a lone spacecraft through uncharted star systems. Discover planets, manage fuel and oxygen, and find a habitable world.",
+  "states": [
+    {
+      "name": "bridge",
+      "description": "The ship's command bridge. Check systems and set course.",
+      "onEnter": []
+    },
+    { "name": "orbit", "description": "Orbiting an unknown planet.", "onEnter": [] },
+    {
+      "name": "landing",
+      "description": "Touching down on the planet surface.",
+      "onEnter": [{ "resource": "fuel", "operation": "-", "value": "5" }]
+    },
+    {
+      "name": "derelict",
+      "description": "A drifting derelict ship detected on sensors.",
+      "onEnter": []
+    },
+    { "name": "asteroid_field", "description": "Dense asteroid field ahead.", "onEnter": [] },
+    {
+      "name": "warp",
+      "description": "Traveling through warp space.",
+      "onEnter": [{ "resource": "fuel", "operation": "-", "value": "10" }]
+    },
+    {
+      "name": "nebula",
+      "description": "A colorful nebula clouds your sensors.",
+      "onEnter": [{ "resource": "oxygen", "operation": "-", "value": "3" }]
+    },
+    { "name": "station", "description": "A friendly space station.", "onEnter": [] }
+  ],
+  "initialState": "bridge",
+  "resources": {
+    "fuel": { "initial": 80, "min": 0, "max": 100, "label": "Fuel" },
+    "oxygen": { "initial": 60, "min": 0, "max": 80, "label": "Oxygen" },
+    "hull": { "initial": 100, "min": 0, "max": 100, "label": "Hull" },
+    "credits": { "initial": 30, "min": 0, "label": "Credits" },
+    "samples": { "initial": 0, "min": 0, "max": 20, "label": "Samples" },
+    "systems_explored": { "initial": 0, "min": 0, "label": "Systems Explored" },
+    "habitability": { "initial": 0, "min": 0, "max": 100, "label": "Habitability Score" }
+  },
+  "actions": {
+    "bridge": [
+      {
+        "name": "scan",
+        "label": "Long Range Scan",
+        "description": "Scan for nearby objects of interest.",
+        "effects": [{ "resource": "fuel", "operation": "-", "value": "1" }]
+      },
+      {
+        "name": "warp_jump",
+        "label": "Warp to New System",
+        "description": "Jump to an unexplored star system.",
+        "condition": { "resource": "fuel", "operator": ">=", "value": "15" },
+        "effects": [{ "resource": "systems_explored", "operation": "+", "value": "1" }],
+        "transition": "warp"
+      },
+      {
+        "name": "check_asteroid",
+        "label": "Enter Asteroid Field",
+        "description": "Mine asteroids for resources.",
+        "effects": [],
+        "transition": "asteroid_field"
+      },
+      {
+        "name": "repair",
+        "label": "Run Repairs",
+        "description": "Patch up hull damage.",
+        "condition": { "resource": "credits", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "hull", "operation": "+", "value": "15" },
+          { "resource": "credits", "operation": "-", "value": "5" }
+        ]
+      }
+    ],
+    "orbit": [
+      {
+        "name": "scan_planet",
+        "label": "Scan Planet",
+        "description": "Analyze the planet from orbit.",
+        "effects": [
+          { "resource": "samples", "operation": "+", "value": "random(0,2)" },
+          { "resource": "habitability", "operation": "+", "value": "random(5,20)" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "land",
+        "label": "Land on Surface",
+        "description": "Descend to the planet.",
+        "condition": { "resource": "fuel", "operator": ">=", "value": "10" },
+        "effects": [],
+        "transition": "landing"
+      },
+      {
+        "name": "leave_orbit",
+        "label": "Leave Orbit",
+        "description": "Continue to the next destination.",
+        "effects": [{ "resource": "fuel", "operation": "-", "value": "3" }],
+        "transition": "bridge"
+      }
+    ],
+    "landing": [
+      {
+        "name": "collect_samples",
+        "label": "Collect Samples",
+        "description": "Gather geological and biological samples.",
+        "effects": [
+          { "resource": "samples", "operation": "+", "value": "random(2,5)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" },
+          { "resource": "habitability", "operation": "+", "value": "random(5,15)" }
+        ]
+      },
+      {
+        "name": "explore_surface",
+        "label": "Explore Surface",
+        "description": "Walk around and survey the terrain.",
+        "effects": [
+          { "resource": "habitability", "operation": "+", "value": "random(3,10)" },
+          { "resource": "oxygen", "operation": "-", "value": "4" }
+        ]
+      },
+      {
+        "name": "launch",
+        "label": "Launch Back to Orbit",
+        "description": "Return to orbit.",
+        "effects": [{ "resource": "fuel", "operation": "-", "value": "5" }],
+        "transition": "orbit"
+      }
+    ],
+    "derelict": [
+      {
+        "name": "board",
+        "label": "Board Derelict",
+        "description": "EVA over and explore the wreck.",
+        "effects": [
+          { "resource": "credits", "operation": "+", "value": "random(5,20)" },
+          { "resource": "oxygen", "operation": "-", "value": "5" },
+          { "resource": "hull", "operation": "-", "value": "random(0,5)" }
+        ]
+      },
+      {
+        "name": "salvage",
+        "label": "Salvage Parts",
+        "description": "Strip useful components.",
+        "effects": [
+          { "resource": "fuel", "operation": "+", "value": "random(5,15)" },
+          { "resource": "hull", "operation": "+", "value": "random(3,8)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "leave",
+        "label": "Leave Derelict",
+        "description": "Move on.",
+        "effects": [],
+        "transition": "bridge"
+      }
+    ],
+    "asteroid_field": [
+      {
+        "name": "mine",
+        "label": "Mine Asteroids",
+        "description": "Extract minerals from asteroids.",
+        "effects": [
+          { "resource": "credits", "operation": "+", "value": "random(3,12)" },
+          { "resource": "hull", "operation": "-", "value": "random(2,8)" },
+          { "resource": "fuel", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "navigate_through",
+        "label": "Navigate Through",
+        "description": "Carefully fly through the field.",
+        "effects": [
+          { "resource": "hull", "operation": "-", "value": "random(0,10)" },
+          { "resource": "fuel", "operation": "-", "value": "3" }
+        ],
+        "transition": "bridge"
+      }
+    ],
+    "warp": [
+      {
+        "name": "emerge",
+        "label": "Drop Out of Warp",
+        "description": "Exit warp near a planet.",
+        "effects": [{ "resource": "oxygen", "operation": "-", "value": "2" }],
+        "transition": "orbit"
+      },
+      {
+        "name": "scan_warp",
+        "label": "Scan During Warp",
+        "description": "Look for anomalies in warp space.",
+        "effects": [
+          { "resource": "samples", "operation": "+", "value": "random(0,1)" },
+          { "resource": "fuel", "operation": "-", "value": "2" }
+        ]
+      }
+    ],
+    "nebula": [
+      {
+        "name": "collect_gas",
+        "label": "Collect Nebula Gas",
+        "description": "Siphon gas for fuel refinement.",
+        "effects": [
+          { "resource": "fuel", "operation": "+", "value": "random(5,15)" },
+          { "resource": "oxygen", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "study_nebula",
+        "label": "Study Nebula",
+        "description": "Record scientific observations.",
+        "effects": [
+          { "resource": "samples", "operation": "+", "value": "random(2,4)" },
+          { "resource": "oxygen", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "exit_nebula",
+        "label": "Exit Nebula",
+        "description": "Navigate out of the nebula.",
+        "effects": [{ "resource": "fuel", "operation": "-", "value": "3" }],
+        "transition": "bridge"
+      }
+    ],
+    "station": [
+      {
+        "name": "refuel",
+        "label": "Refuel",
+        "description": "Top off the fuel tanks.",
+        "condition": { "resource": "credits", "operator": ">=", "value": "10" },
+        "effects": [
+          { "resource": "fuel", "operation": "+", "value": "30" },
+          { "resource": "credits", "operation": "-", "value": "10" }
+        ]
+      },
+      {
+        "name": "restock_oxygen",
+        "label": "Restock Oxygen",
+        "description": "Fill oxygen reserves.",
+        "condition": { "resource": "credits", "operator": ">=", "value": "8" },
+        "effects": [
+          { "resource": "oxygen", "operation": "+", "value": "25" },
+          { "resource": "credits", "operation": "-", "value": "8" }
+        ]
+      },
+      {
+        "name": "sell_samples",
+        "label": "Sell Samples",
+        "description": "Trade scientific samples for credits.",
+        "condition": { "resource": "samples", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "credits", "operation": "+", "value": "random(10,25)" },
+          { "resource": "samples", "operation": "-", "value": "3" }
+        ]
+      },
+      {
+        "name": "depart",
+        "label": "Depart Station",
+        "description": "Leave the station.",
+        "effects": [],
+        "transition": "bridge"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "bridge",
+      "to": "derelict",
+      "condition": { "resource": "systems_explored", "operator": ">=", "value": "3" },
+      "auto": false
+    },
+    {
+      "from": "bridge",
+      "to": "nebula",
+      "condition": { "resource": "systems_explored", "operator": ">=", "value": "5" },
+      "auto": false
+    },
+    {
+      "from": "bridge",
+      "to": "station",
+      "condition": { "resource": "credits", "operator": ">=", "value": "20" },
+      "auto": false
+    },
+    {
+      "from": "warp",
+      "to": "nebula",
+      "condition": { "resource": "fuel", "operator": "<=", "value": "20" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "habitability", "operator": ">=", "value": "80" },
+  "loseCondition": {
+    "or": [
+      { "resource": "oxygen", "operator": "<=", "value": "0" },
+      { "resource": "hull", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "deep-space",
+    "stateDescriptions": {
+      "bridge": { "label": "Ship Bridge", "icon": "monitor" },
+      "orbit": { "label": "Planetary Orbit", "icon": "globe" },
+      "landing": { "label": "Surface Landing", "icon": "arrow-down" },
+      "derelict": { "label": "Derelict Ship", "icon": "box" },
+      "asteroid_field": { "label": "Asteroid Field", "icon": "hexagon" },
+      "warp": { "label": "Warp Space", "icon": "zap" },
+      "nebula": { "label": "Nebula", "icon": "cloud" },
+      "station": { "label": "Space Station", "icon": "home" }
+    },
+    "resourceIcons": {
+      "fuel": "battery",
+      "oxygen": "wind",
+      "hull": "shield",
+      "credits": "dollar",
+      "samples": "flask",
+      "systems_explored": "map",
+      "habitability": "sun"
+    }
+  }
+}

@@ -1,0 +1,302 @@
+{
+  "name": "Stock Trading",
+  "description": "You are a day trader working from your home office. Analyze markets, buy low, sell high, and build your portfolio before the trading day ends.",
+  "states": [
+    {
+      "name": "market_open",
+      "description": "The markets are live. Tickers scroll across your screens.",
+      "onEnter": []
+    },
+    {
+      "name": "research",
+      "description": "Analyzing charts, reading reports, spotting patterns.",
+      "onEnter": [{ "resource": "insight", "operation": "+", "value": "random(2,4)" }]
+    },
+    {
+      "name": "bull_run",
+      "description": "Markets surge upward. Everything is green.",
+      "onEnter": [{ "resource": "portfolio", "operation": "+", "value": "random(5,15)" }]
+    },
+    {
+      "name": "bear_drop",
+      "description": "Red candles everywhere. Panic selling begins.",
+      "onEnter": [
+        { "resource": "portfolio", "operation": "-", "value": "random(5,12)" },
+        { "resource": "stress", "operation": "+", "value": "5" }
+      ]
+    },
+    {
+      "name": "earnings_call",
+      "description": "A major company is reporting quarterly earnings.",
+      "onEnter": [{ "resource": "insight", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "margin_call",
+      "description": "Your broker is on the line. Cover your positions or get liquidated.",
+      "onEnter": [{ "resource": "stress", "operation": "+", "value": "15" }]
+    },
+    {
+      "name": "closing_bell",
+      "description": "The trading day is ending. Time to lock in your gains.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "market_open",
+  "resources": {
+    "cash": { "initial": 50000, "min": 0, "max": 500000, "label": "Cash" },
+    "portfolio": { "initial": 20, "min": 0, "max": 200, "label": "Portfolio Value" },
+    "insight": { "initial": 5, "min": 0, "max": 100, "label": "Market Insight" },
+    "stress": { "initial": 10, "min": 0, "max": 100, "label": "Stress" },
+    "trades": { "initial": 0, "min": 0, "max": 50, "label": "Trades Made" },
+    "reputation": { "initial": 10, "min": 0, "max": 100, "label": "Reputation" }
+  },
+  "actions": {
+    "market_open": [
+      {
+        "name": "scan_markets",
+        "label": "Scan Markets",
+        "description": "Review all sectors for opportunities.",
+        "effects": [{ "resource": "insight", "operation": "+", "value": "random(2,5)" }],
+        "transition": "research"
+      },
+      {
+        "name": "quick_buy",
+        "label": "Buy on Instinct",
+        "description": "Jump into a position based on gut feeling.",
+        "effects": [
+          { "resource": "trades", "operation": "+", "value": "1" },
+          { "resource": "portfolio", "operation": "+", "value": "random(3,10)" },
+          { "resource": "cash", "operation": "-", "value": "random(5000,15000)" }
+        ]
+      },
+      {
+        "name": "check_news",
+        "label": "Check Financial News",
+        "description": "See what headlines are moving markets.",
+        "effects": [{ "resource": "insight", "operation": "+", "value": "random(3,6)" }]
+      }
+    ],
+    "research": [
+      {
+        "name": "technical_analysis",
+        "label": "Technical Analysis",
+        "description": "Study price charts and indicators.",
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "random(4,8)" },
+          { "resource": "stress", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "fundamental_analysis",
+        "label": "Read SEC Filings",
+        "description": "Dig into company fundamentals.",
+        "effects": [
+          { "resource": "insight", "operation": "+", "value": "random(5,10)" },
+          { "resource": "stress", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "place_trade",
+        "label": "Execute Trade",
+        "description": "Use your research to make an informed trade.",
+        "condition": { "resource": "insight", "operator": ">=", "value": "15" },
+        "effects": [
+          { "resource": "trades", "operation": "+", "value": "1" },
+          { "resource": "portfolio", "operation": "+", "value": "random(8,20)" },
+          { "resource": "cash", "operation": "-", "value": "random(8000,20000)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "market_open"
+      },
+      {
+        "name": "back_to_trading",
+        "label": "Return to Trading Floor",
+        "description": "Go back to active trading.",
+        "effects": [],
+        "transition": "market_open"
+      }
+    ],
+    "bull_run": [
+      {
+        "name": "ride_wave",
+        "label": "Ride the Wave",
+        "description": "Hold positions and let gains compound.",
+        "effects": [
+          { "resource": "portfolio", "operation": "+", "value": "random(10,25)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,8)" }
+        ]
+      },
+      {
+        "name": "take_profits",
+        "label": "Take Profits",
+        "description": "Sell some holdings to lock in gains.",
+        "effects": [
+          { "resource": "cash", "operation": "+", "value": "random(15000,30000)" },
+          { "resource": "portfolio", "operation": "-", "value": "random(5,10)" },
+          { "resource": "trades", "operation": "+", "value": "1" }
+        ],
+        "transition": "market_open"
+      },
+      {
+        "name": "double_down",
+        "label": "Double Down",
+        "description": "Buy more while momentum is strong.",
+        "effects": [
+          { "resource": "portfolio", "operation": "+", "value": "random(15,30)" },
+          { "resource": "cash", "operation": "-", "value": "random(20000,40000)" },
+          { "resource": "stress", "operation": "+", "value": "5" },
+          { "resource": "trades", "operation": "+", "value": "1" }
+        ]
+      }
+    ],
+    "bear_drop": [
+      {
+        "name": "hold_steady",
+        "label": "Hold Steady",
+        "description": "Keep your positions. Markets recover.",
+        "effects": [{ "resource": "stress", "operation": "+", "value": "random(5,10)" }],
+        "transition": "market_open"
+      },
+      {
+        "name": "cut_losses",
+        "label": "Cut Losses",
+        "description": "Sell losing positions to preserve capital.",
+        "effects": [
+          { "resource": "portfolio", "operation": "-", "value": "random(5,10)" },
+          { "resource": "cash", "operation": "+", "value": "random(5000,15000)" },
+          { "resource": "stress", "operation": "-", "value": "5" },
+          { "resource": "trades", "operation": "+", "value": "1" }
+        ],
+        "transition": "market_open"
+      },
+      {
+        "name": "buy_dip",
+        "label": "Buy the Dip",
+        "description": "Brave the decline and buy at lower prices.",
+        "effects": [
+          { "resource": "portfolio", "operation": "+", "value": "random(10,20)" },
+          { "resource": "cash", "operation": "-", "value": "random(10000,25000)" },
+          { "resource": "stress", "operation": "+", "value": "8" },
+          { "resource": "trades", "operation": "+", "value": "1" }
+        ]
+      }
+    ],
+    "earnings_call": [
+      {
+        "name": "listen_closely",
+        "label": "Listen to the Call",
+        "description": "Pay attention to guidance and numbers.",
+        "effects": [{ "resource": "insight", "operation": "+", "value": "random(5,10)" }],
+        "transition": "market_open"
+      },
+      {
+        "name": "trade_earnings",
+        "label": "Trade the Earnings",
+        "description": "Place a trade based on the report.",
+        "effects": [
+          { "resource": "trades", "operation": "+", "value": "1" },
+          { "resource": "portfolio", "operation": "+", "value": "random(5,20)" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "market_open"
+      }
+    ],
+    "margin_call": [
+      {
+        "name": "cover_position",
+        "label": "Cover Your Position",
+        "description": "Deposit more cash to avoid liquidation.",
+        "effects": [
+          { "resource": "cash", "operation": "-", "value": "random(20000,40000)" },
+          { "resource": "stress", "operation": "-", "value": "10" }
+        ],
+        "transition": "market_open"
+      },
+      {
+        "name": "liquidate",
+        "label": "Accept Liquidation",
+        "description": "Let the broker close your worst positions.",
+        "effects": [
+          { "resource": "portfolio", "operation": "-", "value": "random(15,30)" },
+          { "resource": "reputation", "operation": "-", "value": "random(5,10)" },
+          { "resource": "stress", "operation": "+", "value": "10" }
+        ],
+        "transition": "market_open"
+      }
+    ],
+    "closing_bell": [
+      {
+        "name": "close_all",
+        "label": "Close All Positions",
+        "description": "Sell everything and count your gains.",
+        "effects": [
+          { "resource": "cash", "operation": "+", "value": "random(10000,50000)" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "hold_overnight",
+        "label": "Hold Overnight",
+        "description": "Keep positions for tomorrow. Risk and reward.",
+        "effects": [
+          { "resource": "portfolio", "operation": "+", "value": "random(5,15)" },
+          { "resource": "stress", "operation": "+", "value": "5" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "market_open",
+      "to": "bull_run",
+      "condition": { "resource": "portfolio", "operator": ">=", "value": "60" },
+      "auto": true
+    },
+    {
+      "from": "market_open",
+      "to": "bear_drop",
+      "condition": { "resource": "stress", "operator": ">=", "value": "40" },
+      "auto": true
+    },
+    {
+      "from": "market_open",
+      "to": "earnings_call",
+      "condition": { "resource": "insight", "operator": ">=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "bull_run",
+      "to": "margin_call",
+      "condition": { "resource": "cash", "operator": "<=", "value": "5000" },
+      "auto": true
+    },
+    {
+      "from": "market_open",
+      "to": "closing_bell",
+      "condition": { "resource": "trades", "operator": ">=", "value": "15" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "reputation", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "cash", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "wall-street-green",
+    "stateDescriptions": {
+      "market_open": { "label": "Trading Floor", "icon": "trending-up" },
+      "research": { "label": "Research", "icon": "search" },
+      "bull_run": { "label": "Bull Run!", "icon": "arrow-up" },
+      "bear_drop": { "label": "Bear Market", "icon": "arrow-down" },
+      "earnings_call": { "label": "Earnings", "icon": "phone" },
+      "margin_call": { "label": "Margin Call!", "icon": "alert" },
+      "closing_bell": { "label": "Closing Bell", "icon": "bell" }
+    },
+    "resourceIcons": {
+      "cash": "dollar-sign",
+      "portfolio": "briefcase",
+      "insight": "eye",
+      "stress": "activity",
+      "trades": "repeat",
+      "reputation": "star"
+    }
+  }
+}

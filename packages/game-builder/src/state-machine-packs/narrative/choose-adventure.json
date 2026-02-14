@@ -1,0 +1,303 @@
+{
+  "name": "Choose Your Adventure",
+  "description": "You discover a mysterious old book in an antique shop. As you read, you realize your choices shape the story. Find the treasure before the book closes forever.",
+  "states": [
+    {
+      "name": "antique_shop",
+      "description": "Dusty shelves lined with curiosities. A leather-bound book catches your eye.",
+      "onEnter": []
+    },
+    {
+      "name": "enchanted_forest",
+      "description": "Ancient trees tower above. Paths fork in every direction.",
+      "onEnter": [{ "resource": "wonder", "operation": "+", "value": "random(2,5)" }]
+    },
+    {
+      "name": "crystal_caves",
+      "description": "Glowing crystals light the underground tunnels.",
+      "onEnter": [{ "resource": "treasure", "operation": "+", "value": "random(3,6)" }]
+    },
+    {
+      "name": "sky_castle",
+      "description": "A castle floating among the clouds. Eagles circle the towers.",
+      "onEnter": [{ "resource": "wonder", "operation": "+", "value": "random(5,8)" }]
+    },
+    {
+      "name": "dragon_lair",
+      "description": "Heat radiates from a cavern filled with gold and bones.",
+      "onEnter": [{ "resource": "danger", "operation": "+", "value": "random(8,12)" }]
+    },
+    {
+      "name": "hidden_library",
+      "description": "Shelves of books within books. Knowledge stacked to the ceiling.",
+      "onEnter": [{ "resource": "wisdom", "operation": "+", "value": "random(5,10)" }]
+    },
+    {
+      "name": "treasure_vault",
+      "description": "The final chapter. Riches beyond imagination.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "antique_shop",
+  "resources": {
+    "pages_left": { "initial": 50, "min": 0, "max": 50, "label": "Pages Remaining" },
+    "treasure": { "initial": 0, "min": 0, "max": 100, "label": "Treasure Found" },
+    "wisdom": { "initial": 5, "min": 0, "max": 100, "label": "Wisdom" },
+    "danger": { "initial": 0, "min": 0, "max": 100, "label": "Danger Level" },
+    "wonder": { "initial": 10, "min": 0, "max": 100, "label": "Sense of Wonder" }
+  },
+  "actions": {
+    "antique_shop": [
+      {
+        "name": "open_book",
+        "label": "Open the Book",
+        "description": "Turn to the first page.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "3" },
+          { "resource": "wonder", "operation": "+", "value": "5" }
+        ],
+        "transition": "enchanted_forest"
+      },
+      {
+        "name": "ask_shopkeeper",
+        "label": "Ask the Shopkeeper",
+        "description": "Learn about the book's origins.",
+        "effects": [
+          { "resource": "wisdom", "operation": "+", "value": "random(3,6)" },
+          { "resource": "pages_left", "operation": "-", "value": "1" }
+        ]
+      }
+    ],
+    "enchanted_forest": [
+      {
+        "name": "follow_river",
+        "label": "Follow the River",
+        "description": "A sparkling stream winds deeper into the woods.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" },
+          { "resource": "treasure", "operation": "+", "value": "random(2,5)" }
+        ],
+        "transition": "crystal_caves"
+      },
+      {
+        "name": "climb_tree",
+        "label": "Climb the Tallest Tree",
+        "description": "The view from the top might reveal something.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" },
+          { "resource": "wonder", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "sky_castle"
+      },
+      {
+        "name": "explore_clearing",
+        "label": "Explore the Clearing",
+        "description": "A circle of mushrooms glows faintly.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "random(1,3)" },
+          { "resource": "wisdom", "operation": "+", "value": "random(3,5)" },
+          { "resource": "treasure", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "dark_path",
+        "label": "Take the Dark Path",
+        "description": "Something lurks in the shadows.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" },
+          { "resource": "danger", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "dragon_lair"
+      }
+    ],
+    "crystal_caves": [
+      {
+        "name": "mine_crystals",
+        "label": "Mine Crystals",
+        "description": "Pry loose the glowing stones.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(5,10)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(2,3)" },
+          { "resource": "danger", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "map_tunnels",
+        "label": "Map the Tunnels",
+        "description": "Chart a path through the maze.",
+        "effects": [
+          { "resource": "wisdom", "operation": "+", "value": "random(4,8)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "go_deeper",
+        "label": "Go Deeper",
+        "description": "The tunnels lead to a hidden place.",
+        "effects": [
+          { "resource": "pages_left", "operation": "-", "value": "random(3,5)" },
+          { "resource": "danger", "operation": "+", "value": "random(3,6)" }
+        ],
+        "transition": "hidden_library"
+      },
+      {
+        "name": "surface",
+        "label": "Return to Surface",
+        "description": "Climb back up to the forest.",
+        "effects": [{ "resource": "pages_left", "operation": "-", "value": "1" }],
+        "transition": "enchanted_forest"
+      }
+    ],
+    "sky_castle": [
+      {
+        "name": "throne_room",
+        "label": "Enter the Throne Room",
+        "description": "A crown sits on an empty throne.",
+        "effects": [
+          { "resource": "wonder", "operation": "+", "value": "random(5,10)" },
+          { "resource": "wisdom", "operation": "+", "value": "random(3,6)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "treasury",
+        "label": "Find the Treasury",
+        "description": "Search the castle for riches.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(8,15)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(3,5)" },
+          { "resource": "danger", "operation": "+", "value": "random(3,6)" }
+        ]
+      },
+      {
+        "name": "fly_eagle",
+        "label": "Ride an Eagle",
+        "description": "An eagle offers to carry you.",
+        "effects": [
+          { "resource": "wonder", "operation": "+", "value": "random(5,8)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(2,3)" }
+        ],
+        "transition": "enchanted_forest"
+      }
+    ],
+    "dragon_lair": [
+      {
+        "name": "sneak_treasure",
+        "label": "Sneak Past the Dragon",
+        "description": "Grab treasure while it sleeps.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(10,20)" },
+          { "resource": "danger", "operation": "+", "value": "random(8,15)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "befriend",
+        "label": "Befriend the Dragon",
+        "description": "Offer it a crystal from the caves.",
+        "condition": { "resource": "wisdom", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "wisdom", "operation": "+", "value": "random(5,10)" },
+          { "resource": "danger", "operation": "-", "value": "random(10,15)" },
+          { "resource": "treasure", "operation": "+", "value": "random(5,10)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(3,5)" }
+        ],
+        "transition": "enchanted_forest"
+      },
+      {
+        "name": "flee",
+        "label": "Run Away",
+        "description": "The dragon stirs. Time to go.",
+        "effects": [
+          { "resource": "danger", "operation": "+", "value": "random(3,6)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(1,3)" }
+        ],
+        "transition": "enchanted_forest"
+      }
+    ],
+    "hidden_library": [
+      {
+        "name": "read_ancient",
+        "label": "Read Ancient Texts",
+        "description": "Unlock secrets of the book within the book.",
+        "effects": [
+          { "resource": "wisdom", "operation": "+", "value": "random(8,15)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "find_map",
+        "label": "Find the Treasure Map",
+        "description": "A map to the final vault.",
+        "condition": { "resource": "wisdom", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(10,15)" },
+          { "resource": "pages_left", "operation": "-", "value": "random(2,4)" }
+        ],
+        "transition": "treasure_vault"
+      },
+      {
+        "name": "leave_library",
+        "label": "Leave the Library",
+        "description": "Return to exploring.",
+        "effects": [{ "resource": "pages_left", "operation": "-", "value": "1" }],
+        "transition": "enchanted_forest"
+      }
+    ],
+    "treasure_vault": [
+      {
+        "name": "claim_treasure",
+        "label": "Claim the Treasure",
+        "description": "Fill your pockets with gold and gems.",
+        "effects": [
+          { "resource": "treasure", "operation": "+", "value": "random(15,25)" },
+          { "resource": "wonder", "operation": "+", "value": "random(5,10)" }
+        ]
+      },
+      {
+        "name": "read_final",
+        "label": "Read the Final Page",
+        "description": "The last words of the story.",
+        "effects": [
+          { "resource": "wisdom", "operation": "+", "value": "random(5,10)" },
+          { "resource": "treasure", "operation": "+", "value": "random(5,10)" }
+        ]
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "enchanted_forest",
+      "to": "dragon_lair",
+      "condition": { "resource": "danger", "operator": ">=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "crystal_caves",
+      "to": "treasure_vault",
+      "condition": { "resource": "treasure", "operator": ">=", "value": "50" },
+      "auto": true
+    }
+  ],
+  "winCondition": { "resource": "treasure", "operator": ">=", "value": "80" },
+  "loseCondition": { "resource": "pages_left", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "parchment-gold",
+    "stateDescriptions": {
+      "antique_shop": { "label": "Antique Shop", "icon": "book" },
+      "enchanted_forest": { "label": "Enchanted Forest", "icon": "tree" },
+      "crystal_caves": { "label": "Crystal Caves", "icon": "diamond" },
+      "sky_castle": { "label": "Sky Castle", "icon": "cloud" },
+      "dragon_lair": { "label": "Dragon's Lair", "icon": "flame" },
+      "hidden_library": { "label": "Hidden Library", "icon": "book-open" },
+      "treasure_vault": { "label": "Treasure Vault", "icon": "gift" }
+    },
+    "resourceIcons": {
+      "pages_left": "book",
+      "treasure": "diamond",
+      "wisdom": "star",
+      "danger": "alert",
+      "wonder": "sparkles"
+    }
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "name": "Chemistry Lab",
+  "description": "Mix compounds, discover new reactions, and synthesize a breakthrough material. Watch out for explosions!",
+  "states": [
+    {
+      "name": "workbench",
+      "description": "Your chemistry workbench. Beakers and burners ready.",
+      "onEnter": []
+    },
+    { "name": "mixing", "description": "Carefully mixing compounds together.", "onEnter": [] },
+    { "name": "heating", "description": "Applying heat to the mixture.", "onEnter": [] },
+    { "name": "observation", "description": "Observing the reaction results.", "onEnter": [] },
+    {
+      "name": "explosion",
+      "description": "The mixture is unstable! Take cover!",
+      "onEnter": [
+        { "resource": "safety", "operation": "-", "value": "random(2,4)" },
+        { "resource": "compounds", "operation": "-", "value": "random(1,3)" }
+      ]
+    }
+  ],
+  "initialState": "workbench",
+  "resources": {
+    "compounds": { "initial": 8, "min": 0, "max": 15, "label": "Compounds" },
+    "stability": { "initial": 7, "min": 0, "max": 10, "label": "Mixture Stability" },
+    "purity": { "initial": 3, "min": 0, "max": 10, "label": "Purity" },
+    "discoveries": { "initial": 0, "min": 0, "max": 8, "label": "Discoveries" },
+    "safety": { "initial": 8, "min": 0, "max": 10, "label": "Lab Safety" },
+    "heat_level": { "initial": 0, "min": 0, "max": 10, "label": "Heat Level" }
+  },
+  "actions": {
+    "workbench": [
+      {
+        "name": "gather_compounds",
+        "label": "Gather Compounds",
+        "effects": [{ "resource": "compounds", "operation": "+", "value": "random(2,4)" }]
+      },
+      {
+        "name": "clean_equipment",
+        "label": "Clean Equipment",
+        "effects": [
+          { "resource": "purity", "operation": "+", "value": "random(1,2)" },
+          { "resource": "safety", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "study_formulas",
+        "label": "Study Formulas",
+        "effects": [
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stability", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "start_mixing",
+        "label": "Begin Mixing",
+        "condition": { "resource": "compounds", "operator": ">=", "value": "3" },
+        "effects": [],
+        "transition": "mixing"
+      }
+    ],
+    "mixing": [
+      {
+        "name": "add_reagent",
+        "label": "Add Reagent",
+        "condition": { "resource": "compounds", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "compounds", "operation": "-", "value": "2" },
+          { "resource": "purity", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(0,2)" }
+        ]
+      },
+      {
+        "name": "add_catalyst",
+        "label": "Add Catalyst",
+        "condition": { "resource": "compounds", "operator": ">=", "value": "1" },
+        "effects": [
+          { "resource": "compounds", "operation": "-", "value": "1" },
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" },
+          { "resource": "stability", "operation": "-", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "stir_slowly",
+        "label": "Stir Slowly",
+        "effects": [
+          { "resource": "stability", "operation": "+", "value": "random(1,2)" },
+          { "resource": "purity", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "apply_heat",
+        "label": "Apply Heat",
+        "condition": { "resource": "stability", "operator": ">=", "value": "4" },
+        "effects": [{ "resource": "heat_level", "operation": "+", "value": "random(2,3)" }],
+        "transition": "heating"
+      },
+      { "name": "back", "label": "Back to Workbench", "effects": [], "transition": "workbench" }
+    ],
+    "heating": [
+      {
+        "name": "increase_heat",
+        "label": "Increase Temperature",
+        "effects": [
+          { "resource": "heat_level", "operation": "+", "value": "random(1,3)" },
+          { "resource": "stability", "operation": "-", "value": "random(1,2)" },
+          { "resource": "purity", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "maintain",
+        "label": "Maintain Temperature",
+        "effects": [
+          { "resource": "purity", "operation": "+", "value": "random(0,2)" },
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "cool_down",
+        "label": "Cool Down Mixture",
+        "effects": [
+          { "resource": "heat_level", "operation": "-", "value": "random(2,4)" },
+          { "resource": "stability", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "observe",
+        "label": "Observe Results",
+        "condition": { "resource": "heat_level", "operator": ">=", "value": "4" },
+        "effects": [{ "resource": "heat_level", "operation": "-", "value": "2" }],
+        "transition": "observation"
+      }
+    ],
+    "observation": [
+      {
+        "name": "record_results",
+        "label": "Record Results",
+        "effects": [
+          { "resource": "discoveries", "operation": "+", "value": "random(1,2)" },
+          { "resource": "purity", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "test_properties",
+        "label": "Test Material Properties",
+        "effects": [
+          { "resource": "discoveries", "operation": "+", "value": "random(1,3)" },
+          { "resource": "compounds", "operation": "-", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "refine",
+        "label": "Refine the Compound",
+        "condition": { "resource": "compounds", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "compounds", "operation": "-", "value": "1" },
+          { "resource": "purity", "operation": "+", "value": "random(2,3)" },
+          { "resource": "discoveries", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "new_experiment",
+        "label": "Start New Experiment",
+        "effects": [{ "resource": "heat_level", "operation": "-", "value": "3" }],
+        "transition": "workbench"
+      }
+    ],
+    "explosion": [
+      {
+        "name": "extinguish",
+        "label": "Use Fire Extinguisher",
+        "effects": [
+          { "resource": "safety", "operation": "+", "value": "random(2,3)" },
+          { "resource": "heat_level", "operation": "-", "value": "random(3,5)" }
+        ],
+        "transition": "workbench"
+      },
+      {
+        "name": "salvage",
+        "label": "Salvage What You Can",
+        "effects": [
+          { "resource": "compounds", "operation": "+", "value": "random(1,2)" },
+          { "resource": "safety", "operation": "+", "value": "1" },
+          { "resource": "heat_level", "operation": "-", "value": "random(2,4)" }
+        ],
+        "transition": "workbench"
+      },
+      {
+        "name": "analyze_failure",
+        "label": "Analyze What Went Wrong",
+        "effects": [
+          { "resource": "discoveries", "operation": "+", "value": "random(1,2)" },
+          { "resource": "stability", "operation": "+", "value": "random(2,3)" },
+          { "resource": "heat_level", "operation": "-", "value": "3" }
+        ],
+        "transition": "workbench"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "heating",
+      "to": "explosion",
+      "condition": {
+        "and": [
+          { "resource": "stability", "operator": "<=", "value": "2" },
+          { "resource": "heat_level", "operator": ">=", "value": "7" }
+        ]
+      },
+      "auto": true
+    },
+    {
+      "from": "mixing",
+      "to": "explosion",
+      "condition": { "resource": "stability", "operator": "<=", "value": "1" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "discoveries", "operator": ">=", "value": "7" },
+      { "resource": "purity", "operator": ">=", "value": "8" }
+    ]
+  },
+  "loseCondition": { "resource": "safety", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "chemical-teal",
+    "stateDescriptions": {
+      "workbench": { "label": "Workbench", "icon": "tool" },
+      "mixing": { "label": "Mixing", "icon": "refresh-cw" },
+      "heating": { "label": "Heating", "icon": "thermometer" },
+      "observation": { "label": "Observation", "icon": "eye" },
+      "explosion": { "label": "Explosion!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "compounds": "package",
+      "stability": "shield",
+      "purity": "star",
+      "discoveries": "search",
+      "safety": "heart",
+      "heat_level": "thermometer"
+    }
+  }
+}

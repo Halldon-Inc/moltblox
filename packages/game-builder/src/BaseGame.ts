@@ -42,6 +42,8 @@ import type {
   ActionResult,
   GameEvent,
 } from '@moltblox/protocol';
+import type { MechanicInjector } from './MechanicInjector.js';
+import { createInjector } from './MechanicInjector.js';
 
 export abstract class BaseGame implements UnifiedGameInterface {
   // Metadata - override these
@@ -57,8 +59,20 @@ export abstract class BaseGame implements UnifiedGameInterface {
   protected playerIds: string[] = [];
   protected events: GameEvent[] = [];
 
+  // Mechanic injectors (composable secondary mechanics)
+  protected injectors: MechanicInjector[] = [];
+
   constructor(config?: Record<string, unknown>) {
     this.config = config || {};
+
+    // If a secondaryMechanic is specified, create and attach the injector
+    const mechanic = this.config.secondaryMechanic;
+    if (typeof mechanic === 'string') {
+      const injector = createInjector(mechanic);
+      if (injector) {
+        this.injectors.push(injector);
+      }
+    }
   }
 
   /**
@@ -75,10 +89,12 @@ export abstract class BaseGame implements UnifiedGameInterface {
 
     this.playerIds = playerIds;
     this.events = [];
+    const baseData = this.initializeState(playerIds);
+    const injectorData = this.getInjectorInitialState();
     this.state = {
       turn: 0,
       phase: 'playing',
-      data: this.initializeState(playerIds),
+      data: { ...baseData, ...injectorData },
     };
 
     this.emitEvent('game_started', undefined, { playerIds });
@@ -133,12 +149,36 @@ export abstract class BaseGame implements UnifiedGameInterface {
       return { success: false, error: 'Game is already over' };
     }
 
+    // Run injector beforeAction hooks
+    let activeAction = action;
+    let accumulatedMultiplier = 1.0;
+    for (const injector of this.injectors) {
+      const injResult = injector.beforeAction(playerId, activeAction, this.state.data);
+      if (!injResult.proceed) {
+        // Injector blocked the action (e.g. challenge issued or insufficient resource)
+        return {
+          success: true,
+          newState: this.state,
+          events: [],
+          ...(injResult.challengeState
+            ? ({ challengeState: injResult.challengeState } as Record<string, unknown>)
+            : {}),
+        } as ActionResult;
+      }
+      if (injResult.modifiedAction) {
+        activeAction = injResult.modifiedAction;
+      }
+      if (injResult.multiplier != null) {
+        accumulatedMultiplier *= injResult.multiplier;
+      }
+    }
+
     // Process the action.
     // Note: subclasses typically mutate state.data in place via getData<T>() and
     // setData(), then return this.getState() as newState. The assignment below is
     // therefore usually a no-op (same reference), but it is kept for correctness
     // in case a subclass returns a genuinely new state object.
-    const result = this.processAction(playerId, action);
+    let result = this.processAction(playerId, activeAction);
 
     if (result.success) {
       // Update state
@@ -148,6 +188,24 @@ export abstract class BaseGame implements UnifiedGameInterface {
 
       // Increment turn
       this.state.turn++;
+
+      // Run injector afterAction hooks
+      for (const injector of this.injectors) {
+        result = injector.afterAction(playerId, result, this.state.data);
+      }
+
+      // Store accumulated multiplier in state if any injector set one
+      if (accumulatedMultiplier !== 1.0) {
+        this.state.data = {
+          ...this.state.data,
+          _injectorMultiplier: accumulatedMultiplier,
+        };
+      }
+
+      // Sync state from afterAction modifications
+      if (result.newState) {
+        this.state = result.newState;
+      }
 
       // Check for game over
       if (this.checkGameOver()) {
@@ -303,5 +361,16 @@ export abstract class BaseGame implements UnifiedGameInterface {
    */
   protected updateData(partial: Record<string, unknown>): void {
     this.state.data = { ...this.state.data, ...partial };
+  }
+
+  /**
+   * Collect initial state from all injectors (merged into state.data on initialize).
+   */
+  protected getInjectorInitialState(): Record<string, unknown> {
+    let merged: Record<string, unknown> = {};
+    for (const injector of this.injectors) {
+      merged = { ...merged, ...injector.initialize() };
+    }
+    return merged;
   }
 }

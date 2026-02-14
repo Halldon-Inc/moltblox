@@ -47,6 +47,19 @@ export interface SideBattlerConfig {
   enemyTheme?: 'fantasy' | 'undead' | 'demons' | 'beasts' | 'sci-fi';
   maxWaves?: number;
   difficulty?: 'easy' | 'normal' | 'hard';
+  secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+  /** Number of party members (2-6, default 4). If >4, duplicates classes starting from warrior. */
+  partySize?: number;
+  /** If false, HP is NOT restored between waves (default true). */
+  healBetweenWaves?: boolean;
+  /** If true, dead members stay dead across waves (default false). */
+  permadeath?: boolean;
+  /** A boss enemy appears every N waves (default 5). E.g. 3 = boss on waves 3, 6, 9. */
+  bossEveryNWaves?: number;
+  /** Enemy stat scaling formula (default 'linear'). */
+  enemyScaling?: 'linear' | 'exponential' | 'plateau';
+  /** If true, adds a swap_formation action to swap front/back row (default false). */
+  allowFormationSwap?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -211,7 +224,7 @@ const CLASS_SKILLS: Record<CharacterClass, Skill[]> = {
       target: 'self',
       buffStat: 'def',
       buffValue: 8,
-      statusEffect: { type: 'def_up', value: 8, duration: 3 },
+      statusEffect: { type: 'def_up', value: 8, duration: 4 },
       description: 'Raise your shield, gaining +8 DEF for 3 turns.',
     },
     {
@@ -475,15 +488,25 @@ export class SideBattlerGame extends BaseGame {
    * In 2-player co-op, each player controls 2 characters.
    */
   protected initializeState(playerIds: string[]): SideBattlerState {
+    const cfg = this.config as SideBattlerConfig;
     const party: PartyCharacter[] = [];
     const classes: CharacterClass[] = ['warrior', 'mage', 'archer', 'healer'];
+    const partySize = Math.max(2, Math.min(cfg.partySize ?? 4, 6));
 
-    for (let i = 0; i < classes.length; i++) {
-      const cls = classes[i];
+    // Build a class list of the requested size; if >4, duplicate starting from warrior
+    const partyClasses: CharacterClass[] = [];
+    for (let i = 0; i < partySize; i++) {
+      partyClasses.push(classes[i % classes.length]);
+    }
+
+    for (let i = 0; i < partyClasses.length; i++) {
+      const cls = partyClasses[i];
       const stats = { ...CLASS_STATS[cls] };
-      // In co-op, player 1 gets characters 0-1, player 2 gets 2-3
-      // In solo, player 1 gets all 4
-      const owner = playerIds.length === 2 ? playerIds[i < 2 ? 0 : 1] : playerIds[0];
+      // In co-op, split characters evenly
+      const owner =
+        playerIds.length === 2
+          ? playerIds[i < Math.ceil(partyClasses.length / 2) ? 0 : 1]
+          : playerIds[0];
 
       party.push({
         id: `char_${i}`,
@@ -504,7 +527,6 @@ export class SideBattlerGame extends BaseGame {
       playerScores[pid] = 0;
     }
 
-    const cfg = this.config as SideBattlerConfig;
     const maxWaves = Math.max(1, Math.min(cfg.maxWaves ?? 5, WAVE_TEMPLATES.length));
 
     return {
@@ -574,6 +596,10 @@ export class SideBattlerGame extends BaseGame {
         result = this.handleAutoTick(playerId, data);
         break;
 
+      case 'swap_formation':
+        result = this.handleSwapFormation(playerId, data, action);
+        break;
+
       default:
         return { success: false, error: `Unknown action: ${action.type}` };
     }
@@ -608,15 +634,45 @@ export class SideBattlerGame extends BaseGame {
       return { success: false, error: 'All party members have fallen' };
     }
 
+    // Heal between waves (unless disabled)
+    const cfg = this.config as SideBattlerConfig;
+    const healBetween = cfg.healBetweenWaves ?? true;
+    const permadeath = cfg.permadeath ?? false;
+
+    if (data.currentWave > 0) {
+      for (const char of data.party) {
+        if (!char.alive && !permadeath) {
+          char.alive = true;
+        }
+        if (char.alive && healBetween) {
+          char.stats.hp = char.stats.maxHp;
+          char.stats.mp = char.stats.maxMp;
+        }
+      }
+    }
+
     data.currentWave++;
     const waveIndex = data.currentWave - 1;
-    const template = WAVE_TEMPLATES[waveIndex];
-    const scale = 1 + (data.currentWave - 1) * 0.1;
+    const template = WAVE_TEMPLATES[Math.min(waveIndex, WAVE_TEMPLATES.length - 1)];
+
+    // Enemy scaling formula based on config
+    const scalingType = cfg.enemyScaling ?? 'linear';
+    let scale: number;
+    if (scalingType === 'exponential') {
+      scale = Math.pow(1.15, data.currentWave - 1);
+    } else if (scalingType === 'plateau') {
+      scale = Math.min(2.0, 1 + (data.currentWave - 1) * 0.15);
+    } else {
+      scale = 1 + (data.currentWave - 1) * 0.1;
+    }
 
     // Apply difficulty and theme from config
-    const cfg = this.config as SideBattlerConfig;
     const diffMult = DIFFICULTY_MULTIPLIERS[cfg.difficulty ?? 'normal'] ?? 1.0;
     const themeNames = ENEMY_THEME_NAMES[cfg.enemyTheme ?? 'fantasy'] ?? ENEMY_THEME_NAMES.fantasy;
+
+    // Check if this wave should be a boss wave
+    const bossEvery = cfg.bossEveryNWaves ?? 5;
+    const isBossWave = data.currentWave % bossEvery === 0;
 
     // Spawn enemies from template with scaling and difficulty
     data.enemies = template.enemies.map((e, i) => {
@@ -625,22 +681,25 @@ export class SideBattlerGame extends BaseGame {
       const themedName =
         cfg.enemyTheme && cfg.enemyTheme !== 'fantasy' ? themeNames[nameIndex] : e.name;
 
+      // Mark as boss if the template says so OR if this is a boss wave (first enemy becomes boss)
+      const isThisBoss = e.isBoss || (isBossWave && i === 0);
+
       return {
         id: `enemy_w${data.currentWave}_${i}`,
-        name: e.isBoss ? themeNames[themeNames.length - 1] : themedName,
+        name: isThisBoss ? themeNames[themeNames.length - 1] : themedName,
         stats: {
-          hp: Math.floor(e.hp * scale * diffMult),
-          maxHp: Math.floor(e.hp * scale * diffMult),
+          hp: Math.floor(e.hp * scale * diffMult * (isThisBoss && !e.isBoss ? 2.0 : 1.0)),
+          maxHp: Math.floor(e.hp * scale * diffMult * (isThisBoss && !e.isBoss ? 2.0 : 1.0)),
           mp: 0,
           maxMp: 0,
-          atk: Math.floor(e.atk * scale * diffMult),
-          def: Math.floor(e.def * scale * diffMult),
+          atk: Math.floor(e.atk * scale * diffMult * (isThisBoss && !e.isBoss ? 1.5 : 1.0)),
+          def: Math.floor(e.def * scale * diffMult * (isThisBoss && !e.isBoss ? 1.3 : 1.0)),
           spd: Math.floor(e.spd * scale),
-          matk: Math.floor(e.matk * scale * diffMult),
-          mdef: Math.floor(e.mdef * scale * diffMult),
+          matk: Math.floor(e.matk * scale * diffMult * (isThisBoss && !e.isBoss ? 1.5 : 1.0)),
+          mdef: Math.floor(e.mdef * scale * diffMult * (isThisBoss && !e.isBoss ? 1.3 : 1.0)),
         },
         statusEffects: [],
-        isBoss: e.isBoss,
+        isBoss: isThisBoss,
         alive: true,
       };
     });
@@ -1020,6 +1079,83 @@ export class SideBattlerGame extends BaseGame {
     if (target.stats.hp <= 0) {
       this.handleEnemyDeath(target, data, playerId);
     }
+  }
+
+  // -----------------------------------------------------------------------
+  // swap_formation
+  // -----------------------------------------------------------------------
+
+  private handleSwapFormation(
+    playerId: string,
+    data: SideBattlerState,
+    action?: GameAction,
+  ): ActionResult {
+    const cfg = this.config as SideBattlerConfig;
+    if (!(cfg.allowFormationSwap ?? false)) {
+      return { success: false, error: 'Formation swap is not enabled' };
+    }
+
+    // In prep phase, allow swapping party member positions using indexA/indexB
+    if (data.battlePhase === 'prep') {
+      const indexA = Number(action?.payload?.indexA ?? 0);
+      const indexB = Number(action?.payload?.indexB ?? 1);
+
+      if (
+        isNaN(indexA) ||
+        isNaN(indexB) ||
+        indexA < 0 ||
+        indexB < 0 ||
+        indexA >= data.party.length ||
+        indexB >= data.party.length ||
+        indexA === indexB
+      ) {
+        return { success: false, error: 'Invalid swap indices' };
+      }
+
+      // Verify ownership
+      if (data.party[indexA].owner !== playerId || data.party[indexB].owner !== playerId) {
+        return { success: false, error: 'Can only swap your own characters' };
+      }
+
+      // Swap the two party members in the array
+      const temp = data.party[indexA];
+      data.party[indexA] = data.party[indexB];
+      data.party[indexB] = temp;
+
+      // Update row assignments based on new positions
+      data.party[indexA].row = indexA <= 1 ? 'front' : 'back';
+      data.party[indexB].row = indexB <= 1 ? 'front' : 'back';
+
+      data.combatLog.push(
+        `${data.party[indexA].name} and ${data.party[indexB].name} swapped positions`,
+      );
+      this.emitEvent('formation_swap', playerId, { indexA, indexB });
+
+      this.setData(data);
+      return { success: true, newState: this.getState() };
+    }
+
+    if (data.battlePhase !== 'combat') {
+      return { success: false, error: 'No active wave' };
+    }
+
+    const char = this.getCurrentCharacter(data);
+    if (!char || !char.alive) {
+      return { success: false, error: 'No active character for this turn' };
+    }
+    if (char.owner !== playerId) {
+      return { success: false, error: "Not your character's turn" };
+    }
+
+    char.row = char.row === 'front' ? 'back' : 'front';
+    char.isDefending = false;
+    data.combatLog.push(`${char.name} swaps to the ${char.row} row`);
+    this.emitEvent('formation_swap', playerId, { character: char.id, row: char.row });
+
+    data.totalTurns++;
+    this.advanceTurn(data);
+    this.setData(data);
+    return { success: true, newState: this.getState() };
   }
 
   // -----------------------------------------------------------------------

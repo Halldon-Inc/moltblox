@@ -1,0 +1,360 @@
+{
+  "name": "Time Travel",
+  "description": "Use a malfunctioning time machine to visit different eras. Collect temporal artifacts and repair the machine before the timeline collapses.",
+  "states": [
+    {
+      "name": "present",
+      "description": "Your lab in the present day. The time machine hums.",
+      "onEnter": []
+    },
+    {
+      "name": "prehistoric",
+      "description": "Millions of years ago. Dinosaurs roam.",
+      "onEnter": [{ "resource": "paradox", "operation": "+", "value": "2" }]
+    },
+    {
+      "name": "ancient",
+      "description": "The age of empires and pyramids.",
+      "onEnter": [{ "resource": "paradox", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "medieval",
+      "description": "Castles, knights, and plague.",
+      "onEnter": [{ "resource": "paradox", "operation": "+", "value": "1" }]
+    },
+    {
+      "name": "future",
+      "description": "A gleaming future city of glass and light.",
+      "onEnter": [{ "resource": "paradox", "operation": "+", "value": "3" }]
+    },
+    {
+      "name": "temporal_storm",
+      "description": "The timeline is fracturing around you!",
+      "onEnter": [{ "resource": "paradox", "operation": "+", "value": "5" }]
+    },
+    {
+      "name": "void",
+      "description": "Outside of time. A grey emptiness.",
+      "onEnter": [{ "resource": "energy", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "present",
+  "resources": {
+    "energy": { "initial": 50, "min": 0, "max": 60, "label": "Time Energy" },
+    "artifacts": { "initial": 0, "min": 0, "label": "Temporal Artifacts" },
+    "parts": { "initial": 0, "min": 0, "max": 10, "label": "Machine Parts" },
+    "paradox": { "initial": 0, "min": 0, "max": 30, "label": "Paradox Level" },
+    "knowledge": { "initial": 0, "min": 0, "max": 15, "label": "Knowledge" },
+    "stability": { "initial": 10, "min": 0, "max": 10, "label": "Timeline Stability" }
+  },
+  "actions": {
+    "present": [
+      {
+        "name": "repair_machine",
+        "label": "Repair Time Machine",
+        "description": "Use collected parts to fix the machine.",
+        "condition": { "resource": "parts", "operator": ">=", "value": "2" },
+        "effects": [
+          { "resource": "parts", "operation": "-", "value": "2" },
+          { "resource": "stability", "operation": "+", "value": "2" },
+          { "resource": "energy", "operation": "+", "value": "5" }
+        ]
+      },
+      {
+        "name": "research",
+        "label": "Research",
+        "description": "Study temporal mechanics in your lab.",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(1,3)" },
+          { "resource": "paradox", "operation": "-", "value": "1" }
+        ]
+      },
+      {
+        "name": "stabilize",
+        "label": "Stabilize Timeline",
+        "description": "Use knowledge to repair temporal damage.",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "paradox", "operation": "-", "value": "random(2,5)" },
+          { "resource": "knowledge", "operation": "-", "value": "2" },
+          { "resource": "stability", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "jump_prehistoric",
+        "label": "Jump to Prehistoric Era",
+        "description": "Travel millions of years back.",
+        "condition": { "resource": "energy", "operator": ">=", "value": "12" },
+        "effects": [{ "resource": "energy", "operation": "-", "value": "12" }],
+        "transition": "prehistoric"
+      },
+      {
+        "name": "jump_ancient",
+        "label": "Jump to Ancient Era",
+        "description": "Travel to the ancient world.",
+        "condition": { "resource": "energy", "operator": ">=", "value": "8" },
+        "effects": [{ "resource": "energy", "operation": "-", "value": "8" }],
+        "transition": "ancient"
+      },
+      {
+        "name": "jump_medieval",
+        "label": "Jump to Medieval Era",
+        "description": "Travel to the middle ages.",
+        "condition": { "resource": "energy", "operator": ">=", "value": "6" },
+        "effects": [{ "resource": "energy", "operation": "-", "value": "6" }],
+        "transition": "medieval"
+      },
+      {
+        "name": "jump_future",
+        "label": "Jump to the Future",
+        "description": "Travel forward in time.",
+        "condition": { "resource": "energy", "operator": ">=", "value": "15" },
+        "effects": [{ "resource": "energy", "operation": "-", "value": "15" }],
+        "transition": "future"
+      }
+    ],
+    "prehistoric": [
+      {
+        "name": "collect_fossils",
+        "label": "Collect Fossils",
+        "description": "Gather ancient specimens.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(2,5)" },
+          { "resource": "paradox", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "observe_dinos",
+        "label": "Observe Wildlife",
+        "description": "Document prehistoric creatures.",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(2,4)" },
+          { "resource": "paradox", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "scavenge_minerals",
+        "label": "Gather Rare Minerals",
+        "description": "Find materials for machine repair.",
+        "effects": [
+          { "resource": "parts", "operation": "+", "value": "random(1,2)" },
+          { "resource": "paradox", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "return",
+        "label": "Return to Present",
+        "description": "Jump back to your own time.",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "5" }],
+        "transition": "present"
+      }
+    ],
+    "ancient": [
+      {
+        "name": "trade_with_locals",
+        "label": "Trade with Ancients",
+        "description": "Exchange items with the locals.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(3,6)" },
+          { "resource": "paradox", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "study_tech",
+        "label": "Study Ancient Tech",
+        "description": "Learn from their engineering.",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(2,4)" },
+          { "resource": "parts", "operation": "+", "value": "random(0,1)" }
+        ]
+      },
+      {
+        "name": "explore_tombs",
+        "label": "Explore Tombs",
+        "description": "Search ancient burial sites.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(4,8)" },
+          { "resource": "paradox", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "return",
+        "label": "Return to Present",
+        "description": "Jump back to your own time.",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "5" }],
+        "transition": "present"
+      }
+    ],
+    "medieval": [
+      {
+        "name": "visit_alchemist",
+        "label": "Visit Alchemist",
+        "description": "Learn from a medieval scientist.",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(1,3)" },
+          { "resource": "parts", "operation": "+", "value": "random(1,2)" }
+        ]
+      },
+      {
+        "name": "explore_castle",
+        "label": "Explore Castle",
+        "description": "Search a castle for hidden treasures.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(2,5)" },
+          { "resource": "paradox", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "attend_fair",
+        "label": "Attend Market Fair",
+        "description": "Browse the medieval marketplace.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(1,3)" },
+          { "resource": "parts", "operation": "+", "value": "random(0,1)" },
+          { "resource": "paradox", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "return",
+        "label": "Return to Present",
+        "description": "Jump back to your own time.",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "5" }],
+        "transition": "present"
+      }
+    ],
+    "future": [
+      {
+        "name": "acquire_tech",
+        "label": "Acquire Future Tech",
+        "description": "Obtain advanced components.",
+        "effects": [
+          { "resource": "parts", "operation": "+", "value": "random(2,4)" },
+          { "resource": "paradox", "operation": "+", "value": "random(3,5)" }
+        ]
+      },
+      {
+        "name": "download_knowledge",
+        "label": "Access Knowledge Banks",
+        "description": "Download information from future databases.",
+        "effects": [
+          { "resource": "knowledge", "operation": "+", "value": "random(3,6)" },
+          { "resource": "paradox", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "collect_future_art",
+        "label": "Collect Future Artifacts",
+        "description": "Take items from the future.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(5,10)" },
+          { "resource": "paradox", "operation": "+", "value": "random(4,6)" }
+        ]
+      },
+      {
+        "name": "return",
+        "label": "Return to Present",
+        "description": "Jump back to your own time.",
+        "effects": [{ "resource": "energy", "operation": "-", "value": "8" }],
+        "transition": "present"
+      }
+    ],
+    "temporal_storm": [
+      {
+        "name": "ride_it_out",
+        "label": "Ride Out the Storm",
+        "description": "Endure the temporal turbulence.",
+        "effects": [
+          { "resource": "energy", "operation": "-", "value": "random(5,10)" },
+          { "resource": "stability", "operation": "-", "value": "2" }
+        ],
+        "transition": "present"
+      },
+      {
+        "name": "use_knowledge",
+        "label": "Apply Temporal Knowledge",
+        "description": "Use what you know to calm the storm.",
+        "condition": { "resource": "knowledge", "operator": ">=", "value": "5" },
+        "effects": [
+          { "resource": "knowledge", "operation": "-", "value": "3" },
+          { "resource": "paradox", "operation": "-", "value": "random(3,8)" },
+          { "resource": "stability", "operation": "+", "value": "1" }
+        ],
+        "transition": "present"
+      }
+    ],
+    "void": [
+      {
+        "name": "search_void",
+        "label": "Search the Void",
+        "description": "Look for lost temporal fragments.",
+        "effects": [
+          { "resource": "artifacts", "operation": "+", "value": "random(3,8)" },
+          { "resource": "energy", "operation": "-", "value": "5" },
+          { "resource": "paradox", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "escape",
+        "label": "Escape to Present",
+        "description": "Force a jump back to your time.",
+        "effects": [
+          { "resource": "energy", "operation": "-", "value": "10" },
+          { "resource": "paradox", "operation": "-", "value": "3" }
+        ],
+        "transition": "present"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "present",
+      "to": "temporal_storm",
+      "condition": { "resource": "paradox", "operator": ">=", "value": "20" },
+      "auto": true
+    },
+    {
+      "from": "prehistoric",
+      "to": "void",
+      "condition": { "resource": "paradox", "operator": ">=", "value": "25" },
+      "auto": true
+    },
+    {
+      "from": "future",
+      "to": "void",
+      "condition": { "resource": "paradox", "operator": ">=", "value": "22" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "artifacts", "operator": ">=", "value": "30" },
+      { "resource": "stability", "operator": ">=", "value": "8" }
+    ]
+  },
+  "loseCondition": {
+    "or": [
+      { "resource": "energy", "operator": "<=", "value": "0" },
+      { "resource": "paradox", "operator": ">=", "value": "30" }
+    ]
+  },
+  "theme": {
+    "palette": "temporal-blue",
+    "stateDescriptions": {
+      "present": { "label": "The Present", "icon": "home" },
+      "prehistoric": { "label": "Prehistoric", "icon": "sunrise" },
+      "ancient": { "label": "Ancient Era", "icon": "columns" },
+      "medieval": { "label": "Medieval Era", "icon": "castle" },
+      "future": { "label": "The Future", "icon": "cpu" },
+      "temporal_storm": { "label": "Time Storm!", "icon": "zap" },
+      "void": { "label": "The Void", "icon": "circle" }
+    },
+    "resourceIcons": {
+      "energy": "battery",
+      "artifacts": "gem",
+      "parts": "tool",
+      "paradox": "alert-triangle",
+      "knowledge": "book",
+      "stability": "shield"
+    }
+  }
+}

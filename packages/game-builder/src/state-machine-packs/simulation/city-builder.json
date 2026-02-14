@@ -1,0 +1,282 @@
+{
+  "name": "City Builder",
+  "description": "Grow a small town into a thriving metropolis. Manage budgets, zone districts, and keep citizens happy.",
+  "states": [
+    {
+      "name": "city_hall",
+      "description": "The center of government. Make key decisions.",
+      "onEnter": []
+    },
+    {
+      "name": "residential",
+      "description": "Housing districts where citizens live.",
+      "onEnter": []
+    },
+    { "name": "commercial", "description": "Shopping and business areas.", "onEnter": [] },
+    { "name": "industrial", "description": "Factories and production facilities.", "onEnter": [] },
+    { "name": "infrastructure", "description": "Roads, power, and utilities.", "onEnter": [] },
+    {
+      "name": "crisis",
+      "description": "A city crisis demands immediate attention!",
+      "onEnter": [{ "resource": "happiness", "operation": "-", "value": "5" }]
+    }
+  ],
+  "initialState": "city_hall",
+  "resources": {
+    "funds": { "initial": 500, "min": 0, "label": "City Funds" },
+    "population": { "initial": 100, "min": 0, "label": "Population" },
+    "happiness": { "initial": 60, "min": 0, "max": 100, "label": "Happiness" },
+    "jobs": { "initial": 50, "min": 0, "label": "Jobs" },
+    "power": { "initial": 10, "min": 0, "max": 50, "label": "Power Supply" },
+    "pollution": { "initial": 5, "min": 0, "max": 50, "label": "Pollution" },
+    "tax_rate": { "initial": 3, "min": 1, "max": 8, "label": "Tax Rate" }
+  },
+  "actions": {
+    "city_hall": [
+      {
+        "name": "collect_taxes",
+        "label": "Collect Taxes",
+        "description": "Collect revenue from the population.",
+        "effects": [
+          { "resource": "funds", "operation": "+", "value": "random(20,60)" },
+          { "resource": "happiness", "operation": "-", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "zone_residential",
+        "label": "Zone Residential",
+        "description": "Designate areas for housing.",
+        "effects": [],
+        "transition": "residential"
+      },
+      {
+        "name": "zone_commercial",
+        "label": "Zone Commercial",
+        "description": "Designate areas for business.",
+        "effects": [],
+        "transition": "commercial"
+      },
+      {
+        "name": "zone_industrial",
+        "label": "Zone Industrial",
+        "description": "Designate areas for factories.",
+        "effects": [],
+        "transition": "industrial"
+      },
+      {
+        "name": "build_infra",
+        "label": "Infrastructure",
+        "description": "Manage roads and utilities.",
+        "effects": [],
+        "transition": "infrastructure"
+      },
+      {
+        "name": "host_event",
+        "label": "Host City Event",
+        "description": "Throw a festival to boost morale.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "30" },
+          { "resource": "happiness", "operation": "+", "value": "random(5,10)" }
+        ]
+      }
+    ],
+    "residential": [
+      {
+        "name": "build_houses",
+        "label": "Build Housing",
+        "description": "Construct new homes.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "50" },
+          { "resource": "population", "operation": "+", "value": "random(20,50)" },
+          { "resource": "happiness", "operation": "+", "value": "3" }
+        ]
+      },
+      {
+        "name": "build_park",
+        "label": "Build Park",
+        "description": "Create green space for residents.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "20" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "20" },
+          { "resource": "happiness", "operation": "+", "value": "random(3,8)" },
+          { "resource": "pollution", "operation": "-", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to City Hall",
+        "description": "Return to make more decisions.",
+        "effects": [],
+        "transition": "city_hall"
+      }
+    ],
+    "commercial": [
+      {
+        "name": "build_shops",
+        "label": "Build Shopping District",
+        "description": "Construct retail spaces.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "40" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "40" },
+          { "resource": "jobs", "operation": "+", "value": "random(15,30)" },
+          { "resource": "happiness", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "build_office",
+        "label": "Build Office Tower",
+        "description": "High-rise offices bring jobs.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "80" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "80" },
+          { "resource": "jobs", "operation": "+", "value": "random(30,60)" },
+          { "resource": "funds", "operation": "+", "value": "random(10,20)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to City Hall",
+        "description": "Return to make more decisions.",
+        "effects": [],
+        "transition": "city_hall"
+      }
+    ],
+    "industrial": [
+      {
+        "name": "build_factory",
+        "label": "Build Factory",
+        "description": "Construct manufacturing facilities.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "60" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "60" },
+          { "resource": "jobs", "operation": "+", "value": "random(20,40)" },
+          { "resource": "pollution", "operation": "+", "value": "random(3,6)" },
+          { "resource": "funds", "operation": "+", "value": "random(10,25)" }
+        ]
+      },
+      {
+        "name": "build_green_factory",
+        "label": "Build Green Factory",
+        "description": "Eco-friendly production facility.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "100" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "100" },
+          { "resource": "jobs", "operation": "+", "value": "random(15,25)" },
+          { "resource": "pollution", "operation": "+", "value": "random(0,2)" },
+          { "resource": "happiness", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to City Hall",
+        "description": "Return to make more decisions.",
+        "effects": [],
+        "transition": "city_hall"
+      }
+    ],
+    "infrastructure": [
+      {
+        "name": "build_roads",
+        "label": "Build Roads",
+        "description": "Expand the road network.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "30" },
+          { "resource": "happiness", "operation": "+", "value": "random(2,4)" }
+        ]
+      },
+      {
+        "name": "build_power",
+        "label": "Build Power Plant",
+        "description": "Generate more electricity.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "70" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "70" },
+          { "resource": "power", "operation": "+", "value": "random(8,15)" },
+          { "resource": "pollution", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "build_solar",
+        "label": "Build Solar Farm",
+        "description": "Clean energy from the sun.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "90" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "90" },
+          { "resource": "power", "operation": "+", "value": "random(5,10)" },
+          { "resource": "happiness", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to City Hall",
+        "description": "Return to make more decisions.",
+        "effects": [],
+        "transition": "city_hall"
+      }
+    ],
+    "crisis": [
+      {
+        "name": "spend_money",
+        "label": "Emergency Spending",
+        "description": "Throw money at the problem.",
+        "condition": { "resource": "funds", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "funds", "operation": "-", "value": "50" },
+          { "resource": "happiness", "operation": "+", "value": "random(5,10)" }
+        ],
+        "transition": "city_hall"
+      },
+      {
+        "name": "address_public",
+        "label": "Address the Public",
+        "description": "Give a reassuring speech.",
+        "effects": [{ "resource": "happiness", "operation": "+", "value": "random(2,5)" }],
+        "transition": "city_hall"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "city_hall",
+      "to": "crisis",
+      "condition": { "resource": "pollution", "operator": ">=", "value": "30" },
+      "auto": true
+    },
+    {
+      "from": "city_hall",
+      "to": "crisis",
+      "condition": { "resource": "happiness", "operator": "<=", "value": "20" },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "and": [
+      { "resource": "population", "operator": ">=", "value": "1000" },
+      { "resource": "happiness", "operator": ">=", "value": "70" }
+    ]
+  },
+  "loseCondition": { "resource": "happiness", "operator": "<=", "value": "0" },
+  "theme": {
+    "palette": "urban-grey",
+    "stateDescriptions": {
+      "city_hall": { "label": "City Hall", "icon": "landmark" },
+      "residential": { "label": "Residential Zone", "icon": "home" },
+      "commercial": { "label": "Commercial Zone", "icon": "shopping-bag" },
+      "industrial": { "label": "Industrial Zone", "icon": "factory" },
+      "infrastructure": { "label": "Infrastructure", "icon": "tool" },
+      "crisis": { "label": "City Crisis!", "icon": "alert-triangle" }
+    },
+    "resourceIcons": {
+      "funds": "dollar",
+      "population": "users",
+      "happiness": "smile",
+      "jobs": "briefcase",
+      "power": "zap",
+      "pollution": "cloud",
+      "tax_rate": "percent"
+    }
+  }
+}

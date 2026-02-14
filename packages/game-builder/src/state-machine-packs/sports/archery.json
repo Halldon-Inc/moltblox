@@ -1,0 +1,417 @@
+{
+  "name": "Archery",
+  "description": "Compete in an archery tournament. Control your breathing, adjust for wind, and put arrows in the bullseye to win gold.",
+  "states": [
+    {
+      "name": "practice",
+      "description": "The practice range. Hone your skills.",
+      "onEnter": []
+    },
+    {
+      "name": "qualification",
+      "description": "Score high enough to advance.",
+      "onEnter": []
+    },
+    {
+      "name": "elimination",
+      "description": "Head to head matches. One miss and you are out.",
+      "onEnter": [
+        {
+          "resource": "pressure",
+          "operation": "+",
+          "value": "3"
+        }
+      ]
+    },
+    {
+      "name": "finals",
+      "description": "The gold medal match. The crowd watches.",
+      "onEnter": [
+        {
+          "resource": "pressure",
+          "operation": "+",
+          "value": "5"
+        }
+      ]
+    },
+    {
+      "name": "wind_check",
+      "description": "Studying the wind flags before your shot.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "practice",
+  "resources": {
+    "score": {
+      "initial": 0,
+      "min": 0,
+      "max": 100,
+      "label": "Score"
+    },
+    "arrows": {
+      "initial": 24,
+      "min": 0,
+      "max": 30,
+      "label": "Arrows"
+    },
+    "focus": {
+      "initial": 70,
+      "min": 0,
+      "max": 100,
+      "label": "Focus"
+    },
+    "pressure": {
+      "initial": 5,
+      "min": 0,
+      "max": 50,
+      "label": "Pressure"
+    },
+    "technique": {
+      "initial": 30,
+      "min": 0,
+      "max": 100,
+      "label": "Technique"
+    },
+    "wind_reading": {
+      "initial": 0,
+      "min": 0,
+      "max": 20,
+      "label": "Wind Reading"
+    }
+  },
+  "actions": {
+    "practice": [
+      {
+        "name": "shoot_practice",
+        "label": "Practice Shots",
+        "description": "Fire arrows at the target.",
+        "effects": [
+          {
+            "resource": "technique",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "3"
+          },
+          {
+            "resource": "focus",
+            "operation": "-",
+            "value": "3"
+          }
+        ]
+      },
+      {
+        "name": "breathing_drill",
+        "label": "Breathing Drills",
+        "description": "Control your heart rate.",
+        "effects": [
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "pressure",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "study_wind",
+        "label": "Study the Wind",
+        "description": "Learn to read wind patterns.",
+        "effects": [
+          {
+            "resource": "wind_reading",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "enter_qual",
+        "label": "Begin Qualification",
+        "description": "Step to the competition line.",
+        "effects": [],
+        "transition": "qualification"
+      }
+    ],
+    "qualification": [
+      {
+        "name": "careful_shot",
+        "label": "Careful Shot",
+        "description": "Take your time and aim precisely.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(6,9)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "focus",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "quick_shot",
+        "label": "Quick Release",
+        "description": "Trust your instincts.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(4,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "focus",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      },
+      {
+        "name": "check_wind",
+        "label": "Read the Wind",
+        "description": "Adjust for conditions.",
+        "effects": [
+          {
+            "resource": "wind_reading",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ],
+        "transition": "wind_check"
+      }
+    ],
+    "elimination": [
+      {
+        "name": "clutch_shot",
+        "label": "Clutch Shot",
+        "description": "Dig deep and deliver.",
+        "condition": {
+          "resource": "technique",
+          "operator": ">=",
+          "value": "50"
+        },
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(8,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "pressure",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "focus",
+            "operation": "-",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "steady_shot",
+        "label": "Steady and True",
+        "description": "Block out the noise.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(6,9)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "focus",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "breathe",
+        "label": "Breathe and Reset",
+        "description": "Take a moment to center yourself.",
+        "effects": [
+          {
+            "resource": "focus",
+            "operation": "+",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "pressure",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      }
+    ],
+    "finals": [
+      {
+        "name": "gold_shot",
+        "label": "Shoot for Gold",
+        "description": "The final arrow. Make it count.",
+        "condition": {
+          "resource": "arrows",
+          "operator": ">=",
+          "value": "1"
+        },
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(8,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "pressure",
+            "operation": "+",
+            "value": "3"
+          }
+        ]
+      },
+      {
+        "name": "zen_shot",
+        "label": "Zen Release",
+        "description": "Empty your mind. Let the arrow fly.",
+        "condition": {
+          "resource": "focus",
+          "operator": ">=",
+          "value": "40"
+        },
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(9,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          }
+        ]
+      }
+    ],
+    "wind_check": [
+      {
+        "name": "adjust_aim",
+        "label": "Adjust and Shoot",
+        "description": "Compensate for wind and fire.",
+        "effects": [
+          {
+            "resource": "score",
+            "operation": "+",
+            "value": "random(7,10)"
+          },
+          {
+            "resource": "arrows",
+            "operation": "-",
+            "value": "1"
+          },
+          {
+            "resource": "wind_reading",
+            "operation": "-",
+            "value": "2"
+          }
+        ],
+        "transition": "qualification"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "qualification",
+      "to": "elimination",
+      "condition": {
+        "resource": "score",
+        "operator": ">=",
+        "value": "40"
+      },
+      "auto": true
+    },
+    {
+      "from": "elimination",
+      "to": "finals",
+      "condition": {
+        "resource": "score",
+        "operator": ">=",
+        "value": "70"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "score",
+    "operator": ">=",
+    "value": "90"
+  },
+  "loseCondition": {
+    "resource": "arrows",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "target-gold",
+    "stateDescriptions": {
+      "practice": {
+        "label": "Practice Range",
+        "icon": "target"
+      },
+      "qualification": {
+        "label": "Qualifying",
+        "icon": "list"
+      },
+      "elimination": {
+        "label": "Elimination",
+        "icon": "crosshair"
+      },
+      "finals": {
+        "label": "Gold Medal!",
+        "icon": "trophy"
+      },
+      "wind_check": {
+        "label": "Wind Check",
+        "icon": "wind"
+      }
+    },
+    "resourceIcons": {
+      "score": "target",
+      "arrows": "arrow-up",
+      "focus": "eye",
+      "pressure": "alert",
+      "technique": "star",
+      "wind_reading": "wind"
+    }
+  }
+}

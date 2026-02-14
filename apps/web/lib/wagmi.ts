@@ -8,12 +8,13 @@ if (!process.env.NEXT_PUBLIC_WC_PROJECT_ID) {
   );
 }
 
-// The first chain in the array is the default. Switch to `base` for mainnet launch.
-export const defaultChain = baseSepolia;
+// The first chain in the array is the default. Set NEXT_PUBLIC_DEFAULT_CHAIN=base for mainnet.
+const isMainnet = process.env.NEXT_PUBLIC_DEFAULT_CHAIN === 'base';
+export const defaultChain = isMainnet ? base : baseSepolia;
 
 export const config = getDefaultConfig({
   appName: 'Moltblox',
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID || 'moltblox-dev',
-  chains: [defaultChain, base],
+  chains: isMainnet ? [base, baseSepolia] : [baseSepolia, base],
   ssr: true,
 });

@@ -1,0 +1,270 @@
+{
+  "name": "Hospital Manager",
+  "description": "Run a busy hospital. Treat patients, manage staff, and upgrade facilities to save as many lives as possible.",
+  "states": [
+    {
+      "name": "reception",
+      "description": "The front desk. Patients arrive here.",
+      "onEnter": [{ "resource": "patients_waiting", "operation": "+", "value": "random(1,3)" }]
+    },
+    {
+      "name": "emergency_room",
+      "description": "Critical cases need immediate attention.",
+      "onEnter": []
+    },
+    { "name": "ward", "description": "Hospital wards for recovering patients.", "onEnter": [] },
+    {
+      "name": "operating_room",
+      "description": "Surgery theater for complex procedures.",
+      "onEnter": []
+    },
+    { "name": "pharmacy", "description": "Dispensing medicine and managing stock.", "onEnter": [] },
+    {
+      "name": "admin_office",
+      "description": "Hospital administration and finances.",
+      "onEnter": []
+    }
+  ],
+  "initialState": "reception",
+  "resources": {
+    "budget": { "initial": 500, "min": 0, "label": "Budget" },
+    "patients_waiting": { "initial": 5, "min": 0, "max": 20, "label": "Patients Waiting" },
+    "patients_treated": { "initial": 0, "min": 0, "label": "Patients Treated" },
+    "staff": { "initial": 4, "min": 1, "max": 12, "label": "Medical Staff" },
+    "medicine": { "initial": 15, "min": 0, "max": 30, "label": "Medicine" },
+    "reputation": { "initial": 30, "min": 0, "max": 100, "label": "Hospital Rating" },
+    "equipment": { "initial": 3, "min": 0, "max": 10, "label": "Equipment" }
+  },
+  "actions": {
+    "reception": [
+      {
+        "name": "triage",
+        "label": "Triage Patients",
+        "description": "Assess and prioritize incoming patients.",
+        "effects": [
+          { "resource": "patients_waiting", "operation": "-", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "go_er",
+        "label": "Go to ER",
+        "description": "Handle emergency cases.",
+        "effects": [],
+        "transition": "emergency_room"
+      },
+      {
+        "name": "go_ward",
+        "label": "Go to Ward",
+        "description": "Check on recovering patients.",
+        "effects": [],
+        "transition": "ward"
+      },
+      {
+        "name": "go_admin",
+        "label": "Go to Admin",
+        "description": "Handle hospital business.",
+        "effects": [],
+        "transition": "admin_office"
+      }
+    ],
+    "emergency_room": [
+      {
+        "name": "treat_emergency",
+        "label": "Treat Emergency",
+        "description": "Stabilize critical patients.",
+        "condition": { "resource": "medicine", "operator": ">=", "value": "3" },
+        "effects": [
+          { "resource": "medicine", "operation": "-", "value": "3" },
+          { "resource": "patients_treated", "operation": "+", "value": "random(1,2)" },
+          { "resource": "patients_waiting", "operation": "-", "value": "random(1,2)" },
+          { "resource": "reputation", "operation": "+", "value": "random(2,5)" }
+        ]
+      },
+      {
+        "name": "rush_surgery",
+        "label": "Emergency Surgery",
+        "description": "Perform urgent surgery.",
+        "condition": {
+          "and": [
+            { "resource": "staff", "operator": ">=", "value": "3" },
+            { "resource": "equipment", "operator": ">=", "value": "2" }
+          ]
+        },
+        "effects": [
+          { "resource": "medicine", "operation": "-", "value": "4" },
+          { "resource": "patients_treated", "operation": "+", "value": "1" },
+          { "resource": "patients_waiting", "operation": "-", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(3,8)" }
+        ],
+        "transition": "operating_room"
+      },
+      {
+        "name": "back",
+        "label": "Back to Reception",
+        "description": "Return to front desk.",
+        "effects": [],
+        "transition": "reception"
+      }
+    ],
+    "ward": [
+      {
+        "name": "rounds",
+        "label": "Do Rounds",
+        "description": "Check on all patients in the ward.",
+        "effects": [
+          { "resource": "patients_treated", "operation": "+", "value": "random(1,3)" },
+          { "resource": "medicine", "operation": "-", "value": "random(1,3)" },
+          { "resource": "reputation", "operation": "+", "value": "random(1,3)" }
+        ]
+      },
+      {
+        "name": "discharge",
+        "label": "Discharge Recovered",
+        "description": "Send healed patients home.",
+        "effects": [
+          { "resource": "patients_treated", "operation": "+", "value": "random(2,4)" },
+          { "resource": "budget", "operation": "+", "value": "random(20,40)" },
+          { "resource": "reputation", "operation": "+", "value": "2" }
+        ]
+      },
+      {
+        "name": "go_pharmacy",
+        "label": "Go to Pharmacy",
+        "description": "Restock medicine.",
+        "effects": [],
+        "transition": "pharmacy"
+      },
+      {
+        "name": "back",
+        "label": "Back to Reception",
+        "description": "Return to front desk.",
+        "effects": [],
+        "transition": "reception"
+      }
+    ],
+    "operating_room": [
+      {
+        "name": "perform_surgery",
+        "label": "Perform Surgery",
+        "description": "Conduct a scheduled operation.",
+        "condition": {
+          "and": [
+            { "resource": "medicine", "operator": ">=", "value": "5" },
+            { "resource": "equipment", "operator": ">=", "value": "2" }
+          ]
+        },
+        "effects": [
+          { "resource": "medicine", "operation": "-", "value": "5" },
+          { "resource": "patients_treated", "operation": "+", "value": "1" },
+          { "resource": "patients_waiting", "operation": "-", "value": "1" },
+          { "resource": "reputation", "operation": "+", "value": "random(5,10)" },
+          { "resource": "budget", "operation": "+", "value": "random(30,60)" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Reception",
+        "description": "Return to front desk.",
+        "effects": [],
+        "transition": "reception"
+      }
+    ],
+    "pharmacy": [
+      {
+        "name": "order_medicine",
+        "label": "Order Medicine",
+        "description": "Purchase medical supplies.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "30" },
+        "effects": [
+          { "resource": "medicine", "operation": "+", "value": "random(5,10)" },
+          { "resource": "budget", "operation": "-", "value": "30" }
+        ]
+      },
+      {
+        "name": "compound",
+        "label": "Compound Medicine",
+        "description": "Mix custom medications.",
+        "effects": [
+          { "resource": "medicine", "operation": "+", "value": "random(2,4)" },
+          { "resource": "reputation", "operation": "+", "value": "1" }
+        ]
+      },
+      {
+        "name": "back",
+        "label": "Back to Ward",
+        "description": "Return to the ward.",
+        "effects": [],
+        "transition": "ward"
+      }
+    ],
+    "admin_office": [
+      {
+        "name": "hire",
+        "label": "Hire Staff",
+        "description": "Recruit new medical professionals.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "50" },
+        "effects": [
+          { "resource": "staff", "operation": "+", "value": "1" },
+          { "resource": "budget", "operation": "-", "value": "50" }
+        ]
+      },
+      {
+        "name": "buy_equipment",
+        "label": "Buy Equipment",
+        "description": "Purchase medical equipment.",
+        "condition": { "resource": "budget", "operator": ">=", "value": "60" },
+        "effects": [
+          { "resource": "equipment", "operation": "+", "value": "1" },
+          { "resource": "budget", "operation": "-", "value": "60" }
+        ]
+      },
+      {
+        "name": "fundraise",
+        "label": "Fundraise",
+        "description": "Organize fundraising events.",
+        "condition": { "resource": "reputation", "operator": ">=", "value": "40" },
+        "effects": [{ "resource": "budget", "operation": "+", "value": "random(40,80)" }]
+      },
+      {
+        "name": "back",
+        "label": "Back to Reception",
+        "description": "Return to front desk.",
+        "effects": [],
+        "transition": "reception"
+      }
+    ]
+  },
+  "transitions": [],
+  "perTurnEffects": [
+    { "resource": "patients_waiting", "operation": "+", "value": "random(1,2)" },
+    { "resource": "budget", "operation": "-", "value": "5" }
+  ],
+  "winCondition": { "resource": "patients_treated", "operator": ">=", "value": "50" },
+  "loseCondition": {
+    "or": [
+      { "resource": "patients_waiting", "operator": ">=", "value": "20" },
+      { "resource": "reputation", "operator": "<=", "value": "0" }
+    ]
+  },
+  "theme": {
+    "palette": "clinical-white",
+    "stateDescriptions": {
+      "reception": { "label": "Reception", "icon": "clipboard" },
+      "emergency_room": { "label": "Emergency Room", "icon": "alert-circle" },
+      "ward": { "label": "Hospital Ward", "icon": "bed" },
+      "operating_room": { "label": "Operating Room", "icon": "crosshair" },
+      "pharmacy": { "label": "Pharmacy", "icon": "flask" },
+      "admin_office": { "label": "Admin Office", "icon": "briefcase" }
+    },
+    "resourceIcons": {
+      "budget": "dollar",
+      "patients_waiting": "clock",
+      "patients_treated": "check-circle",
+      "staff": "users",
+      "medicine": "flask",
+      "reputation": "star",
+      "equipment": "tool"
+    }
+  }
+}

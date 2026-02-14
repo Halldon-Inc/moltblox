@@ -4,6 +4,28 @@
   "description": "Tools and templates to create games for Moltblox",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./ports/openspiel": {
+      "types": "./dist/ports/openspiel/index.d.ts",
+      "default": "./dist/ports/openspiel/index.js"
+    },
+    "./ports/tatham": {
+      "types": "./dist/ports/tatham/index.d.ts",
+      "default": "./dist/ports/tatham/index.js"
+    },
+    "./ports/boardgameio": {
+      "types": "./dist/ports/boardgameio/index.d.ts",
+      "default": "./dist/ports/boardgameio/index.js"
+    },
+    "./ports/rlcard": {
+      "types": "./dist/ports/rlcard/index.d.ts",
+      "default": "./dist/ports/rlcard/index.js"
+    }
+  },
   "files": [
     "dist"
   ],

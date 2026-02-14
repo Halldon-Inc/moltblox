@@ -1,0 +1,565 @@
+{
+  "name": "Puzzle Survival",
+  "description": "You are stranded on a mysterious island where survival depends on solving ancient puzzles. Each puzzle unlocks resources, shelter, or escape routes. Fail and the island claims you.",
+  "states": [
+    {
+      "name": "beach",
+      "description": "Wreckage on the shore. The island looms ahead.",
+      "onEnter": []
+    },
+    {
+      "name": "ruins",
+      "description": "Crumbling stone structures covered in symbols.",
+      "onEnter": [
+        {
+          "resource": "puzzles_found",
+          "operation": "+",
+          "value": "random(2,3)"
+        }
+      ]
+    },
+    {
+      "name": "jungle_interior",
+      "description": "Thick canopy blocks the sun. Hidden mechanisms click.",
+      "onEnter": [
+        {
+          "resource": "danger",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "cave_system",
+      "description": "Underground tunnels with glowing crystals and locked doors.",
+      "onEnter": [
+        {
+          "resource": "puzzles_found",
+          "operation": "+",
+          "value": "random(2,4)"
+        }
+      ]
+    },
+    {
+      "name": "temple",
+      "description": "An ancient temple at the island's heart. The master puzzle awaits.",
+      "onEnter": [
+        {
+          "resource": "puzzles_found",
+          "operation": "+",
+          "value": "random(3,5)"
+        }
+      ]
+    },
+    {
+      "name": "escape_point",
+      "description": "A hidden dock with a mechanism to launch a raft.",
+      "onEnter": [
+        {
+          "resource": "hope",
+          "operation": "+",
+          "value": "random(5,10)"
+        }
+      ]
+    }
+  ],
+  "initialState": "beach",
+  "resources": {
+    "health": {
+      "initial": 50,
+      "min": 0,
+      "max": 100,
+      "label": "Health"
+    },
+    "supplies": {
+      "initial": 15,
+      "min": 0,
+      "max": 50,
+      "label": "Supplies"
+    },
+    "puzzles_found": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Puzzles Found"
+    },
+    "puzzles_solved": {
+      "initial": 0,
+      "min": 0,
+      "max": 30,
+      "label": "Puzzles Solved"
+    },
+    "danger": {
+      "initial": 5,
+      "min": 0,
+      "max": 100,
+      "label": "Danger"
+    },
+    "hope": {
+      "initial": 10,
+      "min": 0,
+      "max": 100,
+      "label": "Hope"
+    }
+  },
+  "actions": {
+    "beach": [
+      {
+        "name": "salvage",
+        "label": "Salvage Wreckage",
+        "description": "Search the debris for useful items.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "beach_puzzle",
+        "label": "Examine Tidal Puzzle",
+        "description": "Stones arranged by the waterline form a pattern.",
+        "effects": [
+          {
+            "resource": "puzzles_found",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "explore_inland",
+        "label": "Head Inland",
+        "description": "Follow a faint path into the jungle.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "-",
+            "value": "random(1,3)"
+          }
+        ],
+        "transition": "jungle_interior"
+      },
+      {
+        "name": "follow_coast",
+        "label": "Follow the Coastline",
+        "description": "Walk the perimeter looking for ruins.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "-",
+            "value": "random(1,2)"
+          }
+        ],
+        "transition": "ruins"
+      }
+    ],
+    "ruins": [
+      {
+        "name": "decipher_glyphs",
+        "label": "Decipher Wall Glyphs",
+        "description": "Ancient writing holds the key.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "lever_puzzle",
+        "label": "Solve Lever Mechanism",
+        "description": "Three levers, one correct order.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "supplies",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "trap_door",
+        "label": "Open the Trap Door",
+        "description": "A hidden entrance beneath the floor.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          },
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "cave_system"
+      },
+      {
+        "name": "search_ruins",
+        "label": "Search for Supplies",
+        "description": "Old storerooms may still have food.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "puzzles_found",
+            "operation": "+",
+            "value": "random(1,2)"
+          }
+        ]
+      }
+    ],
+    "jungle_interior": [
+      {
+        "name": "vine_puzzle",
+        "label": "Vine Bridge Puzzle",
+        "description": "Cut the right vines to lower the bridge.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "danger",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "forage",
+        "label": "Forage for Food",
+        "description": "Find edible plants and fresh water.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "+",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "health",
+            "operation": "+",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "find_temple",
+        "label": "Discover the Temple",
+        "description": "Through the clearing, stone spires rise.",
+        "effects": [
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "temple"
+      },
+      {
+        "name": "find_ruins",
+        "label": "Stumble on Ruins",
+        "description": "Overgrown stone walls appear.",
+        "effects": [],
+        "transition": "ruins"
+      }
+    ],
+    "cave_system": [
+      {
+        "name": "crystal_puzzle",
+        "label": "Crystal Light Puzzle",
+        "description": "Redirect light through colored crystals.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(5,8)"
+          }
+        ]
+      },
+      {
+        "name": "map_tunnels",
+        "label": "Map the Tunnels",
+        "description": "Draw a map to avoid getting lost.",
+        "effects": [
+          {
+            "resource": "puzzles_found",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "danger",
+            "operation": "-",
+            "value": "random(2,4)"
+          }
+        ]
+      },
+      {
+        "name": "underwater_passage",
+        "label": "Swim Through Passage",
+        "description": "Hold your breath and dive.",
+        "effects": [
+          {
+            "resource": "health",
+            "operation": "-",
+            "value": "random(3,5)"
+          },
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,2)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ],
+        "transition": "escape_point"
+      },
+      {
+        "name": "return_surface",
+        "label": "Return to Surface",
+        "description": "Climb back up to daylight.",
+        "effects": [],
+        "transition": "jungle_interior"
+      }
+    ],
+    "temple": [
+      {
+        "name": "master_puzzle",
+        "label": "Attempt the Master Puzzle",
+        "description": "Rotating stone discs with matching symbols.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(8,12)"
+          },
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(3,6)"
+          }
+        ]
+      },
+      {
+        "name": "guardian_trap",
+        "label": "Navigate Guardian Traps",
+        "description": "Mechanical guardians test your wit.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(1,3)"
+          },
+          {
+            "resource": "health",
+            "operation": "-",
+            "value": "random(3,6)"
+          },
+          {
+            "resource": "danger",
+            "operation": "+",
+            "value": "random(3,5)"
+          }
+        ]
+      },
+      {
+        "name": "sacred_text",
+        "label": "Read Sacred Texts",
+        "description": "Ancient knowledge that guides your escape.",
+        "effects": [
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(5,10)"
+          },
+          {
+            "resource": "puzzles_found",
+            "operation": "+",
+            "value": "random(2,3)"
+          }
+        ]
+      },
+      {
+        "name": "secret_exit",
+        "label": "Find Secret Exit",
+        "description": "A passage behind the altar leads down.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "1"
+          }
+        ],
+        "transition": "escape_point"
+      }
+    ],
+    "escape_point": [
+      {
+        "name": "final_puzzle",
+        "label": "Solve the Launch Mechanism",
+        "description": "Gears, levers, and counterweights. The final test.",
+        "effects": [
+          {
+            "resource": "puzzles_solved",
+            "operation": "+",
+            "value": "random(2,4)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(10,15)"
+          }
+        ]
+      },
+      {
+        "name": "repair_raft",
+        "label": "Repair the Raft",
+        "description": "Use your supplies to make it seaworthy.",
+        "effects": [
+          {
+            "resource": "supplies",
+            "operation": "-",
+            "value": "random(5,8)"
+          },
+          {
+            "resource": "hope",
+            "operation": "+",
+            "value": "random(5,10)"
+          }
+        ]
+      },
+      {
+        "name": "go_back",
+        "label": "Return for More Clues",
+        "description": "Not ready yet. Go back for answers.",
+        "effects": [],
+        "transition": "temple"
+      }
+    ]
+  },
+  "transitions": [
+    {
+      "from": "ruins",
+      "to": "temple",
+      "condition": {
+        "resource": "puzzles_solved",
+        "operator": ">=",
+        "value": "8"
+      },
+      "auto": true
+    },
+    {
+      "from": "cave_system",
+      "to": "escape_point",
+      "condition": {
+        "resource": "puzzles_solved",
+        "operator": ">=",
+        "value": "12"
+      },
+      "auto": true
+    },
+    {
+      "from": "temple",
+      "to": "escape_point",
+      "condition": {
+        "resource": "puzzles_solved",
+        "operator": ">=",
+        "value": "15"
+      },
+      "auto": true
+    }
+  ],
+  "winCondition": {
+    "resource": "hope",
+    "operator": ">=",
+    "value": "90"
+  },
+  "loseCondition": {
+    "resource": "health",
+    "operator": "<=",
+    "value": "0"
+  },
+  "theme": {
+    "palette": "island-teal",
+    "stateDescriptions": {
+      "beach": {
+        "label": "Beach",
+        "icon": "sun"
+      },
+      "ruins": {
+        "label": "Ruins",
+        "icon": "columns"
+      },
+      "jungle_interior": {
+        "label": "Jungle",
+        "icon": "leaf"
+      },
+      "cave_system": {
+        "label": "Caves",
+        "icon": "moon"
+      },
+      "temple": {
+        "label": "Temple",
+        "icon": "star"
+      },
+      "escape_point": {
+        "label": "Escape Point",
+        "icon": "anchor"
+      }
+    },
+    "resourceIcons": {
+      "health": "heart",
+      "supplies": "box",
+      "puzzles_found": "search",
+      "puzzles_solved": "check-circle",
+      "danger": "alert-triangle",
+      "hope": "sunrise"
+    }
+  }
+}
