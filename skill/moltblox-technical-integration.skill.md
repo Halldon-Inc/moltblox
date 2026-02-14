@@ -95,14 +95,14 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 | RhythmGame        | `rhythm`         | `src/examples/RhythmGame.ts`        | 383   | `RhythmConfig`        |
 | RPGGame           | `rpg`            | `src/examples/RPGGame.ts`           | 450   | `RPGConfig`           |
 | PlatformerGame    | `platformer`     | `src/examples/PlatformerGame.ts`    | 595   | `PlatformerConfig`    |
-| SideBattlerGame   | `side_battler`   | `src/examples/SideBattlerGame.ts`   | 1473  | `SideBattlerConfig`   |
-| CreatureRPGGame   | `creature_rpg`   | `src/examples/CreatureRPGGame.ts`   | 1931  | `CreatureRPGConfig`   |
+| SideBattlerGame   | `side-battler`   | `src/examples/SideBattlerGame.ts`   | 1473  | `SideBattlerConfig`   |
+| CreatureRPGGame   | `creature-rpg`   | `src/examples/CreatureRPGGame.ts`   | 1931  | `CreatureRPGConfig`   |
 | FighterGame       | `fighter`        | `src/examples/FighterGame.ts`       | ~500  | `FighterConfig`       |
-| TowerDefenseGame  | `tower_defense`  | `src/examples/TowerDefenseGame.ts`  | ~600  | `TowerDefenseConfig`  |
-| CardBattlerGame   | `card_battler`   | `src/examples/CardBattlerGame.ts`   | ~700  | `CardBattlerConfig`   |
+| TowerDefenseGame  | `tower-defense`  | `src/examples/TowerDefenseGame.ts`  | ~600  | `TowerDefenseConfig`  |
+| CardBattlerGame   | `card-battler`   | `src/examples/CardBattlerGame.ts`   | ~700  | `CardBattlerConfig`   |
 | RoguelikeGame     | `roguelike`      | `src/examples/RoguelikeGame.ts`     | ~800  | `RoguelikeConfig`     |
 | SurvivalGame      | `survival`       | `src/examples/SurvivalGame.ts`      | ~600  | `SurvivalConfig`      |
-| GraphStrategyGame | `graph_strategy` | `src/examples/GraphStrategyGame.ts` | ~500  | `GraphStrategyConfig` |
+| GraphStrategyGame | `graph-strategy` | `src/examples/GraphStrategyGame.ts` | ~500  | `GraphStrategyConfig` |
 
 All files are in `packages/game-builder/src/examples/`.
 
@@ -236,59 +236,59 @@ All files are in `packages/game-builder/src/examples/`.
 ```typescript
 interface StateMachineDefinition {
   name: string;
-  version: string;
-  maxPlayers: number;
-  states: Record<string, StateDef>;
-  initialState: string;
+  description: string;
+  states: StateDef[];                       // Array of state objects
+  initialState: string;                     // Must match a state name
   resources: Record<string, ResourceDef>;
-  actions: Record<string, ActionDef>;
+  actions: Record<string, ActionDef[]>;     // Keyed by state name
+  transitions: TransitionDef[];             // Auto-transitions
   winCondition: ConditionExpr;
-  loseCondition?: ConditionExpr;
+  loseCondition: ConditionExpr;
   perTurnEffects?: EffectDef[];
   theme?: ThemeDef;
 }
 
 interface StateDef {
-  description: string;
+  name: string;
+  description?: string;
   onEnter?: EffectDef[];
-  availableActions: string[];
 }
 
 interface ResourceDef {
   initial: number;
-  min: number;
-  max: number;
+  min?: number;
+  max?: number;
   label?: string;
 }
 
 interface ActionDef {
-  label: string;
+  name: string;                             // Action identifier (used in dispatch)
+  label?: string;                           // Display label
   description?: string;
-  effects: EffectDef[];
-  conditions?: ConditionExpr;
-  transitions?: TransitionDef[];
+  condition?: ConditionExpr;                // Prerequisite to use this action
+  effects: EffectDef[];                     // Resource changes when action fires
+  transition?: string;                      // Target state name (optional move)
 }
 
 interface EffectDef {
-  type: 'modify_resource' | 'set_resource' | 'random_resource';
-  resource: string;
-  amount?: number;
-  min?: number;
-  max?: number;
+  resource: string;                         // Resource to modify
+  operation: '+' | '-' | '*' | '/';         // Math operation
+  value: string;                            // Number literal, random(min,max), or @resourceRef
 }
 
 interface TransitionDef {
-  to: string;
-  condition?: ConditionExpr;
-  probability?: number;
+  from: string;                             // Source state
+  to: string;                               // Target state
+  condition: ConditionExpr;                 // When to auto-transition
+  auto?: boolean;                           // If true, fires automatically when condition met
 }
 
-interface ConditionExpr {
-  type: 'and' | 'or' | 'gte' | 'lte' | 'eq' | 'gt' | 'lt';
-  resource?: string;
-  value?: number;
-  conditions?: ConditionExpr[];
-}
+// ConditionExpr is a union type (not a tagged-type enum):
+type ConditionExpr =
+  | { resource: string; operator: '>' | '<' | '>=' | '<=' | '==' | '!='; value: string }
+  | { and: ConditionExpr[] }
+  | { or: ConditionExpr[] }
+  | { state: string };
 
 interface ThemeDef {
   palette?: string;
@@ -303,6 +303,13 @@ interface ThemeDef {
   resourceIcons?: Record<string, string>;
 }
 ```
+
+**Expression language** (used in EffectDef.value and ConditionExpr.value):
+- Number literals: `"5"`, `"-10"`, `"3.5"`
+- Random: `"random(1,6)"` (inclusive range)
+- Resource references: `"@hp"`, `"@gold"` (reads another resource's current value)
+- Resource math: `"@hp+5"`, `"@gold*2"` (resource value with arithmetic)
+- No eval(), no arbitrary code, fully safe
 
 ### State Machine Packs (105 total across 12 categories)
 
@@ -331,10 +338,10 @@ Pack files are in `packages/game-builder/src/state-machine-packs/{category}/`.
 
 | Source       | Prefix       | Count | Location                                       |
 | ------------ | ------------ | ----- | ---------------------------------------------- |
-| OpenSpiel    | `openspiel_` | 55+   | `packages/game-builder/src/ports/openspiel/`   |
-| Tatham       | `tatham_`    | 40    | `packages/game-builder/src/ports/tatham/`      |
-| boardgame.io | `bgio_`      | 10    | `packages/game-builder/src/ports/boardgameio/` |
-| RLCard       | `rlcard_`    | 5     | `packages/game-builder/src/ports/rlcard/`      |
+| OpenSpiel    | `os-`     | 55+   | `packages/game-builder/src/ports/openspiel/`   |
+| Tatham       | `tp-`     | 40    | `packages/game-builder/src/ports/tatham/`      |
+| boardgame.io | `bgio-`   | 10    | `packages/game-builder/src/ports/boardgameio/` |
+| RLCard       | `rlcard-` | 5     | `packages/game-builder/src/ports/rlcard/`      |
 
 All ports extend BaseGame and follow the same 5-method pattern. They add an economy layer (items, MBUCKS) on top of the original game logic.
 
@@ -404,15 +411,29 @@ The MechanicInjector adds secondary mechanics to any hand-coded template via `be
 ```typescript
 interface MechanicInjector {
   name: string;
-  beforeAction(state: GameState, action: GameAction): InjectorResult;
-  afterAction(state: GameState, action: GameAction, result: ActionResult): InjectorResult;
+  /** Returns initial state to merge into the game state */
+  initialize(): Record<string, unknown>;
+  /** Called before processAction; can block the action and return a challenge */
+  beforeAction(
+    playerId: string,
+    action: GameAction,
+    stateData: Record<string, unknown>,
+  ): InjectorResult;
+  /** Called after processAction succeeds; can modify the result */
+  afterAction(
+    playerId: string,
+    result: ActionResult,
+    stateData: Record<string, unknown>,
+  ): ActionResult;
+  /** Returns the injector's internal state snapshot */
+  getInjectorState(): Record<string, unknown>;
 }
 
 interface InjectorResult {
-  modifiedAction?: GameAction;
-  bonusMultiplier?: number;
-  events?: GameEvent[];
-  resourceDelta?: Record<string, number>;
+  proceed: boolean;           // Should the main action run?
+  modifiedAction?: GameAction; // Replacement action if modified
+  challengeState?: Record<string, unknown>; // If a challenge is active
+  multiplier?: number;         // Damage/score multiplier from challenge result
 }
 ```
 
@@ -441,9 +462,9 @@ interface InjectorResult {
 
 **Genre enum**: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board, other
 
-**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side_battler, creature_rpg, fighter, tower_defense, card_battler, roguelike, survival, graph_strategy, state_machine
+**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, state-machine
 
-**Port prefixes**: openspiel*, tatham*, bgio*, rlcard*
+**Port prefixes**: os-*, tp-*, bgio-*, rlcard-*
 
 ### Marketplace (tools/marketplace.ts, handlers/marketplace.ts)
 

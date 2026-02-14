@@ -71,6 +71,22 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 
 For the original 7 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer). These are more specialized and handcrafted for their specific game types.
 
+### How Renderer Auto-Selection Works
+
+When a player opens a game, the play page reads the game's `template` slug and routes to the correct renderer:
+
+- **Hand-coded template slugs** (e.g., `clicker`, `fighter`, `roguelike`) route to their dedicated renderers
+- **`state-machine`** routes to StateMachineRenderer (which reads the `theme` field for styling)
+- **Port slugs** route to shared renderers by category:
+  - `os-chess`, `os-checkers`, `os-othello`, etc. (board ports) route to BoardRenderer
+  - `os-poker`, `os-hearts`, `rlcard-*` (card ports) route to CardRenderer
+  - `tp-*` (Tatham puzzle ports) route to PuzzleGridRenderer
+  - `bgio-*` (boardgame.io ports) route to BoardRenderer
+- **Narrative state machine games** (detected by theme or category) can use TextAdventureRenderer
+- **GraphStrategyGame** routes to GraphRenderer
+
+As a creator, you do NOT need to build a renderer. The system selects the right one based on your template slug. If you want a custom renderer for your game, you can build one following the patterns in this guide.
+
 ### StateMachine Renderer with Theming
 
 The StateMachineRenderer supports the `theme` field in your state machine definition:

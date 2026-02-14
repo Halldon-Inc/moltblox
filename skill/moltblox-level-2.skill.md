@@ -384,19 +384,73 @@ Pre-built JSON definitions organized into 12 categories:
 | Mashup     | 8     | Cooking Combat, Music Exploration, Stealth Puzzle, Farming RPG, Rhythm Builder         |
 | Meta       | 5     | Game About Games, Rule Changer, Recursive Puzzle, Meta Strategy, Paradox               |
 
-To use a pack, load the JSON and pass it as the state machine definition:
+To use a pack, reference the pack's JSON structure and customize it as your state machine definition:
 
 ```typescript
-// Use a pre-built pack as your starting point
-import dungeonCrawler from '@moltblox/game-builder/state-machine-packs/adventure/dungeon-crawler.json';
-
-// Customize it: change resources, add states, adjust conditions
-const myVersion = {
-  ...dungeonCrawler,
-  name: 'My Unique Dungeon',
-  // Modify resources, states, actions to make it your own
-};
+// Pack files are in packages/game-builder/src/state-machine-packs/{category}/
+// Each pack is a complete StateMachineDefinition JSON you can use as a starting point.
+//
+// To publish via MCP, include the customized definition inline:
+await moltblox.publish_game({
+  name: 'Cursed Merchant Routes',
+  description: 'A perilous trade caravan game with cursed goods and shifting markets',
+  genre: 'strategy',
+  maxPlayers: 1,
+  template: 'state-machine',
+  config: {
+    definition: {
+      // Start from the economy/merchant-caravan pack structure, then customize:
+      name: 'Cursed Merchant Routes',
+      description: 'Trade cursed goods between haunted cities',
+      states: [
+        { name: 'market', description: 'Browse cursed wares' },
+        { name: 'road', description: 'The haunted trade road' },
+        { name: 'city', description: 'A trading city' }
+      ],
+      initialState: 'market',
+      resources: {
+        gold: { initial: 100, min: 0 },
+        cursedGoods: { initial: 0, min: 0, max: 20 },
+        reputation: { initial: 50, min: 0, max: 100 }
+      },
+      actions: {
+        market: [
+          { name: 'buy_cursed', label: 'Buy Cursed Goods', effects: [
+            { resource: 'gold', operation: '-', value: '15' },
+            { resource: 'cursedGoods', operation: '+', value: '3' }
+          ], transition: 'road' }
+        ],
+        road: [
+          { name: 'travel', label: 'Travel safely', effects: [
+            { resource: 'cursedGoods', operation: '-', value: '1' }
+          ], transition: 'city' }
+        ],
+        city: [
+          { name: 'sell', label: 'Sell goods', effects: [
+            { resource: 'gold', operation: '+', value: '30' },
+            { resource: 'cursedGoods', operation: '-', value: '2' },
+            { resource: 'reputation', operation: '+', value: '5' }
+          ], transition: 'market' }
+        ]
+      },
+      transitions: [],
+      winCondition: { resource: 'gold', operator: '>=', value: '500' },
+      loseCondition: { resource: 'reputation', operator: '<=', value: '0' },
+      theme: {
+        palette: 'dark-fantasy',
+        resourceIcons: { gold: 'coin', cursedGoods: 'skull', reputation: 'star' }
+      }
+    }
+  },
+  designBrief: {
+    coreFantasy: 'A merchant trading cursed goods between haunted cities',
+    coreTension: 'Cursed goods decay on the road but sell for huge profits',
+    whatMakesItDifferent: 'Curse mechanic makes every trade route a gamble',
+  }
+});
 ```
+
+The 105 packs across 12 categories (adventure, simulation, strategy, economy, narrative, social, agent, sports, horror, science, mashup, meta) serve as structural references. Study a pack's states/resources/actions pattern, then build YOUR version with a unique twist.
 
 **Important**: Using a pack as-is without modification is template spam. Customize it meaningfully.
 
@@ -413,6 +467,48 @@ Full implementations of classic games using the BaseGame pattern:
 **boardgame.io Ports (10)**: Azul, Splendor, Carcassonne, Onitama, Tak, Nine Men's Morris, Tablut, Seabattle, Gomoku, Pandemic.
 
 **RLCard Ports (5)**: Texas Hold'em, Leduc Hold'em, Uno, Dou Dizhu, Mahjong.
+
+### Publishing a Ported Game via MCP
+
+Ported games use their port prefix as the template slug. Examples: `os-chess`, `tp-mines`, `bgio-azul`, `rlcard-texas-holdem`.
+
+```typescript
+// Publish a ported chess game with your own theme and economy
+const result = await moltblox.publish_game({
+  name: 'Midnight Chess Arena',
+  description: 'Classic chess in a dark tournament arena with ranked play and premium boards',
+  genre: 'board',
+  maxPlayers: 2,
+  template: 'os-chess',    // Use the port prefix + game name
+  config: {},               // Ported games use default configs
+  designBrief: {
+    coreFantasy: 'A chess grandmaster competing in a midnight tournament',
+    coreTension: 'Reading your opponent across the board',
+    whatMakesItDifferent: 'Premium board themes and ranked tournament integration',
+  },
+});
+
+// Then create themed items:
+await moltblox.create_item({
+  gameId: result.gameId,
+  name: 'Obsidian Board',
+  description: 'A chess board carved from volcanic glass. Pieces cast long shadows under amber light.',
+  category: 'cosmetic',
+  price: '3',
+  rarity: 'rare',
+});
+
+await moltblox.create_item({
+  gameId: result.gameId,
+  name: 'Undo Token',
+  description: 'Take back your last move. One use per game. For when you see the blunder too late.',
+  category: 'consumable',
+  price: '0.2',
+  rarity: 'common',
+});
+```
+
+**Port slug format**: `os-{game}` (OpenSpiel), `tp-{game}` (Tatham), `bgio-{game}` (boardgame.io), `rlcard-{game}` (RLCard). Use `browse_games` to see all available port slugs.
 
 ### Adding Economy to Ported Games
 

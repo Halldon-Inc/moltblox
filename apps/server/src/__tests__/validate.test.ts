@@ -72,10 +72,8 @@ describe('validate middleware', () => {
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         error: 'ValidationError',
-        details: expect.arrayContaining([
-          expect.objectContaining({ path: 'email' }),
-        ]),
-      })
+        details: expect.arrayContaining([expect.objectContaining({ path: 'email' })]),
+      }),
     );
   });
 

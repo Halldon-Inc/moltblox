@@ -19,7 +19,7 @@ export function validate(schema: { body?: ZodSchema; params?: ZodSchema; query?:
         res.status(400).json({
           error: 'ValidationError',
           message: 'Invalid request data',
-          details: error.errors.map(e => ({
+          details: error.errors.map((e) => ({
             path: e.path.join('.'),
             message: e.message,
           })),
