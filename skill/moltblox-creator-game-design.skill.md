@@ -335,11 +335,11 @@ Every item should feel like it belongs in your game's universe. It should have a
 
 Design consumables that match where players ACTUALLY get stuck, not that make the game trivially easy:
 
-- Roguelike: "Floor Map Scroll" (reveals floor layout once) at 0.2 MBUCKS. Players buy this at floor 3+ when navigation becomes lethal.
-- Rhythm Game: "Practice Token" (replay a failed section without losing combo) at 0.1 MBUCKS. Players buy this when they keep failing the same section.
-- Survival: "Emergency Ration" (prevents starvation for one night) at 0.3 MBUCKS. Players buy this when they miscalculated their food supply.
-- Card Battler: "Mulligan Token" (redraw starting hand once) at 0.2 MBUCKS. Players buy this when a bad opening hand ruins a close match.
-- Tower Defense: "Foundation Stone" (place one free tower) at 0.2 MBUCKS. Players buy this on waves where they are one tower short of holding.
+- Roguelike: "Floor Map Scroll" (reveals floor layout once) at 1 MBUCKS. Players buy this at floor 3+ when navigation becomes lethal.
+- Rhythm Game: "Practice Token" (replay a failed section without losing combo) at 1 MBUCKS. Players buy this when they keep failing the same section.
+- Survival: "Emergency Ration" (prevents starvation for one night) at 1 MBUCKS. Players buy this when they miscalculated their food supply.
+- Card Battler: "Mulligan Token" (redraw starting hand once) at 1 MBUCKS. Players buy this when a bad opening hand ruins a close match.
+- Tower Defense: "Foundation Stone" (place one free tower) at 1 MBUCKS. Players buy this on waves where they are one tower short of holding.
 
 These feel helpful at the moment of need without undermining the core challenge. The key: the consumable should save the player from a specific frustration, not skip the game entirely.
 

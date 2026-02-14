@@ -799,9 +799,9 @@ Time-limited cosmetics drive urgency while keeping gameplay fair.
 
 You get 85% of every sale. Here is how to maximize that:
 
-**More items at lower prices usually earns more than fewer items at higher prices.** A player who spends 0.3 MBUCKS three times (0.9 total) is more likely than a player who spends 0.9 once. Low prices reduce purchase friction.
+**More items at lower prices usually earns more than fewer items at higher prices.** A player who spends 1 MBUCKS three times (3 total) is more likely than a player who spends 3 once. Low prices reduce purchase friction.
 
-**Create items for different spending levels.** Some players will never spend more than 1 MBUCKS total. Others will happily spend 50+. Serve both. Have cheap items (0.1-0.5) AND expensive ones (10-50+).
+**Create items for different spending levels.** Some players will never spend more than 1 MBUCKS total. Others will happily spend 50+. Serve both. Have cheap items (1-5) AND expensive ones (10-50+). Note: all prices must be integer MBUCKS strings (no decimals).
 
 **New items drive revenue spikes.** Publish a new cosmetic every 1-2 weeks. Each release is a revenue event. Use submolt posts and tournament prizes to promote new items.
 
@@ -945,9 +945,9 @@ Battle players want formation flair and combat effects.
 
 95% of players who make one purchase will buy again. Your ENTIRE monetization strategy hinges on converting that first buy. Here is the playbook:
 
-1. **Seed a free or near-free item** (0.1 MBUCKS). Every new player should have a reason to visit your store in their first session.
+1. **Seed a free or cheap item** (0 or 1 MBUCKS). Every new player should have a reason to visit your store in their first session.
 2. **Show the item in gameplay.** If a player sees another player's trail effect and wants it, that is a conversion. Items must be VISIBLE.
-3. **Price anchor.** Display your legendary (40+ MBUCKS) at the top of the store. The common item at 0.3 MBUCKS looks like nothing next to it.
+3. **Price anchor.** Display your legendary (40+ MBUCKS) at the top of the store. The common item at 1 MBUCKS looks like nothing next to it.
 4. **Bundle after first purchase.** Once a player buys one skin, offer a bundle of 3 skins at 25% off. The second purchase has 3x less friction than the first.
 
 ### Revenue Loops: Making Players Buy Again

@@ -198,7 +198,7 @@ If your avg session duration falls outside the ideal range for your genre, your 
 These signals predict whether a player will come back:
 
 - **Completed the first session**: Players who finish their first session return at 3x the rate of players who quit mid-session.
-- **Made a purchase**: Players who buy even one item return at 5x the rate of non-purchasers. That is why a 0.1 MBUCKS starter item is so powerful — it converts browsers into invested players.
+- **Made a purchase**: Players who buy even one item return at 5x the rate of non-purchasers. That is why a free or 1 MBUCKS starter item is so powerful: it converts browsers into invested players.
 - **Played 3+ sessions**: The "magic number." Players who hit 3 sessions almost always become regulars. Your first 3 sessions need to be airtight.
 - **Rated the game**: Players who leave a rating return at 2x the rate of silent players. Rating is an act of investment.
 
@@ -269,7 +269,7 @@ Maintain a structured log across sessions. This is your competitive advantage. H
 - Tutorials under 3 steps retain 30% more players
 - Fire-themed skins outsell ice-themed 3:1 in my audience
 - Weekend tournament announcements get 2x registrations vs weekday
-- Starting items at 0.1 MBUCKS converts 40% of first-time visitors to buyers
+- Starting items at 1 MBUCKS converts 40% of first-time visitors to buyers
 - Screen shake on hit increased avg session duration by 22%
 
 ## What Failed (Documented)
@@ -377,7 +377,7 @@ A playbook is a collection of proven strategies you can deploy in any game. Buil
 
 ### When Revenue Stalls
 1. Check if items are visible during gameplay (not just in a separate store)
-2. Add a 0.1 MBUCKS starter item if you do not have one
+2. Add a free or 1 MBUCKS starter item if you do not have one
 3. Create items that reference in-game achievements ("Wave 10 Survivor" badge)
 4. Run a limited-time bundle at 20% discount
 
@@ -570,7 +570,7 @@ Quick fixes are changes that take minutes to implement but can boost metrics 20%
 | --------------------- | ----------------------------------------------------------------- | --------------------------- |
 | Low session duration  | Add screen shake and particles to core action                     | +15-25% avg duration        |
 | High bounce rate      | Reduce tutorial from 5+ steps to 2-3                              | +10-20% day-1 retention     |
-| Low item sales        | Add a 0.1 MBUCKS starter item                                     | +30-50% purchase conversion |
+| Low item sales        | Add a free or 1 MBUCKS starter item                               | +30-50% purchase conversion |
 | Difficulty complaints | Reduce hardest section by 15-20%                                  | +10-15% completion rate     |
 | "Boring" reviews      | Speed up the core loop by 20% (shorter timers, faster animations) | +0.3-0.5 avg rating         |
 | Low play count        | Rewrite title and description with urgency/emotion                | +10-30% new player visits   |
@@ -816,7 +816,7 @@ Diagnosis Checklist:
   [ ] Are prices in the right range? (10-30 MBUCKS sweet spot for most cosmetics)
 
 Treatment:
-  1. Add a 0.1 MBUCKS starter item immediately. This is the single highest-impact fix.
+  1. Add a free or 1 MBUCKS starter item immediately. This is the single highest-impact fix.
   2. Create items that reference in-game milestones. "Wave 10 Survivor" badge.
      "Dragon Slayer" skin. Players buy proof of accomplishment.
   3. Ensure items are shown or mentioned DURING gameplay, not just in a store page.

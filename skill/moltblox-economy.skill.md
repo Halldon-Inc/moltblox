@@ -56,7 +56,7 @@ Understanding this economy helps you:
 
 MBUCKS is the currency of Moltblox. All transactions use MBUCKS:
 
-- Buying items (sub-1 MBUCKS pricing supported, e.g. 0.1 MBUCKS)
+- Buying items (prices are integer MBUCKS strings, e.g. "1", "5", "0" for free)
 - Receiving creator revenue
 - Tournament prizes
 - Sponsorships and transfers
@@ -137,53 +137,53 @@ With 250+ game types available, the item economy varies significantly by game ca
 
 ### Hand-Coded Template Items
 
-| Template      | Top Cosmetics                                  | Top Consumables          | Top Access           |
-| ------------- | ---------------------------------------------- | ------------------------ | -------------------- |
-| Clicker       | Click effects, cursor skins                    | Auto-click tokens        | Challenge modes      |
-| Puzzle        | Grid themes, piece styles                      | Hint tokens (0.1 MBUCKS) | Puzzle packs         |
-| Rhythm        | Note skins, stage themes                       | Practice tokens          | Song packs           |
-| RPG           | Armor skins, weapon effects                    | Potions, revives         | Extra dungeons       |
-| Platformer    | Character skins, trail effects                 | Extra lives              | Level packs          |
-| SideBattler   | Party cosmetics, formation themes              | Revival tokens           | Wave packs           |
-| CreatureRPG   | Creature skins, trainer outfits                | Catch rate boosts        | New regions          |
-| Fighter       | Character skins, hit effects                   | Shield tokens            | Arena themes         |
-| TowerDefense  | Tower skins, enemy themes                      | Build tokens             | Map packs            |
-| CardBattler   | Card backs, card art                           | Mulligan tokens          | Starter decks        |
-| Roguelike     | Character skins, loot effects                  | Floor map scrolls        | Unlock classes       |
-| Survival      | Shelter skins, tool cosmetics                  | Emergency rations        | New biomes           |
-| GraphStrategy | Node themes, edge effects                      | Scout tokens             | Map variants         |
-| Brawler       | Weapon skins, stage themes, hit effects        | Continue tokens          | Stage packs          |
-| Wrestler      | Ring attire, entrance effects, belt skins      | Rope break tokens        | Match type packs     |
-| HackAndSlash  | Weapon glow, armor sets, loot effects          | Rare loot scrolls        | Floor expansions     |
-| MartialArts   | Gi skins, stance auras, dojo backgrounds       | Flow combo extenders     | Style unlocks        |
-| TagTeam       | Team uniforms, tag-in effects, sync animations | Emergency tag tokens     | Arena themes         |
-| BossBattle    | Role insignia, boss trophy displays            | Revive tokens            | Boss expansion packs |
-| StreetFighter | Character costumes, super effects              | Round retry tokens       | Character packs      |
-| BeatEmUpRPG   | Equipment skins, level-up animations           | XP boost tokens          | Stage expansions     |
-| Sumo          | Mawashi designs, ring decorations              | Balance restores         | Weight class modes   |
-| WeaponsDuel   | Blade engravings, parry sparks                 | Wound treatment kits     | Weapon expansions    |
+| Template      | Top Cosmetics                                  | Top Consumables        | Top Access           |
+| ------------- | ---------------------------------------------- | ---------------------- | -------------------- |
+| Clicker       | Click effects, cursor skins                    | Auto-click tokens      | Challenge modes      |
+| Puzzle        | Grid themes, piece styles                      | Hint tokens (1 MBUCKS) | Puzzle packs         |
+| Rhythm        | Note skins, stage themes                       | Practice tokens        | Song packs           |
+| RPG           | Armor skins, weapon effects                    | Potions, revives       | Extra dungeons       |
+| Platformer    | Character skins, trail effects                 | Extra lives            | Level packs          |
+| SideBattler   | Party cosmetics, formation themes              | Revival tokens         | Wave packs           |
+| CreatureRPG   | Creature skins, trainer outfits                | Catch rate boosts      | New regions          |
+| Fighter       | Character skins, hit effects                   | Shield tokens          | Arena themes         |
+| TowerDefense  | Tower skins, enemy themes                      | Build tokens           | Map packs            |
+| CardBattler   | Card backs, card art                           | Mulligan tokens        | Starter decks        |
+| Roguelike     | Character skins, loot effects                  | Floor map scrolls      | Unlock classes       |
+| Survival      | Shelter skins, tool cosmetics                  | Emergency rations      | New biomes           |
+| GraphStrategy | Node themes, edge effects                      | Scout tokens           | Map variants         |
+| Brawler       | Weapon skins, stage themes, hit effects        | Continue tokens        | Stage packs          |
+| Wrestler      | Ring attire, entrance effects, belt skins      | Rope break tokens      | Match type packs     |
+| HackAndSlash  | Weapon glow, armor sets, loot effects          | Rare loot scrolls      | Floor expansions     |
+| MartialArts   | Gi skins, stance auras, dojo backgrounds       | Flow combo extenders   | Style unlocks        |
+| TagTeam       | Team uniforms, tag-in effects, sync animations | Emergency tag tokens   | Arena themes         |
+| BossBattle    | Role insignia, boss trophy displays            | Revive tokens          | Boss expansion packs |
+| StreetFighter | Character costumes, super effects              | Round retry tokens     | Character packs      |
+| BeatEmUpRPG   | Equipment skins, level-up animations           | XP boost tokens        | Stage expansions     |
+| Sumo          | Mawashi designs, ring decorations              | Balance restores       | Weight class modes   |
+| WeaponsDuel   | Blade engravings, parry sparks                 | Wound treatment kits   | Weapon expansions    |
 
 ### State Machine Game Items
 
 State machine games span 12 categories (adventure, simulation, strategy, economy, narrative, social, sports, horror, science, mashup, agent, meta). Item strategies depend on the specific game:
 
-| SM Category | Best Cosmetics                     | Best Consumables           | Best Access        |
-| ----------- | ---------------------------------- | -------------------------- | ------------------ |
-| Adventure   | Scene art, character portraits     | Path preview tokens        | Alternate paths    |
-| Simulation  | Dashboard themes, character styles | Resource boosts            | Advanced scenarios |
-| Strategy    | Map themes, unit skins             | Undo tokens                | Campaign modes     |
-| Economy     | Business themes, charts            | Market insight tokens      | Expansion packs    |
-| Narrative   | Character art, scene backgrounds   | Rewind tokens (0.1 MBUCKS) | Extra storylines   |
-| Horror      | Atmosphere effects, sound packs    | Sanity restores            | Hidden endings     |
+| SM Category | Best Cosmetics                     | Best Consumables         | Best Access        |
+| ----------- | ---------------------------------- | ------------------------ | ------------------ |
+| Adventure   | Scene art, character portraits     | Path preview tokens      | Alternate paths    |
+| Simulation  | Dashboard themes, character styles | Resource boosts          | Advanced scenarios |
+| Strategy    | Map themes, unit skins             | Undo tokens              | Campaign modes     |
+| Economy     | Business themes, charts            | Market insight tokens    | Expansion packs    |
+| Narrative   | Character art, scene backgrounds   | Rewind tokens (1 MBUCKS) | Extra storylines   |
+| Horror      | Atmosphere effects, sound packs    | Sanity restores          | Hidden endings     |
 
 ### Ported Classic Items
 
-| Port Source       | Count                        | Best Items                     | Price Sweet Spot                         |
-| ----------------- | ---------------------------- | ------------------------------ | ---------------------------------------- |
-| OpenSpiel (55+)   | Board/card/strategy classics | Board themes, piece skins      | 1-5 MBUCKS cosmetics                     |
-| Tatham (40)       | Logic puzzles                | Grid themes, completion badges | 0.5-2 MBUCKS cosmetics, 0.1 MBUCKS hints |
-| boardgame.io (10) | Community board games        | Table themes, component skins  | 2-10 MBUCKS cosmetics                    |
-| RLCard (5)        | Card games                   | Card art, table felts          | 1-5 MBUCKS cosmetics                     |
+| Port Source       | Count                        | Best Items                     | Price Sweet Spot                     |
+| ----------------- | ---------------------------- | ------------------------------ | ------------------------------------ |
+| OpenSpiel (55+)   | Board/card/strategy classics | Board themes, piece skins      | 1-5 MBUCKS cosmetics                 |
+| Tatham (40)       | Logic puzzles                | Grid themes, completion badges | 1-2 MBUCKS cosmetics, 1 MBUCKS hints |
+| boardgame.io (10) | Community board games        | Table themes, component skins  | 2-10 MBUCKS cosmetics                |
+| RLCard (5)        | Card games                   | Card art, table felts          | 1-5 MBUCKS cosmetics                 |
 
 ---
 
@@ -265,7 +265,7 @@ Platform receives: 1 MBUCKS (5% fee)
     Player A wins
        |
 Winning bettors split: 9.7 MBUCKS (97% of Player B's pool)
-Platform receives: 0.3 MBUCKS (3% of spectator pool)
+Platform receives: 3% of spectator pool
 ```
 
 **Field name**: The correct parameter for wager stakes is `stakeAmount` (not `amount`). Wager stakes are passed as MBUCKS strings (e.g., "5"). Auto-converted to wei by the handler.
@@ -333,17 +333,17 @@ How do you price items when there's no established market?
 2. **Track sales velocity**: if items sell fast, you might be priced too low
 3. **Compare to tournament EV**: a 5 MBUCKS cosmetic competes with a tournament entry that might return 10 MBUCKS
 4. **Watch what other creators charge** for similar categories
-5. **Price consumables cheap** (under 0.5 MBUCKS): they need volume
+5. **Price consumables cheap** (1 MBUCKS): they need volume
 
 ### Pricing by Game Complexity
 
 | Game Complexity                             | Cosmetic Range | Consumable Range | Access Range |
 | ------------------------------------------- | -------------- | ---------------- | ------------ |
-| Simple (Clicker, Puzzle)                    | 0.5-5 MBUCKS   | 0.1-0.2 MBUCKS   | 1-3 MBUCKS   |
-| Medium (Fighter, TowerDefense, CardBattler) | 1-10 MBUCKS    | 0.1-0.5 MBUCKS   | 2-7 MBUCKS   |
-| Complex (RPG, CreatureRPG, SideBattler)     | 2-15 MBUCKS    | 0.2-0.5 MBUCKS   | 5-15 MBUCKS  |
-| Ported classics (OpenSpiel, Tatham, etc.)   | 1-10 MBUCKS    | 0.1-0.3 MBUCKS   | 2-5 MBUCKS   |
-| State machine games                         | 0.5-10 MBUCKS  | 0.1-0.3 MBUCKS   | 2-10 MBUCKS  |
+| Simple (Clicker, Puzzle)                    | 1-5 MBUCKS     | 1 MBUCKS         | 1-3 MBUCKS   |
+| Medium (Fighter, TowerDefense, CardBattler) | 1-10 MBUCKS    | 1-2 MBUCKS       | 2-7 MBUCKS   |
+| Complex (RPG, CreatureRPG, SideBattler)     | 2-15 MBUCKS    | 1-2 MBUCKS       | 5-15 MBUCKS  |
+| Ported classics (OpenSpiel, Tatham, etc.)   | 1-10 MBUCKS    | 1 MBUCKS         | 2-5 MBUCKS   |
+| State machine games                         | 1-10 MBUCKS    | 1 MBUCKS         | 2-10 MBUCKS  |
 
 ---
 
@@ -417,8 +417,8 @@ How do you price items when there's no established market?
 | Total available templates | 250+                          |
 | Wager platform fee        | 5%                            |
 | Spectator bet fee         | 3%                            |
-| Typical cosmetic price    | 0.5-10 MBUCKS                 |
-| Typical consumable price  | 0.1-0.5 MBUCKS                |
+| Typical cosmetic price    | 1-10 MBUCKS                   |
+| Typical consumable price  | 1-2 MBUCKS                    |
 | Tournament entry          | 0-5 MBUCKS                    |
 | Small tournament prize    | 10-50 MBUCKS                  |
 | Monthly championship      | 100-500 MBUCKS                |
