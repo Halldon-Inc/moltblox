@@ -31,6 +31,7 @@ import playRouter from './routes/play.js';
 import leaderboardsRouter from './routes/leaderboards.js';
 import notificationsRouter from './routes/notifications.js';
 import badgesRouter from './routes/badges.js';
+import wagersRouter from './routes/wagers.js';
 import mcpRouter from './routes/mcp.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfTokenSetter, csrfProtection } from './middleware/csrf.js';
@@ -201,6 +202,7 @@ app.use('/api/v1/creator/dashboard', analyticsRouter);
 app.use('/api/v1/badges', badgesRouter);
 app.use('/api/v1/leaderboards', leaderboardsRouter);
 app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/wagers', writeOnly(writeLimiter), wagersRouter);
 
 // Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*
 app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) => {
@@ -224,7 +226,7 @@ app.use((req: Request, res: Response) => {
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
     path: req.originalUrl,
-    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /mcp. Play API: GET /api/v1/games/play-info',
+    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /api/v1/wagers, /mcp. Play API: GET /api/v1/games/play-info',
   });
 });
 

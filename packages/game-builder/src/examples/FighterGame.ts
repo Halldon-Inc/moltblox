@@ -19,6 +19,9 @@ export interface FighterConfig {
   roundTime?: number;
   enableSpecials?: boolean;
   comboSystem?: 'chain' | 'cancel' | 'juggle';
+  /** When set to 'openbor', matchmaking routes to RealTimeSessionManager
+   *  instead of the turn-based FighterGame. Default is 'turn-based'. */
+  engine?: 'turn-based' | 'openbor';
 }
 
 type AttackType = 'light' | 'heavy' | 'grab' | 'special';

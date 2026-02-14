@@ -21,6 +21,16 @@ import {
   RoguelikeGame,
   SurvivalGame,
   GraphStrategyGame,
+  BrawlerGame,
+  WrestlerGame,
+  HackAndSlashGame,
+  MartialArtsGame,
+  TagTeamGame,
+  BossBattleGame,
+  SumoGame,
+  StreetFighterGame,
+  BeatEmUpRPGGame,
+  WeaponsDuelGame,
 } from '@moltblox/game-builder';
 
 // Ported game collections (namespace imports to avoid name collisions)
@@ -28,6 +38,13 @@ import * as OpenSpiel from '@moltblox/game-builder/ports/openspiel';
 import * as Tatham from '@moltblox/game-builder/ports/tatham';
 import * as BoardGameIO from '@moltblox/game-builder/ports/boardgameio';
 import * as RLCard from '@moltblox/game-builder/ports/rlcard';
+import * as FreeBoard from '@moltblox/game-builder/ports/freeboardgames';
+import * as Solitairey from '@moltblox/game-builder/ports/solitairey';
+import * as ChessVariants from '@moltblox/game-builder/ports/chessvariants';
+import * as CardGames from '@moltblox/game-builder/ports/cardgames';
+import * as MiniGames from '@moltblox/game-builder/ports/minigames';
+import * as WordGames from '@moltblox/game-builder/ports/wordgames';
+import * as IdleGames from '@moltblox/game-builder/ports/idlegames';
 
 type GameConstructor = new (config?: Record<string, unknown>) => BaseGame;
 
@@ -47,6 +64,18 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   roguelike: RoguelikeGame,
   survival: SurvivalGame,
   'graph-strategy': GraphStrategyGame,
+
+  // Beat-em-up templates (10)
+  brawler: BrawlerGame,
+  wrestler: WrestlerGame,
+  'hack-and-slash': HackAndSlashGame,
+  'martial-arts': MartialArtsGame,
+  'tag-team': TagTeamGame,
+  'boss-battle': BossBattleGame,
+  sumo: SumoGame,
+  'street-fighter': StreetFighterGame,
+  'beat-em-up-rpg': BeatEmUpRPGGame,
+  'weapons-duel': WeaponsDuelGame,
 
   // OpenSpiel ports: board games
   'os-tic-tac-toe': OpenSpiel.TicTacToeGame,
@@ -165,6 +194,149 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   'rlcard-uno': RLCard.UnoGame,
   'rlcard-dou-dizhu': RLCard.DouDizhuGame,
   'rlcard-mahjong': RLCard.MahjongGame,
+
+  // FreeBoardGames.org ports (20)
+  'fbg-reversi': FreeBoard.ReversiGame,
+  'fbg-coup': FreeBoard.CoupGame,
+  'fbg-love-letter': FreeBoard.LoveletterGame,
+  'fbg-skull': FreeBoard.SkullGame,
+  'fbg-resistance': FreeBoard.ResistanceGame,
+  'fbg-ludo': FreeBoard.LudoGame,
+  'fbg-snakes-and-ladders': FreeBoard.SnakesAndLaddersGame,
+  'fbg-parcheesi': FreeBoard.ParcheesiGame,
+  'fbg-sorry': FreeBoard.SorryGame,
+  'fbg-chinese-checkers': FreeBoard.ChineseCheckersGame,
+  'fbg-sushi-go': FreeBoard.SushiGoGame,
+  'fbg-set': FreeBoard.SetGame,
+  'fbg-president': FreeBoard.PresidentGame,
+  'fbg-hive': FreeBoard.HiveGame,
+  'fbg-blokus': FreeBoard.BlokusGame,
+  'fbg-patchwork': FreeBoard.PatchworkGame,
+  'fbg-quarto': FreeBoard.QuartoGame,
+  'fbg-tsu': FreeBoard.TsuGame,
+  'fbg-werewolf': FreeBoard.WerewolfGame,
+  'fbg-mafia': FreeBoard.MafiaGame,
+
+  // Chess variant ports (20)
+  'cv-crazyhouse': ChessVariants.CrazyhouseGame,
+  'cv-atomic': ChessVariants.AtomicChessGame,
+  'cv-racing-kings': ChessVariants.RacingKingsGame,
+  'cv-antichess': ChessVariants.AntichessGame,
+  'cv-horde': ChessVariants.HordeGame,
+  'cv-king-of-the-hill': ChessVariants.KingOfTheHillGame,
+  'cv-three-check': ChessVariants.ThreeCheckGame,
+  'cv-chess960': ChessVariants.Chess960Game,
+  'cv-fog-of-war': ChessVariants.FogOfWarChessGame,
+  'cv-capablanca': ChessVariants.CapablancaChessGame,
+  'cv-shogi': ChessVariants.ShogiGame,
+  'cv-xiangqi': ChessVariants.XiangqiGame,
+  'cv-janggi': ChessVariants.JanggiGame,
+  'cv-makruk': ChessVariants.MakrukGame,
+  'cv-losers': ChessVariants.LosersChessGame,
+  'cv-giveaway': ChessVariants.GiveawayChessGame,
+  'cv-bughouse': ChessVariants.BughouseGame,
+  'cv-grid-chess': ChessVariants.GridChessGame,
+  'cv-cylinder': ChessVariants.CylinderChessGame,
+  'cv-alice': ChessVariants.AliceChessGame,
+
+  // Mini-games ports (30)
+  'mg-snake': MiniGames.SnakeGame,
+  'mg-tetris': MiniGames.TetrisGame,
+  'mg-breakout': MiniGames.BreakoutGame,
+  'mg-pong': MiniGames.PongGame,
+  'mg-pipe-connect': MiniGames.PipeConnectGame,
+  'mg-tower-stack': MiniGames.TowerStackGame,
+  'mg-color-flood': MiniGames.ColorFloodGame,
+  'mg-light-out': MiniGames.LightOutGame,
+  'mg-minesweeper': MiniGames.MinesweeperClassicGame,
+  'mg-sokoban': MiniGames.SokobanGame,
+  'mg-connect-dots': MiniGames.ConnectDotsGame,
+  'mg-simon': MiniGames.SimonClassicGame,
+  'mg-flappy': MiniGames.FlappyGame,
+  'mg-asteroids': MiniGames.AsteroidsGame,
+  'mg-pac-man': MiniGames.PacManGame,
+  'mg-nonogram': MiniGames.NonogramGame,
+  'mg-kakuro': MiniGames.KakuroGame,
+  'mg-futoshiki': MiniGames.FutoshikiGame,
+  'mg-hashi': MiniGames.HashiGame,
+  'mg-nurikabe': MiniGames.NurikabeGame,
+  'mg-kenken': MiniGames.KenKenGame,
+  'mg-calcudoku': MiniGames.CalcudokuGame,
+  'mg-math24': MiniGames.Math24Game,
+  'mg-mahjong-solitaire': MiniGames.MahjongSolitaireGame,
+  'mg-shanghai': MiniGames.ShanghaiGame,
+  'mg-trivia': MiniGames.TriviaGame,
+  'mg-dots': MiniGames.DotsGame,
+  'mg-sprouts': MiniGames.SproutsGame,
+  'mg-qwirkle': MiniGames.QwirkleGame,
+  'mg-tsuro': MiniGames.TsuroGame,
+
+  // Word game ports (10)
+  'wg-wordle': WordGames.WordleGame,
+  'wg-hangman': WordGames.HangmanGame,
+  'wg-anagram': WordGames.AnagramGame,
+  'wg-word-search': WordGames.WordSearchGame,
+  'wg-boggle': WordGames.BoggleGame,
+  'wg-scrabble': WordGames.ScrabbleGame,
+  'wg-crossword': WordGames.CrosswordGame,
+  'wg-codeword': WordGames.CodewordGame,
+  'wg-spelling-bee': WordGames.SpellingBeeGame,
+  'wg-typing-race': WordGames.TypingRaceGame,
+
+  // Solitairey ports (13)
+  'sol-klondike': Solitairey.KlondikeGame,
+  'sol-spider': Solitairey.SpiderGame,
+  'sol-freecell': Solitairey.FreeCellGame,
+  'sol-pyramid': Solitairey.PyramidGame,
+  'sol-golf': Solitairey.GolfGame,
+  'sol-tri-peaks': Solitairey.TriPeaksGame,
+  'sol-yukon': Solitairey.YukonGame,
+  'sol-canfield': Solitairey.CanfieldGame,
+  'sol-bakers-dozen': Solitairey.BakersDozenGame,
+  'sol-scorpion': Solitairey.ScorpionGame,
+  'sol-forty-thieves': Solitairey.FortyThievesGame,
+  'sol-grandfathers-clock': Solitairey.GrandfathersClockGame,
+  'sol-monte-carlo': Solitairey.MonteCarloGame,
+  'sol-osmosis': Solitairey.OsmosisGame,
+
+  // Card game ports (13)
+  'cg-cribbage': CardGames.CribbageGame,
+  'cg-pinochle': CardGames.PinochleGame,
+  'cg-canasta': CardGames.CanastaGame,
+  'cg-whist': CardGames.WhistGame,
+  'cg-oh-hell': CardGames.OhHellGame,
+  'cg-president': CardGames.PresidentGame,
+  'cg-durak': CardGames.DurakGame,
+  'cg-rummy': CardGames.RummyGame,
+  'cg-euchre': CardGames.EuchreGame,
+  'cg-skat': CardGames.SkatGame,
+  'cg-pit': CardGames.PitGame,
+  'cg-spades-classic': CardGames.SpadesClassicGame,
+  'cg-canasta-classic': CardGames.CanastaClassicGame,
+
+  // Idle/incremental game ports (19)
+  'ig-cookie-clicker': IdleGames.CookieClickerGame,
+  'ig-antimatter': IdleGames.AntimatterGame,
+  'ig-miner': IdleGames.MinerGame,
+  'ig-factory': IdleGames.FactoryIdleGame,
+  'ig-reactor': IdleGames.ReactorGame,
+  'ig-swarm': IdleGames.SwarmGame,
+  'ig-paperclip': IdleGames.PaperclipGame,
+  'ig-dark-room': IdleGames.DarkRoomGame,
+  'ig-evolve': IdleGames.EvolveGame,
+  'ig-kittens': IdleGames.KittensGame,
+  'ig-mine-defense': IdleGames.MineDefenseGame,
+  'ig-idle-miner': IdleGames.IdleMinerGame,
+  'ig-evolution': IdleGames.EvolutionIdleGame,
+  'ig-space': IdleGames.SpaceIdleGame,
+  'ig-farm': IdleGames.FarmIdleGame,
+  'ig-dungeon': IdleGames.DungeonIdleGame,
+  'ig-alchemy': IdleGames.AlchemyIdleGame,
+  'ig-city-builder': IdleGames.CityBuilderIdleGame,
+  'ig-number': IdleGames.NumberIdleGame,
+  'ig-exponential': IdleGames.ExponentialGame,
+  'ig-trimps': IdleGames.TrimpsGame,
+  'ig-progress-quest': IdleGames.ProgressQuestGame,
 };
 
 /**

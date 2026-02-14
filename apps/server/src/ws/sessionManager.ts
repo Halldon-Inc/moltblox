@@ -47,6 +47,7 @@ export interface ConnectedClient {
   playerId?: string;
   gameSessionId?: string;
   spectating?: string;
+  watchingWagerId?: string;
   lastPing: number;
 }
 
@@ -728,6 +729,24 @@ export function broadcastToSession(
   for (const [clientId, client] of clients) {
     if (clientId === excludeClientId) continue;
     if (client.gameSessionId === sessionId || client.spectating === sessionId) {
+      sendTo(client.ws, message);
+    }
+  }
+}
+
+/**
+ * Broadcast a message to all clients subscribed to a specific wager.
+ * Used for wager_created, wager_accepted, wager_settled, spectator_bet, odds_update events.
+ */
+export function broadcastToWager(
+  clients: Map<string, ConnectedClient>,
+  wagerId: string,
+  message: WSMessage,
+  excludeClientId?: string,
+): void {
+  for (const [clientId, client] of clients) {
+    if (clientId === excludeClientId) continue;
+    if (client.watchingWagerId === wagerId) {
       sendTo(client.ws, message);
     }
   }

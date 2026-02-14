@@ -23,6 +23,7 @@ import {
   isActiveSession,
   rejoinSession,
 } from './sessionManager.js';
+import { RealTimeSessionManager } from './realTimeSessionManager.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 import { JWT_SECRET } from '../lib/jwt.js';
 import { getSession, cleanupAllSessions } from './redisSessionStore.js';
@@ -56,6 +57,12 @@ const VALID_MESSAGE_TYPES = new Set([
   'stop_spectating',
   'chat',
   'reconnect',
+  // Real-time (tick-based) messages
+  'realtime_input',
+  'realtime_ready',
+  // Wager subscription messages
+  'subscribe_wager',
+  'unsubscribe_wager',
 ]);
 
 /** Message types that require authentication before use */
@@ -68,6 +75,12 @@ const AUTH_REQUIRED_TYPES = new Set([
   'spectate',
   'stop_spectating',
   'chat',
+  // Real-time (tick-based) messages
+  'realtime_input',
+  'realtime_ready',
+  // Wager subscription messages
+  'subscribe_wager',
+  'unsubscribe_wager',
 ]);
 
 /**
@@ -186,6 +199,9 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
   });
   const clients = new Map<string, ConnectedClient>();
 
+  // Real-time session manager for tick-based games (OpenBOR, etc.)
+  const realTimeSessionManager = new RealTimeSessionManager();
+
   // Heartbeat interval to detect dead connections
   const heartbeatTimer = setInterval(() => {
     const now = Date.now();
@@ -275,7 +291,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
 
       try {
         const message: WSMessage = JSON.parse(data.toString());
-        handleMessage(client, message, clients).catch((err) =>
+        handleMessage(client, message, clients, realTimeSessionManager).catch((err) =>
           console.error('[WS] Error handling message:', err),
         );
       } catch {
@@ -292,6 +308,10 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       handleDisconnect(client, clients).catch((err) =>
         console.error('[WS] Error handling disconnect:', err),
       );
+      // Also clean up any real-time session
+      realTimeSessionManager
+        .handleDisconnect(clientId, client.playerId, clients)
+        .catch((err) => console.error('[WS] Error handling RT disconnect:', err));
       clients.delete(clientId);
       rateLimitMap.delete(clientId);
       if (client.playerId) rateLimitMap.delete(client.playerId);
@@ -326,6 +346,7 @@ async function handleMessage(
   client: ConnectedClient,
   message: WSMessage,
   clients: Map<string, ConnectedClient>,
+  realTimeSessionManager: RealTimeSessionManager,
 ): Promise<void> {
   // M8: Validate incoming message shape
   if (
@@ -633,6 +654,58 @@ async function handleMessage(
       break;
     }
 
+    // Wager subscription: subscribe to real-time wager updates
+    case 'subscribe_wager': {
+      const wagerId = payload.wagerId as string;
+      client.watchingWagerId = wagerId;
+      console.log(`[WS] Client ${client.id} subscribed to wager ${wagerId}`);
+      sendTo(client.ws, {
+        type: 'wager_subscribed',
+        payload: {
+          wagerId,
+          message: `Subscribed to wager ${wagerId} updates`,
+        },
+      });
+      break;
+    }
+
+    case 'unsubscribe_wager': {
+      const prevWagerId = client.watchingWagerId;
+      client.watchingWagerId = undefined;
+      sendTo(client.ws, {
+        type: 'wager_unsubscribed',
+        payload: {
+          wagerId: prevWagerId,
+          message: 'Unsubscribed from wager updates',
+        },
+      });
+      break;
+    }
+
+    // Real-time input: forward buffered input to RealTimeSessionManager
+    case 'realtime_input': {
+      if (!client.playerId) break;
+      const rtInput = payload.input;
+      if (rtInput === undefined || rtInput === null) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Missing "input" field for realtime_input' },
+        });
+        break;
+      }
+      realTimeSessionManager.handleInput(client.playerId, rtInput as number | string);
+      break;
+    }
+
+    // Real-time ready: player signals they are ready for countdown
+    case 'realtime_ready': {
+      if (!client.playerId) break;
+      realTimeSessionManager.handleReady(client.playerId, clients).catch((err) => {
+        console.error('[WS] Error handling realtime_ready:', err);
+      });
+      break;
+    }
+
     // Unknown types are caught by the validation above, so this is unreachable
     default:
       break;
@@ -668,6 +741,15 @@ function validateMessageFields(type: string, payload: Record<string, unknown>): 
       if (payload.message === undefined || payload.message === null)
         return 'Missing required field "message" for chat message';
       break;
+    case 'realtime_input':
+      if (payload.input === undefined || payload.input === null)
+        return 'Missing required field "input" for realtime_input message';
+      break;
+    // realtime_ready requires no additional fields beyond auth
+    case 'subscribe_wager':
+      if (!payload.wagerId) return 'Missing required field "wagerId" for subscribe_wager message';
+      break;
+    // unsubscribe_wager requires no additional fields beyond auth
   }
   return null;
 }

@@ -24,6 +24,34 @@
     "./ports/rlcard": {
       "types": "./dist/ports/rlcard/index.d.ts",
       "default": "./dist/ports/rlcard/index.js"
+    },
+    "./ports/freeboardgames": {
+      "types": "./dist/ports/freeboardgames/index.d.ts",
+      "default": "./dist/ports/freeboardgames/index.js"
+    },
+    "./ports/solitairey": {
+      "types": "./dist/ports/solitairey/index.d.ts",
+      "default": "./dist/ports/solitairey/index.js"
+    },
+    "./ports/chessvariants": {
+      "types": "./dist/ports/chessvariants/index.d.ts",
+      "default": "./dist/ports/chessvariants/index.js"
+    },
+    "./ports/cardgames": {
+      "types": "./dist/ports/cardgames/index.d.ts",
+      "default": "./dist/ports/cardgames/index.js"
+    },
+    "./ports/minigames": {
+      "types": "./dist/ports/minigames/index.d.ts",
+      "default": "./dist/ports/minigames/index.js"
+    },
+    "./ports/wordgames": {
+      "types": "./dist/ports/wordgames/index.d.ts",
+      "default": "./dist/ports/wordgames/index.js"
+    },
+    "./ports/idlegames": {
+      "types": "./dist/ports/idlegames/index.d.ts",
+      "default": "./dist/ports/idlegames/index.js"
     }
   },
   "files": [

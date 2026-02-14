@@ -60,6 +60,18 @@ export { RoguelikeGame } from './examples/RoguelikeGame.js';
 export { SurvivalGame } from './examples/SurvivalGame.js';
 export { GraphStrategyGame } from './examples/GraphStrategyGame.js';
 
+// Beat-em-up templates
+export { BrawlerGame } from './examples/BrawlerGame.js';
+export { WrestlerGame } from './examples/WrestlerGame.js';
+export { HackAndSlashGame } from './examples/HackAndSlashGame.js';
+export { MartialArtsGame } from './examples/MartialArtsGame.js';
+export { TagTeamGame } from './examples/TagTeamGame.js';
+export { BossBattleGame } from './examples/BossBattleGame.js';
+export { SumoGame } from './examples/SumoGame.js';
+export { StreetFighterGame } from './examples/StreetFighterGame.js';
+export { BeatEmUpRPGGame } from './examples/BeatEmUpRPGGame.js';
+export { WeaponsDuelGame } from './examples/WeaponsDuelGame.js';
+
 // Game config types
 export type { ClickerConfig } from './examples/ClickerGame.js';
 export type { PuzzleConfig } from './examples/PuzzleGame.js';
@@ -75,6 +87,28 @@ export type { CardBattlerConfig } from './examples/CardBattlerGame.js';
 export type { RoguelikeConfig } from './examples/RoguelikeGame.js';
 export type { SurvivalConfig } from './examples/SurvivalGame.js';
 export type { GraphStrategyConfig } from './examples/GraphStrategyGame.js';
+
+// Beat-em-up config types
+export type { BrawlerConfig } from './examples/BrawlerGame.js';
+export type { WrestlerConfig } from './examples/WrestlerGame.js';
+export type { HackAndSlashConfig } from './examples/HackAndSlashGame.js';
+export type { MartialArtsConfig } from './examples/MartialArtsGame.js';
+export type { TagTeamConfig } from './examples/TagTeamGame.js';
+export type { BossBattleConfig } from './examples/BossBattleGame.js';
+export type { SumoConfig } from './examples/SumoGame.js';
+export type { StreetFighterConfig } from './examples/StreetFighterGame.js';
+export type { BeatEmUpRPGConfig } from './examples/BeatEmUpRPGGame.js';
+export type { WeaponsDuelConfig } from './examples/WeaponsDuelGame.js';
+
+// Adapters (real-time engine wrappers)
+export { OpenBORAdapter, INPUT_MAP } from './adapters/OpenBORAdapter.js';
+export type {
+  OpenBORAdapterConfig,
+  OpenBORBridgeLike,
+  TickSnapshot,
+  FighterSnapshot,
+  MatchStateSnapshot,
+} from './adapters/OpenBORAdapter.js';
 
 // Mechanic injectors
 export type { MechanicInjector, InjectorResult } from './MechanicInjector.js';

@@ -1,0 +1,23 @@
+// Idle/Incremental Games
+export { CookieClickerGame } from './CookieClickerGame.js';
+export { AntimatterGame } from './AntimatterGame.js';
+export { MinerGame } from './MinerGame.js';
+export { FactoryIdleGame } from './FactoryIdleGame.js';
+export { ReactorGame } from './ReactorGame.js';
+export { SwarmGame } from './SwarmGame.js';
+export { PaperclipGame } from './PaperclipGame.js';
+export { DarkRoomGame } from './DarkRoomGame.js';
+export { EvolveGame } from './EvolveGame.js';
+export { KittensGame } from './KittensGame.js';
+export { MineDefenseGame } from './MineDefenseGame.js';
+export { ExponentialGame } from './ExponentialGame.js';
+export { TrimpsGame } from './TrimpsGame.js';
+export { ProgressQuestGame } from './ProgressQuestGame.js';
+export { SpaceIdleGame } from './SpaceIdleGame.js';
+export { IdleMinerGame } from './IdleMinerGame.js';
+export { EvolutionIdleGame } from './EvolutionIdleGame.js';
+export { FarmIdleGame } from './FarmIdleGame.js';
+export { DungeonIdleGame } from './DungeonIdleGame.js';
+export { AlchemyIdleGame } from './AlchemyIdleGame.js';
+export { CityBuilderIdleGame } from './CityBuilderIdleGame.js';
+export { NumberIdleGame } from './NumberIdleGame.js';

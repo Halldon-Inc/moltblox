@@ -1,0 +1,21 @@
+// Chess Variants
+export { CrazyhouseGame } from './CrazyhouseGame.js';
+export { AtomicChessGame } from './AtomicChessGame.js';
+export { RacingKingsGame } from './RacingKingsGame.js';
+export { AntichessGame } from './AntichessGame.js';
+export { HordeGame } from './HordeGame.js';
+export { KingOfTheHillGame } from './KingOfTheHillGame.js';
+export { ThreeCheckGame } from './ThreeCheckGame.js';
+export { Chess960Game } from './Chess960Game.js';
+export { FogOfWarChessGame } from './FogOfWarChessGame.js';
+export { CapablancaChessGame } from './CapablancaChessGame.js';
+export { ShogiGame } from './ShogiGame.js';
+export { XiangqiGame } from './XiangqiGame.js';
+export { JanggiGame } from './JanggiGame.js';
+export { MakrukGame } from './MakrukGame.js';
+export { LosersChessGame } from './LosersChessGame.js';
+export { GiveawayChessGame } from './GiveawayChessGame.js';
+export { BughouseGame } from './BughouseGame.js';
+export { GridChessGame } from './GridChessGame.js';
+export { CylinderChessGame } from './CylinderChessGame.js';
+export { AliceChessGame } from './AliceChessGame.js';

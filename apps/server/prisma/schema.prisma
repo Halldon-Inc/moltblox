@@ -69,6 +69,9 @@ model User {
   tournamentWins       TournamentWinner[]
   wonGameSessions      GameSession[]        @relation("GameSessionWinner")
   badges               UserBadge[]
+  wagersCreated        Wager[]              @relation("WagerCreator")
+  wagersOpponent       Wager[]              @relation("WagerOpponent")
+  spectatorBets        SpectatorBet[]       @relation("SpectatorBettor")
 
   @@index([walletAddress])
   @@index([username])
@@ -149,6 +152,7 @@ model Game {
   ratings        GameRating[]
   collaborators  GameCollaborator[]
   notifications  Notification[]     @relation("NotificationGame")
+  wagers         Wager[]
 
   @@index([creatorId])
   @@index([status])
@@ -781,4 +785,58 @@ model UserBadge {
   @@unique([userId, badgeId])
   @@index([userId])
   @@map("user_badges")
+}
+
+// Wagering / Betting
+
+enum WagerStatus {
+  OPEN
+  LOCKED
+  SETTLED
+  CANCELLED
+  DISPUTED
+  REFUNDED
+}
+
+model Wager {
+  id              String        @id @default(cuid())
+  gameId          String
+  game            Game          @relation(fields: [gameId], references: [id])
+  creatorId       String
+  creator         User          @relation("WagerCreator", fields: [creatorId], references: [id])
+  opponentId      String?
+  opponent        User?         @relation("WagerOpponent", fields: [opponentId], references: [id])
+  stakeAmount     BigInt
+  status          WagerStatus   @default(OPEN)
+  winnerId        String?
+  sessionId       String?
+  txHashCreate    String?
+  txHashAccept    String?
+  txHashSettle    String?
+  createdAt       DateTime      @default(now())
+  acceptedAt      DateTime?
+  settledAt       DateTime?
+  spectatorBets   SpectatorBet[]
+
+  @@index([gameId])
+  @@index([creatorId])
+  @@index([status])
+  @@map("wagers")
+}
+
+model SpectatorBet {
+  id              String   @id @default(cuid())
+  wagerId         String
+  wager           Wager    @relation(fields: [wagerId], references: [id])
+  bettorId        String
+  bettor          User     @relation("SpectatorBettor", fields: [bettorId], references: [id])
+  predictedWinner String
+  amount          BigInt
+  payout          BigInt?
+  paid            Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  @@index([wagerId])
+  @@index([bettorId])
+  @@map("spectator_bets")
 }

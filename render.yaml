@@ -54,6 +54,8 @@ services:
         sync: false
       - key: TOURNAMENT_MANAGER_ADDRESS
         sync: false
+      - key: BETTING_MANAGER_ADDRESS
+        sync: false
 
   # ─── Web Frontend (Next.js Standalone) ─────────────────────
   - type: web
@@ -86,6 +88,8 @@ services:
       - key: NEXT_PUBLIC_GAME_MARKETPLACE_ADDRESS
         sync: false
       - key: NEXT_PUBLIC_TOURNAMENT_MANAGER_ADDRESS
+        sync: false
+      - key: NEXT_PUBLIC_BETTING_MANAGER_ADDRESS
         sync: false
       - key: NEXT_PUBLIC_WC_PROJECT_ID
         sync: false
