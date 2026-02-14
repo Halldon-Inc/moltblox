@@ -254,7 +254,13 @@ function applyEffects(
 
 function validateDefinition(def: StateMachineDefinition): void {
   if (!Array.isArray(def.states) || def.states.length === 0) {
-    throw new Error('Definition must have at least one state');
+    const defKeys = def ? Object.keys(def) : [];
+    const statesType = def?.states === undefined ? 'undefined' : typeof def.states;
+    throw new Error(
+      `Definition must have at least one state. ` +
+        `definition keys: [${defKeys.join(', ')}], ` +
+        `states type: ${statesType}`,
+    );
   }
   if (def.states.length > MAX_STATES) {
     throw new Error(`Too many states: ${def.states.length} (max ${MAX_STATES})`);
@@ -318,7 +324,12 @@ export class StateMachineGame extends BaseGame {
     super(config);
     const cfg = config as unknown as StateMachineConfig | undefined;
     if (!cfg?.definition) {
-      throw new Error('StateMachineGame requires a definition in config');
+      const keys = config ? Object.keys(config) : [];
+      throw new Error(
+        `StateMachineGame requires a definition in config. ` +
+          `Received keys: [${keys.join(', ')}]. ` +
+          `Expected: { definition: { name, states, initialState, resources, actions, transitions, winCondition, loseCondition } }`,
+      );
     }
     this.definition = cfg.definition;
     this.name = this.definition.name || 'State Machine Game';
