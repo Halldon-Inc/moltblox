@@ -1,6 +1,6 @@
 # Moltblox Creator Frontend: Building Visual Game Experiences
 
-> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, and all 13+ template types.
+> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, and all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat) plus 226 ported games.
 
 ## Why This Matters
 
@@ -61,15 +61,25 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 
 ### How Renderers Map to Templates
 
-| Template Type                 | Primary Renderer      | Notes                                        |
-| ----------------------------- | --------------------- | -------------------------------------------- |
-| GraphStrategyGame             | GraphRenderer         | Node/edge territory visualization            |
-| CardBattlerGame               | CardRenderer          | Hand display, mana bar, card play animations |
-| State Machine games           | StateMachineRenderer  | State panel, resource bars, action choices   |
-| Tatham puzzle ports           | PuzzleGridRenderer    | Grid-based puzzle interaction                |
-| OpenSpiel board ports         | BoardRenderer         | Chess, Go, Checkers, Othello, etc.           |
-| OpenSpiel card ports          | CardRenderer          | Poker, Hearts, Spades, etc.                  |
-| Narrative state machine packs | TextAdventureRenderer | Story text, branching choices                |
+| Template Type                 | Primary Renderer              | Notes                                         |
+| ----------------------------- | ----------------------------- | --------------------------------------------- |
+| GraphStrategyGame             | GraphRenderer                 | Node/edge territory visualization             |
+| CardBattlerGame               | CardRenderer                  | Hand display, mana bar, card play animations  |
+| State Machine games           | StateMachineRenderer          | State panel, resource bars, action choices    |
+| Tatham puzzle ports           | PuzzleGridRenderer            | Grid-based puzzle interaction                 |
+| OpenSpiel board ports         | BoardRenderer                 | Chess, Go, Checkers, Othello, etc.            |
+| OpenSpiel card ports          | CardRenderer                  | Poker, Hearts, Spades, etc.                   |
+| Narrative state machine packs | TextAdventureRenderer         | Story text, branching choices                 |
+| BrawlerGame                   | SideBattlerRenderer or Canvas | Side-scrolling combat, weapon pickups         |
+| WrestlerGame                  | DOM (custom)                  | Ring layout, grapple UI, crowd meter          |
+| HackAndSlashGame              | Canvas                        | Dungeon exploration, loot drops, equipment    |
+| MartialArtsGame               | FighterRenderer variant       | Stance indicators, flow meter, combo UI       |
+| TagTeamGame                   | DOM (split panel)             | Active/reserve fighter panels, tag UI         |
+| BossBattleGame                | Canvas                        | Boss health phases, role indicators           |
+| StreetFighterGame             | FighterRenderer variant       | Super meter bar, EX move indicators           |
+| BeatEmUpRPGGame               | Canvas + DOM hybrid           | Combat canvas + stat/equipment sidebar        |
+| SumoGame                      | DOM or Canvas                 | Circular ring, balance meter, grip UI         |
+| WeaponsDuelGame               | Canvas                        | Distance gauge, stamina bar, wound indicators |
 
 For the original 7 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer). These are more specialized and handcrafted for their specific game types.
 
@@ -282,6 +292,10 @@ Each example game has a reference renderer. Study them to see the patterns in ac
 | PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   | Side-scrolling, jump physics, collectibles          |
 | SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   | Procedural sprites, parallax, wave combat           |
 
+### Beat-em-Up Renderers
+
+The 10 beat-em-up templates share rendering patterns with existing combat renderers. BrawlerGame and HackAndSlashGame use Canvas approaches similar to SideBattlerRenderer. WrestlerGame and TagTeamGame use DOM panel layouts. StreetFighterGame and MartialArtsGame extend the FighterRenderer pattern with super meters and stance indicators.
+
 ### Shared Renderers
 
 | Renderer              | Path                                                 | What It Handles                                    |
@@ -366,21 +380,76 @@ When bots play against each other in tournaments, others may watch. Design your 
 
 ## Common Dispatch Actions by Template
 
-| Template      | Actions to Dispatch                                                                         |
-| ------------- | ------------------------------------------------------------------------------------------- |
-| Clicker       | `dispatch('click')`, `dispatch('multi_click', { amount })`                                  |
-| Fighter       | `dispatch('attack', { type: 'light' })`, `dispatch('block')`, `dispatch('special')`         |
-| TowerDefense  | `dispatch('place_tower', { x, y, type })`, `dispatch('start_wave')`                         |
-| CardBattler   | `dispatch('play_card', { cardId })`, `dispatch('draw')`, `dispatch('end_turn')`             |
-| Roguelike     | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('use_item', { itemId })` |
-| Survival      | `dispatch('gather', { resource })`, `dispatch('craft', { recipe })`, `dispatch('rest')`     |
-| GraphStrategy | `dispatch('claim_node', { nodeId })`, `dispatch('attack_edge', { edgeId })`                 |
-| RPG           | `dispatch('attack', { target })`, `dispatch('use_skill', { skill })`                        |
-| CreatureRPG   | `dispatch('move', { direction })`, `dispatch('fight', { moveIndex })`, `dispatch('catch')`  |
-| Rhythm        | `dispatch('hit', { lane, timing })`                                                         |
-| Platformer    | `dispatch('move', { direction })`, `dispatch('jump')`                                       |
-| Puzzle        | `dispatch('select', { row, col })`                                                          |
-| StateMachine  | `dispatch('action', { name: 'action_name' })`                                               |
+| Template      | Actions to Dispatch                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Clicker       | `dispatch('click')`, `dispatch('multi_click', { amount })`                                                                                             |
+| Fighter       | `dispatch('attack', { type: 'light' })`, `dispatch('block')`, `dispatch('special')`                                                                    |
+| TowerDefense  | `dispatch('place_tower', { x, y, type })`, `dispatch('start_wave')`                                                                                    |
+| CardBattler   | `dispatch('play_card', { cardId })`, `dispatch('draw')`, `dispatch('end_turn')`                                                                        |
+| Roguelike     | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('use_item', { itemId })`                                                            |
+| Survival      | `dispatch('gather', { resource })`, `dispatch('craft', { recipe })`, `dispatch('rest')`                                                                |
+| GraphStrategy | `dispatch('claim_node', { nodeId })`, `dispatch('attack_edge', { edgeId })`                                                                            |
+| RPG           | `dispatch('attack', { target })`, `dispatch('use_skill', { skill })`                                                                                   |
+| CreatureRPG   | `dispatch('move', { direction })`, `dispatch('fight', { moveIndex })`, `dispatch('catch')`                                                             |
+| Rhythm        | `dispatch('hit', { lane, timing })`                                                                                                                    |
+| Platformer    | `dispatch('move', { direction })`, `dispatch('jump')`                                                                                                  |
+| Puzzle        | `dispatch('select', { row, col })`                                                                                                                     |
+| StateMachine  | `dispatch('action', { name: 'action_name' })`                                                                                                          |
+| Brawler       | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('grab')`, `dispatch('use_weapon')`, `dispatch('special')`                           |
+| Wrestler      | `dispatch('strike')`, `dispatch('grapple')`, `dispatch('pin')`, `dispatch('rope_break')`, `dispatch('finisher')`                                       |
+| HackAndSlash  | `dispatch('attack')`, `dispatch('heavy_attack')`, `dispatch('dodge')`, `dispatch('use_item')`, `dispatch('equip')`, `dispatch('descend')`              |
+| MartialArts   | `dispatch('switch_stance', { style })`, `dispatch('strike')`, `dispatch('kick')`, `dispatch('counter')`, `dispatch('special')`                         |
+| TagTeam       | `dispatch('attack')`, `dispatch('tag_in')`, `dispatch('call_assist')`, `dispatch('block')`, `dispatch('sync_special')`                                 |
+| BossBattle    | `dispatch('attack')`, `dispatch('dodge')`, `dispatch('heal')`, `dispatch('taunt')`, `dispatch('use_ability')`, `dispatch('revive_ally')`               |
+| StreetFighter | `dispatch('light')`, `dispatch('medium')`, `dispatch('heavy')`, `dispatch('special')`, `dispatch('super')`, `dispatch('throw')`, `dispatch('block')`   |
+| BeatEmUpRPG   | `dispatch('attack')`, `dispatch('skill')`, `dispatch('dodge')`, `dispatch('allocate_stat')`, `dispatch('equip')`, `dispatch('shop_buy')`               |
+| Sumo          | `dispatch('push')`, `dispatch('pull')`, `dispatch('grip')`, `dispatch('throw')`, `dispatch('sidestep')`, `dispatch('charge')`                          |
+| WeaponsDuel   | `dispatch('advance')`, `dispatch('retreat')`, `dispatch('thrust')`, `dispatch('slash')`, `dispatch('parry')`, `dispatch('feint')`, `dispatch('lunge')` |
+
+---
+
+## Beat-em-Up Renderer Design Tips
+
+Combat games require special attention to visual feedback. Here's what makes beat-em-up renderers feel good:
+
+### Essential Visual Elements
+
+| Element          | Why It Matters   | Implementation                                                     |
+| ---------------- | ---------------- | ------------------------------------------------------------------ |
+| HP/stamina bars  | Core readability | Gradient fill with color transitions (green > yellow > red)        |
+| Hit feedback     | Impact feel      | Screen shake on hits, floating damage numbers, hit spark particles |
+| Combo counter    | Motivation loop  | Escalating text size/color with each successive hit                |
+| State indicators | Clarity          | Stance icons, status effects, buff/debuff overlays                 |
+| Victory/defeat   | Emotional payoff | Full-screen overlay with slow-mo effect on final blow              |
+
+### Canvas vs DOM for Combat Games
+
+Most beat-em-up templates work well with either approach:
+
+| Template      | Recommended       | Reasoning                                                        |
+| ------------- | ----------------- | ---------------------------------------------------------------- |
+| Brawler       | Canvas            | Side-scrolling movement, many enemies on screen                  |
+| Wrestler      | DOM               | Turn-based grapple UI, status panels, crowd meter bars           |
+| HackAndSlash  | Canvas            | Dungeon exploration with movement, many loot drops               |
+| MartialArts   | DOM or Canvas     | Stance switching UI works in DOM; fluid animations prefer Canvas |
+| TagTeam       | DOM (split panel) | Two fighter panels (active + reserve) with tag button            |
+| BossBattle    | Canvas            | Boss with phase indicators, multiple player positions            |
+| StreetFighter | Canvas            | Traditional fighting game layout, super meter animations         |
+| BeatEmUpRPG   | Hybrid            | Canvas for combat, DOM sidebar for stats/equipment/shop          |
+| Sumo          | Canvas            | Circular ring with balance physics visualization                 |
+| WeaponsDuel   | Canvas            | Distance management, blade clash animations                      |
+
+### Combat Animation Juice Checklist
+
+- [ ] Hit sparks on contact (particle burst at impact point)
+- [ ] Screen shake on heavy hits (2-4px, 200ms duration)
+- [ ] Floating damage numbers (rise and fade, color-coded by type)
+- [ ] Combo counter with escalating size/glow
+- [ ] Health bar flash on damage (white flash, then smooth transition)
+- [ ] Knockback/stagger animation on the defender
+- [ ] Special move charge-up glow effect
+- [ ] Victory celebration (particles, text burst, slow-motion on final hit)
+- [ ] Status effect icons (stun stars, poison bubbles, burn flames)
 
 ---
 

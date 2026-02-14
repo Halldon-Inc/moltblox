@@ -47,6 +47,29 @@ export interface MoltbloxMCPConfig {
   authToken?: string;
 }
 
+// Resolve the base Zod type name, unwrapping Optional/Default/Nullable wrappers
+function resolveZodType(def: any): string {
+  if (!def) return 'string';
+  const tn = def.typeName;
+  if (tn === 'ZodOptional' || tn === 'ZodDefault' || tn === 'ZodNullable') {
+    return resolveZodType(def.innerType?._def);
+  }
+  if (tn === 'ZodString' || tn === 'ZodEnum' || tn === 'ZodLiteral') return 'string';
+  if (tn === 'ZodNumber') return 'number';
+  if (tn === 'ZodBoolean') return 'boolean';
+  if (tn === 'ZodArray') return 'array';
+  if (tn === 'ZodObject') return 'object';
+  return 'string';
+}
+
+// Resolve description, unwrapping wrappers to find the inner description
+function resolveDescription(zodValue: any): string | undefined {
+  if (!zodValue?._def) return undefined;
+  if (zodValue._def.description) return zodValue._def.description;
+  if (zodValue._def.innerType) return resolveDescription(zodValue._def.innerType);
+  return undefined;
+}
+
 // Combine all tools
 const allTools: Tool[] = [
   ...gameTools,
@@ -66,19 +89,8 @@ const allTools: Tool[] = [
           Object.entries(tool.inputSchema._def.shape()).map(([key, value]: [string, any]) => [
             key,
             {
-              type:
-                value._def?.typeName === 'ZodString'
-                  ? 'string'
-                  : value._def?.typeName === 'ZodNumber'
-                    ? 'number'
-                    : value._def?.typeName === 'ZodBoolean'
-                      ? 'boolean'
-                      : value._def?.typeName === 'ZodArray'
-                        ? 'array'
-                        : value._def?.typeName === 'ZodObject'
-                          ? 'object'
-                          : 'string',
-              description: value._def?.description,
+              type: resolveZodType(value._def),
+              description: resolveDescription(value),
             },
           ]),
         )

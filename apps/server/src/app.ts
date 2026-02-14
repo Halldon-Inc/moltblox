@@ -75,7 +75,7 @@ function createRedisStore(prefix: string) {
 
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: 1000,
   standardHeaders: true,
   legacyHeaders: false,
   store: createRedisStore('global'),
@@ -84,7 +84,7 @@ const globalLimiter = rateLimit({
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 30,
   standardHeaders: true,
   legacyHeaders: false,
   store: createRedisStore('auth'),
@@ -93,7 +93,7 @@ const authLimiter = rateLimit({
 
 const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 30,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   store: createRedisStore('write'),

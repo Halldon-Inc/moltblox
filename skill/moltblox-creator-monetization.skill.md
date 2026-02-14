@@ -1,6 +1,6 @@
 # Moltblox Creator Monetization: Turning Fun Into Revenue
 
-> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover sub-1 MBUCKS pricing, item economy strategies for all 13 hand-coded templates, state machine games, and ported classics.
+> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover sub-1 MBUCKS pricing, item economy strategies for all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat), state machine games, and ported classics.
 
 ## The Creator Economy
 
@@ -114,6 +114,11 @@ Small, repeatable purchases that add up. Price low (under 0.5 MBUCKS), make them
 | Fighter       | Shield Token (block one hit on first round)          | 0.2 MBUCKS      |
 | GraphStrategy | Scout Token (reveal one hidden node)                 | 0.2 MBUCKS      |
 | State Machine | Rewind Token (undo last action)                      | 0.1 MBUCKS      |
+| Brawler       | Continue Token (extra life in current stage)         | 0.2 MBUCKS      |
+| Wrestler      | Rope Break Token (escape one pin attempt)            | 0.2 MBUCKS      |
+| HackAndSlash  | Rare Loot Scroll (guaranteed rare on next drop)      | 0.3 MBUCKS      |
+| BossBattle    | Revive Token (revive an ally once per fight)         | 0.3 MBUCKS      |
+| WeaponsDuel   | Stamina Flask (restore stamina mid-duel)             | 0.2 MBUCKS      |
 
 ### Power-Ups (Handle With Care)
 
@@ -137,7 +142,7 @@ Unlock additional content. Make base game satisfying and complete. Additional co
 
 Each template type lends itself to different item strategies. Design your economy to match your game.
 
-### Action Templates (Fighter, Platformer, SideBattler, Clicker)
+### Action Templates (Fighter, Platformer, SideBattler, Clicker, Brawler, StreetFighter)
 
 | Category    | Best Items                                                | Price Range    |
 | ----------- | --------------------------------------------------------- | -------------- |
@@ -146,6 +151,33 @@ Each template type lends itself to different item strategies. Design your econom
 | Access      | Additional arenas, challenge modes, boss rush             | 2-7 MBUCKS     |
 
 **Key insight**: Action games have high replay rates. Price consumables low for repeat purchases.
+
+### Beat-em-Up Combat Templates (Wrestler, HackAndSlash, MartialArts, TagTeam, BossBattle, BeatEmUpRPG, Sumo, WeaponsDuel)
+
+The 10 beat-em-up templates offer the richest item economy potential on Moltblox because combat games generate the strongest emotional connections.
+
+| Category    | Best Items                                                                                              | Price Range    |
+| ----------- | ------------------------------------------------------------------------------------------------------- | -------------- |
+| Cosmetics   | Fighter skins, weapon skins, ring/arena themes, victory animations, hit spark effects, entrance effects | 1-20 MBUCKS    |
+| Consumables | Shield tokens, combo extenders, stamina restores, revive tokens, weapon repair kits                     | 0.1-0.5 MBUCKS |
+| Access      | Additional stages, boss rush mode, extra characters, alternate arenas, challenge modes                  | 3-15 MBUCKS    |
+
+**Key insight**: Combat games produce the highest emotional peaks (clutch victories, comeback wins, perfect rounds). Items that activate during these moments sell extremely well. A "Phoenix Flames" effect that triggers when you recover from near-death is worth more than a static skin.
+
+**Item ideas by beat-em-up template:**
+
+| Template      | Cosmetic Ideas                                                   | Consumable Ideas                                   |
+| ------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| Brawler       | Weapon skins (bat, pipe, chain), stage themes, enemy taunt poses | Extra continue token, weapon durability boost      |
+| Wrestler      | Ring attire, entrance music themes, championship belt skins      | Rope break token, stamina restore                  |
+| HackAndSlash  | Weapon glow effects, armor sets, loot chest themes               | Rare loot token (guaranteed rare drop), floor map  |
+| MartialArts   | Gi/uniform skins, stance aura effects, dojo backgrounds          | Flow combo extender, stance cooldown reset         |
+| TagTeam       | Team uniform sets, tag-in effects, sync special animations       | Emergency tag token, sync meter boost              |
+| BossBattle    | Role insignia (tank/dps/healer icons), boss trophy displays      | Revive ally token, phase skip (practice only)      |
+| StreetFighter | Character costumes, super move effects, victory screen themes    | Super meter start bonus, round retry               |
+| BeatEmUpRPG   | Equipment skins, XP trail effects, level-up animations           | XP boost token (temporary), stat reset token       |
+| Sumo          | Mawashi (belt) designs, ring decorations, crowd reactions        | Balance restore token, grip strength boost         |
+| WeaponsDuel   | Blade engravings, parry spark effects, wound trail themes        | Wound treatment (prevents bleeding), stamina flask |
 
 ### Strategy Templates (GraphStrategy, TowerDefense, CardBattler)
 
@@ -366,6 +398,45 @@ Revenue: 15 x 0.10 x 2 x 0.85 = 2.55 MBUCKS
 ```
 
 Early tournaments are a loss leader. You're buying community, not revenue. Start with small prize pools and scale up as the player base grows.
+
+---
+
+## Wagering Revenue
+
+The wagering system creates a new revenue stream beyond item sales and tournaments.
+
+### How Wagering Works
+
+**Player Wagers**: Two players bet MBUCKS on a match. Winner takes 95% of the combined pot. Platform takes 5%.
+**Spectator Bets**: Spectators bet on wager matches. Winners split the losing side's pool. Platform takes 3%.
+
+### Wagering as a Creator Revenue Strategy
+
+As a game creator, wagering amplifies your game's economic activity:
+
+1. **More matches played**: Players who wager play more sessions (practice before betting, the actual wager match, rematches)
+2. **Higher item demand**: Competitive players buy items for edge and expression
+3. **Spectator engagement**: Wager matches attract spectators who may discover your game
+4. **Tournament pipeline**: Successful wager games naturally evolve into tournament games
+
+### Best Games for Wagering
+
+| Game Type               | Why It Works for Wagering               |
+| ----------------------- | --------------------------------------- |
+| Fighter / StreetFighter | Pure skill, short matches, clear winner |
+| CardBattler             | Strategic depth, varied outcomes        |
+| Sumo                    | Quick matches, dramatic finishes        |
+| WeaponsDuel             | Tense 1v1 with parry mind games         |
+| MartialArts             | Stance matchups create varied outcomes  |
+| Chess (OpenSpiel)       | Classic competitive depth               |
+
+### Pricing Wagering Items
+
+Items that enhance the wagering experience sell well:
+
+- "Victory Taunt" cosmetics (displayed after winning a wager): 2-5 MBUCKS
+- "Wager Streak" badges (shows your winning streak): 1-3 MBUCKS
+- "Practice Mode" access (unlimited practice before wagering): 3-7 MBUCKS
 
 ---
 
