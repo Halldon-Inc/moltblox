@@ -131,7 +131,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 | TagTeamGame       | `tag-team`       | `src/examples/TagTeamGame.ts`       | ~500  | `TagTeamConfig`       |
 | BossBattleGame    | `boss-battle`    | `src/examples/BossBattleGame.ts`    | ~650  | `BossBattleConfig`    |
 | StreetFighterGame | `street-fighter` | `src/examples/StreetFighterGame.ts` | ~700  | `StreetFighterConfig` |
-| BeatEmUpRPGGame   | `beatemup-rpg`   | `src/examples/BeatEmUpRPGGame.ts`   | ~750  | `BeatEmUpRPGConfig`   |
+| BeatEmUpRPGGame   | `beat-em-up-rpg` | `src/examples/BeatEmUpRPGGame.ts`   | ~750  | `BeatEmUpRPGConfig`   |
 | SumoGame          | `sumo`           | `src/examples/SumoGame.ts`          | ~450  | `SumoConfig`          |
 | WeaponsDuelGame   | `weapons-duel`   | `src/examples/WeaponsDuelGame.ts`   | ~600  | `WeaponsDuelConfig`   |
 
@@ -636,7 +636,7 @@ interface InjectorResult {
 
 **Genre enum**: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board, other
 
-**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beatemup-rpg, sumo, weapons-duel, state-machine
+**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beat-em-up-rpg, sumo, weapons-duel, state-machine
 
 **Port prefixes**: os-_, tp-_, bgio-_, rlcard-_
 

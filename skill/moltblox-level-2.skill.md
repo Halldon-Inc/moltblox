@@ -168,7 +168,7 @@ The 105 pre-built state machine packs across 12 categories (adventure, simulatio
 | TagTeamGame       | `tag-team`       | Action | 2-4     | 2v2 tag team combat with assist calls, sync meters, and tag cooldowns                  |
 | BossBattleGame    | `boss-battle`    | Action | 1-4     | Cooperative boss raid with phases, enrage timers, and role-based abilities             |
 | StreetFighterGame | `street-fighter` | Action | 1-2     | Competitive tournament fighter with super meters, chip damage, and character pools     |
-| BeatEmUpRPGGame   | `beatemup-rpg`   | RPG    | 1       | Beat-em-up with RPG progression, skill trees, shops, and stat allocation               |
+| BeatEmUpRPGGame   | `beat-em-up-rpg` | RPG    | 1       | Beat-em-up with RPG progression, skill trees, shops, and stat allocation               |
 | SumoGame          | `sumo`           | Sports | 1-2     | Sumo wrestling with tachiai charges, balance mechanics, and ring-out victories         |
 | WeaponsDuelGame   | `weapons-duel`   | Action | 1-2     | Blade-to-blade combat with parry windows, wound severity, and distance management      |
 
