@@ -173,11 +173,14 @@ describe('BossBattleGame', () => {
 
   describe('phase transitions', () => {
     it('transitions boss phase at HP thresholds', () => {
-      const game = createGame(2, { bossTemplate: 'hydra', enrageTimer: 999 });
+      const game = createGame(4, { bossTemplate: 'hydra', enrageTimer: 999 });
       // Hydra has 400 HP. Phase thresholds at 75% (300), 50% (200), 25% (100)
-      // Keep attacking
-      for (let i = 0; i < 30; i++) {
-        act(game, 'player-1', 'attack');
+      // Alternate between all 4 players so damage spreads and no single player dies early
+      for (let i = 0; i < 60; i++) {
+        for (let p = 1; p <= 4; p++) {
+          if (game.isGameOver()) break;
+          act(game, `player-${p}`, 'attack');
+        }
         if (game.isGameOver()) break;
       }
       const data = game.getState().data as Record<string, unknown>;
