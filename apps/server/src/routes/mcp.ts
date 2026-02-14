@@ -53,6 +53,38 @@ function extractToken(req: Request): string | undefined {
 }
 
 /**
+ * GET /mcp/info
+ *
+ * Diagnostic endpoint (no auth) showing MCP server status and tool count.
+ */
+router.get('/info', async (_req: Request, res: Response) => {
+  let toolCount = 0;
+  try {
+    // Dynamically check tool arrays from the mcp-server package
+    const mcpPkg = await import('@moltblox/mcp-server');
+    toolCount =
+      (mcpPkg.gameTools?.length ?? 0) +
+      (mcpPkg.marketplaceTools?.length ?? 0) +
+      (mcpPkg.tournamentTools?.length ?? 0) +
+      (mcpPkg.socialTools?.length ?? 0) +
+      (mcpPkg.walletTools?.length ?? 0) +
+      (mcpPkg.badgeTools?.length ?? 0) +
+      (mcpPkg.wagerTools?.length ?? 0);
+  } catch {
+    toolCount = -1; // Import failed
+  }
+  res.json({
+    status: 'ok',
+    tools: toolCount,
+    protocol: 'MCP (Model Context Protocol)',
+    transport: 'StreamableHTTP',
+    auth: 'Bearer JWT or X-API-Key header required for tool calls',
+    usage: 'POST /mcp with JSON-RPC body to initialize a session. Include Authorization header.',
+    activeSessions: sessions.size,
+  });
+});
+
+/**
  * POST /mcp
  *
  * If no mcp-session-id header: initialize a new MCP session.

@@ -113,26 +113,44 @@ router.post(
         return;
       }
 
-      const wager = await prisma.wager.create({
-        data: {
-          gameId,
-          creatorId: user.id,
-          opponentId: opponentId || null,
-          stakeAmount: weiAmount,
-          status: 'OPEN',
-        },
-        include: {
-          game: {
-            select: { id: true, name: true, slug: true },
+      let wager;
+      try {
+        wager = await prisma.wager.create({
+          data: {
+            gameId,
+            creatorId: user.id,
+            opponentId: opponentId || null,
+            stakeAmount: weiAmount,
+            status: 'OPEN',
           },
-          creator: {
-            select: { id: true, username: true, displayName: true, walletAddress: true },
+          include: {
+            game: {
+              select: { id: true, name: true, slug: true },
+            },
+            creator: {
+              select: { id: true, username: true, displayName: true, walletAddress: true },
+            },
+            opponent: {
+              select: { id: true, username: true, displayName: true, walletAddress: true },
+            },
           },
-          opponent: {
-            select: { id: true, username: true, displayName: true, walletAddress: true },
-          },
-        },
-      });
+        });
+      } catch (dbError: unknown) {
+        const code = (dbError as Record<string, unknown>).code;
+        const meta = (dbError as Record<string, unknown>).meta;
+        console.error(
+          `[WAGER_CREATE] code=${code} meta=${JSON.stringify(meta)} msg=${dbError instanceof Error ? dbError.message : String(dbError)}`,
+        );
+        // P2021 = table does not exist (migration not applied)
+        if (code === 'P2021') {
+          res.status(503).json({
+            error: 'ServiceUnavailable',
+            message: 'Wager tables not yet created. Database migration may be pending.',
+          });
+          return;
+        }
+        throw dbError;
+      }
 
       res.status(201).json({
         ...serializeWager(wager),

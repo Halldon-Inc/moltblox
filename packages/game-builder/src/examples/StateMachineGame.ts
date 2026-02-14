@@ -322,16 +322,28 @@ export class StateMachineGame extends BaseGame {
 
   constructor(config?: Record<string, unknown>) {
     super(config);
-    const cfg = config as unknown as StateMachineConfig | undefined;
-    if (!cfg?.definition) {
-      const keys = config ? Object.keys(config) : [];
+
+    let definition: StateMachineDefinition | undefined;
+    const raw = config as Record<string, unknown> | undefined;
+
+    if (raw?.definition && typeof raw.definition === 'object') {
+      // Standard format: { definition: { name, states, ... } }
+      definition = raw.definition as unknown as StateMachineDefinition;
+    } else if (raw && ('states' in raw || 'initialState' in raw || 'resources' in raw)) {
+      // Flat format: the config IS the definition (no wrapper)
+      definition = raw as unknown as StateMachineDefinition;
+    }
+
+    if (!definition) {
+      const keys = raw ? Object.keys(raw) : [];
       throw new Error(
         `StateMachineGame requires a definition in config. ` +
           `Received keys: [${keys.join(', ')}]. ` +
           `Expected: { definition: { name, states, initialState, resources, actions, transitions, winCondition, loseCondition } }`,
       );
     }
-    this.definition = cfg.definition;
+
+    this.definition = definition;
     this.name = this.definition.name || 'State Machine Game';
     validateDefinition(this.definition);
   }

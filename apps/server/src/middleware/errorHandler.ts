@@ -84,10 +84,13 @@ export function errorHandler(err: Error, _req: Request, res: Response, _next: Ne
   // Log full error details server-side (never expose to clients)
   console.error(err.stack);
 
-  // Handle Prisma/database errors — never leak DB details regardless of environment
+  // Handle Prisma/database errors: log full details server-side, never leak to clients
   const errCode = (err as unknown as Record<string, unknown>).code;
   if (err.name?.startsWith('Prisma') || (typeof errCode === 'string' && errCode.startsWith('P'))) {
-    console.error(`[DB_ERROR] code=${errCode}`);
+    const meta = (err as unknown as Record<string, unknown>).meta;
+    console.error(
+      `[DB_ERROR] code=${errCode} message=${err.message}${meta ? ` meta=${JSON.stringify(meta)}` : ''}`,
+    );
     res.status(500).json({
       error: 'InternalServerError',
       message: 'A database error occurred',

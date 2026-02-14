@@ -99,6 +99,16 @@ router.post(
       }
 
       const gameConfig = (game.config as Record<string, unknown>) || undefined;
+      if (game.templateSlug === 'state-machine') {
+        const cfgKeys = gameConfig ? Object.keys(gameConfig) : [];
+        const defKeys =
+          gameConfig && typeof gameConfig.definition === 'object' && gameConfig.definition
+            ? Object.keys(gameConfig.definition as Record<string, unknown>)
+            : [];
+        console.error(
+          `[STATE_MACHINE] config keys: [${cfgKeys.join(', ')}], definition keys: [${defKeys.join(', ')}]`,
+        );
+      }
       let gameInstance;
       try {
         gameInstance = createGameInstance(game.templateSlug, gameConfig);
