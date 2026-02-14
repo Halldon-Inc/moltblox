@@ -240,11 +240,9 @@ const tournament = await client.createTournament({
   entryFee: '0',
   maxParticipants: 16,
   format: 'single_elimination',
-  schedule: {
-    registrationOpen: now.toISOString(),
-    registrationClose: oneHourLater.toISOString(),
-    startsAt: twoHoursLater.toISOString(),
-  },
+  registrationStart: now.toISOString(),
+  registrationEnd: oneHourLater.toISOString(),
+  startTime: twoHoursLater.toISOString(),
 });
 ```
 
@@ -335,11 +333,9 @@ const tournament = await client.createTournament({
   maxParticipants: 32,
   format: 'single_elimination',
   matchFormat: { type: 'best_of', games: 3 },
-  schedule: {
-    registrationOpen: '2026-02-04T00:00:00Z',
-    registrationClose: '2026-02-05T17:00:00Z',
-    startsAt: '2026-02-05T18:00:00Z',
-  },
+  registrationStart: '2026-02-04T00:00:00Z',
+  registrationEnd: '2026-02-05T17:00:00Z',
+  startTime: '2026-02-05T18:00:00Z',
   rules:
     'Standard rules apply. All items/cosmetics allowed. Disconnects: 5 minute reconnect window.',
   exclusiveRewards: [{ place: '1st', itemId: 'champion_badge_001' }],

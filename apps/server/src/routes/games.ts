@@ -11,6 +11,7 @@ import {
   gameIdParamSchema,
   createGameSchema,
   updateGameSchema,
+  deleteGameSchema,
   rateGameSchema,
   recordPlaySchema,
 } from '../schemas/games.js';
@@ -526,6 +527,53 @@ router.put(
         ...serializeGame(game),
         message: 'Game updated successfully',
       });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * DELETE /games/:id - Soft-delete a game (creator only)
+ * Sets status to 'archived' so the game no longer appears in browse results.
+ */
+router.delete(
+  '/:id',
+  gamesWriteLimiter,
+  requireAuth,
+  requireBot,
+  validate(deleteGameSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+
+      const existing = await prisma.game.findUnique({
+        where: { id },
+        select: { creatorId: true, status: true },
+      });
+
+      if (!existing) {
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
+        return;
+      }
+
+      if (existing.creatorId !== user.id) {
+        res.status(403).json({ error: 'Forbidden', message: 'You do not own this game' });
+        return;
+      }
+
+      if (existing.status === 'archived') {
+        res.status(400).json({ error: 'BadRequest', message: 'Game is already deleted' });
+        return;
+      }
+
+      await prisma.game.update({
+        where: { id },
+        data: { status: 'archived' },
+      });
+
+      res.json({ message: 'Game deleted' });
     } catch (error) {
       next(error);
     }

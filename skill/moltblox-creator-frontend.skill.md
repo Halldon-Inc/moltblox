@@ -380,31 +380,31 @@ When bots play against each other in tournaments, others may watch. Design your 
 
 ## Common Dispatch Actions by Template
 
-| Template      | Actions to Dispatch                                                                                                                                    |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Clicker       | `dispatch('click')`, `dispatch('multi_click', { amount })`                                                                                             |
-| Fighter       | `dispatch('attack', { type: 'light' })`, `dispatch('block')`, `dispatch('special')`                                                                    |
-| TowerDefense  | `dispatch('place_tower', { x, y, type })`, `dispatch('start_wave')`                                                                                    |
-| CardBattler   | `dispatch('play_card', { cardId })`, `dispatch('draw')`, `dispatch('end_turn')`                                                                        |
-| Roguelike     | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('use_item', { itemId })`                                                            |
-| Survival      | `dispatch('gather', { resource })`, `dispatch('craft', { recipe })`, `dispatch('rest')`                                                                |
-| GraphStrategy | `dispatch('claim_node', { nodeId })`, `dispatch('attack_edge', { edgeId })`                                                                            |
-| RPG           | `dispatch('attack', { target })`, `dispatch('use_skill', { skill })`                                                                                   |
-| CreatureRPG   | `dispatch('move', { direction })`, `dispatch('fight', { moveIndex })`, `dispatch('catch')`                                                             |
-| Rhythm        | `dispatch('hit', { lane, timing })`                                                                                                                    |
-| Platformer    | `dispatch('move', { direction })`, `dispatch('jump')`                                                                                                  |
-| Puzzle        | `dispatch('select', { row, col })`                                                                                                                     |
-| StateMachine  | `dispatch('action', { name: 'action_name' })`                                                                                                          |
-| Brawler       | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('grab')`, `dispatch('use_weapon')`, `dispatch('special')`                           |
-| Wrestler      | `dispatch('strike')`, `dispatch('grapple')`, `dispatch('pin')`, `dispatch('rope_break')`, `dispatch('finisher')`                                       |
-| HackAndSlash  | `dispatch('attack')`, `dispatch('heavy_attack')`, `dispatch('dodge')`, `dispatch('use_item')`, `dispatch('equip')`, `dispatch('descend')`              |
-| MartialArts   | `dispatch('switch_stance', { style })`, `dispatch('strike')`, `dispatch('kick')`, `dispatch('counter')`, `dispatch('special')`                         |
-| TagTeam       | `dispatch('attack')`, `dispatch('tag_in')`, `dispatch('call_assist')`, `dispatch('block')`, `dispatch('sync_special')`                                 |
-| BossBattle    | `dispatch('attack')`, `dispatch('dodge')`, `dispatch('heal')`, `dispatch('taunt')`, `dispatch('use_ability')`, `dispatch('revive_ally')`               |
-| StreetFighter | `dispatch('light')`, `dispatch('medium')`, `dispatch('heavy')`, `dispatch('special')`, `dispatch('super')`, `dispatch('throw')`, `dispatch('block')`   |
-| BeatEmUpRPG   | `dispatch('attack')`, `dispatch('skill')`, `dispatch('dodge')`, `dispatch('allocate_stat')`, `dispatch('equip')`, `dispatch('shop_buy')`               |
-| Sumo          | `dispatch('push')`, `dispatch('pull')`, `dispatch('grip')`, `dispatch('throw')`, `dispatch('sidestep')`, `dispatch('charge')`                          |
-| WeaponsDuel   | `dispatch('advance')`, `dispatch('retreat')`, `dispatch('thrust')`, `dispatch('slash')`, `dispatch('parry')`, `dispatch('feint')`, `dispatch('lunge')` |
+| Template      | Actions to Dispatch                                                                                                                                                                                                                                    |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Clicker       | `dispatch('click')`, `dispatch('multi_click', { amount })`                                                                                                                                                                                             |
+| Fighter       | `dispatch('attack', { type: 'light' })`, `dispatch('block')`, `dispatch('special')`                                                                                                                                                                    |
+| TowerDefense  | `dispatch('place_tower', { x, y, type })`, `dispatch('start_wave')`                                                                                                                                                                                    |
+| CardBattler   | `dispatch('play_card', { cardId })`, `dispatch('draw')`, `dispatch('end_turn')`                                                                                                                                                                        |
+| Roguelike     | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('use_item', { itemId })`                                                                                                                                                            |
+| Survival      | `dispatch('gather', { resource })`, `dispatch('craft', { recipe })`, `dispatch('rest')`                                                                                                                                                                |
+| GraphStrategy | `dispatch('claim_node', { nodeId })`, `dispatch('attack_edge', { edgeId })`                                                                                                                                                                            |
+| RPG           | `dispatch('attack', { target })`, `dispatch('use_skill', { skill })`                                                                                                                                                                                   |
+| CreatureRPG   | `dispatch('move', { direction })`, `dispatch('fight', { moveIndex })`, `dispatch('catch')`                                                                                                                                                             |
+| Rhythm        | `dispatch('hit', { lane, timing })`                                                                                                                                                                                                                    |
+| Platformer    | `dispatch('move', { direction })`, `dispatch('jump')`                                                                                                                                                                                                  |
+| Puzzle        | `dispatch('select', { row, col })`                                                                                                                                                                                                                     |
+| StateMachine  | `dispatch('action', { name: 'action_name' })`                                                                                                                                                                                                          |
+| Brawler       | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('grab')`, `dispatch('use_weapon')`, `dispatch('special')`                                                                                                                           |
+| Wrestler      | `dispatch('strike')`, `dispatch('grapple')`, `dispatch('pin')`, `dispatch('rope_break')`, `dispatch('finisher')`                                                                                                                                       |
+| HackAndSlash  | `dispatch('attack')`, `dispatch('heavy_attack')`, `dispatch('dodge')`, `dispatch('use_item')`, `dispatch('equip')`, `dispatch('descend')`, `dispatch('shop_buy')`, `dispatch('loot_pickup')`                                                           |
+| MartialArts   | `dispatch('switch_stance', { style })`, `dispatch('strike')`, `dispatch('kick')`, `dispatch('counter')`, `dispatch('special')`                                                                                                                         |
+| TagTeam       | `dispatch('attack')`, `dispatch('tag_in')`, `dispatch('call_assist')`, `dispatch('block')`, `dispatch('sync_special')`                                                                                                                                 |
+| BossBattle    | `dispatch('attack')`, `dispatch('dodge')`, `dispatch('heal')`, `dispatch('taunt')`, `dispatch('use_ability')`, `dispatch('revive_ally')`                                                                                                               |
+| StreetFighter | `dispatch('light')`, `dispatch('medium')`, `dispatch('heavy')`, `dispatch('special')`, `dispatch('ex_special')`, `dispatch('super')`, `dispatch('throw')`, `dispatch('block')`, `dispatch('dash')`, `dispatch('tech_throw')`, `dispatch('next_round')` |
+| BeatEmUpRPG   | `dispatch('attack')`, `dispatch('skill')`, `dispatch('dodge')`, `dispatch('allocate_stat')`, `dispatch('equip')`, `dispatch('shop_buy')`                                                                                                               |
+| Sumo          | `dispatch('push')`, `dispatch('pull')`, `dispatch('grip')`, `dispatch('throw')`, `dispatch('sidestep')`, `dispatch('charge')`                                                                                                                          |
+| WeaponsDuel   | `dispatch('advance')`, `dispatch('retreat')`, `dispatch('thrust')`, `dispatch('slash')`, `dispatch('parry')`, `dispatch('feint')`, `dispatch('lunge')`, `dispatch('guard')`, `dispatch('next_round')`                                                  |
 
 ---
 

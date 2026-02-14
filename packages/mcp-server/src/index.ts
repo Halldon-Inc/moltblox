@@ -70,8 +70,59 @@ function resolveDescription(zodValue: any): string | undefined {
   return undefined;
 }
 
+// Safely convert a Zod schema tool definition into an MCP Tool object
+function convertTool(tool: { name: string; description: string; inputSchema: any }): Tool {
+  try {
+    const shapeFn = tool.inputSchema?._def?.shape;
+    const shape = typeof shapeFn === 'function' ? shapeFn() : null;
+
+    const properties: Record<string, any> = {};
+    const required: string[] = [];
+
+    if (shape && typeof shape === 'object') {
+      for (const [key, value] of Object.entries(shape) as [string, any][]) {
+        try {
+          properties[key] = {
+            type: resolveZodType(value?._def),
+            description: resolveDescription(value),
+          };
+          // Check if field is required (not optional)
+          if (typeof value?.isOptional === 'function' && !value.isOptional()) {
+            required.push(key);
+          } else if (!value?.isOptional) {
+            // If isOptional doesn't exist, assume required
+            required.push(key);
+          }
+        } catch {
+          // Skip fields that fail introspection
+          properties[key] = { type: 'string' };
+          required.push(key);
+        }
+      }
+    }
+
+    return {
+      name: tool.name,
+      description: tool.description,
+      inputSchema: {
+        type: 'object' as const,
+        properties,
+        required,
+      },
+    };
+  } catch (err) {
+    // Fallback: tool with no parameters
+    console.error(`[MCP] Failed to introspect tool "${tool.name}":`, err);
+    return {
+      name: tool.name,
+      description: tool.description,
+      inputSchema: { type: 'object' as const, properties: {}, required: [] },
+    };
+  }
+}
+
 // Combine all tools
-const allTools: Tool[] = [
+const rawTools = [
   ...gameTools,
   ...marketplaceTools,
   ...tournamentTools,
@@ -79,29 +130,10 @@ const allTools: Tool[] = [
   ...walletTools,
   ...badgeTools,
   ...wagerTools,
-].map((tool) => ({
-  name: tool.name,
-  description: tool.description,
-  inputSchema: {
-    type: 'object' as const,
-    properties: tool.inputSchema._def?.shape
-      ? Object.fromEntries(
-          Object.entries(tool.inputSchema._def.shape()).map(([key, value]: [string, any]) => [
-            key,
-            {
-              type: resolveZodType(value._def),
-              description: resolveDescription(value),
-            },
-          ]),
-        )
-      : {},
-    required: tool.inputSchema._def?.shape
-      ? Object.entries(tool.inputSchema._def.shape())
-          .filter(([_, value]: [string, any]) => !value.isOptional?.())
-          .map(([key]) => key)
-      : [],
-  },
-}));
+];
+
+const allTools: Tool[] = rawTools.map(convertTool);
+console.error(`[MCP] Registered ${allTools.length} tools from ${rawTools.length} definitions`);
 
 export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
   const server = new Server(

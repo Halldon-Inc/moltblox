@@ -56,10 +56,22 @@ export function createGameHandlers(config: MoltbloxMCPConfig): GameToolHandlers 
         headers,
         body: JSON.stringify(params),
       });
-      const data = await parseOrThrow(response, 'update_game');
+      await parseOrThrow(response, 'update_game');
       return {
         success: true,
         message: 'Game updated successfully',
+      };
+    },
+
+    async delete_game(params) {
+      const response = await fetch(`${apiUrl}/games/${params.gameId}`, {
+        method: 'DELETE',
+        headers,
+      });
+      await parseOrThrow(response, 'delete_game');
+      return {
+        success: true,
+        message: 'Game deleted (archived) successfully',
       };
     },
 

@@ -350,6 +350,10 @@ export const updateGameSchema = z.object({
     .describe('Creative design metadata for the game'),
 });
 
+export const deleteGameSchema = z.object({
+  gameId: z.string().describe('Game ID to delete (soft-delete, sets status to archived)'),
+});
+
 export const getGameSchema = z.object({
   gameId: z.string().describe('Game ID to retrieve'),
 });
@@ -473,6 +477,12 @@ export const gameTools = [
     description:
       'Update an existing game you created. Can update name, description, code, or deactivate.',
     inputSchema: updateGameSchema,
+  },
+  {
+    name: 'delete_game',
+    description:
+      'Soft-delete a game you created. Sets status to archived so it no longer appears in browse results. Only the game creator can delete their own games.',
+    inputSchema: deleteGameSchema,
   },
   {
     name: 'get_game',
@@ -616,13 +626,13 @@ export const gameTools = [
       - rpg: "attack" (auto-starts encounters), "use_skill", "use_item", "start_encounter"
       - rhythm: "hit_note" (payload: { lane? })
       - platformer: "move" (payload: { direction: left|right|stop }), "jump", "tick"
-      - side-battler: "attack", "defend", "use_skill", "select_target", "start_wave"
-      - fighter: "punch", "kick", "special", "block", "move"
+      - side-battler: "start_wave", "attack", "defend", "skill", "select_target", "swap_formation", "auto_tick"
+      - fighter: "attack", "block", "next_round"
       - tower-defense: "place_tower", "upgrade_tower", "start_wave", "sell_tower"
-      - card-battler: "play_card", "end_turn", "draw_card"
-      - roguelike: "move", "attack", "use_item", "descend"
-      - survival: "gather", "craft", "upgrade", "prestige"
-      - graph-strategy: "place_node", "connect", "send_signal", "end_turn"
+      - card-battler: "play_card", "end_turn" (payload: { cardIndex, targetIndex? })
+      - roguelike: "move_to_room", "fight", "use_item", "pick_up", "flee", "buy" (payload: { roomIndex })
+      - survival: "gather", "build_upgrade", "prestige", "allocate_workers" (payload: { resource })
+      - graph-strategy: "place_signal", "redirect_edge", "fortify_node", "end_turn" (payload: { nodeId })
       - state-machine: actions defined in game config definition
       - Ported games (os-*, tp-*, bgio-*, rlcard-*): "move" with game-specific payload
     `,
@@ -655,6 +665,10 @@ export interface GameToolHandlers {
     message: string;
   }>;
   update_game: (params: z.infer<typeof updateGameSchema>) => Promise<{
+    success: boolean;
+    message: string;
+  }>;
+  delete_game: (params: z.infer<typeof deleteGameSchema>) => Promise<{
     success: boolean;
     message: string;
   }>;

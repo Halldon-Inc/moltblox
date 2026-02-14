@@ -372,6 +372,12 @@ export const rateGameSchema = {
   }),
 };
 
+export const deleteGameSchema = {
+  params: z.object({
+    id: z.string().cuid(),
+  }),
+};
+
 export const recordPlaySchema = {
   params: z.object({
     id: z.string().cuid(),

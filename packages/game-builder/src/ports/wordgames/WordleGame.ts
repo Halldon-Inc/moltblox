@@ -76,6 +76,17 @@ export class WordleGame extends BaseGame {
     };
   }
 
+  getStateForPlayer(_playerId: string) {
+    const state = super.getState();
+    const d = state.data as Record<string, unknown>;
+    // Hide target word until game is over (prevent cheating)
+    if (d && !d.won && (d.guesses as string[]).length < (d.maxGuesses as number)) {
+      const { target: _target, ...safeData } = d;
+      return { ...state, data: safeData };
+    }
+    return state;
+  }
+
   protected processAction(_: string, action: GameAction): ActionResult {
     if (action.type !== 'guess') return { success: false, error: 'Use guess action' };
     const d = this.getData<WordleState>();

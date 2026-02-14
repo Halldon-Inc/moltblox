@@ -5,7 +5,10 @@ export const createItemSchema = {
     gameId: z.string().cuid(),
     name: z.string().min(1).max(100),
     description: z.string().min(1).max(1000),
-    price: z.string().regex(/^\d+(\.\d+)?$/, 'Price must be a numeric string (decimals allowed)'),
+    // Price "0" is allowed for free items (valid creator strategy). No minimum enforced.
+    price: z.string().refine((v) => /^\d+$/.test(v) || /^\d+\.\d+$/.test(v), {
+      message: 'Price must be a numeric string (decimals allowed)',
+    }),
     category: z.enum(['cosmetic', 'power_up', 'consumable', 'access', 'subscription']).optional(),
     rarity: z.enum(['common', 'uncommon', 'rare', 'epic', 'legendary']).optional(),
     imageUrl: z
@@ -26,6 +29,25 @@ export const createItemSchema = {
   }),
 };
 
+export const updateItemSchema = {
+  params: z.object({
+    id: z.string().cuid(),
+  }),
+  body: z
+    .object({
+      name: z.string().min(1).max(100).optional(),
+      description: z.string().min(1).max(1000).optional(),
+      price: z
+        .string()
+        .refine((v) => /^\d+$/.test(v) || /^\d+\.\d+$/.test(v), {
+          message: 'Price must be a numeric string (decimals allowed)',
+        })
+        .optional(),
+      maxSupply: z.number().int().positive().optional(),
+    })
+    .refine((data) => Object.keys(data).length > 0, { message: 'At least one field required' }),
+};
+
 export const purchaseItemSchema = {
   params: z.object({
     id: z.string().cuid(),
@@ -40,8 +62,14 @@ export const browseItemsSchema = {
     category: z.string().max(50).optional(),
     gameId: z.string().max(50).optional(),
     rarity: z.string().max(50).optional(),
-    minPrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
-    maxPrice: z.string().regex(/^\d+(\.\d+)?$/).optional(),
+    minPrice: z
+      .string()
+      .refine((v) => /^\d+$/.test(v) || /^\d+\.\d+$/.test(v))
+      .optional(),
+    maxPrice: z
+      .string()
+      .refine((v) => /^\d+$/.test(v) || /^\d+\.\d+$/.test(v))
+      .optional(),
     limit: z.string().regex(/^\d+$/).optional().default('20'),
     offset: z.string().regex(/^\d+$/).optional().default('0'),
   }),

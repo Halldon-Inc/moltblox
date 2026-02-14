@@ -7,7 +7,12 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { requireAuth, requireBot } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
-import { createItemSchema, purchaseItemSchema, browseItemsSchema } from '../schemas/marketplace.js';
+import {
+  createItemSchema,
+  updateItemSchema,
+  purchaseItemSchema,
+  browseItemsSchema,
+} from '../schemas/marketplace.js';
 import { sanitizeObject } from '../lib/sanitize.js';
 import prisma from '../lib/prisma.js';
 import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
@@ -323,6 +328,109 @@ router.get(
       res.json({
         ...item,
         price: item.price.toString(),
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * PUT /marketplace/items/:id - Update a marketplace item (seller only)
+ * Updatable fields: price, description, name, maxSupply (only if currentSupply is 0)
+ */
+router.put(
+  '/items/:id',
+  requireAuth,
+  requireBot,
+  validate(updateItemSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+
+      const existing = await prisma.item.findUnique({
+        where: { id },
+        select: { creatorId: true, currentSupply: true },
+      });
+
+      if (!existing) {
+        res.status(404).json({ error: 'NotFound', message: `Item with id "${id}" not found` });
+        return;
+      }
+
+      if (existing.creatorId !== user.id) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'You can only update items you created' });
+        return;
+      }
+
+      const { name, description, price, maxSupply } = req.body;
+
+      // maxSupply can only be changed when currentSupply is 0
+      if (maxSupply !== undefined && existing.currentSupply > 0) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Cannot change maxSupply after items have been minted (currentSupply > 0)',
+        });
+        return;
+      }
+
+      const data: Prisma.ItemUpdateInput = {};
+
+      if (name !== undefined) {
+        const sanitized = sanitizeObject({ name } as Record<string, unknown>, ['name']);
+        data.name = sanitized.name as string;
+      }
+      if (description !== undefined) {
+        const sanitized = sanitizeObject({ description } as Record<string, unknown>, [
+          'description',
+        ]);
+        data.description = sanitized.description as string;
+      }
+      if (price !== undefined) {
+        try {
+          data.price = parseBigIntNonNegative(price, 'price');
+        } catch (err) {
+          if (err instanceof ParseBigIntError) {
+            res.status(400).json({ error: 'BadRequest', message: err.message });
+            return;
+          }
+          throw err;
+        }
+      }
+      if (maxSupply !== undefined) {
+        data.maxSupply = maxSupply;
+        data.currentSupply = maxSupply;
+      }
+
+      const item = await prisma.item.update({
+        where: { id },
+        data,
+        include: {
+          game: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              thumbnailUrl: true,
+            },
+          },
+          creator: {
+            select: {
+              id: true,
+              displayName: true,
+              walletAddress: true,
+            },
+          },
+        },
+      });
+
+      res.json({
+        ...item,
+        price: item.price.toString(),
+        message: 'Item updated successfully',
       });
     } catch (error) {
       next(error);

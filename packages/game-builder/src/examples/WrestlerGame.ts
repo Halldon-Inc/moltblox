@@ -92,8 +92,14 @@ export class WrestlerGame extends BaseGame {
     const finisherThreshold = cfg.finisherThreshold ?? 80;
     const ropeBreaks = cfg.ropeBreaks ?? 3;
 
+    // Auto-CPU for solo play
+    const allIds = [...playerIds];
+    if (playerIds.length === 1) {
+      allIds.push('cpu');
+    }
+
     const wrestlers: Record<string, Wrestler> = {};
-    for (const pid of playerIds) {
+    for (const pid of allIds) {
       wrestlers[pid] = {
         hp: 100,
         maxHp: 100,
@@ -108,11 +114,11 @@ export class WrestlerGame extends BaseGame {
     }
 
     // For tag matches, set up partners
-    if (matchType === 'tag' && playerIds.length >= 2) {
+    if (matchType === 'tag' && allIds.length >= 2) {
       // First half vs second half
-      const half = Math.ceil(playerIds.length / 2);
-      for (let i = 0; i < playerIds.length; i++) {
-        const pid = playerIds[i];
+      const half = Math.ceil(allIds.length / 2);
+      for (let i = 0; i < allIds.length; i++) {
+        const pid = allIds[i];
         if (i < half) {
           wrestlers[pid].tagPartner = playerIds[i + half] ?? undefined;
           wrestlers[pid].isActive = i === 0;
@@ -123,7 +129,7 @@ export class WrestlerGame extends BaseGame {
       }
     }
 
-    const turnOrder = playerIds.filter((pid) => {
+    const turnOrder = allIds.filter((pid) => {
       if (matchType === 'tag') return wrestlers[pid].isActive;
       return true;
     });
@@ -591,6 +597,130 @@ export class WrestlerGame extends BaseGame {
 
   private advanceTurn(data: WrestlerState): void {
     if (data.turnOrder.length > 0) {
+      data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
+    }
+    // Auto-run CPU turn if it's the CPU's turn
+    if (
+      !data.matchOver &&
+      data.turnOrder.length > 0 &&
+      data.turnOrder[data.currentTurnIndex] === 'cpu'
+    ) {
+      this.runCpuTurn(data);
+    }
+  }
+
+  private runCpuTurn(data: WrestlerState): void {
+    const cpu = data.wrestlers['cpu'];
+    if (!cpu || cpu.eliminated || data.matchOver) return;
+
+    const opponentId = this.getOpponentId('cpu', data);
+    const opponent = opponentId ? data.wrestlers[opponentId] : null;
+    if (!opponent) return;
+
+    // Handle pin defense: CPU auto kicks out
+    if (data.pinAttemptActive && data.pinDefender === 'cpu') {
+      const kickOutChance = Math.max(0.2, cpu.hp / cpu.maxHp);
+      if (Math.random() < kickOutChance) {
+        data.pinAttemptActive = false;
+        data.pinAttacker = null;
+        data.pinDefender = null;
+        data.referee.counting = false;
+        data.referee.count = 0;
+        data.referee.targetId = null;
+        cpu.stamina -= STAMINA_COSTS.kick_out;
+        this.emitEvent('kick_out', 'cpu', { success: true });
+      } else {
+        data.referee.count = 3;
+        cpu.eliminated = true;
+        data.turnOrder = data.turnOrder.filter((id) => id !== 'cpu');
+        data.pinAttemptActive = false;
+        this.emitEvent('pinned', 'cpu', { by: data.pinAttacker });
+        this.checkMatchEnd(data);
+      }
+      if (data.turnOrder.length > 0) {
+        data.currentTurnIndex = data.currentTurnIndex % data.turnOrder.length;
+      }
+      return;
+    }
+
+    // Simple weighted AI
+    const roll = Math.random();
+    if (cpu.momentum >= (data.finisherThreshold ?? 80) && cpu.stamina >= STAMINA_COSTS.finisher) {
+      // Use finisher when momentum is high
+      const damage = 30;
+      opponent.hp = Math.max(0, opponent.hp - damage);
+      cpu.stamina -= STAMINA_COSTS.finisher;
+      cpu.momentum = 0;
+      data.crowdMeter = Math.min(100, data.crowdMeter + 20);
+      this.emitEvent('finisher', 'cpu', { damage, target: opponentId });
+      if (opponent.hp > 0) {
+        data.pinAttemptActive = true;
+        data.pinAttacker = 'cpu';
+        data.pinDefender = opponentId!;
+        data.referee.counting = true;
+        data.referee.count = 0;
+        data.referee.targetId = opponentId!;
+      } else {
+        opponent.eliminated = true;
+        this.emitEvent('knocked_out', opponentId!, {});
+        this.checkMatchEnd(data);
+      }
+    } else if (opponent.hp <= 20 && cpu.stamina >= STAMINA_COSTS.pin && roll < 0.6) {
+      // Pin when opponent is weak
+      data.pinAttemptActive = true;
+      data.pinAttacker = 'cpu';
+      data.pinDefender = opponentId!;
+      data.referee.counting = true;
+      data.referee.count = 0;
+      data.referee.targetId = opponentId!;
+      cpu.stamina -= STAMINA_COSTS.pin;
+      this.emitEvent('pin_attempt', 'cpu', { target: opponentId });
+    } else if (roll < 0.4) {
+      // Strike
+      const types = ['punch', 'kick', 'chop'];
+      const t = types[Math.floor(Math.random() * types.length)];
+      const damage = STRIKE_DAMAGE[t] ?? 5;
+      opponent.hp = Math.max(0, opponent.hp - damage);
+      cpu.stamina -= STAMINA_COSTS.strike;
+      const momentumGain = Math.floor(
+        (MOMENTUM_GAINS.strike ?? 5) * this.getMomentumMultiplier(data),
+      );
+      cpu.momentum = Math.min(100, cpu.momentum + momentumGain);
+      data.crowdMeter = Math.min(100, data.crowdMeter + 2);
+      this.emitEvent('strike', 'cpu', { type: t, damage, target: opponentId });
+      this.checkElimination(opponentId!, data);
+    } else if (roll < 0.7 && cpu.stamina >= STAMINA_COSTS.grapple) {
+      // Grapple
+      const grappleSuccess = Math.random() < 0.6;
+      if (grappleSuccess) {
+        const damage = 12;
+        opponent.hp = Math.max(0, opponent.hp - damage);
+        const momentumGain = Math.floor(
+          (MOMENTUM_GAINS.grapple ?? 10) * this.getMomentumMultiplier(data),
+        );
+        cpu.momentum = Math.min(100, cpu.momentum + momentumGain);
+        this.emitEvent('grapple', 'cpu', { success: true, damage, target: opponentId });
+      } else {
+        cpu.stamina -= 5;
+        this.emitEvent('grapple', 'cpu', { success: false });
+      }
+      cpu.stamina -= STAMINA_COSTS.grapple;
+      this.checkElimination(opponentId!, data);
+    } else {
+      // Irish whip
+      const damage = 8;
+      opponent.hp = Math.max(0, opponent.hp - damage);
+      cpu.stamina -= STAMINA_COSTS.irish_whip;
+      data.crowdMeter = Math.min(100, data.crowdMeter + 3);
+      this.emitEvent('irish_whip', 'cpu', { damage, target: opponentId });
+      this.checkElimination(opponentId!, data);
+    }
+
+    this.regenStamina(data);
+    this.regenTagPartners(data);
+
+    // Advance past CPU's turn
+    if (data.turnOrder.length > 0 && !data.matchOver) {
       data.currentTurnIndex = (data.currentTurnIndex + 1) % data.turnOrder.length;
     }
   }

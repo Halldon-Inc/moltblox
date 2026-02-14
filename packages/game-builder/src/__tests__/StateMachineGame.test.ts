@@ -675,4 +675,79 @@ describe('StateMachineGame', () => {
       expect((game2.getState().data as Record<string, unknown>).currentState).toBe('end');
     });
   });
+
+  // -------------------------------------------------------------------------
+  // JSON round-trip (Prisma Json / Redis serialization)
+  // -------------------------------------------------------------------------
+
+  describe('JSON round-trip (Prisma/Redis)', () => {
+    it('accepts wrapped config after JSON round-trip', () => {
+      const def = makeDefinition();
+      const config = { definition: def };
+      const roundTripped = JSON.parse(JSON.stringify(config));
+      const game = new StateMachineGame(roundTripped);
+      game.initialize(['player-1']);
+      expect(game.getState().phase).toBe('playing');
+    });
+
+    it('accepts flat config after JSON round-trip', () => {
+      const def = makeDefinition();
+      const roundTripped = JSON.parse(JSON.stringify(def));
+      const game = new StateMachineGame(roundTripped);
+      game.initialize(['player-1']);
+      expect(game.getState().phase).toBe('playing');
+    });
+
+    it('handles double-wrapped config (definition.definition)', () => {
+      const def = makeDefinition();
+      const doubleWrapped = { definition: { definition: def } };
+      const game = new StateMachineGame(doubleWrapped);
+      game.initialize(['player-1']);
+      expect(game.getState().phase).toBe('playing');
+    });
+
+    it('handles double-stringified config (string inside Json column)', () => {
+      const def = makeDefinition();
+      const config = { definition: def };
+      const stringified = JSON.stringify(config);
+      // Prisma Json column could end up as a string if double-serialized
+      const roundTripped = JSON.parse(JSON.stringify(stringified));
+      // roundTripped is now a string
+      const parsed = typeof roundTripped === 'string' ? JSON.parse(roundTripped) : roundTripped;
+      const game = new StateMachineGame(parsed);
+      game.initialize(['player-1']);
+      expect(game.getState().phase).toBe('playing');
+    });
+
+    it('plays a full game after JSON round-trip via Redis pattern', () => {
+      const def = makeDefinition();
+      const config = { definition: def };
+      // Simulate: Prisma -> session -> Redis stringify -> Redis parse
+      const session = { gameConfig: config };
+      const redisRoundTripped = JSON.parse(JSON.stringify(session));
+      const game = new StateMachineGame(redisRoundTripped.gameConfig);
+      game.initialize(['player-1']);
+
+      const r1 = act(game, 'player-1', 'explore');
+      expect(r1.success).toBe(true);
+      const data = game.getState().data as Record<string, unknown>;
+      expect(data.currentState).toBe('middle');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Improved error messages
+  // -------------------------------------------------------------------------
+
+  describe('error messages', () => {
+    it('shows received data structure when definition is missing', () => {
+      expect(() => new StateMachineGame({ foo: 'bar' })).toThrow('Received keys: [foo]');
+      expect(() => new StateMachineGame({ foo: 'bar' })).toThrow('Preview:');
+    });
+
+    it('shows preview when states are missing', () => {
+      const badDef = { name: 'Bad', description: 'No states' };
+      expect(() => new StateMachineGame({ definition: badDef as never })).toThrow('preview:');
+    });
+  });
 });

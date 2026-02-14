@@ -90,6 +90,22 @@ router.post(
         return;
       }
 
+      // Per-player session limit: max 5 active sessions across all games
+      const activeSessionCount = await prisma.gameSession.count({
+        where: {
+          status: 'active',
+          endedAt: null,
+          players: { some: { userId: user.id } },
+        },
+      });
+      if (activeSessionCount >= 5) {
+        res.status(429).json({
+          error: 'TooManyRequests',
+          message: 'Too many active sessions. Maximum 5 per player.',
+        });
+        return;
+      }
+
       if (!game.templateSlug) {
         res.status(400).json({
           error: 'BadRequest',

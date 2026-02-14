@@ -85,12 +85,23 @@ describe('ClickerGame', () => {
       expect(clicks['player-1']).toBe(3);
     });
 
-    it('caps at maxMultiClick (default 50) per action', () => {
+    it('rejects multi_click exceeding maxMultiClick (default 10)', () => {
       const game = createGame();
-      act(game, 'player-1', 'multi_click', { amount: 75 });
+      const result = act(game, 'player-1', 'multi_click', { amount: 15 });
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('exceeds maximum');
       const data = game.getState().data as Record<string, unknown>;
       const clicks = data.clicks as Record<string, number>;
-      expect(clicks['player-1']).toBe(50);
+      expect(clicks['player-1']).toBe(0);
+    });
+
+    it('allows multi_click within maxMultiClick limit', () => {
+      const game = createGame();
+      const result = act(game, 'player-1', 'multi_click', { amount: 10 });
+      expect(result.success).toBe(true);
+      const data = game.getState().data as Record<string, unknown>;
+      const clicks = data.clicks as Record<string, number>;
+      expect(clicks['player-1']).toBe(10);
     });
   });
 

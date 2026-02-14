@@ -26,9 +26,15 @@ export const createItemSchema = z.object({
 
 export const updateItemSchema = z.object({
   itemId: z.string().describe('Item ID to update'),
+  name: z.string().min(1).max(100).optional().describe('New item name'),
+  description: z.string().min(1).max(1000).optional().describe('New description'),
   price: z.string().optional().describe('New price in MBUCKS'),
-  active: z.boolean().optional().describe('Active status'),
-  description: z.string().optional().describe('New description'),
+  maxSupply: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('New max supply (only changeable when currentSupply is 0)'),
 });
 
 export const purchaseItemSchema = z.object({
@@ -80,7 +86,8 @@ export const marketplaceTools = [
   },
   {
     name: 'update_item',
-    description: 'Update an item you created. Can change price, description, or deactivate.',
+    description:
+      'Update an item you created. Can change name, description, price, or maxSupply (maxSupply only when currentSupply is 0).',
     inputSchema: updateItemSchema,
   },
   {

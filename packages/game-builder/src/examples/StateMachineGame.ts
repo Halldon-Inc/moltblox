@@ -256,10 +256,12 @@ function validateDefinition(def: StateMachineDefinition): void {
   if (!Array.isArray(def.states) || def.states.length === 0) {
     const defKeys = def ? Object.keys(def) : [];
     const statesType = def?.states === undefined ? 'undefined' : typeof def.states;
+    const preview = JSON.stringify(def).slice(0, 200);
     throw new Error(
       `Definition must have at least one state. ` +
         `definition keys: [${defKeys.join(', ')}], ` +
-        `states type: ${statesType}`,
+        `states type: ${statesType}, ` +
+        `preview: ${preview}`,
     );
   }
   if (def.states.length > MAX_STATES) {
@@ -327,8 +329,17 @@ export class StateMachineGame extends BaseGame {
     const raw = config as Record<string, unknown> | undefined;
 
     if (raw?.definition && typeof raw.definition === 'object') {
-      // Standard format: { definition: { name, states, ... } }
-      definition = raw.definition as unknown as StateMachineDefinition;
+      let candidate = raw.definition as Record<string, unknown>;
+      // Unwrap double-wrapped config: { definition: { definition: { ... } } }
+      if (
+        candidate.definition &&
+        typeof candidate.definition === 'object' &&
+        !Array.isArray(candidate.definition) &&
+        !('states' in candidate)
+      ) {
+        candidate = candidate.definition as Record<string, unknown>;
+      }
+      definition = candidate as unknown as StateMachineDefinition;
     } else if (raw && ('states' in raw || 'initialState' in raw || 'resources' in raw)) {
       // Flat format: the config IS the definition (no wrapper)
       definition = raw as unknown as StateMachineDefinition;
@@ -336,9 +347,11 @@ export class StateMachineGame extends BaseGame {
 
     if (!definition) {
       const keys = raw ? Object.keys(raw) : [];
+      const preview = raw ? JSON.stringify(raw).slice(0, 200) : 'undefined';
       throw new Error(
         `StateMachineGame requires a definition in config. ` +
           `Received keys: [${keys.join(', ')}]. ` +
+          `Preview: ${preview}. ` +
           `Expected: { definition: { name, states, initialState, resources, actions, transitions, winCondition, loseCondition } }`,
       );
     }
