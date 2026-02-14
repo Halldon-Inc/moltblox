@@ -13,7 +13,6 @@
  *   - On game over: broadcast match_end with scores and winner
  */
 
-import { WebSocket } from 'ws';
 import { v4 as uuidv4 } from 'uuid';
 import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
@@ -26,12 +25,7 @@ import {
   publishMatchFound,
   type ActiveSessionData,
 } from './redisSessionStore.js';
-import {
-  sendTo,
-  broadcastToSession,
-  type ConnectedClient,
-  type WSMessage,
-} from './sessionManager.js';
+import { sendTo, type ConnectedClient, type WSMessage } from './sessionManager.js';
 
 // =========================================================================
 // Types
@@ -104,21 +98,6 @@ interface RealTimeSession {
     matchState: Record<string, unknown>;
   } | null;
 }
-
-// =========================================================================
-// Named input map (mirrored from OpenBORAdapter for convenience)
-// =========================================================================
-
-const INPUT_MAP: Record<string, number> = {
-  move_left: 0b00000001,
-  move_right: 0b00000010,
-  move_up: 0b00000100,
-  move_down: 0b00001000,
-  attack1: 0b00010000,
-  attack2: 0b00100000,
-  jump: 0b01000000,
-  special: 0b10000000,
-};
 
 // =========================================================================
 // RealTimeSessionManager

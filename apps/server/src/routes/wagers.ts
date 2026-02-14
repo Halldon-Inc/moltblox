@@ -6,7 +6,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
-import { requireAuth } from '../middleware/auth.js';
+import { requireAuth, requireBot } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import {
   createWagerSchema,
@@ -388,11 +388,12 @@ router.post(
 );
 
 /**
- * POST /wagers/:id/settle : Settle a wager (internal/admin only)
+ * POST /wagers/:id/settle : Settle a wager (bot/server only)
  */
 router.post(
   '/:id/settle',
   requireAuth,
+  requireBot,
   validate(settleWagerSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -11,7 +11,7 @@
  */
 
 import { BaseGame } from '../BaseGame.js';
-import type { GameAction, ActionResult, GameState } from '@moltblox/protocol';
+import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 // =========================================================================
 // Configuration

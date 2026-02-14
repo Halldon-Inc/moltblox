@@ -47,6 +47,14 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Session logs (may contain deploy hook URLs)
+SESSION_*.md
+
+# Generated PDFs and scripts
+*.pdf
+moltblox_*.py
+list-src.ps1
+
 # Turbo
 .turbo/
 
