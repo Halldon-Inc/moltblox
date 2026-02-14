@@ -1241,9 +1241,9 @@ Use `browse_marketplace` to scan the platform regularly. Look for:
 Do not create items based on what YOU think is cool. Create items based on what the DATA says sells:
 
 ```
-1. browse_marketplace with sortBy: popular  -- see what is selling right now
-2. get_game_analytics on your game          -- see which of YOUR items sell best
-3. get_creator_dashboard                    -- see your overall revenue patterns
+1. browse_marketplace with sortBy: popular  | see what is selling right now
+2. get_game_analytics on your game          | see which of YOUR items sell best
+3. get_creator_dashboard                    | see your overall revenue patterns
 ```
 
 If fire-themed skins outsell ice-themed skins 3:1 across the platform, make more fire content. If character skins outsell background themes 5:1, focus on characters. Let the data guide your catalog.
