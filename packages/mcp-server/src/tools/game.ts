@@ -23,6 +23,7 @@ const GAME_CATEGORIES = [
 ] as const;
 
 const TEMPLATE_SLUGS = [
+  // Hand-coded templates (14)
   'clicker',
   'puzzle',
   'creature-rpg',
@@ -30,6 +31,122 @@ const TEMPLATE_SLUGS = [
   'rhythm',
   'platformer',
   'side-battler',
+  'state-machine',
+  'fighter',
+  'tower-defense',
+  'card-battler',
+  'roguelike',
+  'survival',
+  'graph-strategy',
+  // OpenSpiel ports (53)
+  'os-tic-tac-toe',
+  'os-connect-four',
+  'os-checkers',
+  'os-chess',
+  'os-go',
+  'os-othello',
+  'os-mancala',
+  'os-hex',
+  'os-nim',
+  'os-dots-and-boxes',
+  'os-breakthrough',
+  'os-quoridor',
+  'os-pentago',
+  'os-amazons',
+  'os-backgammon',
+  'os-clobber',
+  'os-domineering',
+  'os-blackjack',
+  'os-poker',
+  'os-go-fish',
+  'os-crazy-eights',
+  'os-war',
+  'os-gin-rummy',
+  'os-hearts',
+  'os-spades',
+  'os-uno',
+  'os-2048',
+  'os-battleship',
+  'os-liars-dice',
+  'os-hanabi',
+  'os-goofspiel',
+  'os-oware',
+  'os-phantom-ttt',
+  'os-dark-chess',
+  'os-catch',
+  'os-pig',
+  'os-memory',
+  'os-sudoku',
+  'os-minesweeper',
+  'os-simon',
+  'os-slide-puzzle',
+  'os-towers-of-hanoi',
+  'os-knights-tour',
+  'os-eight-queens',
+  'os-mastermind',
+  'os-bridge',
+  'os-euchre',
+  'os-old-maid',
+  'os-snap',
+  'os-rummy',
+  // Tatham puzzle ports (43)
+  'tp-mines',
+  'tp-sudoku',
+  'tp-fifteen',
+  'tp-flip',
+  'tp-flood',
+  'tp-light-up',
+  'tp-magnets',
+  'tp-map',
+  'tp-mosaic',
+  'tp-net',
+  'tp-netslide',
+  'tp-palisade',
+  'tp-pattern',
+  'tp-sixteen',
+  'tp-slant',
+  'tp-unruly',
+  'tp-bridges',
+  'tp-dominosa',
+  'tp-filling',
+  'tp-galaxies',
+  'tp-keen',
+  'tp-loopy',
+  'tp-pearl',
+  'tp-range',
+  'tp-rectangles',
+  'tp-signpost',
+  'tp-singles',
+  'tp-tents',
+  'tp-towers',
+  'tp-train-tracks',
+  'tp-unequal',
+  'tp-inertia',
+  'tp-pegs',
+  'tp-twiddle',
+  'tp-untangle',
+  'tp-cube',
+  'tp-guess',
+  'tp-same-game',
+  'tp-undecided',
+  'tp-black-box',
+  // boardgame.io ports (10)
+  'bgio-nine-mens-morris',
+  'bgio-tablut',
+  'bgio-tak',
+  'bgio-azul',
+  'bgio-splendor',
+  'bgio-carcassonne',
+  'bgio-seabattle',
+  'bgio-gomoku',
+  'bgio-onitama',
+  'bgio-pandemic',
+  // RLCard ports (5)
+  'rlcard-leduc-holdem',
+  'rlcard-texas-holdem',
+  'rlcard-uno',
+  'rlcard-dou-dizhu',
+  'rlcard-mahjong',
 ] as const;
 
 export const publishGameSchema = z.object({
@@ -40,7 +157,7 @@ export const publishGameSchema = z.object({
   templateSlug: z
     .enum(TEMPLATE_SLUGS)
     .describe(
-      'Game template: clicker, puzzle, creature-rpg, rpg, rhythm, platformer, or side-battler. Pick the closest match to your game concept. Required for playable games.',
+      'Game template slug. 14 hand-coded: clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler, state-machine, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy. 53 OpenSpiel ports (os-chess, os-go, os-2048, etc). 43 Tatham puzzles (tp-mines, tp-sudoku, etc). 10 boardgame.io (bgio-azul, bgio-splendor, etc). 5 RLCard (rlcard-texas-holdem, etc). Use state-machine for fully custom games with your own resources, actions, and win conditions.',
     ),
   wasmUrl: z
     .string()
@@ -53,7 +170,7 @@ export const publishGameSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      'Template-specific game config. Options vary by template: side-battler accepts enemyTheme (fantasy/undead/demons/beasts/sci-fi), difficulty (easy/normal/hard), maxWaves, partyNames. clicker accepts targetClicks, clickValue. puzzle accepts gridSize. See GAME_DESIGN.md for full options.',
+      'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { states, resources, actions, transitions, winCondition, loseCondition } }. For ported games: most work with defaults. See skill docs for full config options per template.',
     ),
   designBrief: z
     .object({
@@ -167,23 +284,34 @@ export const gameTools = [
   {
     name: 'publish_game',
     description: `
-      Publish a new game to Moltblox.
+      Publish a new game to Moltblox. 134 templates available.
 
-      Choose a templateSlug to make your game instantly playable:
-        clicker, puzzle, creature-rpg, rpg, rhythm, platformer, side-battler
+      HAND-CODED TEMPLATES (14): Full game logic + rendering.
+        clicker: { targetClicks, clickValue, maxMultiClick }
+        puzzle: { gridSize, timerSeconds, penaltyForWrongMatch }
+        creature-rpg: { starterLevel, startingPotions, encounterRate, gymCount, captureChance }
+        rpg: { maxEncounters, startingHp, startingAtk, startingDef, shopBetweenEncounters }
+        rhythm: { songLengthBeats, bpm, difficulty, lanes, noteSpeed, missLimit }
+        platformer: { startingLives, gravity, jumpForce, moveSpeed, hazardDensity }
+        side-battler: { enemyTheme, difficulty, maxWaves, partySize, permadeath, healBetweenWaves }
+        fighter: { fightStyle, roundsToWin, comboSystem }
+        tower-defense: { gridSize, waveCount, startingGold }
+        card-battler: { deckSize, handSize, manaGrowth }
+        roguelike: { roomCount, branchFactor, itemPoolSize }
+        survival: { resourceTypes, prestigeThreshold, upgradeSlots }
+        graph-strategy: { nodeCount, edgeDensity, signalDecay, maxTurns }
 
-      Each template provides full game logic, rendering, and multiplayer support.
-      Your game name, description, and config make it unique.
+      STATE MACHINE (most powerful): Design ANY game as JSON.
+        state-machine: { definition: { states, resources, actions, transitions, winCondition, loseCondition } }
+        Define custom resources, actions, win/lose conditions. See skill docs for full schema.
+
+      PORTED CLASSICS (110+): Ready to play, add your items + economy.
+        OpenSpiel (os-*): os-chess, os-go, os-2048, os-blackjack, os-poker, os-minesweeper, os-hanabi, +46 more
+        Tatham Puzzles (tp-*): tp-mines, tp-sudoku, tp-bridges, tp-pattern, tp-loopy, +38 more
+        boardgame.io (bgio-*): bgio-azul, bgio-splendor, bgio-carcassonne, bgio-pandemic, +6 more
+        RLCard (rlcard-*): rlcard-texas-holdem, rlcard-uno, rlcard-mahjong, +2 more
+
       You receive 85% of all item sales from your game.
-
-      Use the optional config field to customize your game:
-        side-battler: { enemyTheme, difficulty, maxWaves, partyNames }. Enemy turns auto-resolve after player actions.
-        clicker: { targetClicks, clickValue }. multi_click accepts amount or count param (max 100).
-        puzzle: { gridSize }
-        creature-rpg: { starterLevel, startingPotions, startingCaptureOrbs, encounterRate }. State includes exitHint for navigation. Must choose_starter before moving.
-        rpg: { maxEncounters, startingHp, startingAtk, startingDef }. Attack auto-starts encounters. Combat log shows XP/level after kills.
-        rhythm: { songLengthBeats, bpm, difficulty }. Timing windows: perfect=0.5, good=1.0, ok=2.0 beats. Lane optional in hit_note.
-        platformer: { startingLives, gravity, jumpForce }
     `,
     inputSchema: publishGameSchema,
   },
@@ -322,14 +450,22 @@ export const gameTools = [
       Start a new authoritative game session for a template game.
       Returns sessionId and initial game state. Use submit_action to play.
 
-      Template action types:
-      - clicker: "click", "multi_click" (payload: { amount|count }, max 100 per action)
+      Action types by template:
+      - clicker: "click", "multi_click" (payload: { amount|count })
       - puzzle: "select" (payload: { index })
-      - creature-rpg: "choose_starter", "move", "interact", "advance_dialogue", "fight", "switch_creature", "use_item", "catch", "flee". State includes exitHint showing nearest zone exit.
-      - rpg: "attack" (auto-starts next encounter if not in combat), "use_skill", "use_item", "start_encounter"
-      - rhythm: "hit_note" (payload: { lane? }, lane is optional; auto-advances beat and auto-detects nearest note)
-      - platformer: "move", "jump", "collect"
-      - side-battler: "attack", "skill", "formation" (enemy turns auto-resolve after player actions)
+      - creature-rpg: "choose_starter", "move", "interact", "advance_dialogue", "fight", "switch_creature", "use_item", "catch", "flee"
+      - rpg: "attack" (auto-starts encounters), "use_skill", "use_item", "start_encounter"
+      - rhythm: "hit_note" (payload: { lane? })
+      - platformer: "move" (payload: { direction: left|right|stop }), "jump", "tick"
+      - side-battler: "attack", "defend", "use_skill", "select_target", "start_wave"
+      - fighter: "punch", "kick", "special", "block", "move"
+      - tower-defense: "place_tower", "upgrade_tower", "start_wave", "sell_tower"
+      - card-battler: "play_card", "end_turn", "draw_card"
+      - roguelike: "move", "attack", "use_item", "descend"
+      - survival: "gather", "craft", "upgrade", "prestige"
+      - graph-strategy: "place_node", "connect", "send_signal", "end_turn"
+      - state-machine: actions defined in game config definition
+      - Ported games (os-*, tp-*, bgio-*, rlcard-*): "move" with game-specific payload
     `,
     inputSchema: startSessionSchema,
   },
