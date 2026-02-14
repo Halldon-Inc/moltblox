@@ -1,8 +1,11 @@
 -- CreateEnum
-CREATE TYPE "WagerStatus" AS ENUM ('OPEN', 'LOCKED', 'SETTLED', 'CANCELLED', 'DISPUTED', 'REFUNDED');
+DO $$ BEGIN
+  CREATE TYPE "WagerStatus" AS ENUM ('OPEN', 'LOCKED', 'SETTLED', 'CANCELLED', 'DISPUTED', 'REFUNDED');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
-CREATE TABLE "wagers" (
+CREATE TABLE IF NOT EXISTS "wagers" (
     "id" TEXT NOT NULL,
     "gameId" TEXT NOT NULL,
     "creatorId" TEXT NOT NULL,
@@ -22,7 +25,7 @@ CREATE TABLE "wagers" (
 );
 
 -- CreateTable
-CREATE TABLE "spectator_bets" (
+CREATE TABLE IF NOT EXISTS "spectator_bets" (
     "id" TEXT NOT NULL,
     "wagerId" TEXT NOT NULL,
     "bettorId" TEXT NOT NULL,
@@ -36,31 +39,46 @@ CREATE TABLE "spectator_bets" (
 );
 
 -- CreateIndex
-CREATE INDEX "wagers_gameId_idx" ON "wagers"("gameId");
+CREATE INDEX IF NOT EXISTS "wagers_gameId_idx" ON "wagers"("gameId");
 
 -- CreateIndex
-CREATE INDEX "wagers_creatorId_idx" ON "wagers"("creatorId");
+CREATE INDEX IF NOT EXISTS "wagers_creatorId_idx" ON "wagers"("creatorId");
 
 -- CreateIndex
-CREATE INDEX "wagers_status_idx" ON "wagers"("status");
+CREATE INDEX IF NOT EXISTS "wagers_status_idx" ON "wagers"("status");
 
 -- CreateIndex
-CREATE INDEX "spectator_bets_wagerId_idx" ON "spectator_bets"("wagerId");
+CREATE INDEX IF NOT EXISTS "spectator_bets_wagerId_idx" ON "spectator_bets"("wagerId");
 
 -- CreateIndex
-CREATE INDEX "spectator_bets_bettorId_idx" ON "spectator_bets"("bettorId");
+CREATE INDEX IF NOT EXISTS "spectator_bets_bettorId_idx" ON "spectator_bets"("bettorId");
+
+-- AddForeignKey (idempotent: drop if exists, then add)
+DO $$ BEGIN
+  ALTER TABLE "wagers" ADD CONSTRAINT "wagers_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "games"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "wagers" ADD CONSTRAINT "wagers_gameId_fkey" FOREIGN KEY ("gameId") REFERENCES "games"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "wagers" ADD CONSTRAINT "wagers_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "wagers" ADD CONSTRAINT "wagers_creatorId_fkey" FOREIGN KEY ("creatorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "wagers" ADD CONSTRAINT "wagers_opponentId_fkey" FOREIGN KEY ("opponentId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "wagers" ADD CONSTRAINT "wagers_opponentId_fkey" FOREIGN KEY ("opponentId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "spectator_bets" ADD CONSTRAINT "spectator_bets_wagerId_fkey" FOREIGN KEY ("wagerId") REFERENCES "wagers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "spectator_bets" ADD CONSTRAINT "spectator_bets_wagerId_fkey" FOREIGN KEY ("wagerId") REFERENCES "wagers"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "spectator_bets" ADD CONSTRAINT "spectator_bets_bettorId_fkey" FOREIGN KEY ("bettorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "spectator_bets" ADD CONSTRAINT "spectator_bets_bettorId_fkey" FOREIGN KEY ("bettorId") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;

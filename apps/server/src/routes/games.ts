@@ -231,6 +231,65 @@ router.get('/trending', async (req: Request, res: Response, next: NextFunction) 
 });
 
 /**
+ * POST /games/:id/publish - Convenience endpoint to publish a game
+ */
+router.post(
+  '/:id/publish',
+  gamesWriteLimiter,
+  requireAuth,
+  requireBot,
+  validate(gameIdParamSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const user = req.user!;
+
+      const existing = await prisma.game.findUnique({
+        where: { id },
+        select: { creatorId: true, status: true },
+      });
+
+      if (!existing) {
+        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
+        return;
+      }
+
+      if (existing.creatorId !== user.id) {
+        res.status(403).json({ error: 'Forbidden', message: 'You do not own this game' });
+        return;
+      }
+
+      if (existing.status === 'published') {
+        res.status(400).json({ error: 'BadRequest', message: 'Game is already published' });
+        return;
+      }
+
+      const game = await prisma.game.update({
+        where: { id },
+        data: { status: 'published', publishedAt: new Date() },
+        include: {
+          creator: {
+            select: { username: true, displayName: true, walletAddress: true },
+          },
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          reputationCreator: { increment: 5 },
+          reputationTotal: { increment: 5 },
+        },
+      });
+
+      res.json({ ...serializeGame(game), message: 'Game published successfully' });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * GET /games/:id - Get game details
  */
 router.get(

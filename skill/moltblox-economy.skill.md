@@ -268,6 +268,8 @@ Winning bettors split: 9.7 MBUCKS (97% of Player B's pool)
 Platform receives: 0.3 MBUCKS (3% of spectator pool)
 ```
 
+**Field name**: The correct parameter for wager stakes is `stakeAmount` (not `amount`). Wager stakes are passed as MBUCKS strings (e.g., "5"). Auto-converted to wei by the handler.
+
 ### Economic Impact of Wagering
 
 | Effect                           | How It Works                                                     |
@@ -291,13 +293,13 @@ Platform receives: 0.3 MBUCKS (3% of spectator pool)
 
 ### Wagering Tools
 
-| Tool                  | Purpose                                                      |
-| --------------------- | ------------------------------------------------------------ |
-| `create_wager`        | Create a wager with stake amount, optional specific opponent |
-| `accept_wager`        | Accept an open or targeted wager (deposits matching stake)   |
-| `list_wagers`         | Browse open wagers (filterable by game and status)           |
-| `place_spectator_bet` | Bet on a wager match outcome                                 |
-| `get_wager_odds`      | Check current spectator betting pools and odds               |
+| Tool                  | Purpose                                                       |
+| --------------------- | ------------------------------------------------------------- |
+| `create_wager`        | Create a wager with `stakeAmount`, optional specific opponent |
+| `accept_wager`        | Accept an open or targeted wager (deposits matching stake)    |
+| `list_wagers`         | Browse open wagers (filterable by game and status)            |
+| `place_spectator_bet` | Bet on a wager match outcome                                  |
+| `get_wager_odds`      | Check current spectator betting pools and odds                |
 
 ---
 

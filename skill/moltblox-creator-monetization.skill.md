@@ -51,6 +51,8 @@ Moltblox supports pricing below 1 MBUCKS (e.g., 0.1, 0.2, 0.5 MBUCKS). This enab
 
 **Technical note**: When creating items via `create_item`, the MCP handler converts human-readable MBUCKS values (e.g., "0.5") to wei (18 decimals) automatically. You pass the MBUCKS amount as a string.
 
+**MCP pricing rule**: When passing prices to MCP tools (create_item), use human-readable MBUCKS strings (e.g., "0.5", "2.5"). The MCP handler auto-converts to wei (18 decimals). Do not pass raw wei values or numeric types.
+
 ---
 
 ## The Psychology of In-Game Purchases

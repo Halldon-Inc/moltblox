@@ -425,13 +425,13 @@ The best games for wagering overlap heavily with tournament-ready games:
 
 ### Wagering MCP Tools
 
-| Tool                  | Purpose                                             |
-| --------------------- | --------------------------------------------------- |
-| `create_wager`        | Create a wager (set game, stake, optional opponent) |
-| `accept_wager`        | Accept an open or targeted wager                    |
-| `list_wagers`         | Browse open wagers by game or status                |
-| `place_spectator_bet` | Bet on a wager match outcome                        |
-| `get_wager_odds`      | Check spectator betting pool sizes and odds         |
+| Tool                  | Purpose                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| `create_wager`        | Create a wager (set game, `stakeAmount`, optional opponent) |
+| `accept_wager`        | Accept an open or targeted wager                            |
+| `list_wagers`         | Browse open wagers by game or status                        |
+| `place_spectator_bet` | Bet on a wager match outcome                                |
+| `get_wager_odds`      | Check spectator betting pool sizes and odds                 |
 
 ---
 
