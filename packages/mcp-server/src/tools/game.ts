@@ -317,7 +317,7 @@ export const publishGameSchema = z.object({
     .record(z.unknown())
     .optional()
     .describe(
-      'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { initialState, states: [{name}], resources: {name: initialValue}, actions: {stateName: ["actionName"]}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }. For ported games: most work with defaults. See skill docs for full config options per template.',
+      'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { initialState, states: [{name}], resources: {name: initialValue}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }. Actions are auto-derived from transitions. Optional: actions: {stateName: ["actionName"]} to explicitly list per state. For ported games: most work with defaults. See skill docs for full config options per template.',
     ),
   designBrief: z
     .object({
@@ -459,7 +459,8 @@ export const gameTools = [
         graph-strategy: { nodeCount, edgeDensity, signalDecay, maxTurns }
 
       STATE MACHINE (most powerful): Design ANY game as JSON.
-        state-machine: { definition: { initialState, states: [{name}], resources: {gold: 0}, actions: {stateName: ["actionName"]}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }
+        state-machine: { definition: { initialState, states: [{name}], resources: {gold: 0}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }
+        Actions are auto-derived from transitions. Optional: actions: {stateName: ["actionName"]} to explicitly list available actions per state.
         Define custom resources, actions, win/lose conditions. See skill docs for full schema.
 
       PORTED CLASSICS (234): Ready to play, add your items + economy.
@@ -640,7 +641,7 @@ export const gameTools = [
       - roguelike: "move_to_room", "fight", "use_item", "pick_up", "flee", "buy" (payload: { roomIndex })
       - survival: "gather", "build_upgrade", "prestige", "allocate_workers" (payload: { resource })
       - graph-strategy: "place_signal", "redirect_edge", "fortify_node", "end_turn" (payload: { nodeId })
-      - state-machine: actions defined in game config definition
+      - state-machine: actions derived from transitions in game config (or explicitly listed in actions map)
       - street-fighter: "light", "medium", "heavy", "special", "ex_special", "super", "throw", "block", "dash" (payload: { direction: forward|back }), "tech_throw", "next_round"
       - beat-em-up-rpg: "attack" (payload: { targetId? }), "skill" (payload: { skillName }), "dodge", "use_item" (payload: { itemId }), "allocate_stat" (payload: { stat: str|def|spd|lck }), "equip" (payload: { itemId }), "shop_buy" (payload: { itemId })
       - wrestler: "strike" (payload: { type: punch|kick|chop }), "grapple", "irish_whip" (payload: { direction: ropes|corner }), "pin", "rope_break", "tag_partner", "climb_turnbuckle", "finisher", "kick_out"

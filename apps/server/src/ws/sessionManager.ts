@@ -228,12 +228,26 @@ export async function handleGameAction(
     currentTurn: session.currentTurn,
   });
 
+  // Filter state through getStateForPlayer for template games (hides secrets like Wordle target)
+  let broadcastState: GameState = session.gameState;
+  if (session.templateSlug) {
+    try {
+      const inst = createGameInstance(session.templateSlug, session.gameConfig);
+      if (inst) {
+        inst.restoreState(session.playerIds, session.gameState);
+        broadcastState = inst.getStateForPlayer(client.playerId) as GameState;
+      }
+    } catch {
+      // Fall through with raw state if instantiation fails
+    }
+  }
+
   // Broadcast validated state update to all session players and spectators
   broadcastToSession(clients, client.gameSessionId, {
     type: 'state_update',
     payload: {
       sessionId: client.gameSessionId,
-      state: session.gameState,
+      state: broadcastState,
       currentTurn: session.currentTurn,
       action: { playerId: client.playerId, ...gameAction },
       events: result.events ?? [],

@@ -356,6 +356,42 @@ function normalizeDefinition(def: Record<string, unknown>): StateMachineDefiniti
       }
     }
     out.actions = normalized;
+
+    // Synthesize action entries for states that have action-based transitions
+    // but were not listed in the actions map. This handles the common case where
+    // bots define transitions with { from, action, to, effects } but forget to
+    // also list those action names in the actions map for the source state.
+    for (const [stateName, actionMap] of actionTransitions) {
+      if (!normalized[stateName]) {
+        normalized[stateName] = [];
+      }
+      for (const [actionName, transInfo] of actionMap) {
+        const exists = normalized[stateName].some((a) => a.name === actionName);
+        if (!exists) {
+          normalized[stateName].push({
+            name: actionName,
+            effects: transInfo.effects,
+            transition: transInfo.to,
+          } as ActionDef);
+        }
+      }
+    }
+  }
+
+  // If no actions map exists at all, build one entirely from action-based transitions
+  if (!out.actions && actionTransitions.size > 0) {
+    const synthesized: Record<string, ActionDef[]> = {};
+    for (const [stateName, actionMap] of actionTransitions) {
+      synthesized[stateName] = [];
+      for (const [actionName, transInfo] of actionMap) {
+        synthesized[stateName].push({
+          name: actionName,
+          effects: transInfo.effects,
+          transition: transInfo.to,
+        } as ActionDef);
+      }
+    }
+    out.actions = synthesized;
   }
 
   // --- Normalize winConditions (array) => winCondition (single) ---

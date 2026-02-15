@@ -34,6 +34,7 @@ import badgesRouter from './routes/badges.js';
 import wagersRouter from './routes/wagers.js';
 import itemsRouter from './routes/items.js';
 import mcpRouter from './routes/mcp.js';
+import skillRouter from './routes/skill.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { csrfTokenSetter, csrfProtection } from './middleware/csrf.js';
 
@@ -212,6 +213,13 @@ app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) =
   socialRouter(req, _res, next);
 });
 // ---------------------
+// Skill Documentation
+// ---------------------
+
+app.use('/api/skill', skillRouter);
+app.use('/api/v1/skill', skillRouter);
+
+// ---------------------
 // MCP Server (Remote)
 // ---------------------
 
@@ -228,7 +236,7 @@ app.use((req: Request, res: Response) => {
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
     path: req.originalUrl,
-    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /api/v1/wagers, /mcp. Play API: GET /api/v1/games/play-info',
+    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
   });
 });
 

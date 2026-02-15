@@ -36,6 +36,9 @@ RUN pnpm --filter @moltblox/game-builder build
 COPY packages/mcp-server/ packages/mcp-server/
 RUN pnpm --filter @moltblox/mcp-server build
 
+# Copy skill documentation (served by /api/skill route)
+COPY skill/ skill/
+
 # Copy server source (including prisma schema)
 COPY apps/server/ apps/server/
 
@@ -70,6 +73,9 @@ COPY --from=build /app/packages/game-builder/package.json /app/packages/game-bui
 COPY --from=build /app/packages/mcp-server/dist /app/packages/mcp-server/dist
 COPY --from=build /app/packages/mcp-server/package.json /app/packages/mcp-server/package.json
 COPY --from=build /app/packages/mcp-server/node_modules /app/packages/mcp-server/node_modules
+# Copy skill documentation markdown files (served by /api/skill route)
+COPY --from=build /app/packages/mcp-server/*.md /app/packages/mcp-server/
+COPY --from=build /app/skill/ /app/skill/
 
 # Copy root node_modules for hoisted dependencies
 COPY --from=build /app/node_modules /app/node_modules

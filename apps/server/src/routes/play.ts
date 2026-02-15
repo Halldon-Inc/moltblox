@@ -6,8 +6,9 @@
  *
  * Endpoints:
  *   POST   /games/:id/sessions                       Start a new game session
- *   POST   /games/:id/sessions/:sessionId/actions     Submit an action
+ *   POST   /games/:id/sessions/:sessionId/actions     Submit an action (includes "forfeit" type)
  *   GET    /games/:id/sessions/:sessionId             Get current game state
+ *   DELETE /games/:id/sessions/:sessionId             Close/abandon a session
  *   GET    /games/:id/spectate                        Get active sessions for spectating
  */
 
@@ -27,6 +28,7 @@ import {
   getSession,
   setSession,
   deleteSession,
+  hasSession,
   setPlayerSession,
   deletePlayerSession,
 } from '../ws/redisSessionStore.js';
@@ -91,13 +93,32 @@ router.post(
       }
 
       // Per-player session limit: max 5 active sessions across all games
-      const activeSessionCount = await prisma.gameSession.count({
+      // Also clean up zombie sessions (DB says active but Redis key expired)
+      const activeSessions = await prisma.gameSession.findMany({
         where: {
           status: 'active',
           endedAt: null,
           players: { some: { userId: user.id } },
         },
+        select: { id: true },
       });
+
+      // Check each session against Redis; clean up zombies
+      const zombieIds: string[] = [];
+      for (const s of activeSessions) {
+        const exists = await hasSession(redis, s.id);
+        if (!exists) {
+          zombieIds.push(s.id);
+        }
+      }
+      if (zombieIds.length > 0) {
+        await prisma.gameSession.updateMany({
+          where: { id: { in: zombieIds } },
+          data: { status: 'abandoned', endedAt: new Date() },
+        });
+      }
+
+      const activeSessionCount = activeSessions.length - zombieIds.length;
       if (activeSessionCount >= 5) {
         res.status(429).json({
           error: 'TooManyRequests',
@@ -225,6 +246,41 @@ router.post(
 
       if (session.ended) {
         res.status(400).json({ error: 'BadRequest', message: 'Session has already ended' });
+        return;
+      }
+
+      // Handle forfeit: player voluntarily ends the session
+      if (req.body.type === 'forfeit') {
+        session.ended = true;
+
+        await prisma.gameSession.update({
+          where: { id: sessionId },
+          data: {
+            status: 'abandoned',
+            endedAt: new Date(),
+            currentTurn: session.currentTurn,
+            state: session.gameState as object,
+          },
+        });
+
+        await deleteSession(redis, sessionId);
+        for (const pid of session.playerIds) {
+          await deletePlayerSession(redis, pid);
+        }
+
+        res.json({
+          success: true,
+          actionResult: {
+            success: true,
+            newState: session.gameState,
+            events: [
+              { type: 'session_forfeited', data: { playerId: user.id }, timestamp: Date.now() },
+            ],
+          },
+          turn: session.currentTurn,
+          gameOver: true,
+          message: 'Session forfeited successfully.',
+        });
         return;
       }
 
@@ -493,6 +549,89 @@ router.get(
 );
 
 /**
+ * DELETE /games/:id/sessions/:sessionId - Close/abandon a game session
+ *
+ * Allows the session owner to end their session, freeing up a slot
+ * against the per-player 5-session limit. Sets status to 'abandoned',
+ * cleans up Redis state.
+ */
+router.delete(
+  '/:id/sessions/:sessionId',
+  playWriteLimiter,
+  requireAuth,
+  validate(sessionParamsSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id, sessionId } = req.params;
+      const user = req.user!;
+
+      // Verify the session exists in the database and belongs to this game
+      const dbSession = await prisma.gameSession.findUnique({
+        where: { id: sessionId },
+        select: {
+          id: true,
+          gameId: true,
+          status: true,
+          players: { select: { userId: true } },
+        },
+      });
+
+      if (!dbSession) {
+        res.status(404).json({ error: 'NotFound', message: 'Session not found' });
+        return;
+      }
+
+      if (dbSession.gameId !== id) {
+        res
+          .status(400)
+          .json({ error: 'BadRequest', message: 'Session does not belong to this game' });
+        return;
+      }
+
+      // Only session participants can delete their session
+      const isPlayer = dbSession.players.some((p) => p.userId === user.id);
+      if (!isPlayer) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'You are not a player in this session' });
+        return;
+      }
+
+      if (dbSession.status !== 'active') {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: `Session is already ${dbSession.status}. Only active sessions can be closed.`,
+        });
+        return;
+      }
+
+      // Update DB: mark as abandoned
+      await prisma.gameSession.update({
+        where: { id: sessionId },
+        data: {
+          status: 'abandoned',
+          endedAt: new Date(),
+        },
+      });
+
+      // Clean up Redis state
+      await deleteSession(redis, sessionId);
+      for (const p of dbSession.players) {
+        await deletePlayerSession(redis, p.userId);
+      }
+
+      res.json({
+        success: true,
+        message: 'Session closed successfully.',
+        sessionId,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * GET /play-info - Document the play API endpoints (public, no auth)
  */
 router.get('/play-info', (_req: Request, res: Response) => {
@@ -509,13 +648,19 @@ router.get('/play-info', (_req: Request, res: Response) => {
       submit_action: {
         method: 'POST',
         path: '/api/v1/games/{gameId}/sessions/{sessionId}/actions',
-        body: '{ type: "click"|"move"|"fight"|..., payload: {} }',
+        body: '{ type: "click"|"move"|"fight"|"forfeit"|..., payload: {} }',
         response: '{ success, actionResult: { success, newState, events }, turn, gameOver }',
       },
       get_session_state: {
         method: 'GET',
         path: '/api/v1/games/{gameId}/sessions/{sessionId}',
         response: '{ sessionId, gameState, turn, ended }',
+      },
+      close_session: {
+        method: 'DELETE',
+        path: '/api/v1/games/{gameId}/sessions/{sessionId}',
+        response: '{ success, message, sessionId }',
+        notes: 'Closes an active session. Only the session owner can close it. Frees session slot.',
       },
       spectate: {
         method: 'GET',
@@ -530,6 +675,8 @@ router.get('/play-info', (_req: Request, res: Response) => {
       'Sessions are stored in Redis with 24h TTL',
       'If session is expired, you get 410 (SessionExpired) not 404',
       'Action types depend on the template. See start_session response for templateSlug.',
+      'Use type "forfeit" in submit_action OR DELETE the session to end it and free your session slot.',
+      'Zombie sessions (DB active but Redis expired) are auto-cleaned when starting a new session.',
     ],
   });
 });

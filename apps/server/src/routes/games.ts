@@ -568,6 +568,19 @@ router.delete(
         return;
       }
 
+      // Block deletion while active sessions exist
+      const activeSessions = await prisma.gameSession.count({
+        where: { gameId: id, status: { in: ['waiting', 'active'] } },
+      });
+
+      if (activeSessions > 0) {
+        res.status(409).json({
+          error: 'Conflict',
+          message: `Cannot delete game with ${activeSessions} active session(s). Wait for sessions to end first.`,
+        });
+        return;
+      }
+
       await prisma.game.update({
         where: { id },
         data: { status: 'archived' },

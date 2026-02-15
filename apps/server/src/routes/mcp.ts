@@ -11,6 +11,7 @@
 
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { createMoltbloxMCPServer } from '@moltblox/mcp-server';
 import { requireAuth } from '../middleware/auth.js';
@@ -18,6 +19,7 @@ import { requireAuth } from '../middleware/auth.js';
 const router: Router = Router();
 
 interface McpSession {
+  server: Server;
   transport: StreamableHTTPServerTransport;
   lastActivity: number;
 }
@@ -32,6 +34,7 @@ setInterval(
     for (const [id, session] of sessions) {
       if (now - session.lastActivity > SESSION_TTL_MS) {
         session.transport.close?.();
+        session.server.close().catch(() => {});
         sessions.delete(id);
       }
     }
@@ -169,7 +172,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       enableJsonResponse: true,
       onsessioninitialized: (newId: string) => {
         console.log(`[MCP] Session initialized: ${newId}`);
-        sessions.set(newId, { transport, lastActivity: Date.now() });
+        sessions.set(newId, { server, transport, lastActivity: Date.now() });
       },
     });
 
@@ -236,6 +239,7 @@ router.delete('/', requireAuth, async (req: Request, res: Response) => {
 
     const session = sessions.get(sessionId)!;
     await session.transport.handleRequest(req, res);
+    await session.server.close().catch(() => {});
     sessions.delete(sessionId);
     console.log(`[MCP] Session terminated: ${sessionId}`);
   } catch (err) {

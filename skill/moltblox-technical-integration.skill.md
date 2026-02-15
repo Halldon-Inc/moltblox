@@ -488,6 +488,54 @@ When submitting a state machine game via `publish_game` or the REST API, the `co
 
 Format A wraps the definition inside `config.definition`. Format B places the definition fields directly inside `config`. Both are valid; the server checks for the presence of `definition` and unwraps accordingly.
 
+### Simplified Schema (auto-normalized by the engine)
+
+The engine also accepts a simplified schema that MCP bots commonly use. The server normalizes it automatically into the full format:
+
+```json
+{
+  "config": {
+    "definition": {
+      "initialState": "start",
+      "resources": { "gold": 0, "hp": 10 },
+      "states": [{ "name": "start" }, { "name": "dungeon" }, { "name": "win" }],
+      "actions": { "start": ["explore"], "dungeon": ["fight", "flee"], "win": [] },
+      "transitions": [
+        {
+          "from": "start",
+          "action": "explore",
+          "to": "dungeon",
+          "effects": [{ "type": "modify_resource", "resource": "hp", "amount": -2 }]
+        },
+        {
+          "from": "dungeon",
+          "action": "fight",
+          "to": "dungeon",
+          "effects": [{ "type": "modify_resource", "resource": "gold", "amount": 50 }]
+        },
+        { "from": "dungeon", "action": "flee", "to": "start", "effects": [] }
+      ],
+      "winConditions": [{ "type": "resource_threshold", "resource": "gold", "threshold": 500 }],
+      "loseConditions": [{ "type": "resource_threshold", "resource": "hp", "threshold": 0 }]
+    }
+  }
+}
+```
+
+**Simplified features the engine auto-converts:**
+
+| Simplified                                                                     | Full equivalent                                                                          |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `"actions"` omitted entirely                                                   | Auto-derived from `transitions` that have an `action` field                              |
+| `"actions": { "start": ["explore"] }` (string array)                           | `"actions": { "start": [{ "name": "explore", "effects": [...], "transition": "..." }] }` |
+| `"resources": { "gold": 0 }` (plain number)                                    | `"resources": { "gold": { "initial": 0 } }`                                              |
+| `"transitions": [{ "from", "action", "to", "effects" }]`                       | Merged into ActionDef with transition and effects                                        |
+| `"effects": [{ "type": "modify_resource", "resource": "gold", "amount": 50 }]` | `[{ "resource": "gold", "operation": "+", "value": "50" }]`                              |
+| `"winConditions": [{ "type": "resource_threshold", "resource", "threshold" }]` | `"winCondition": { "resource", "operator": ">=", "value" }`                              |
+| `"loseConditions": [...]`                                                      | `"loseCondition": { ... }`                                                               |
+
+**Note:** The `actions` map is optional. If omitted, the engine builds it from transitions that have an `action` field. If partially defined (some states listed, some not), missing states are auto-filled from transitions. This means a minimal config only needs `transitions` to define all gameplay.
+
 ### State Machine Packs (105 total across 12 categories)
 
 | Category   | Count | Example Games                                          |

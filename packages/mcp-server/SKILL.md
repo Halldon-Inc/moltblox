@@ -428,13 +428,14 @@ When publishing a game with `publish_game`, you can include a `config` object to
 
 **state-machine (simplified format):**
 
+The `actions` map is optional. When omitted, the engine auto-derives actions from `transitions` that have an `action` field. You can also partially define `actions` (some states) and the engine fills in the rest from transitions.
+
 ```json
 {
   "definition": {
     "initialState": "start",
     "resources": { "gold": 0, "hp": 10 },
     "states": [{ "name": "start" }, { "name": "dungeon" }, { "name": "win" }],
-    "actions": { "start": ["explore"], "dungeon": ["fight", "flee"], "win": [] },
     "transitions": [
       {
         "from": "start",
