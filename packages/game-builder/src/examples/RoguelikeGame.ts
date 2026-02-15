@@ -240,6 +240,9 @@ export class RoguelikeGame extends BaseGame {
     }
 
     switch (action.type) {
+      case 'move':
+      case 'enter_room':
+      case 'go':
       case 'move_to_room':
         return this.handleMove(playerId, action, data);
       case 'fight':

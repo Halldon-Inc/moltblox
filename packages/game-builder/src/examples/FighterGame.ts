@@ -183,6 +183,42 @@ export class FighterGame extends BaseGame {
     switch (action.type) {
       case 'attack':
         return this.handleAttack(playerId, action, data);
+      case 'light_attack':
+      case 'punch':
+      case 'jab':
+        return this.handleAttack(
+          playerId,
+          { ...action, payload: { ...action.payload, attackType: 'light' } },
+          data,
+        );
+      case 'heavy_attack':
+      case 'kick':
+      case 'hook':
+        return this.handleAttack(
+          playerId,
+          { ...action, payload: { ...action.payload, attackType: 'heavy' } },
+          data,
+        );
+      case 'uppercut':
+        return this.handleAttack(
+          playerId,
+          { ...action, payload: { ...action.payload, attackType: 'heavy' } },
+          data,
+        );
+      case 'grab':
+        return this.handleAttack(
+          playerId,
+          { ...action, payload: { ...action.payload, attackType: 'grab' } },
+          data,
+        );
+      case 'special':
+        return this.handleAttack(
+          playerId,
+          { ...action, payload: { ...action.payload, attackType: 'special' } },
+          data,
+        );
+      case 'dodge':
+        return this.handleDodge(playerId, data);
       case 'block':
         return this.handleBlock(playerId, data);
       case 'next_round':
@@ -453,6 +489,30 @@ export class FighterGame extends BaseGame {
     data.turnCount++;
 
     this.emitEvent('block', playerId, {});
+    this.setData(data);
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleDodge(playerId: string, data: FighterState): ActionResult {
+    const fighter = data.fighters[playerId];
+    if (!fighter || !fighter.alive) {
+      return { success: false, error: 'Fighter not active' };
+    }
+    if (data.roundOver) {
+      return { success: false, error: 'Round is over' };
+    }
+
+    if (fighter.stamina < 15) {
+      return { success: false, error: 'Not enough stamina to dodge (need 15)' };
+    }
+
+    fighter.stamina -= 15;
+    fighter.isBlocking = false;
+    fighter.lastMove = 'dodge';
+    (fighter as Record<string, unknown>).dodging = true;
+    data.turnCount++;
+
+    this.emitEvent('dodge', playerId, { staminaCost: 15 });
     this.setData(data);
     return { success: true, newState: this.getState() };
   }

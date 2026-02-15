@@ -199,6 +199,7 @@ export class RhythmGame extends BaseGame {
        * turn-based system. Players can't wait forever — they must act
        * within the window or lose their combo.
        */
+      case 'beat':
       case 'advance_beat': {
         data.currentBeat++;
         const okWindow = TIMING_WINDOWS.ok / data.noteSpeedMultiplier;
@@ -244,6 +245,8 @@ export class RhythmGame extends BaseGame {
        * Perfect a note that Player B only gets a Good on, creating
        * score differentiation from skill, not luck.
        */
+      case 'hit':
+      case 'tap':
       case 'hit_note': {
         // Auto-advance beat so testers don't need separate advance_beat calls
         data.currentBeat++;

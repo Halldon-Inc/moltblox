@@ -110,6 +110,7 @@ interface PlatformerState {
       coinsCollected: number;
       checkpoint: Vector2; // Last activated checkpoint position
       finished: boolean; // Reached the level exit
+      dashCooldown: number; // Ticks remaining before dash is available
     }
   >;
   platforms: Platform[];
@@ -174,6 +175,7 @@ export class PlatformerGame extends BaseGame {
         coinsCollected: 0,
         checkpoint: { ...spawnPoint },
         finished: false,
+        dashCooldown: 0,
       };
     }
 
@@ -285,6 +287,11 @@ export class PlatformerGame extends BaseGame {
           if (p.finished || p.lives <= 0) continue;
 
           const phys = p.physics;
+
+          // Tick down dash cooldown
+          if (p.dashCooldown > 0) {
+            p.dashCooldown--;
+          }
 
           // Apply gravity
           const maxFall = cfgPhys.maxFallSpeed ?? PHYSICS.MAX_FALL_SPEED;
@@ -423,6 +430,55 @@ export class PlatformerGame extends BaseGame {
           phys.velocity.x *= 0.85; // Friction
           if (Math.abs(phys.velocity.x) < 0.1) phys.velocity.x = 0;
         }
+
+        this.setData(data);
+        return { success: true, newState: this.getState() };
+      }
+
+      /** Shorthand: move left without needing a payload. */
+      case 'move_left': {
+        return this.processAction(playerId, {
+          type: 'move',
+          payload: { direction: 'left' },
+          timestamp: action.timestamp,
+        });
+      }
+
+      /** Shorthand: move right without needing a payload. */
+      case 'move_right': {
+        return this.processAction(playerId, {
+          type: 'move',
+          payload: { direction: 'right' },
+          timestamp: action.timestamp,
+        });
+      }
+
+      /**
+       * Dash: rapid horizontal burst (2-3 units) in the facing direction.
+       * Has a cooldown of 8 ticks between uses.
+       */
+      case 'dash': {
+        const phys = player.physics;
+
+        if (player.dashCooldown > 0) {
+          return {
+            success: false,
+            error: `Dash on cooldown (${player.dashCooldown} ticks remaining)`,
+          };
+        }
+
+        const dashDirection = phys.facingRight ? 1 : -1;
+        const cfgDash = this.config as PlatformerConfig;
+        const baseSpeed = cfgDash.playerMoveSpeed ?? PHYSICS.MOVE_SPEED;
+        const dashDistance = baseSpeed * 2.5; // 2-3x normal move distance
+
+        phys.velocity.x = dashDirection * dashDistance;
+        player.dashCooldown = 8;
+
+        this.emitEvent('dash', playerId, {
+          direction: phys.facingRight ? 'right' : 'left',
+          distance: dashDistance,
+        });
 
         this.setData(data);
         return { success: true, newState: this.getState() };

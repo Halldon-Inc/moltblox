@@ -86,6 +86,8 @@ interface RPGState {
       skills: Skill[];
       items: Record<string, number>; // item name -> quantity
       buffs: Record<string, number>; // buff type -> turns remaining
+      gold: number;
+      areasExplored: number;
     }
   >;
   currentEnemy: Enemy | null;
@@ -149,6 +151,8 @@ export class RPGGame extends BaseGame {
         skills: [...STARTER_SKILLS],
         items: { Potion: 3, Ether: 2 },
         buffs: {},
+        gold: 0,
+        areasExplored: 0,
       };
     }
 
@@ -375,6 +379,170 @@ export class RPGGame extends BaseGame {
         if (data.currentEnemy) {
           this.autoResolveEnemyTurns(data);
         }
+        return { success: true, newState: this.getState() };
+      }
+
+      /**
+       * Explore the area (out of combat only).
+       * Random outcomes: encounter an enemy, find treasure, or nothing.
+       */
+      case 'explore': {
+        if (data.currentEnemy) {
+          return { success: false, error: 'Cannot explore during combat' };
+        }
+
+        const player = data.players[playerId];
+        player.areasExplored++;
+
+        const roll = Math.random();
+        if (roll < 0.35) {
+          // Trigger a random encounter
+          data.combatLog.push(`${playerId} explores and stumbles into an enemy!`);
+          this.emitEvent('explore_encounter', playerId, { area: player.areasExplored });
+          this.setData(data);
+          return this.processAction(playerId, {
+            type: 'start_encounter',
+            payload: {},
+            timestamp: Date.now(),
+          });
+        } else if (roll < 0.7) {
+          // Find treasure
+          const goldFound = 10 + Math.floor(Math.random() * 20);
+          player.gold += goldFound;
+          const treasureRoll = Math.random();
+          if (treasureRoll < 0.3) {
+            player.items['Potion'] = (player.items['Potion'] ?? 0) + 1;
+            data.combatLog.push(`${playerId} explores and finds ${goldFound} gold and a Potion!`);
+          } else {
+            data.combatLog.push(`${playerId} explores and finds ${goldFound} gold!`);
+          }
+          this.emitEvent('explore_treasure', playerId, {
+            gold: goldFound,
+            area: player.areasExplored,
+          });
+        } else {
+          // Nothing special
+          const flavorTexts = [
+            'The area is quiet. Nothing of interest here.',
+            'Wind howls through empty corridors.',
+            'Ancient runes glow faintly on the walls, but fade as you approach.',
+            'A distant rumble echoes, but nothing happens.',
+          ];
+          const flavor = flavorTexts[Math.floor(Math.random() * flavorTexts.length)];
+          data.combatLog.push(`${playerId} explores: ${flavor}`);
+          this.emitEvent('explore_nothing', playerId, { area: player.areasExplored });
+        }
+
+        this.setData(data);
+        return { success: true, newState: this.getState() };
+      }
+
+      /**
+       * Rest to recover HP (out of combat only).
+       * Heals 25-50% of max HP, with a small chance of ambush.
+       */
+      case 'rest': {
+        if (data.currentEnemy) {
+          return { success: false, error: 'Cannot rest during combat' };
+        }
+
+        const player = data.players[playerId];
+        const ambushRoll = Math.random();
+
+        if (ambushRoll < 0.15) {
+          // Ambushed while resting
+          data.combatLog.push(`${playerId} tries to rest but is ambushed!`);
+          this.emitEvent('rest_ambush', playerId, {});
+          this.setData(data);
+          return this.processAction(playerId, {
+            type: 'start_encounter',
+            payload: {},
+            timestamp: Date.now(),
+          });
+        }
+
+        // Heal 25-50% of max HP
+        const healPercent = 0.25 + Math.random() * 0.25;
+        const healAmount = Math.floor(player.stats.maxHp * healPercent);
+        player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + healAmount);
+
+        // Also restore some MP
+        const mpRestore = Math.floor(player.stats.maxMp * 0.2);
+        player.stats.mp = Math.min(player.stats.maxMp, player.stats.mp + mpRestore);
+
+        data.combatLog.push(`${playerId} rests and recovers ${healAmount} HP and ${mpRestore} MP.`);
+        this.emitEvent('rest', playerId, { healAmount, mpRestore });
+
+        this.setData(data);
+        return { success: true, newState: this.getState() };
+      }
+
+      /**
+       * Talk to an NPC (out of combat only).
+       * Simple interaction that may grant a buff or flavor text.
+       */
+      case 'talk': {
+        if (data.currentEnemy) {
+          return { success: false, error: 'Cannot talk during combat' };
+        }
+
+        const player = data.players[playerId];
+        const npcId = action.payload?.npcId as string | undefined;
+
+        const npcDialogues = [
+          {
+            name: 'Wandering Sage',
+            dialogue: 'The sage shares ancient wisdom with you.',
+            effect: 'buff_atk' as const,
+            turns: 5,
+          },
+          {
+            name: 'Healer',
+            dialogue: 'The healer mends your wounds with a gentle touch.',
+            effect: 'heal' as const,
+            value: 20,
+          },
+          {
+            name: 'Mysterious Trader',
+            dialogue: 'The trader offers you a Potion at a discount.',
+            effect: 'item' as const,
+            item: 'Potion',
+          },
+          {
+            name: 'Old Warrior',
+            dialogue: 'The warrior teaches you a defensive stance.',
+            effect: 'buff_def' as const,
+            turns: 5,
+          },
+        ];
+
+        // Select NPC based on npcId or random
+        let npcIndex: number;
+        if (npcId) {
+          npcIndex =
+            Math.abs(npcId.split('').reduce((a, c) => a + c.charCodeAt(0), 0)) %
+            npcDialogues.length;
+        } else {
+          npcIndex = Math.floor(Math.random() * npcDialogues.length);
+        }
+
+        const npc = npcDialogues[npcIndex];
+        data.combatLog.push(`${playerId} talks to ${npc.name}: "${npc.dialogue}"`);
+
+        if (npc.effect === 'buff_atk' || npc.effect === 'buff_def') {
+          player.buffs[npc.effect] = npc.turns!;
+          data.combatLog.push(`${playerId} gains ${npc.effect} for ${npc.turns} turns.`);
+        } else if (npc.effect === 'heal') {
+          player.stats.hp = Math.min(player.stats.maxHp, player.stats.hp + (npc.value ?? 0));
+          data.combatLog.push(`${playerId} is healed for ${npc.value} HP.`);
+        } else if (npc.effect === 'item') {
+          player.items[npc.item!] = (player.items[npc.item!] ?? 0) + 1;
+          data.combatLog.push(`${playerId} receives a ${npc.item}.`);
+        }
+
+        this.emitEvent('talk', playerId, { npc: npc.name, effect: npc.effect });
+
+        this.setData(data);
         return { success: true, newState: this.getState() };
       }
 

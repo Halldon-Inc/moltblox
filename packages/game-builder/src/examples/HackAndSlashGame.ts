@@ -5,7 +5,7 @@
  * equipment slots, a shop between floors, and XP/leveling.
  * Boss encounters every N floors with guaranteed rare+ drops.
  *
- * Actions: attack, heavy_attack, dodge, use_item, equip,
+ * Actions: attack, heavy_attack, dodge, block, use_item, equip,
  *          descend, shop_buy, loot_pickup
  */
 
@@ -48,6 +48,7 @@ interface HASPlayer {
   gold: number;
   skipNextTurn: boolean;
   dodging: boolean;
+  blocking: boolean;
   [key: string]: unknown;
 }
 
@@ -213,6 +214,7 @@ export class HackAndSlashGame extends BaseGame {
         gold: 0,
         skipNextTurn: false,
         dodging: false,
+        blocking: false,
       };
     }
 
@@ -252,9 +254,15 @@ export class HackAndSlashGame extends BaseGame {
 
     if (player.skipNextTurn) {
       player.skipNextTurn = false;
-      this.emitEvent('turn_skipped', playerId, { reason: 'heavy_attack_recovery' });
+      this.emitEvent('turn_skipped', playerId, {
+        reason: 'heavy_attack_recovery',
+        message: 'Stunned! Turn skipped due to heavy attack recovery.',
+      });
       this.setData(data);
-      return { success: true, newState: this.getState() };
+      return {
+        success: true,
+        newState: this.getState(),
+      };
     }
 
     switch (action.type) {
@@ -274,6 +282,8 @@ export class HackAndSlashGame extends BaseGame {
         return this.handleShopBuy(playerId, action, data);
       case 'loot_pickup':
         return this.handleLootPickup(playerId, action, data);
+      case 'block':
+        return this.handleBlock(playerId, data);
       default:
         return { success: false, error: `Unknown action: ${action.type}` };
     }
@@ -545,6 +555,28 @@ export class HackAndSlashGame extends BaseGame {
     return { success: true, newState: this.getState() };
   }
 
+  private handleBlock(playerId: string, data: HASState): ActionResult {
+    if (data.phase !== 'combat') {
+      return { success: false, error: 'Not in combat phase' };
+    }
+
+    const player = data.players[playerId];
+    player.blocking = true;
+
+    this.emitEvent('block', playerId, {
+      message: 'Bracing for impact! Damage reduced for next hit.',
+    });
+
+    // Enemy counterattack occurs but blocking reduces damage
+    this.enemyCounterattack(data, playerId);
+    player.blocking = false;
+
+    this.checkCombatEnd(data);
+
+    this.setData(data);
+    return { success: true, newState: this.getState() };
+  }
+
   private onEnemyKill(playerId: string, enemy: HASEnemy, data: HASState): void {
     const player = data.players[playerId];
 
@@ -624,7 +656,12 @@ export class HackAndSlashGame extends BaseGame {
       }
 
       const playerDef = this.getEffectiveStats(player).def;
-      const damage = Math.max(1, enemy.atk - playerDef);
+      let damage = Math.max(1, enemy.atk - playerDef);
+      // Blocking reduces incoming damage by 50%
+      if (player.blocking) {
+        damage = Math.floor(damage * 0.5);
+        this.emitEvent('block_absorbed', playerId, { reduced: damage, enemy: enemy.id });
+      }
       player.hp -= damage;
 
       if (player.hp <= 0) {

@@ -382,8 +382,77 @@ export class WrestlerGame extends BaseGame {
 
     this.emitEvent('pin_attempt', playerId, { target: opponentId });
 
+    // Auto-resolve if defender is the CPU (REST API cannot wait for separate action)
+    if (opponentId === 'cpu') {
+      this.resolveCpuPinDefense(data);
+    }
+
     this.setData(data);
     return { success: true, newState: this.getState() };
+  }
+
+  /**
+   * Immediately resolve pin defense for the CPU opponent.
+   * Escape chance scales with remaining stamina:
+   *   > 50% max stamina: 80% escape
+   *   25-50%: 50% escape
+   *   < 25%: 20% escape
+   * On success: pin cleared, CPU loses stamina, pinner is stunned (turn skipped).
+   * On failure: CPU is pinned, match may end.
+   */
+  private resolveCpuPinDefense(data: WrestlerState): void {
+    const cpu = data.wrestlers['cpu'];
+    if (!cpu) return;
+
+    const staminaRatio = cpu.stamina / cpu.maxStamina;
+    let escapeChance: number;
+    if (staminaRatio > 0.5) {
+      escapeChance = 0.8;
+    } else if (staminaRatio > 0.25) {
+      escapeChance = 0.5;
+    } else {
+      escapeChance = 0.2;
+    }
+
+    const escaped = Math.random() < escapeChance;
+
+    if (escaped) {
+      // CPU kicks out
+      data.pinAttemptActive = false;
+      data.pinAttacker = null;
+      data.pinDefender = null;
+      data.referee.counting = false;
+      data.referee.count = 0;
+      data.referee.targetId = null;
+
+      cpu.stamina = Math.max(0, cpu.stamina - STAMINA_COSTS.kick_out);
+      cpu.momentum = Math.min(100, cpu.momentum + 5);
+      data.crowdMeter = Math.min(100, data.crowdMeter + 10);
+
+      this.emitEvent('kick_out', 'cpu', { success: true, escapeChance });
+
+      // Advance turn past the pinner (stun effect)
+      this.advanceTurn(data);
+      this.regenStamina(data);
+      this.regenTagPartners(data);
+    } else {
+      // CPU fails to kick out: pinned and eliminated
+      data.referee.count = 3;
+      data.pinAttemptActive = false;
+      data.pinAttacker = null;
+      data.pinDefender = null;
+      data.referee.counting = false;
+      data.referee.targetId = null;
+
+      cpu.eliminated = true;
+      data.turnOrder = data.turnOrder.filter((id) => id !== 'cpu');
+      if (data.currentTurnIndex >= data.turnOrder.length && data.turnOrder.length > 0) {
+        data.currentTurnIndex = 0;
+      }
+
+      this.emitEvent('pinned', 'cpu', { count: 3 });
+      this.checkMatchEnd(data);
+    }
   }
 
   private handleKickOut(playerId: string, data: WrestlerState): ActionResult {
@@ -578,9 +647,12 @@ export class WrestlerGame extends BaseGame {
       data.referee.count = 0;
       data.referee.targetId = opponentId!;
 
-      // After finisher, defender kick_out at half success rate is handled
-      // by checking a flag. We reduce their effective HP for the kick_out check.
       this.emitEvent('pin_after_finisher', playerId, { target: opponentId });
+
+      // Auto-resolve if defender is the CPU
+      if (opponentId === 'cpu') {
+        this.resolveCpuPinDefense(data);
+      }
     } else {
       opponent.hp = 0;
       opponent.eliminated = true;

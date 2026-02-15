@@ -3,6 +3,9 @@
  *
  * Features: XP, levels, skill trees (Power/Defense/Speed paths),
  * equipment, shops, stat growth curves, and stage-based combat.
+ *
+ * Actions: attack (aliases: punch, kick), skill (alias: special),
+ *          combo, grab, dodge, use_item, allocate_stat, equip, shop_buy
  */
 
 import { BaseGame } from '../BaseGame.js';
@@ -263,12 +266,19 @@ export class BeatEmUpRPGGame extends BaseGame {
     }
 
     switch (action.type) {
+      case 'punch':
+      case 'kick':
       case 'attack':
         return this.handleAttack(playerId, action, data);
+      case 'special':
       case 'skill':
         return this.handleSkill(playerId, action, data);
+      case 'combo':
+        return this.handleCombo(playerId, data);
       case 'dodge':
         return this.handleDodge(playerId, data);
+      case 'grab':
+        return this.handleGrab(playerId, data);
       case 'use_item':
         return this.handleUseItem(action, data);
       case 'allocate_stat':
@@ -510,6 +520,110 @@ export class BeatEmUpRPGGame extends BaseGame {
     // Dodge skips player attack but also avoids enemy counter
     this.tickCooldowns(data.player);
     this.emitEvent('dodge', data.playerId, {});
+    this.setData(data);
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleCombo(_playerId: string, data: BeatEmUpRPGState): ActionResult {
+    if (data.phase !== 'combat') {
+      return { success: false, error: 'Not in combat phase' };
+    }
+
+    // Combo uses the first available offensive skill; falls through to basic attack if none
+    const offensiveSkills = ['Fury Strike', 'Devastation', 'Double Strike', 'Blitz'];
+    const available = data.player.skills.find(
+      (s) => offensiveSkills.includes(s.name) && s.unlocked && s.cooldown <= 0,
+    );
+
+    if (available) {
+      // Delegate to handleSkill with the found skill
+      return this.handleSkill(
+        data.playerId,
+        {
+          type: 'skill',
+          payload: { skillName: available.name },
+          timestamp: Date.now(),
+        } as unknown as GameAction,
+        data,
+      );
+    }
+
+    // No offensive skill available; fall through to a basic attack
+    return this.handleAttack(
+      data.playerId,
+      {
+        type: 'attack',
+        payload: {},
+        timestamp: Date.now(),
+      } as unknown as GameAction,
+      data,
+    );
+  }
+
+  private handleGrab(_playerId: string, data: BeatEmUpRPGState): ActionResult {
+    if (data.phase !== 'combat') {
+      return { success: false, error: 'Not in combat phase' };
+    }
+
+    const aliveEnemies = data.enemies.filter((e) => e.alive);
+    if (aliveEnemies.length === 0) {
+      return { success: false, error: 'No enemies alive' };
+    }
+
+    const target = aliveEnemies[0];
+    const stats = this.getEffectiveStats(data.player);
+
+    // Grab deals moderate damage (75% of normal attack)
+    let damage = Math.max(1, Math.floor((stats.atk - target.def) * 0.75));
+
+    // Crit check
+    const critRoll = Math.random() * 100;
+    if (critRoll < stats.lck) {
+      damage *= 2;
+      this.emitEvent('critical_hit', data.playerId, { damage });
+    }
+
+    target.hp = Math.max(0, target.hp - damage);
+    data.totalDamageDealt += damage;
+
+    // Stun chance: 40% base + 1% per luck point
+    const stunChance = 40 + stats.lck;
+    const stunRoll = Math.random() * 100;
+    const stunned = stunRoll < stunChance;
+
+    this.emitEvent('grab', data.playerId, { target: target.id, damage, stunned });
+
+    if (target.hp <= 0) {
+      target.alive = false;
+      data.player.xp += target.xpReward;
+      data.player.gold += target.goldReward;
+      this.emitEvent('enemy_defeated', data.playerId, {
+        enemy: target.name,
+        xp: target.xpReward,
+        gold: target.goldReward,
+      });
+    }
+
+    // Tick cooldowns
+    this.tickCooldowns(data.player);
+
+    // Enemy counterattack (stunned enemy skips its attack)
+    if (!stunned) {
+      this.enemyCounterattack(data);
+    } else {
+      // Only non-stunned enemies counterattack
+      // For simplicity, if the grabbed enemy was stunned, skip all counterattacks this turn
+      this.emitEvent('enemy_stunned', data.playerId, { enemy: target.id });
+    }
+
+    // Check level up
+    this.checkLevelUp(data);
+
+    // Check stage clear
+    if (data.enemies.every((e) => !e.alive) && data.player.hp > 0) {
+      this.clearStage(data);
+    }
+
     this.setData(data);
     return { success: true, newState: this.getState() };
   }

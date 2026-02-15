@@ -200,12 +200,16 @@ export class StreetFighterGame extends BaseGame {
     let result: ActionResult;
 
     switch (action.type) {
+      case 'punch':
       case 'light':
         result = this.handleAttack(playerId, 'light', 5, 5, data);
         break;
+      case 'kick':
       case 'medium':
         result = this.handleAttack(playerId, 'medium', 10, 8, data);
         break;
+      case 'sweep':
+      case 'uppercut':
       case 'heavy':
         result = this.handleAttack(playerId, 'heavy', 15, 12, data);
         break;

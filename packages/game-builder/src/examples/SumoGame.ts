@@ -63,7 +63,7 @@ export class SumoGame extends BaseGame {
 
   protected initializeState(playerIds: string[]): SumoState {
     const cfg = this.config as SumoConfig;
-    const ringSize = cfg.ringSize ?? 5;
+    const ringSize = cfg.ringSize ?? 10;
     const weightClass = cfg.weightClass ?? 'medium';
     const tachiaiBonusWindow = cfg.tachiaiBonusWindow ?? 1;
     const balanceSensitivity = cfg.balanceSensitivity ?? 5;
@@ -82,9 +82,9 @@ export class SumoGame extends BaseGame {
       wrestlers[pid] = {
         id: pid,
         position: i === 0 ? -startOffset : startOffset,
-        balance: 100,
-        stamina: 100,
-        maxStamina: 100,
+        balance: 150,
+        stamina: 120,
+        maxStamina: 120,
         grip: null,
         tachiai: true,
         stats: { ...stats },
@@ -173,11 +173,11 @@ export class SumoGame extends BaseGame {
   }
 
   private regenStamina(wrestler: Wrestler): void {
-    wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + 8);
+    wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + 12);
   }
 
   private regenBalance(wrestler: Wrestler): void {
-    wrestler.balance = Math.min(100, wrestler.balance + 5);
+    wrestler.balance = Math.min(150, wrestler.balance + 8);
   }
 
   private checkRingOut(data: SumoState): void {
@@ -230,13 +230,13 @@ export class SumoGame extends BaseGame {
       pushDist = 2;
     }
 
-    // Vulnerable bonus
+    // Vulnerable bonus (reduced multiplier)
     if (this.isVulnerable(opponent)) {
-      pushDist = Math.ceil(pushDist * 1.5);
+      pushDist += 1;
     }
 
     opponent.position += dir * pushDist;
-    opponent.balance = Math.max(0, opponent.balance - 10);
+    opponent.balance = Math.max(0, opponent.balance - 6);
     wrestler.lastAction = 'push';
     this.consumeStamina(wrestler, 5);
 
@@ -304,12 +304,12 @@ export class SumoGame extends BaseGame {
 
     if (success) {
       const dir = this.getDirection(wrestler, opponent);
-      let throwDist = 3;
+      let throwDist = 2;
       if (this.isVulnerable(opponent)) {
-        throwDist = Math.ceil(throwDist * 1.5);
+        throwDist += 1;
       }
       opponent.position += dir * throwDist;
-      opponent.balance = Math.max(0, opponent.balance - 30);
+      opponent.balance = Math.max(0, opponent.balance - 18);
       this.emitEvent('throw_success', playerId, {
         distance: throwDist,
         targetPos: opponent.position,
@@ -357,8 +357,8 @@ export class SumoGame extends BaseGame {
 
     // Break opponent grip
     opponent.grip = null;
-    // 10 balance damage
-    opponent.balance = Math.max(0, opponent.balance - 10);
+    // Balance damage
+    opponent.balance = Math.max(0, opponent.balance - 6);
 
     wrestler.lastAction = 'slap';
     // Slap costs minimal stamina
@@ -382,19 +382,19 @@ export class SumoGame extends BaseGame {
     this.consumeStamina(wrestler, 5);
 
     const dir = this.getDirection(wrestler, opponent);
-    let pushDist = 3;
+    let pushDist = 2;
 
     // Bonus window check
     if (data.turnCount <= data.tachiaiBonusWindow) {
-      pushDist = Math.ceil(pushDist * 1.5);
+      pushDist += 1;
     }
 
     if (this.isVulnerable(opponent)) {
-      pushDist = Math.ceil(pushDist * 1.5);
+      pushDist += 1;
     }
 
     opponent.position += dir * pushDist;
-    opponent.balance = Math.max(0, opponent.balance - 20);
+    opponent.balance = Math.max(0, opponent.balance - 12);
     wrestler.pendingCharge = true;
     wrestler.lastAction = 'charge';
 

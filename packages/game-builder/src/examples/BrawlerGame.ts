@@ -7,8 +7,8 @@
  * Players fight through stages of enemy waves, picking up weapons
  * and chaining combos for increased damage. Supports 1-4 co-op players.
  *
- * Actions: move, attack, jump_attack, grab, throw, use_weapon,
- *          special, pick_up
+ * Actions: move, attack (aliases: punch, kick), jump_attack (alias: combo),
+ *          grab, throw, use_weapon, special, pick_up, dodge, block
  */
 
 import { BaseGame } from '../BaseGame.js';
@@ -24,12 +24,15 @@ export interface BrawlerConfig {
 interface BrawlerPlayer {
   hp: number;
   maxHp: number;
+  stamina: number;
+  maxStamina: number;
   x: number;
   score: number;
   weapon: string | null;
   comboCount: number;
   lives: number;
   lastAction: string | null;
+  blocking: boolean;
   [key: string]: unknown;
 }
 
@@ -102,12 +105,15 @@ export class BrawlerGame extends BaseGame {
       players[pid] = {
         hp: 100,
         maxHp: 100,
+        stamina: 100,
+        maxStamina: 100,
         x: 0,
         score: 0,
         weapon: null,
         comboCount: 0,
         lives: 3,
         lastAction: null,
+        blocking: false,
       };
     }
 
@@ -145,11 +151,19 @@ export class BrawlerGame extends BaseGame {
       return { success: false, error: 'Player is knocked out' };
     }
 
+    // Reset blocking flag at the start of a new action (block only lasts one exchange)
+    if (action.type !== 'block') {
+      player.blocking = false;
+    }
+
     switch (action.type) {
       case 'move':
         return this.handleMove(playerId, action, data);
+      case 'punch':
+      case 'kick':
       case 'attack':
         return this.handleAttack(playerId, data);
+      case 'combo':
       case 'jump_attack':
         return this.handleJumpAttack(playerId, data);
       case 'grab':
@@ -162,6 +176,10 @@ export class BrawlerGame extends BaseGame {
         return this.handleSpecial(playerId, data);
       case 'pick_up':
         return this.handlePickUp(playerId, action, data);
+      case 'dodge':
+        return this.handleDodge(playerId, data);
+      case 'block':
+        return this.handleBlock(playerId, data);
       default:
         return { success: false, error: `Unknown action: ${action.type}` };
     }
@@ -430,6 +448,47 @@ export class BrawlerGame extends BaseGame {
     return { success: true, newState: this.getState() };
   }
 
+  private handleDodge(playerId: string, data: BrawlerState): ActionResult {
+    const player = data.players[playerId];
+    const DODGE_STAMINA_COST = 20;
+
+    if (player.stamina < DODGE_STAMINA_COST) {
+      return { success: false, error: 'Not enough stamina to dodge' };
+    }
+
+    player.stamina -= DODGE_STAMINA_COST;
+    player.comboCount = 0;
+    player.lastAction = 'dodge';
+
+    this.emitEvent('dodge', playerId, {
+      staminaCost: DODGE_STAMINA_COST,
+      staminaRemaining: player.stamina,
+    });
+
+    // Dodge makes the player invulnerable for this exchange (no counterattack)
+    this.checkWaveClear(data);
+
+    this.setData(data);
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleBlock(playerId: string, data: BrawlerState): ActionResult {
+    const player = data.players[playerId];
+
+    player.blocking = true;
+    player.comboCount = 0;
+    player.lastAction = 'block';
+
+    this.emitEvent('block', playerId, {});
+
+    // Enemies still attack but damage is reduced (handled in enemyCounterattack)
+    this.enemyCounterattack(data, playerId);
+    this.checkWaveClear(data);
+
+    this.setData(data);
+    return { success: true, newState: this.getState() };
+  }
+
   private applyCombo(player: BrawlerPlayer, actionType: string, baseDamage: number): number {
     if (player.lastAction && player.lastAction !== actionType && player.lastAction !== 'move') {
       player.comboCount++;
@@ -447,7 +506,12 @@ export class BrawlerGame extends BaseGame {
     const aliveEnemies = data.enemies.filter((e) => e.alive);
 
     for (const enemy of aliveEnemies) {
-      player.hp -= enemy.atk;
+      let incomingDamage = enemy.atk;
+      // Blocking reduces incoming damage by 60%
+      if (player.blocking) {
+        incomingDamage = Math.floor(incomingDamage * 0.4);
+      }
+      player.hp -= incomingDamage;
       if (player.hp <= 0) {
         player.hp = 0;
         player.lives--;

@@ -141,6 +141,8 @@ export class GraphStrategyGame extends BaseGame {
     }
 
     switch (action.type) {
+      case 'send_signal':
+      case 'send_signals':
       case 'place_signal':
         return this.handlePlaceSignal(playerId, action, data);
       case 'redirect_edge':

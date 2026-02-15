@@ -5,7 +5,8 @@
  * Tagged-out partners regenerate HP. Sync meter builds from attacks,
  * enabling devastating sync specials when full.
  *
- * Actions: attack, tag_in, call_assist, block, sync_special
+ * Actions: attack, tag_in, tag_out, call_assist, block,
+ *          sync_special (alias: special), combo
  */
 
 import { BaseGame } from '../BaseGame.js';
@@ -33,6 +34,7 @@ interface Team {
   activeIndex: number;
   syncMeter: number;
   tagCooldown: number;
+  assistCooldown: number;
   [key: string]: unknown;
 }
 
@@ -90,6 +92,7 @@ export class TagTeamGame extends BaseGame {
         activeIndex: 0,
         syncMeter: 0,
         tagCooldown: 0,
+        assistCooldown: 0,
       };
       totalScore[pid] = 0;
     }
@@ -130,14 +133,21 @@ export class TagTeamGame extends BaseGame {
       case 'tag_in':
         result = this.handleTagIn(playerId, data);
         break;
+      case 'tag_out':
+        result = this.handleTagOut(playerId, data);
+        break;
       case 'call_assist':
         result = this.handleAssist(playerId, data);
         break;
       case 'block':
         result = this.handleBlock(playerId, data);
         break;
+      case 'special':
       case 'sync_special':
         result = this.handleSyncSpecial(playerId, data);
+        break;
+      case 'combo':
+        result = this.handleCombo(playerId, data);
         break;
       default:
         result = { success: false, error: `Unknown action: ${action.type}` };
@@ -184,10 +194,13 @@ export class TagTeamGame extends BaseGame {
   }
 
   private finalizeTurn(data: TagTeamState): void {
-    // Decrease tag cooldowns
+    // Decrease tag and assist cooldowns
     for (const team of Object.values(data.teams)) {
       if (team.tagCooldown > 0) {
         team.tagCooldown--;
+      }
+      if (team.assistCooldown > 0) {
+        team.assistCooldown--;
       }
     }
     this.applyRecovery(data);
@@ -271,6 +284,81 @@ export class TagTeamGame extends BaseGame {
     team.tagCooldown = data.tagCooldownMax;
 
     this.emitEvent('tag_in', playerId, { fighter: bench.id });
+    this.finalizeTurn(data);
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleTagOut(playerId: string, data: TagTeamState): ActionResult {
+    const team = data.teams[playerId];
+
+    if (team.tagCooldown > 0) {
+      return { success: false, error: 'Tag on cooldown' };
+    }
+
+    const bench = this.getBenchedFighter(team);
+    if (bench.hp <= 0) {
+      return { success: false, error: 'Partner is down, cannot tag out' };
+    }
+
+    // Swap active fighter back to bench (opposite of tag_in, same mechanic)
+    const current = this.getActiveFighter(team);
+    current.tagged = false;
+    bench.tagged = true;
+    team.activeIndex = team.activeIndex === 0 ? 1 : 0;
+    team.tagCooldown = data.tagCooldownMax;
+
+    this.emitEvent('tag_out', playerId, { benchedFighter: current.id, newActive: bench.id });
+    this.finalizeTurn(data);
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleCombo(playerId: string, data: TagTeamState): ActionResult {
+    const team = data.teams[playerId];
+    const active = this.getActiveFighter(team);
+    if (active.hp <= 0) {
+      return { success: false, error: 'Active fighter is down' };
+    }
+
+    const bench = this.getBenchedFighter(team);
+    if (bench.hp <= 0) {
+      return { success: false, error: 'Partner is down, cannot perform combo' };
+    }
+
+    if (team.assistCooldown > 0) {
+      return { success: false, error: 'Assist is on cooldown, cannot combo' };
+    }
+
+    const oppId = this.getOpponentId(playerId, data);
+    const oppTeam = data.teams[oppId];
+    const target = this.getActiveFighter(oppTeam);
+
+    // Coordinated attack: 12 (active) + 10 (assist) = 22 total, more than attack(8) + assist(10) separately
+    let damage = 22;
+
+    if (data.blockActive[oppId]) {
+      damage = Math.floor(damage * 0.3);
+      data.blockActive[oppId] = false;
+      this.emitEvent('blocked', oppId, { reduced: true });
+    }
+
+    target.hp -= damage;
+    if (target.hp <= 0) {
+      target.hp = 0;
+      const oppBench = this.getBenchedFighter(oppTeam);
+      if (oppBench.hp > 0) {
+        oppTeam.activeIndex = oppTeam.activeIndex === 0 ? 1 : 0;
+        oppBench.tagged = true;
+        this.emitEvent('forced_tag', oppId, { fighter: oppBench.id });
+      }
+    }
+
+    // Combo puts assist on cooldown (2 turns)
+    team.assistCooldown = 2;
+
+    data.totalScore[playerId] = (data.totalScore[playerId] ?? 0) + damage;
+    team.syncMeter = Math.min(100, team.syncMeter + data.syncMeterRate * 2);
+
+    this.emitEvent('combo', playerId, { damage, target: target.id });
     this.finalizeTurn(data);
     return { success: true, newState: this.getState() };
   }

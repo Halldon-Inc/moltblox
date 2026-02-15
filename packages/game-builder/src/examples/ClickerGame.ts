@@ -28,6 +28,18 @@ export interface ClickerConfig {
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
 }
 
+interface UpgradeLevels {
+  click_power: number; // Each level adds +1 to base click value
+  auto_click: number; // Each level adds +1 passive clicks per turn
+  multi_click_size: number; // Each level adds +5 to max multi_click
+}
+
+const UPGRADE_BASE_COSTS: Record<keyof UpgradeLevels, number> = {
+  click_power: 10,
+  auto_click: 25,
+  multi_click_size: 15,
+};
+
 interface ClickerState {
   [key: string]: unknown;
   clicks: Record<string, number>; // Player ID -> click count
@@ -35,6 +47,7 @@ interface ClickerState {
   lastAction: string | null; // Last player who acted
   lastClickTurn: Record<string, number>; // Turn of each player's last click (for combo/decay)
   combos: Record<string, number>; // Current combo streak per player
+  upgrades: Record<string, UpgradeLevels>; // Upgrade levels per player
 }
 
 export class ClickerGame extends BaseGame {
@@ -63,12 +76,18 @@ export class ClickerGame extends BaseGame {
       combos[playerId] = 0;
     }
 
+    const upgrades: Record<string, UpgradeLevels> = {};
+    for (const playerId of playerIds) {
+      upgrades[playerId] = { click_power: 0, auto_click: 0, multi_click_size: 0 };
+    }
+
     return {
       clicks,
       targetClicks,
       lastAction: null,
       lastClickTurn,
       combos,
+      upgrades,
     };
   }
 
@@ -105,11 +124,13 @@ export class ClickerGame extends BaseGame {
           }
         }
 
-        // Increment click count by configured value, scaled by combo multiplier
-        const baseClick = cfg.clickValue ?? 1;
+        // Increment click count by configured value + upgrade bonus, scaled by combo multiplier
+        const playerUpgrades = data.upgrades[playerId];
+        const baseClick = (cfg.clickValue ?? 1) + (playerUpgrades?.click_power ?? 0);
         const comboMultiplier =
           comboWindow > 0 && data.combos[playerId] > 1 ? 1 + data.combos[playerId] * 0.1 : 1;
-        const clickAmount = Math.floor(baseClick * comboMultiplier);
+        const autoClickBonus = playerUpgrades?.auto_click ?? 0;
+        const clickAmount = Math.floor(baseClick * comboMultiplier) + autoClickBonus;
         data.clicks[playerId] += clickAmount;
         data.lastAction = playerId;
         data.lastClickTurn[playerId] = currentTurn;
@@ -139,7 +160,8 @@ export class ClickerGame extends BaseGame {
         }
 
         const amount = Number(action.payload.amount || action.payload.count) || 1;
-        const mcMax = mcCfg.maxMultiClick ?? 10;
+        const mcUpgrade = data.upgrades[playerId]?.multi_click_size ?? 0;
+        const mcMax = (mcCfg.maxMultiClick ?? 10) + mcUpgrade * 5;
 
         if (amount > mcMax) {
           return {
@@ -151,6 +173,51 @@ export class ClickerGame extends BaseGame {
         data.clicks[playerId] += amount;
         data.lastAction = playerId;
         this.setData(data);
+
+        return {
+          success: true,
+          newState: this.getState(),
+        };
+      }
+
+      case 'upgrade': {
+        const upgradeType = (action.payload?.upgradeType ?? action.payload?.type) as
+          | keyof UpgradeLevels
+          | undefined;
+
+        if (!upgradeType || !(upgradeType in UPGRADE_BASE_COSTS)) {
+          return {
+            success: false,
+            error: `Invalid upgrade type: "${upgradeType}". Valid types: click_power, auto_click, multi_click_size`,
+          };
+        }
+
+        const playerUpg = data.upgrades[playerId] ?? {
+          click_power: 0,
+          auto_click: 0,
+          multi_click_size: 0,
+        };
+        const currentLevel = playerUpg[upgradeType];
+        const cost = UPGRADE_BASE_COSTS[upgradeType] * Math.pow(2, currentLevel);
+
+        if (data.clicks[playerId] < cost) {
+          return {
+            success: false,
+            error: `Not enough clicks. Need ${cost}, have ${data.clicks[playerId]}`,
+          };
+        }
+
+        data.clicks[playerId] -= cost;
+        playerUpg[upgradeType] = currentLevel + 1;
+        data.upgrades[playerId] = playerUpg;
+        data.lastAction = playerId;
+        this.setData(data);
+
+        this.emitEvent('upgrade', playerId, {
+          upgradeType,
+          newLevel: currentLevel + 1,
+          cost,
+        });
 
         return {
           success: true,
