@@ -24,6 +24,30 @@ import { mbucksToWei } from '../lib/parseBigInt.js';
 const router: Router = Router();
 
 /**
+ * Check if a Prisma error indicates missing wager tables (migration not applied).
+ * Returns true if the error should be converted to a 503 response.
+ */
+function isWagerMigrationError(err: unknown): boolean {
+  const code = (err as Record<string, unknown>).code;
+  // P2021 = table does not exist, P2010 = raw query failed
+  // P2003 = foreign key constraint (could indicate missing tables)
+  return code === 'P2021' || code === 'P2010';
+}
+
+function handleWagerDbError(err: unknown, res: Response, operation: string): boolean {
+  if (isWagerMigrationError(err)) {
+    const code = (err as Record<string, unknown>).code;
+    console.error(`[WAGER_${operation}] Migration error code=${code}`);
+    res.status(503).json({
+      error: 'ServiceUnavailable',
+      message: 'Wager tables not yet created. Database migration may be pending.',
+    });
+    return true;
+  }
+  return false;
+}
+
+/**
  * Serialize BigInt fields on a wager to strings for JSON output.
  */
 function serializeWager(wager: {
@@ -120,19 +144,7 @@ router.post(
           },
         });
       } catch (dbError: unknown) {
-        const code = (dbError as Record<string, unknown>).code;
-        const meta = (dbError as Record<string, unknown>).meta;
-        console.error(
-          `[WAGER_CREATE] code=${code} meta=${JSON.stringify(meta)} msg=${dbError instanceof Error ? dbError.message : String(dbError)}`,
-        );
-        // P2021 = table does not exist (migration not applied)
-        if (code === 'P2021') {
-          res.status(503).json({
-            error: 'ServiceUnavailable',
-            message: 'Wager tables not yet created. Database migration may be pending.',
-          });
-          return;
-        }
+        if (handleWagerDbError(dbError, res, 'CREATE')) return;
         throw dbError;
       }
 
@@ -141,6 +153,7 @@ router.post(
         message: 'Wager created successfully',
       });
     } catch (error) {
+      if (handleWagerDbError(error, res, 'CREATE')) return;
       next(error);
     }
   },
@@ -195,6 +208,7 @@ router.get(
         },
       });
     } catch (error) {
+      if (handleWagerDbError(error, res, 'LIST')) return;
       next(error);
     }
   },
@@ -240,6 +254,7 @@ router.get(
 
       res.json(serializeWager(wager));
     } catch (error) {
+      if (handleWagerDbError(error, res, 'GET')) return;
       next(error);
     }
   },
@@ -324,6 +339,7 @@ router.post(
         });
         return;
       }
+      if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
   },
@@ -384,6 +400,7 @@ router.post(
         });
         return;
       }
+      if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
   },
@@ -500,6 +517,7 @@ router.post(
         });
         return;
       }
+      if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
   },
@@ -568,6 +586,7 @@ router.post(
         });
         return;
       }
+      if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
   },
@@ -658,6 +677,7 @@ router.post(
         });
         return;
       }
+      if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
   },
@@ -704,6 +724,7 @@ router.get(
         total: bets.length,
       });
     } catch (error) {
+      if (handleWagerDbError(error, res, 'SPECTATOR_LIST')) return;
       next(error);
     }
   },
@@ -782,6 +803,7 @@ router.get(
         odds,
       });
     } catch (error) {
+      if (handleWagerDbError(error, res, 'ODDS')) return;
       next(error);
     }
   },

@@ -11,7 +11,7 @@ import { requireAuth, requireBot } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { updateItemSchema, browseItemsSchema } from '../schemas/marketplace.js';
 import { sanitizeObject } from '../lib/sanitize.js';
-import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
+import { mbucksToWei } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 
 const router: Router = Router();
@@ -52,17 +52,14 @@ router.get(
         try {
           where.price = {};
           if (minPrice) {
-            where.price.gte = parseBigIntNonNegative(minPrice as string, 'minPrice');
+            where.price.gte = mbucksToWei(minPrice as string);
           }
           if (maxPrice) {
-            where.price.lte = parseBigIntNonNegative(maxPrice as string, 'maxPrice');
+            where.price.lte = mbucksToWei(maxPrice as string);
           }
-        } catch (err) {
-          if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'BadRequest', message: err.message });
-            return;
-          }
-          throw err;
+        } catch {
+          res.status(400).json({ error: 'BadRequest', message: 'Invalid price filter value' });
+          return;
         }
       }
 
@@ -116,171 +113,91 @@ router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
 });
 
 /**
- * PUT /items/:id - Update an item (creator only)
+ * Shared handler for PUT and PATCH /items/:id
  */
-router.put(
-  '/:id',
-  requireAuth,
-  requireBot,
-  validate(updateItemSchema),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const user = req.user!;
+async function updateItemHandler(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const user = req.user!;
 
-      const existing = await prisma.item.findUnique({
-        where: { id },
-        select: { creatorId: true, currentSupply: true },
-      });
+    const existing = await prisma.item.findUnique({
+      where: { id },
+      select: { creatorId: true, currentSupply: true },
+    });
 
-      if (!existing) {
-        res.status(404).json({ error: 'NotFound', message: `Item with id "${id}" not found` });
-        return;
-      }
-
-      if (existing.creatorId !== user.id) {
-        res
-          .status(403)
-          .json({ error: 'Forbidden', message: 'You can only update items you created' });
-        return;
-      }
-
-      const { name, description, price, maxSupply } = req.body;
-
-      if (maxSupply !== undefined && existing.currentSupply > 0) {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Cannot change maxSupply after items have been minted (currentSupply > 0)',
-        });
-        return;
-      }
-
-      const data: Prisma.ItemUpdateInput = {};
-
-      if (name !== undefined) {
-        const sanitized = sanitizeObject({ name } as Record<string, unknown>, ['name']);
-        data.name = sanitized.name as string;
-      }
-      if (description !== undefined) {
-        const sanitized = sanitizeObject({ description } as Record<string, unknown>, [
-          'description',
-        ]);
-        data.description = sanitized.description as string;
-      }
-      if (price !== undefined) {
-        try {
-          data.price = parseBigIntNonNegative(price, 'price');
-        } catch (err) {
-          if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'BadRequest', message: err.message });
-            return;
-          }
-          throw err;
-        }
-      }
-      if (maxSupply !== undefined) {
-        data.maxSupply = maxSupply;
-        data.currentSupply = maxSupply;
-      }
-
-      const item = await prisma.item.update({
-        where: { id },
-        data,
-        include: {
-          game: { select: { id: true, name: true, slug: true, thumbnailUrl: true } },
-          creator: { select: { id: true, displayName: true, walletAddress: true } },
-        },
-      });
-
-      res.json({ ...item, price: item.price.toString(), message: 'Item updated successfully' });
-    } catch (error) {
-      next(error);
+    if (!existing) {
+      res.status(404).json({ error: 'NotFound', message: `Item with id "${id}" not found` });
+      return;
     }
-  },
-);
+
+    if (existing.creatorId !== user.id) {
+      res
+        .status(403)
+        .json({ error: 'Forbidden', message: 'You can only update items you created' });
+      return;
+    }
+
+    const { name, description, price, maxSupply } = req.body;
+
+    if (maxSupply !== undefined && existing.currentSupply > 0) {
+      res.status(400).json({
+        error: 'BadRequest',
+        message: 'Cannot change maxSupply after items have been minted (currentSupply > 0)',
+      });
+      return;
+    }
+
+    const data: Prisma.ItemUpdateInput = {};
+
+    if (name !== undefined) {
+      const sanitized = sanitizeObject({ name } as Record<string, unknown>, ['name']);
+      data.name = sanitized.name as string;
+    }
+    if (description !== undefined) {
+      const sanitized = sanitizeObject({ description } as Record<string, unknown>, ['description']);
+      data.description = sanitized.description as string;
+    }
+    if (price !== undefined) {
+      try {
+        const wei = mbucksToWei(price);
+        if (wei < 0n) {
+          res.status(400).json({ error: 'BadRequest', message: 'Price must not be negative' });
+          return;
+        }
+        data.price = wei;
+      } catch {
+        res.status(400).json({ error: 'BadRequest', message: 'Invalid price value' });
+        return;
+      }
+    }
+    if (maxSupply !== undefined) {
+      data.maxSupply = maxSupply;
+      data.currentSupply = maxSupply;
+    }
+
+    const item = await prisma.item.update({
+      where: { id },
+      data,
+      include: {
+        game: { select: { id: true, name: true, slug: true, thumbnailUrl: true } },
+        creator: { select: { id: true, displayName: true, walletAddress: true } },
+      },
+    });
+
+    res.json({ ...item, price: item.price.toString(), message: 'Item updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+}
 
 /**
- * PATCH /items/:id - Update an item (alias for PUT, creator only)
+ * PUT /items/:id - Update an item (creator only)
  */
-router.patch(
-  '/:id',
-  requireAuth,
-  requireBot,
-  validate(updateItemSchema),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { id } = req.params;
-      const user = req.user!;
+router.put('/:id', requireAuth, requireBot, validate(updateItemSchema), updateItemHandler);
 
-      const existing = await prisma.item.findUnique({
-        where: { id },
-        select: { creatorId: true, currentSupply: true },
-      });
-
-      if (!existing) {
-        res.status(404).json({ error: 'NotFound', message: `Item with id "${id}" not found` });
-        return;
-      }
-
-      if (existing.creatorId !== user.id) {
-        res
-          .status(403)
-          .json({ error: 'Forbidden', message: 'You can only update items you created' });
-        return;
-      }
-
-      const { name, description, price, maxSupply } = req.body;
-
-      if (maxSupply !== undefined && existing.currentSupply > 0) {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Cannot change maxSupply after items have been minted (currentSupply > 0)',
-        });
-        return;
-      }
-
-      const data: Prisma.ItemUpdateInput = {};
-
-      if (name !== undefined) {
-        const sanitized = sanitizeObject({ name } as Record<string, unknown>, ['name']);
-        data.name = sanitized.name as string;
-      }
-      if (description !== undefined) {
-        const sanitized = sanitizeObject({ description } as Record<string, unknown>, [
-          'description',
-        ]);
-        data.description = sanitized.description as string;
-      }
-      if (price !== undefined) {
-        try {
-          data.price = parseBigIntNonNegative(price, 'price');
-        } catch (err) {
-          if (err instanceof ParseBigIntError) {
-            res.status(400).json({ error: 'BadRequest', message: err.message });
-            return;
-          }
-          throw err;
-        }
-      }
-      if (maxSupply !== undefined) {
-        data.maxSupply = maxSupply;
-        data.currentSupply = maxSupply;
-      }
-
-      const item = await prisma.item.update({
-        where: { id },
-        data,
-        include: {
-          game: { select: { id: true, name: true, slug: true, thumbnailUrl: true } },
-          creator: { select: { id: true, displayName: true, walletAddress: true } },
-        },
-      });
-
-      res.json({ ...item, price: item.price.toString(), message: 'Item updated successfully' });
-    } catch (error) {
-      next(error);
-    }
-  },
-);
+/**
+ * PATCH /items/:id - Update an item (creator only, alias for PUT)
+ */
+router.patch('/:id', requireAuth, requireBot, validate(updateItemSchema), updateItemHandler);
 
 export default router;

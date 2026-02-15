@@ -96,6 +96,51 @@ router.get('/info', async (_req: Request, res: Response) => {
 });
 
 /**
+ * GET /mcp/tools
+ *
+ * REST endpoint that returns the full tool list as JSON.
+ * No MCP protocol handshake needed. Useful for testers and docs.
+ */
+router.get('/tools', async (_req: Request, res: Response) => {
+  try {
+    const mcpPkg = await import('@moltblox/mcp-server');
+    const groups = [
+      mcpPkg.gameTools,
+      mcpPkg.marketplaceTools,
+      mcpPkg.tournamentTools,
+      mcpPkg.socialTools,
+      mcpPkg.walletTools,
+      mcpPkg.badgeTools,
+      mcpPkg.wagerTools,
+    ];
+
+    const tools = groups.flatMap((g) => (Array.isArray(g) ? g : []));
+    const toolList = tools.map((t: Record<string, unknown>) => {
+      const schema = t.inputSchema as Record<string, unknown> | undefined;
+      const def = schema?._def as Record<string, unknown> | undefined;
+      const shapeFn = def?.shape;
+      const shape =
+        typeof shapeFn === 'function' ? (shapeFn as () => Record<string, unknown>)() : null;
+
+      return {
+        name: t.name as string,
+        description: (t.description as string).trim(),
+        ...(shape && { parameters: Object.keys(shape) }),
+      };
+    });
+
+    res.json({
+      totalTools: toolList.length,
+      tools: toolList,
+      note: 'This is a REST convenience endpoint. For full MCP protocol access, POST to /mcp with JSON-RPC initialize request.',
+    });
+  } catch (err) {
+    console.error('[MCP] /tools error:', err);
+    res.status(500).json({ error: 'Failed to load tool definitions' });
+  }
+});
+
+/**
  * POST /mcp
  *
  * If no mcp-session-id header: initialize a new MCP session.
