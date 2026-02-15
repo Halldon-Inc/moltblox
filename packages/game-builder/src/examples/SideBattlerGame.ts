@@ -724,6 +724,10 @@ export class SideBattlerGame extends BaseGame {
 
     data.combatLog.push(`--- Wave ${data.currentWave} begins! ---`);
 
+    // If the first turn belongs to an enemy, auto-resolve enemy turns
+    // so the player is not deadlocked waiting for a character turn
+    this.autoResolveEnemyTurns(data);
+
     this.setData(data);
     return { success: true, newState: this.getState() };
   }

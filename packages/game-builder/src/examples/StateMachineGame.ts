@@ -27,6 +27,8 @@ export interface StateMachineDefinition {
   loseCondition: ConditionExpr;
   perTurnEffects?: EffectDef[];
   theme?: ThemeDef;
+  winStates?: string[];
+  loseStates?: string[];
 }
 
 export interface StateDef {
@@ -237,12 +239,11 @@ function applyEffects(
         result = current;
     }
 
-    // Clamp to min/max
+    // Clamp to min/max (default floor is 0 to prevent negative resources)
     const def = resourceDefs[effect.resource];
-    if (def) {
-      if (def.min !== undefined && result < def.min) result = def.min;
-      if (def.max !== undefined && result > def.max) result = def.max;
-    }
+    const floor = def?.min ?? 0;
+    if (result < floor) result = floor;
+    if (def?.max !== undefined && result > def.max) result = def.max;
 
     resources[effect.resource] = result;
   }
@@ -418,6 +419,14 @@ function normalizeDefinition(def: Record<string, unknown>): StateMachineDefiniti
   // Provide a default that never triggers if missing
   if (!out.loseCondition) {
     out.loseCondition = { resource: '__never__', operator: '==', value: '-999' };
+  }
+
+  // --- Normalize winStates / loseStates ---
+  if (Array.isArray(out.winStates)) {
+    out.winStates = (out.winStates as unknown[]).map(String);
+  }
+  if (Array.isArray(out.loseStates)) {
+    out.loseStates = (out.loseStates as unknown[]).map(String);
   }
 
   return out as unknown as StateMachineDefinition;
@@ -674,7 +683,7 @@ export class StateMachineGame extends BaseGame {
       applyEffects(this.definition.perTurnEffects, data.resources, this.definition.resources);
     }
 
-    // Check win/lose
+    // Check win/lose conditions
     if (evaluateCondition(this.definition.winCondition, data.resources, data.currentState)) {
       data.gameResult = 'win';
       this.emitEvent('game_won', playerId, { resources: { ...data.resources } });
@@ -683,6 +692,37 @@ export class StateMachineGame extends BaseGame {
     ) {
       data.gameResult = 'lose';
       this.emitEvent('game_lost', playerId, { resources: { ...data.resources } });
+    }
+
+    // Check winStates / loseStates
+    if (data.gameResult === 'playing') {
+      if (this.definition.winStates?.includes(data.currentState)) {
+        data.gameResult = 'win';
+        this.emitEvent('game_won', playerId, { resources: { ...data.resources } });
+      } else if (this.definition.loseStates?.includes(data.currentState)) {
+        data.gameResult = 'lose';
+        this.emitEvent('game_lost', playerId, { resources: { ...data.resources } });
+      }
+    }
+
+    // Terminal state detection: no available actions and no auto-transitions from current state
+    if (data.gameResult === 'playing') {
+      const availableActions = this.definition.actions[data.currentState] ?? [];
+      const hasAutoTransition = this.definition.transitions.some(
+        (t) => t.auto && t.from === data.currentState,
+      );
+      if (availableActions.length === 0 && !hasAutoTransition) {
+        // Terminal state with no exit: check if any resource hit its floor (lose) or survived (win)
+        const hitFloor = Object.entries(data.resources).some(([key, val]) => {
+          const resDef = this.definition.resources[key];
+          const floor = resDef?.min ?? 0;
+          return val <= floor && key !== '__never__' && key !== '__noop__';
+        });
+        data.gameResult = hitFloor ? 'lose' : 'win';
+        this.emitEvent(hitFloor ? 'game_lost' : 'game_won', playerId, {
+          resources: { ...data.resources },
+        });
+      }
     }
 
     // Advance turn

@@ -231,6 +231,15 @@ export class StreetFighterGame extends BaseGame {
       case 'dash':
         result = this.handleDash(playerId, action, data);
         break;
+      case 'advance':
+      case 'walk':
+      case 'move_forward':
+        result = this.handleAdvance(playerId, data);
+        break;
+      case 'retreat':
+      case 'move_back':
+        result = this.handleRetreat(playerId, data);
+        break;
       case 'tech_throw':
         result = this.handleTechThrow(playerId, data);
         break;
@@ -311,6 +320,8 @@ export class StreetFighterGame extends BaseGame {
 
     if (opponent.hp <= 0) {
       this.resolveRoundEnd(playerId, data);
+      this.setData(data);
+      return { success: true, newState: this.getState() };
     }
 
     return { success: true, newState: this.getState() };
@@ -382,6 +393,8 @@ export class StreetFighterGame extends BaseGame {
 
     if (opponent.hp <= 0) {
       this.resolveRoundEnd(playerId, data);
+      this.setData(data);
+      return { success: true, newState: this.getState() };
     }
 
     return { success: true, newState: this.getState() };
@@ -408,6 +421,8 @@ export class StreetFighterGame extends BaseGame {
 
     if (opponent.hp <= 0) {
       this.resolveRoundEnd(playerId, data);
+      this.setData(data);
+      return { success: true, newState: this.getState() };
     }
 
     return { success: true, newState: this.getState() };
@@ -433,6 +448,8 @@ export class StreetFighterGame extends BaseGame {
 
     if (opponent.hp <= 0) {
       this.resolveRoundEnd(playerId, data);
+      this.setData(data);
+      return { success: true, newState: this.getState() };
     }
 
     return { success: true, newState: this.getState() };
@@ -461,6 +478,30 @@ export class StreetFighterGame extends BaseGame {
 
     fighter.blocking = false;
     this.emitEvent('dash', playerId, { direction, newPosition: fighter.position });
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleAdvance(playerId: string, data: StreetFighterState): ActionResult {
+    const fighter = data.fighters[playerId];
+    const opponent = this.getOpponent(playerId, data);
+    if (!opponent) return { success: false, error: 'No opponent' };
+
+    const towardOpponent = fighter.position < opponent.position ? 1 : -1;
+    fighter.position = Math.max(0, Math.min(10, fighter.position + towardOpponent));
+    fighter.blocking = false;
+    this.emitEvent('advance', playerId, { newPosition: fighter.position });
+    return { success: true, newState: this.getState() };
+  }
+
+  private handleRetreat(playerId: string, data: StreetFighterState): ActionResult {
+    const fighter = data.fighters[playerId];
+    const opponent = this.getOpponent(playerId, data);
+    if (!opponent) return { success: false, error: 'No opponent' };
+
+    const awayFromOpponent = fighter.position < opponent.position ? -1 : 1;
+    fighter.position = Math.max(0, Math.min(10, fighter.position + awayFromOpponent));
+    fighter.blocking = false;
+    this.emitEvent('retreat', playerId, { newPosition: fighter.position });
     return { success: true, newState: this.getState() };
   }
 

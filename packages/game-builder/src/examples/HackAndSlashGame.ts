@@ -316,8 +316,10 @@ export class HackAndSlashGame extends BaseGame {
     }
 
     const player = data.players[playerId];
-    const targetId = action.payload.targetId as string;
-    const target = data.enemies.find((e) => e.id === targetId && e.alive);
+    const targetId = action.payload.targetId as string | undefined;
+    const target = targetId
+      ? data.enemies.find((e) => e.id === targetId && e.alive)
+      : data.enemies.find((e) => e.alive);
 
     if (!target) {
       return { success: false, error: 'Target not found or already dead' };
@@ -349,8 +351,10 @@ export class HackAndSlashGame extends BaseGame {
     }
 
     const player = data.players[playerId];
-    const targetId = action.payload.targetId as string;
-    const target = data.enemies.find((e) => e.id === targetId && e.alive);
+    const targetId = action.payload.targetId as string | undefined;
+    const target = targetId
+      ? data.enemies.find((e) => e.id === targetId && e.alive)
+      : data.enemies.find((e) => e.alive);
 
     if (!target) {
       return { success: false, error: 'Target not found or already dead' };

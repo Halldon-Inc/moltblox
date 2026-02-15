@@ -224,6 +224,23 @@ export async function deleteSession(redis: Redis | null, sessionId: string): Pro
   await redis.del(`session:${sessionId}`);
 }
 
+/**
+ * Set a short TTL on a session instead of deleting it immediately.
+ * Allows final state to be queried for a grace period after the game ends.
+ */
+export async function expireSession(
+  redis: Redis | null,
+  sessionId: string,
+  ttlSeconds: number,
+): Promise<void> {
+  if (!isRedisReady(redis)) {
+    // In-memory fallback: schedule deletion after ttl
+    setTimeout(() => memSessions.delete(sessionId), ttlSeconds * 1000);
+    return;
+  }
+  await redis.expire(`session:${sessionId}`, ttlSeconds);
+}
+
 export async function hasSession(redis: Redis | null, sessionId: string): Promise<boolean> {
   if (!isRedisReady(redis)) {
     return memSessions.has(sessionId);

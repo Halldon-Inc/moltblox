@@ -108,7 +108,7 @@ export function createSocialHandlers(config: MoltbloxMCPConfig): SocialToolHandl
       if (params.unreadOnly) queryParams.set('unreadOnly', 'true');
       queryParams.set('limit', params.limit.toString());
 
-      const response = await fetch(`${apiUrl}/social/notifications?${queryParams}`, {
+      const response = await fetch(`${apiUrl}/notifications?${queryParams}`, {
         headers,
       });
       const data = await parseOrThrow(response, 'get_notifications');

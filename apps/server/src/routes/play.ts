@@ -31,6 +31,7 @@ import {
   hasSession,
   setPlayerSession,
   deletePlayerSession,
+  expireSession,
 } from '../ws/redisSessionStore.js';
 import type { ActiveSessionData } from '../ws/redisSessionStore.js';
 import type { GameAction } from '@moltblox/protocol';
@@ -377,7 +378,9 @@ router.post(
           });
         });
 
-        await deleteSession(redis, sessionId);
+        // Keep session in Redis with 5-minute TTL so final state can still be queried
+        await setSession(redis, sessionId, session);
+        await expireSession(redis, sessionId, 300);
         await deletePlayerSession(redis, user.id);
       } else {
         await setSession(redis, sessionId, session);

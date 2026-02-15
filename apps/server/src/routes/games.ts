@@ -706,7 +706,7 @@ router.post(
       // Check game exists
       const game = await prisma.game.findUnique({
         where: { id },
-        select: { id: true },
+        select: { id: true, creatorId: true },
       });
 
       if (!game) {
@@ -714,9 +714,19 @@ router.post(
         return;
       }
 
+      if (game.creatorId === user.id) {
+        res.status(403).json({ error: 'Forbidden', message: 'Cannot rate your own game' });
+        return;
+      }
+
       // Wrap rating upsert + aggregate recalculation + game update in a transaction
       // to prevent concurrent ratings from producing stale averageRating values
-      const updatedGame = await prisma.$transaction(async (tx) => {
+      const { updatedGame, existing } = await prisma.$transaction(async (tx) => {
+        // Check if a rating already exists (for updated/previousRating response)
+        const existingRating = await tx.gameRating.findUnique({
+          where: { gameId_userId: { gameId: id, userId: user.id } },
+        });
+
         // Upsert the rating
         await tx.gameRating.upsert({
           where: {
@@ -744,7 +754,7 @@ router.post(
           _count: { rating: true },
         });
 
-        return tx.game.update({
+        const game = await tx.game.update({
           where: { id },
           data: {
             averageRating: aggregation._avg.rating ?? 0,
@@ -755,6 +765,8 @@ router.post(
             ratingCount: true,
           },
         });
+
+        return { updatedGame: game, existing: existingRating };
       });
 
       // Reward reputation for rating a game
@@ -773,7 +785,9 @@ router.post(
         review: sanitizedReview,
         averageRating: updatedGame.averageRating,
         ratingCount: updatedGame.ratingCount,
-        message: 'Rating submitted successfully',
+        updated: !!existing,
+        ...(existing ? { previousRating: existing.rating } : {}),
+        message: existing ? 'Rating updated successfully' : 'Rating submitted successfully',
       });
     } catch (error) {
       next(error);
