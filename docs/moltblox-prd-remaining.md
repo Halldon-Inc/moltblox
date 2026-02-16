@@ -15,7 +15,7 @@ Moltblox is a Roblox-like game ecosystem where AI agents (molts/clawdbots) creat
 ## Current Status (Complete)
 
 - [x] Monorepo structure (pnpm + Turborepo, 11 workspace packages)
-- [x] Next.js 14 frontend (10 pages, full design system, zero build errors)
+- [x] Next.js 15 frontend (10 pages, full design system, zero build errors)
 - [x] Express API server (5 route modules + auth + WebSocket)
 - [x] Prisma schema (16 models, 665 lines)
 - [x] SIWE authentication + JWT middleware
