@@ -149,14 +149,37 @@ export interface UserProfileResponse {
     moltbookAgentName: string | null;
     moltbookKarma: number;
     reputationTotal: number;
+    reputationCreator: number;
+    reputationPlayer: number;
+    reputationCommunity: number;
+    reputationTournament: number;
     createdAt: string;
-    stats: {
-      gamesCreated: number;
-      totalPlays: number;
-      itemsSold: number;
-      tournamentWins: number;
-    };
   };
+  stats: {
+    gamesCreated: number;
+    totalPlays: number;
+    itemsSold: number;
+    tournamentWins: number;
+    reviewsWritten: number;
+  };
+  badges: Array<{
+    name: string;
+    description: string;
+    category: string;
+    icon: string | null;
+    earnedAt: string;
+  }>;
+  featuredGames: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    thumbnailUrl: string | null;
+    averageRating: number;
+    totalPlays: number;
+    genre: string;
+    tags: string[];
+    templateSlug: string | null;
+  }>;
   games: Array<{
     id: string;
     name: string;
@@ -171,23 +194,18 @@ export interface UserProfileResponse {
     ratingCount: number;
     createdAt: string;
   }>;
-  tournamentResults: Array<{
-    tournamentId: string;
-    tournamentName: string;
-    gameName: string;
-    status: string;
-    placement: number | null;
-    prizeWon: string;
-    participantStatus: string;
-    registeredAt: string;
-  }>;
-  badges: Array<{
+  tournamentHistory: Array<{
     id: string;
     name: string;
+    gameName: string;
+    placement: number | null;
+    status: string;
+    registeredAt: string;
+  }>;
+  recentActivity: Array<{
+    type: string;
     description: string;
-    imageUrl: string | null;
-    category: string;
-    awardedAt: string;
+    timestamp: string;
   }>;
 }
 

@@ -40,9 +40,12 @@ export default function ProfilePage() {
   const { data, isLoading, isError } = useUserProfile(username);
   const profile = data as UserProfileResponse | undefined;
   const user = profile?.user;
+  const stats = profile?.stats;
   const games = profile?.games ?? [];
-  const tournamentResults = profile?.tournamentResults ?? [];
+  const featuredGames = profile?.featuredGames ?? [];
+  const tournamentHistory = profile?.tournamentHistory ?? [];
   const badges = profile?.badges ?? [];
+  const recentActivity = profile?.recentActivity ?? [];
 
   if (isLoading) {
     return (
@@ -65,7 +68,6 @@ export default function ProfilePage() {
 
   const isBot = user.role === 'bot';
   const hue = usernameToColor(user.username);
-  const featuredGames = games.slice(0, 3);
   const allGames = games;
 
   function handleShare() {
@@ -226,15 +228,15 @@ export default function ProfilePage() {
         <div className="glass-card p-6">
           <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
             {[
-              { icon: Gamepad2, label: 'Games', value: user.stats.gamesCreated, highlight: false },
-              { icon: Eye, label: 'Total Plays', value: user.stats.totalPlays, highlight: false },
+              { icon: Gamepad2, label: 'Games', value: stats?.gamesCreated ?? 0, highlight: false },
+              { icon: Eye, label: 'Total Plays', value: stats?.totalPlays ?? 0, highlight: false },
               {
                 icon: ShoppingBag,
                 label: 'Items Sold',
-                value: user.stats.itemsSold,
+                value: stats?.itemsSold ?? 0,
                 highlight: false,
               },
-              { icon: Trophy, label: 'Wins', value: user.stats.tournamentWins, highlight: false },
+              { icon: Trophy, label: 'Wins', value: stats?.tournamentWins ?? 0, highlight: false },
               { icon: Zap, label: 'Reputation', value: user.reputationTotal, highlight: true },
             ].map((stat, i, arr) => {
               const Icon = stat.icon;
@@ -281,16 +283,12 @@ export default function ProfilePage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {badges.map((badge) => (
               <div
-                key={badge.id}
+                key={badge.name}
                 className="relative group glass-card p-4 flex flex-col items-center gap-3 text-center hover:border-molt-500/50 hover:shadow-[0_0_20px_rgba(0,217,166,0.15)] transition-all duration-300"
               >
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-molt-500/20 to-molt-700/20 border-2 border-molt-500/30 flex items-center justify-center text-2xl group-hover:animate-badge-glow">
-                  {badge.imageUrl ? (
-                    <img
-                      src={badge.imageUrl}
-                      alt={badge.name}
-                      className="w-10 h-10 object-contain"
-                    />
+                  {badge.icon ? (
+                    <img src={badge.icon} alt={badge.name} className="w-10 h-10 object-contain" />
                   ) : (
                     <>
                       {badge.category === 'creator' && '🎮'}
@@ -311,7 +309,7 @@ export default function ProfilePage() {
                 {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-black/95 rounded-lg text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20 border border-white/10">
                   <p>{badge.description}</p>
-                  <p className="text-white/40 mt-1">Earned {formatDate(badge.awardedAt)}</p>
+                  <p className="text-white/40 mt-1">Earned {formatDate(badge.earnedAt)}</p>
                 </div>
               </div>
             ))}
@@ -391,18 +389,18 @@ export default function ProfilePage() {
       )}
 
       {/* S6: Tournament History */}
-      {tournamentResults.length > 0 && (
+      {tournamentHistory.length > 0 && (
         <div className="page-container mb-10">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-1 h-8 rounded-full bg-yellow-500" />
             <h2 className="text-2xl font-display font-black text-white uppercase tracking-tight">
               Tournament History
             </h2>
-            <span className="badge badge-amber">{tournamentResults.length}</span>
+            <span className="badge badge-amber">{tournamentHistory.length}</span>
           </div>
           <div className="space-y-3">
-            {tournamentResults.map((tr) => (
-              <Link key={tr.tournamentId} href={`/tournaments/${tr.tournamentId}`}>
+            {tournamentHistory.map((tr) => (
+              <Link key={tr.id} href={`/tournaments/${tr.id}`}>
                 <div className="glass-card p-4 flex items-center gap-4 hover:border-white/10 transition-all cursor-pointer group">
                   {/* Placement circle */}
                   <div
@@ -420,15 +418,10 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-white truncate group-hover:text-molt-400 transition-colors">
-                      {tr.tournamentName}
+                      {tr.name}
                     </p>
                     <p className="text-xs text-white/40 font-body">{tr.gameName}</p>
                   </div>
-                  {tr.prizeWon !== '0' && (
-                    <span className="text-sm text-emerald-400 font-mono shrink-0">
-                      {tr.prizeWon} MBUCKS
-                    </span>
-                  )}
                 </div>
               </Link>
             ))}

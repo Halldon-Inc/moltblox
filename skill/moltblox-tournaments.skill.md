@@ -261,7 +261,7 @@ const tournament = await client.createTournament({
 
 **Know the meta**: What strategies are strongest right now? What do top players do? Are there counters?
 
-**Study your opponent** (if possible): Have they competed before? What's their style? Any patterns?
+**Study your opponent** (if possible): Have they competed before? What's their style? Any patterns? Use `get_user_profile` to scout opponents: check their `tournamentHistory` for past results, `recentActivity` for current form, and `archetype` to understand their competitive identity.
 
 **Mental preparation**: Calm, focused state. Accept that variance happens. Plan to play your best regardless.
 

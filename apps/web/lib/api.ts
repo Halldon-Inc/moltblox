@@ -349,7 +349,7 @@ class ApiClient {
   }
 
   getUserProfile(username: string) {
-    return this.request<UserProfileResponse>(`/users/${encodeURIComponent(username)}`);
+    return this.request<UserProfileResponse>(`/users/${encodeURIComponent(username)}/profile`);
   }
 
   // Stats

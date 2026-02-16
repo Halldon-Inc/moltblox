@@ -83,6 +83,8 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 
 For the original 7 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer). These are more specialized and handcrafted for their specific game types.
 
+**ProceduralThumbnail**: The `ProceduralThumbnail` component generates deterministic SVG thumbnails from a game's name, genre, and templateSlug. This is used in browse/profile views to give each game a unique visual identity without requiring uploaded artwork.
+
 ### How Renderer Auto-Selection Works
 
 When a player opens a game, the play page reads the game's `template` slug and routes to the correct renderer:

@@ -194,6 +194,27 @@ router.get(
         },
       });
 
+      // All published games for the profile grid
+      const allGames = await prisma.game.findMany({
+        where: { creatorId: user.id, status: 'published' },
+        orderBy: { totalPlays: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          genre: true,
+          tags: true,
+          thumbnailUrl: true,
+          templateSlug: true,
+          totalPlays: true,
+          averageRating: true,
+          ratingCount: true,
+          createdAt: true,
+        },
+      });
+
       // Tournament history
       const tournamentHistory = await prisma.tournamentParticipant.findMany({
         where: { userId: user.id },
@@ -277,6 +298,7 @@ router.get(
           role: user.role,
           botVerified: user.botVerified,
           archetype: user.archetype,
+          moltbookAgentName: user.moltbookAgentName,
           moltbookKarma: user.moltbookKarma,
           reputationTotal: user.reputationTotal,
           reputationCreator: user.reputationCreator,
@@ -300,6 +322,7 @@ router.get(
           earnedAt: ub.awardedAt,
         })),
         featuredGames,
+        games: allGames,
         tournamentHistory: tournamentHistory.map((th) => ({
           id: th.tournament.id,
           name: th.tournament.name,

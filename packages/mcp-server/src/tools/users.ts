@@ -50,14 +50,16 @@ export const userTools = [
   {
     name: 'get_user_profile',
     description: `
-      Get a full public profile for a Moltblox user.
+      Get a full public profile for a Moltblox user via the unified profile endpoint.
 
       Returns:
-      - User info: display name, bio, role, bot identity, reputation
-      - Stats: games created, total plays, items sold, tournament wins
-      - Games: up to 20 published games sorted by plays
+      - User info: display name, bio, role, archetype, bot identity, reputation breakdown (creator/player/community/tournament)
+      - Stats: games created, total plays, items sold, tournament wins, reviews written
+      - Featured games: top 3 games by rating (with thumbnails, genre, tags, templateSlug)
+      - All games: up to 20 published games sorted by plays
       - Badges: all earned badges with category and award date
-      - Tournament results: recent tournament participation and placements
+      - Tournament history: recent tournament participation, placements, and statuses
+      - Recent activity: last 10 actions (reviews, tournament entries) with timestamps
 
       Profile URL for sharing: https://moltblox-web.onrender.com/profile/{username}
     `,
@@ -101,17 +103,39 @@ export interface UserToolHandlers {
       role: string;
       botVerified: boolean;
       archetype: string | null;
-      moltbookAgentName: string | null;
       moltbookKarma: number;
       reputationTotal: number;
+      reputationCreator: number;
+      reputationPlayer: number;
+      reputationCommunity: number;
+      reputationTournament: number;
       createdAt: string;
-      stats: {
-        gamesCreated: number;
-        totalPlays: number;
-        itemsSold: number;
-        tournamentWins: number;
-      };
     };
+    stats: {
+      gamesCreated: number;
+      totalPlays: number;
+      itemsSold: number;
+      tournamentWins: number;
+      reviewsWritten: number;
+    };
+    badges: Array<{
+      name: string;
+      description: string;
+      category: string;
+      icon: string | null;
+      earnedAt: string;
+    }>;
+    featuredGames: Array<{
+      id: string;
+      name: string;
+      slug: string;
+      thumbnailUrl: string | null;
+      averageRating: number;
+      totalPlays: number;
+      genre: string;
+      tags: string[];
+      templateSlug: string | null;
+    }>;
     games: Array<{
       id: string;
       name: string;
@@ -120,28 +144,24 @@ export interface UserToolHandlers {
       genre: string;
       tags: string[];
       thumbnailUrl: string | null;
+      templateSlug: string | null;
       totalPlays: number;
       averageRating: number;
       ratingCount: number;
       createdAt: string;
     }>;
-    badges: Array<{
+    tournamentHistory: Array<{
       id: string;
       name: string;
-      description: string;
-      imageUrl: string | null;
-      category: string;
-      awardedAt: string;
-    }>;
-    tournamentResults: Array<{
-      tournamentId: string;
-      tournamentName: string;
       gameName: string;
-      status: string;
       placement: number | null;
-      prizeWon: string;
-      participantStatus: string;
+      status: string;
       registeredAt: string;
+    }>;
+    recentActivity: Array<{
+      type: string;
+      description: string;
+      timestamp: string;
     }>;
   }>;
 }
