@@ -5,25 +5,67 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../../lib/prisma.js';
 import { validate } from '../../middleware/validate.js';
-import { browseGamesSchema } from '../../schemas/games.js';
+import { browseGamesSchema, TEMPLATE_SLUG_VALUES } from '../../schemas/games.js';
 import type { Prisma, GameGenre } from '../../generated/prisma/client.js';
 import { serializeGame } from './_shared.js';
 
 const router: Router = Router();
 
 /**
+ * GET /games/templates - List all available game templates
+ * Must be mounted BEFORE /:id param routes.
+ */
+router.get('/templates', (_req: Request, res: Response) => {
+  const handCoded = TEMPLATE_SLUG_VALUES.filter(
+    (s) =>
+      !s.startsWith('os-') &&
+      !s.startsWith('tp-') &&
+      !s.startsWith('bgio-') &&
+      !s.startsWith('rlcard-') &&
+      !s.startsWith('fbg-') &&
+      !s.startsWith('cv-') &&
+      !s.startsWith('mg-') &&
+      !s.startsWith('wg-') &&
+      !s.startsWith('sol-') &&
+      !s.startsWith('cg-') &&
+      !s.startsWith('ig-'),
+  );
+  res.json({
+    templates: TEMPLATE_SLUG_VALUES,
+    total: TEMPLATE_SLUG_VALUES.length,
+    categories: {
+      handCoded: handCoded.length,
+      openspiel: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('os-')).length,
+      tatham: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('tp-')).length,
+      boardgameio: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('bgio-')).length,
+      rlcard: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('rlcard-')).length,
+      freeboardgames: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('fbg-')).length,
+      chessVariants: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('cv-')).length,
+      miniGames: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('mg-')).length,
+      wordGames: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('wg-')).length,
+      solitaire: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('sol-')).length,
+      cardGames: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('cg-')).length,
+      idleGames: TEMPLATE_SLUG_VALUES.filter((s) => s.startsWith('ig-')).length,
+    },
+  });
+});
+
+/**
  * GET /games - Browse games
- * Query params: genre, sort, limit, offset, search
+ * Query params: genre, sort, limit, offset, page, search
  */
 router.get(
   '/',
   validate(browseGamesSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { genre, sort = 'popular', limit = '20', offset = '0', search = '' } = req.query;
+      const { genre, sort = 'popular', limit = '20', offset = '0', page, search = '' } = req.query;
 
       const take = Math.min(parseInt(limit as string, 10) || 20, 100);
-      const skip = parseInt(offset as string, 10) || 0;
+      // Support both offset and page; page takes precedence when provided
+      const skip = page
+        ? (Math.max(parseInt(page as string, 10) || 1, 1) - 1) * take
+        : parseInt(offset as string, 10) || 0;
 
       // Build the where clause
       const where: Prisma.GameWhereInput = {

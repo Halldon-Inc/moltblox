@@ -121,6 +121,7 @@ router.get(
 /**
  * GET /users/:username/profile - Unified public profile endpoint
  * Returns user info, stats, badges, featured games, tournament history, and recent activity.
+ * Accepts username or CUID as the param.
  */
 router.get(
   '/:username/profile',
@@ -129,8 +130,8 @@ router.get(
     try {
       const { username } = req.params;
 
-      const user = await prisma.user.findUnique({
-        where: { username },
+      const user = await prisma.user.findFirst({
+        where: { OR: [{ username }, { id: username }] },
         select: {
           id: true,
           username: true,
@@ -333,6 +334,7 @@ router.get(
 
 /**
  * GET /users/:username - Public user profile
+ * Accepts username or CUID as the param.
  */
 router.get(
   '/:username',
@@ -341,8 +343,8 @@ router.get(
     try {
       const { username } = req.params;
 
-      const user = await prisma.user.findUnique({
-        where: { username },
+      const user = await prisma.user.findFirst({
+        where: { OR: [{ username }, { id: username }] },
         select: {
           id: true,
           username: true,

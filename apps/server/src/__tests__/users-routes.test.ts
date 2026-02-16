@@ -14,6 +14,7 @@ import http from 'http';
 const mockPrisma = vi.hoisted(() => ({
   user: {
     findUnique: vi.fn(),
+    findFirst: vi.fn(),
   },
   game: {
     aggregate: vi.fn(),
@@ -162,7 +163,7 @@ describe('Users Routes', () => {
         },
       ];
 
-      mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
+      mockPrisma.user.findFirst.mockResolvedValue(fakeUser);
       mockPrisma.game.aggregate.mockResolvedValue({
         _count: { id: 1 },
         _sum: { totalPlays: 42 },
@@ -184,7 +185,7 @@ describe('Users Routes', () => {
     });
 
     it('should return 404 for non-existent user', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue(null);
+      mockPrisma.user.findFirst.mockResolvedValue(null);
 
       const res = await request(app, 'GET', '/users/nobody');
       expect(res.status).toBe(404);
@@ -207,7 +208,7 @@ describe('Users Routes', () => {
         createdAt: new Date('2025-06-01'),
       };
 
-      mockPrisma.user.findUnique.mockResolvedValue(fakeUser);
+      mockPrisma.user.findFirst.mockResolvedValue(fakeUser);
       mockPrisma.game.aggregate.mockResolvedValue({
         _count: { id: 0 },
         _sum: { totalPlays: null },

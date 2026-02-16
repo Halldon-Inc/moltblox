@@ -285,6 +285,8 @@ const templateSlugValues = [
   'ig-progress-quest',
 ] as const;
 
+export { templateSlugValues as TEMPLATE_SLUG_VALUES };
+
 const templateSlugField = z.enum(templateSlugValues).optional().nullable();
 
 export const browseGamesSchema = {
@@ -296,6 +298,7 @@ export const browseGamesSchema = {
       .default('popular'),
     limit: z.string().regex(/^\d+$/).optional().default('20'),
     offset: z.string().regex(/^\d+$/).optional().default('0'),
+    page: z.string().regex(/^\d+$/).optional(),
     search: z.string().max(200).optional().default(''),
   }),
 };
