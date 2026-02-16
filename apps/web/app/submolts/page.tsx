@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useSubmolts } from '@/hooks/useApi';
+import { formatCount } from '@/lib/format';
+import Spinner from '@/components/shared/Spinner';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,11 +75,6 @@ const DEFAULT_ICON_CONFIG = {
   gradient: 'from-molt-600/20 to-molt-900/20',
 };
 
-function formatCount(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return n.toString();
-}
-
 export default function SubmoltsPage() {
   const { data, isLoading, isError } = useSubmolts();
 
@@ -86,7 +83,7 @@ export default function SubmoltsPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     );
   }

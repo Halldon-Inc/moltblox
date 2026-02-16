@@ -5,6 +5,8 @@
  * Games extend BaseGame and implement the required lifecycle methods.
  */
 
+import type { GameEvent as ProtocolGameEvent } from '@moltblox/protocol';
+
 // =============================================================================
 // Types
 // =============================================================================
@@ -51,11 +53,12 @@ export interface TickResult {
   terminal: boolean;
 }
 
-export interface GameEvent {
-  type: string;
-  playerId?: string;
+/**
+ * Arena GameEvent extends protocol's GameEvent with Record<string, unknown> data.
+ * Compatible with ProtocolGameEvent.
+ */
+export interface GameEvent extends ProtocolGameEvent {
   data: Record<string, unknown>;
-  timestamp: number;
 }
 
 export interface GameResult {
@@ -76,7 +79,7 @@ export interface SerializedGameState {
   metadata: Record<string, unknown>;
 }
 
-export interface UnifiedGameInterface {
+export interface ArenaGameInterface {
   readonly gameType: string;
   readonly maxPlayers: number;
   readonly turnBased: boolean;
@@ -106,7 +109,7 @@ export interface UnifiedGameInterface {
  *
  * Extend this class and implement the abstract methods to create a game.
  */
-export abstract class BaseGame implements UnifiedGameInterface {
+export abstract class BaseGame implements ArenaGameInterface {
   abstract readonly gameType: string;
   abstract readonly maxPlayers: number;
   abstract readonly turnBased: boolean;

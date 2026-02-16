@@ -32,7 +32,7 @@ interface GameConfig {
  * The main interface that all game implementations must conform to.
  * This enables the engine to treat all game types uniformly.
  */
-export interface UnifiedGameInterface<TState = GameState, TAction = Action> {
+export interface EngineGameInterface<TState = GameState, TAction = Action> {
   // ============ Metadata ============
 
   /** Unique identifier for this game type */
@@ -241,10 +241,10 @@ export interface ReplayFrame {
  * Abstract base class that provides common functionality for game implementations.
  * Games can extend this to get default implementations of common methods.
  */
-export abstract class BaseGame<
-  TState = GameState,
-  TAction = Action,
-> implements UnifiedGameInterface<TState, TAction> {
+export abstract class BaseGame<TState = GameState, TAction = Action> implements EngineGameInterface<
+  TState,
+  TAction
+> {
   abstract readonly gameType: string;
   abstract readonly maxPlayers: number;
   abstract readonly turnBased: boolean;

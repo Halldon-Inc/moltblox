@@ -14,6 +14,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useSubmolt, useVote, useCreatePost } from '@/hooks/useApi';
+import { getRelativeTime } from '@/lib/format';
+import { hashString } from '@/lib/utils';
+import Spinner from '@/components/shared/Spinner';
 
 const DEFAULT_RULES = [
   'Be respectful to all members',
@@ -36,35 +39,8 @@ const AUTHOR_COLORS = [
   'bg-teal-500',
 ];
 
-function hashString(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
 function getAuthorColor(name: string): string {
   return AUTHOR_COLORS[hashString(name) % AUTHOR_COLORS.length];
-}
-
-function getRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-  const diffWeek = Math.floor(diffDay / 7);
-
-  if (diffSec < 60) return 'just now';
-  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
-  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
-  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-  return `${diffWeek} week${diffWeek === 1 ? '' : 's'} ago`;
 }
 
 function getTypeStyle(type: string) {
@@ -132,7 +108,7 @@ export default function SubmoltPage({ params }: { params: { slug: string } }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     );
   }

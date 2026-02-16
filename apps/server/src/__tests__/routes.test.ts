@@ -17,6 +17,7 @@ import express, { Express } from 'express';
 const mockPrisma = vi.hoisted(() => ({
   game: {
     findMany: vi.fn(),
+    findFirst: vi.fn(),
     findUnique: vi.fn(),
     count: vi.fn(),
     create: vi.fn(),
@@ -84,12 +85,25 @@ vi.mock('../lib/sentry.js', () => ({
   Sentry: { setupExpressErrorHandler: vi.fn() },
 }));
 
+vi.mock('@sentry/node', () => ({
+  captureException: vi.fn(),
+}));
+
+vi.mock('express-rate-limit', () => ({
+  default: vi.fn(() => (_req: any, _res: any, next: any) => next()),
+}));
+
 vi.mock('../lib/redis.js', () => ({
   default: {
     set: vi.fn(),
     exists: vi.fn().mockResolvedValue(0),
     call: vi.fn(),
   },
+  createRedisStore: vi.fn(() => ({
+    init: vi.fn(),
+    increment: vi.fn().mockResolvedValue({ totalHits: 1, resetTime: new Date() }),
+    decrement: vi.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 vi.mock('rate-limit-redis', () => ({
@@ -116,7 +130,8 @@ vi.mock('rate-limit-redis', () => ({
 
 // Import after mocks are set up
 import { signToken } from '../middleware/auth.js';
-import gamesRouter from '../routes/games.js';
+import { errorHandler, AppError } from '../middleware/errorHandler.js';
+import gamesRouter from '../routes/games/index.js';
 import marketplaceRouter from '../routes/marketplace.js';
 import tournamentsRouter from '../routes/tournaments.js';
 
@@ -126,8 +141,8 @@ import tournamentsRouter from '../routes/tournaments.js';
 function buildApp(path: string, router: express.Router): Express {
   const app = express();
   app.use(express.json());
-  // Skip CSRF for tests — matching req/res mock pattern from existing tests
   app.use(path, router);
+  app.use(errorHandler);
   return app;
 }
 
@@ -327,7 +342,7 @@ describe('Games Routes', () => {
         totalRevenue: BigInt(0),
         creator: { username: 'bot1', displayName: 'Bot One', walletAddress: '0xabc' },
       };
-      mockPrisma.game.findUnique.mockResolvedValue(fakeGame);
+      mockPrisma.game.findFirst.mockResolvedValue(fakeGame);
 
       const res = await request(app, 'GET', `/games/${validId}`);
       expect(res.status).toBe(200);
@@ -337,17 +352,18 @@ describe('Games Routes', () => {
     });
 
     it('should return 404 when game not found', async () => {
-      mockPrisma.game.findUnique.mockResolvedValue(null);
+      mockPrisma.game.findFirst.mockResolvedValue(null);
 
       const res = await request(app, 'GET', `/games/${validId}`);
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('NotFound');
     });
 
-    it('should return 400 for invalid UUID', async () => {
+    it('should return 404 for non-existent slug', async () => {
+      mockPrisma.game.findFirst.mockResolvedValue(null);
       const res = await request(app, 'GET', '/games/not-a-uuid');
-      expect(res.status).toBe(400);
-      expect(res.body.error).toBe('ValidationError');
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('NotFound');
     });
   });
 
@@ -663,7 +679,7 @@ describe('Marketplace Routes', () => {
       (mockPrisma as any).user = { findUnique: vi.fn().mockResolvedValue(humanUser) };
 
       mockPrisma.$transaction.mockRejectedValue(
-        Object.assign(new Error(`Item with id "${itemId}" not found`), { statusCode: 404 }),
+        new AppError(`Item with id "${itemId}" not found`, 404),
       );
 
       const headers = authHeaderFor(humanUser.id, humanUser.walletAddress);

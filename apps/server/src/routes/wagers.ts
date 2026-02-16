@@ -20,6 +20,8 @@ import {
 } from '../schemas/wagers.js';
 import type { Prisma, WagerStatus } from '../generated/prisma/client.js';
 import { mbucksToWei } from '../lib/parseBigInt.js';
+import { serializeBigIntFields } from '../lib/serialize.js';
+import { AppError } from '../middleware/errorHandler.js';
 
 const router: Router = Router();
 
@@ -50,26 +52,16 @@ function handleWagerDbError(err: unknown, res: Response, operation: string): boo
 /**
  * Serialize BigInt fields on a wager to strings for JSON output.
  */
-function serializeWager(wager: {
-  stakeAmount?: bigint | null;
-  spectatorBets?: Array<{
-    amount?: bigint | null;
-    payout?: bigint | null;
-    [key: string]: unknown;
-  }>;
-  [key: string]: unknown;
-}) {
-  const spectatorBets = wager.spectatorBets?.map((sb) => ({
-    ...sb,
-    amount: sb.amount?.toString() ?? '0',
-    payout: sb.payout?.toString() ?? null,
-  }));
+function serializeWager(wager: Record<string, unknown>) {
+  const result = serializeBigIntFields(wager, ['stakeAmount']);
 
-  return {
-    ...wager,
-    stakeAmount: wager.stakeAmount?.toString() ?? '0',
-    ...(spectatorBets && { spectatorBets }),
-  };
+  if (Array.isArray(result.spectatorBets)) {
+    result.spectatorBets = (result.spectatorBets as Record<string, unknown>[]).map((sb) =>
+      serializeBigIntFields(sb, ['amount', 'payout']),
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -285,22 +277,20 @@ router.post(
         });
 
         if (!wager) {
-          throw Object.assign(new Error('Wager not found'), { statusCode: 404 });
+          throw new AppError('Wager not found', 404);
         }
 
         if (wager.status !== 'OPEN') {
-          throw Object.assign(new Error('Wager is not open for acceptance'), { statusCode: 400 });
+          throw new AppError('Wager is not open for acceptance', 400);
         }
 
         if (wager.creatorId === user.id) {
-          throw Object.assign(new Error('Cannot accept your own wager'), { statusCode: 400 });
+          throw new AppError('Cannot accept your own wager', 400);
         }
 
         // If wager has a specified opponent, only that user can accept
         if (wager.opponentId && wager.opponentId !== user.id) {
-          throw Object.assign(new Error('This wager is reserved for a specific opponent'), {
-            statusCode: 403,
-          });
+          throw new AppError('This wager is reserved for a specific opponent', 403);
         }
 
         const updated = await tx.wager.update({
@@ -331,14 +321,6 @@ router.post(
         message: 'Wager accepted. Match is now locked.',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : statusCode === 403 ? 'Forbidden' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
@@ -368,15 +350,15 @@ router.post(
         });
 
         if (!wager) {
-          throw Object.assign(new Error('Wager not found'), { statusCode: 404 });
+          throw new AppError('Wager not found', 404);
         }
 
         if (wager.creatorId !== user.id) {
-          throw Object.assign(new Error('Only the wager creator can cancel'), { statusCode: 403 });
+          throw new AppError('Only the wager creator can cancel', 403);
         }
 
         if (wager.status !== 'OPEN') {
-          throw Object.assign(new Error('Only open wagers can be cancelled'), { statusCode: 400 });
+          throw new AppError('Only open wagers can be cancelled', 400);
         }
 
         const updated = await tx.wager.update({
@@ -392,14 +374,6 @@ router.post(
         message: 'Wager cancelled successfully',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : statusCode === 403 ? 'Forbidden' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
@@ -432,16 +406,16 @@ router.post(
         });
 
         if (!wager) {
-          throw Object.assign(new Error('Wager not found'), { statusCode: 404 });
+          throw new AppError('Wager not found', 404);
         }
 
         if (wager.status !== 'LOCKED') {
-          throw Object.assign(new Error('Only locked wagers can be settled'), { statusCode: 400 });
+          throw new AppError('Only locked wagers can be settled', 400);
         }
 
         // Winner must be one of the two participants
         if (winnerId !== wager.creatorId && winnerId !== wager.opponentId) {
-          throw Object.assign(new Error('Winner must be a wager participant'), { statusCode: 400 });
+          throw new AppError('Winner must be a wager participant', 400);
         }
 
         const updated = await tx.wager.update({
@@ -509,14 +483,6 @@ router.post(
         message: 'Wager settled successfully',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
@@ -548,20 +514,16 @@ router.post(
         });
 
         if (!wager) {
-          throw Object.assign(new Error('Wager not found'), { statusCode: 404 });
+          throw new AppError('Wager not found', 404);
         }
 
         // Only participants can dispute
         if (wager.creatorId !== user.id && wager.opponentId !== user.id) {
-          throw Object.assign(new Error('Only wager participants can dispute'), {
-            statusCode: 403,
-          });
+          throw new AppError('Only wager participants can dispute', 403);
         }
 
         if (wager.status !== 'LOCKED' && wager.status !== 'SETTLED') {
-          throw Object.assign(new Error('Only locked or settled wagers can be disputed'), {
-            statusCode: 400,
-          });
+          throw new AppError('Only locked or settled wagers can be disputed', 400);
         }
 
         const updated = await tx.wager.update({
@@ -578,14 +540,6 @@ router.post(
         message: 'Wager dispute filed',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : statusCode === 403 ? 'Forbidden' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }
@@ -617,32 +571,26 @@ router.post(
         });
 
         if (!wager) {
-          throw Object.assign(new Error('Wager not found'), { statusCode: 404 });
+          throw new AppError('Wager not found', 404);
         }
 
         if (wager.status !== 'LOCKED') {
-          throw Object.assign(new Error('Spectator bets are only allowed on locked wagers'), {
-            statusCode: 400,
-          });
+          throw new AppError('Spectator bets are only allowed on locked wagers', 400);
         }
 
         // Cannot bet on a wager you are participating in
         if (wager.creatorId === user.id || wager.opponentId === user.id) {
-          throw Object.assign(new Error('Wager participants cannot place spectator bets'), {
-            statusCode: 400,
-          });
+          throw new AppError('Wager participants cannot place spectator bets', 400);
         }
 
         // Predicted winner must be one of the participants
         if (predictedWinnerId !== wager.creatorId && predictedWinnerId !== wager.opponentId) {
-          throw Object.assign(new Error('Predicted winner must be a wager participant'), {
-            statusCode: 400,
-          });
+          throw new AppError('Predicted winner must be a wager participant', 400);
         }
 
         const weiAmount = mbucksToWei(amount);
         if (weiAmount <= 0n) {
-          throw Object.assign(new Error('Bet amount must be positive'), { statusCode: 400 });
+          throw new AppError('Bet amount must be positive', 400);
         }
 
         const bet = await tx.spectatorBet.create({
@@ -669,14 +617,6 @@ router.post(
         message: 'Spectator bet placed successfully',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       if (handleWagerDbError(error, res, 'WAGER_OP')) return;
       next(error);
     }

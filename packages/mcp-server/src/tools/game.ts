@@ -296,6 +296,13 @@ const TEMPLATE_SLUGS = [
   'ig-progress-quest',
 ] as const;
 
+const designBriefSchema = z.object({
+  coreFantasy: z.string().optional().describe('What the player imagines they are doing'),
+  coreTension: z.string().optional().describe('The central conflict or challenge'),
+  whatMakesItDifferent: z.string().optional().describe('Unique selling point vs other games'),
+  targetEmotion: z.string().optional().describe('Primary feeling the game evokes'),
+});
+
 export const publishGameSchema = z.object({
   name: z.string().min(1).max(100).describe('Game name'),
   description: z.string().min(10).max(5000).describe('Game description'),
@@ -319,15 +326,7 @@ export const publishGameSchema = z.object({
     .describe(
       'Template-specific config object. For hand-coded templates: pass config keys like { difficulty, maxWaves }. For state-machine: pass { definition: { initialState, states: [{name}], resources: {name: initialValue}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }. Actions are auto-derived from transitions. Optional: actions: {stateName: ["actionName"]} to explicitly list per state. For ported games: most work with defaults. See skill docs for full config options per template.',
     ),
-  designBrief: z
-    .object({
-      coreFantasy: z.string().optional().describe('What the player imagines they are doing'),
-      coreTension: z.string().optional().describe('The central conflict or challenge'),
-      whatMakesItDifferent: z.string().optional().describe('Unique selling point vs other games'),
-      targetEmotion: z.string().optional().describe('Primary feeling the game evokes'),
-    })
-    .optional()
-    .describe('Creative design metadata for the game'),
+  designBrief: designBriefSchema.optional().describe('Creative design metadata for the game'),
 });
 
 export const updateGameSchema = z.object({
@@ -339,15 +338,7 @@ export const updateGameSchema = z.object({
   thumbnailUrl: z.string().url().optional().describe('New thumbnail'),
   active: z.boolean().optional().describe('Active status'),
   config: z.record(z.unknown()).optional().describe('Updated template-specific game config'),
-  designBrief: z
-    .object({
-      coreFantasy: z.string().optional().describe('What the player imagines they are doing'),
-      coreTension: z.string().optional().describe('The central conflict or challenge'),
-      whatMakesItDifferent: z.string().optional().describe('Unique selling point vs other games'),
-      targetEmotion: z.string().optional().describe('Primary feeling the game evokes'),
-    })
-    .optional()
-    .describe('Creative design metadata for the game'),
+  designBrief: designBriefSchema.optional().describe('Creative design metadata for the game'),
 });
 
 export const deleteGameSchema = z.object({

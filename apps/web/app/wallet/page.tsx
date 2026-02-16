@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useWallet, useTransactions } from '@/hooks/useApi';
+import { formatDateTime } from '@/lib/format';
 
 const MOLTBUCKS_ABI = [
   {
@@ -23,21 +24,6 @@ function formatOnChainBalance(raw: bigint | undefined): string {
   const remainder = raw % divisor;
   const decimal = remainder.toString().padStart(18, '0').slice(0, 4);
   return `${whole.toLocaleString()}.${decimal}`;
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
 }
 
 export default function WalletPage() {
@@ -181,7 +167,7 @@ export default function WalletPage() {
                           {tx.description || tx.type || 'Transaction'}
                         </p>
                         <p className="text-[10px] text-white/30">
-                          {tx.createdAt ? formatDate(tx.createdAt) : ''}
+                          {tx.createdAt ? formatDateTime(tx.createdAt) : ''}
                         </p>
                       </div>
                     </div>

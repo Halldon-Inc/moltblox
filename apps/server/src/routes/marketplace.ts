@@ -19,16 +19,10 @@ import { mbucksToWei } from '../lib/parseBigInt.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
 import { z } from 'zod';
+import { AppError } from '../middleware/errorHandler.js';
+import { requireGameOwnership } from '../lib/utils.js';
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-import redis from '../lib/redis.js';
-
-function createRedisStore(prefix: string) {
-  return new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
-    prefix: `rl:${prefix}:`,
-  });
-}
+import { createRedisStore } from '../lib/redis.js';
 
 const purchaseLimiter = rateLimit({
   windowMs: 60_000,
@@ -453,27 +447,7 @@ router.post(
         'description',
       ]);
 
-      // Verify the user owns the game
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        select: { id: true, creatorId: true },
-      });
-
-      if (!game) {
-        res.status(404).json({
-          error: 'NotFound',
-          message: `Game with id "${gameId}" not found`,
-        });
-        return;
-      }
-
-      if (game.creatorId !== user.id) {
-        res.status(403).json({
-          error: 'Forbidden',
-          message: 'You can only create items for games you own',
-        });
-        return;
-      }
+      await requireGameOwnership(gameId, user.id);
 
       const parsedPrice = mbucksToWei(price);
 
@@ -553,27 +527,23 @@ router.post(
         });
 
         if (!item) {
-          throw Object.assign(new Error(`Item with id "${id}" not found`), { statusCode: 404 });
+          throw new AppError(`Item with id "${id}" not found`, 404);
         }
 
         if (!item.active) {
-          throw Object.assign(new Error('This item is no longer available for purchase'), {
-            statusCode: 400,
-          });
+          throw new AppError('This item is no longer available for purchase', 400);
         }
 
         // Prevent self-purchase
         if (item.creatorId === user.id) {
-          throw Object.assign(new Error('Cannot purchase your own item'), { statusCode: 400 });
+          throw new AppError('Cannot purchase your own item', 400);
         }
 
         // Check supply if limited
         if (item.maxSupply !== null && item.currentSupply < quantity) {
-          throw Object.assign(
-            new Error(
-              `Insufficient supply. Requested: ${quantity}, available: ${item.currentSupply}`,
-            ),
-            { statusCode: 400 },
+          throw new AppError(
+            `Insufficient supply. Requested: ${quantity}, available: ${item.currentSupply}`,
+            400,
           );
         }
 
@@ -676,15 +646,7 @@ router.post(
         ...result,
         message: 'Purchase successful. Item added to your inventory.',
       });
-    } catch (error: unknown) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
+    } catch (error) {
       next(error);
     }
   },

@@ -36,14 +36,7 @@ import {
 import type { ActiveSessionData } from '../ws/redisSessionStore.js';
 import type { GameAction } from '@moltblox/protocol';
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
-
-function createRedisStore(prefix: string) {
-  return new RedisStore({
-    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
-    prefix: `rl:${prefix}:`,
-  });
-}
+import { createRedisStore } from '../lib/redis.js';
 
 const playWriteLimiter = rateLimit({
   windowMs: 60_000,

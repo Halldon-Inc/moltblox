@@ -9,19 +9,22 @@ import { randomBytes, timingSafeEqual } from 'crypto';
 const CSRF_COOKIE = 'moltblox_csrf';
 const CSRF_HEADER = 'x-csrf-token';
 
+/** Shared CSRF cookie options (non-httpOnly so JS can read it) */
+export const CSRF_COOKIE_OPTIONS = {
+  httpOnly: false,
+  secure: process.env.NODE_ENV !== 'development',
+  sameSite: 'lax' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000,
+  path: '/',
+};
+
 /**
  * Set CSRF token cookie on every response if not present.
  */
 export function csrfTokenSetter(req: Request, res: Response, next: NextFunction): void {
   if (!req.cookies?.[CSRF_COOKIE]) {
     const token = randomBytes(32).toString('hex');
-    res.cookie(CSRF_COOKIE, token, {
-      httpOnly: false, // Must be readable by frontend JS
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/',
-    });
+    res.cookie(CSRF_COOKIE, token, CSRF_COOKIE_OPTIONS);
   }
   next();
 }

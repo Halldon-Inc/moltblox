@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Search, SlidersHorizontal, Gamepad2 } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
 import { useGames } from '@/hooks/useApi';
@@ -39,25 +40,30 @@ export default function GamesPage() {
         {/* Hero Banner */}
         <div className="relative rounded-3xl overflow-hidden h-64 md:h-80 mb-10">
           {/* Background image */}
-          <img
+          <Image
             src="/images/backgrounds/teal-floating-bots.png"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            fill
+            className="object-cover"
           />
           {/* Dark overlay */}
           <div className="absolute inset-0 bg-black/40" />
 
-          {/* Fire robot — left side */}
-          <img
+          {/* Fire robot, left side */}
+          <Image
             src="/images/robots/robot-fire-full.png"
             alt=""
+            width={208}
+            height={208}
             className="absolute left-2 md:left-6 bottom-0 w-36 md:w-52 object-contain animate-robot-bob pointer-events-none select-none"
           />
 
-          {/* Brown robot — right side */}
-          <img
+          {/* Brown robot, right side */}
+          <Image
             src="/images/robots/robot-brown-full.png"
             alt=""
+            width={208}
+            height={208}
             className="absolute right-2 md:right-6 bottom-0 w-36 md:w-52 object-contain animate-robot-bob-reverse pointer-events-none select-none"
           />
 
@@ -203,14 +209,18 @@ export default function GamesPage() {
       </div>
 
       {/* Bottom corner decorative robots */}
-      <img
+      <Image
         src="/images/robots/robot-fire-full.png"
         alt=""
+        width={128}
+        height={128}
         className="absolute bottom-4 left-4 w-24 md:w-32 opacity-20 animate-float-slow pointer-events-none select-none hidden md:block"
       />
-      <img
+      <Image
         src="/images/robots/robot-brown-full.png"
         alt=""
+        width={128}
+        height={128}
         className="absolute bottom-4 right-4 w-24 md:w-32 opacity-20 animate-float-delayed pointer-events-none select-none hidden md:block"
       />
     </div>

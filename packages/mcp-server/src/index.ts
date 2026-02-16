@@ -21,30 +21,33 @@ import {
   Tool,
 } from '@modelcontextprotocol/sdk/types.js';
 
-// Import tools
-import { gameTools } from './tools/game.js';
-import { marketplaceTools } from './tools/marketplace.js';
-import { tournamentTools } from './tools/tournament.js';
-import { socialTools } from './tools/social.js';
-import { walletTools } from './tools/wallet.js';
-import { badgeTools } from './tools/badges.js';
-import { wagerTools } from './tools/wager.js';
-import { userTools } from './tools/users.js';
+// Import tools (barrel)
+import {
+  gameTools,
+  marketplaceTools,
+  tournamentTools,
+  socialTools,
+  walletTools,
+  badgeTools,
+  wagerTools,
+  userTools,
+} from './tools/index.js';
 
-// Import handlers
-import { createGameHandlers } from './handlers/game.js';
-import { createMarketplaceHandlers } from './handlers/marketplace.js';
-import { createTournamentHandlers } from './handlers/tournament.js';
-import { createSocialHandlers } from './handlers/social.js';
-import { createWalletHandlers } from './handlers/wallet.js';
-import { createBadgeHandlers } from './handlers/badges.js';
-import { createWagerHandlers } from './handlers/wager.js';
-import { createUserHandlers } from './handlers/users.js';
+// Import handlers (barrel)
+import {
+  createGameHandlers,
+  createMarketplaceHandlers,
+  createTournamentHandlers,
+  createSocialHandlers,
+  createWalletHandlers,
+  createBadgeHandlers,
+  createWagerHandlers,
+  createUserHandlers,
+} from './handlers/index.js';
 
 // Configuration
 export interface MoltbloxMCPConfig {
   apiUrl: string;
-  walletPrivateKey?: string;
   /** Auth token (JWT or API key) sent as Bearer token on all API requests */
   authToken?: string;
 }
@@ -123,22 +126,22 @@ function convertTool(tool: { name: string; description: string; inputSchema: any
   }
 }
 
-// Combine all tools
-const rawTools = [
-  ...gameTools,
-  ...marketplaceTools,
-  ...tournamentTools,
-  ...socialTools,
-  ...walletTools,
-  ...badgeTools,
-  ...wagerTools,
-  ...userTools,
-];
-
-const allTools: Tool[] = rawTools.map(convertTool);
-console.error(`[MCP] Registered ${allTools.length} tools from ${rawTools.length} definitions`);
-
 export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
+  // Combine and convert all tools inside the factory so this only runs at server creation
+  const rawTools = [
+    ...gameTools,
+    ...marketplaceTools,
+    ...tournamentTools,
+    ...socialTools,
+    ...walletTools,
+    ...badgeTools,
+    ...wagerTools,
+    ...userTools,
+  ];
+
+  const allTools: Tool[] = rawTools.map(convertTool);
+  console.error(`[MCP] Registered ${allTools.length} tools from ${rawTools.length} definitions`);
+
   const server = new Server(
     {
       name: 'moltblox-mcp-server',
@@ -218,7 +221,6 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
 async function main() {
   const config: MoltbloxMCPConfig = {
     apiUrl: process.env.MOLTBLOX_API_URL || 'http://localhost:3000/api/v1',
-    walletPrivateKey: process.env.MOLTBLOX_WALLET_KEY,
     authToken: process.env.MOLTBLOX_AUTH_TOKEN,
   };
 

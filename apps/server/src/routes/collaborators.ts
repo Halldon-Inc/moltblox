@@ -12,6 +12,7 @@ import {
   updateCollaboratorSchema,
 } from '../schemas/collaborators.js';
 import prisma from '../lib/prisma.js';
+import { requireGameOwnership } from '../lib/utils.js';
 import type { CollaboratorRole } from '../generated/prisma/client.js';
 
 const router: Router = Router();
@@ -73,23 +74,7 @@ router.post(
       const user = req.user!;
       const { userId, role, canEditCode, canEditMeta, canCreateItems, canPublish } = req.body;
 
-      // Verify game exists and requester is the owner
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        select: { id: true, creatorId: true },
-      });
-
-      if (!game) {
-        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
-        return;
-      }
-
-      if (game.creatorId !== user.id) {
-        res
-          .status(403)
-          .json({ error: 'Forbidden', message: 'Only the game owner can add collaborators' });
-        return;
-      }
+      await requireGameOwnership(gameId, user.id);
 
       // Cannot add yourself as collaborator
       if (userId === user.id) {
@@ -168,23 +153,7 @@ router.delete(
       const { gameId, userId } = req.params;
       const user = req.user!;
 
-      // Verify game exists and requester is the owner
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        select: { id: true, creatorId: true },
-      });
-
-      if (!game) {
-        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
-        return;
-      }
-
-      if (game.creatorId !== user.id) {
-        res
-          .status(403)
-          .json({ error: 'Forbidden', message: 'Only the game owner can remove collaborators' });
-        return;
-      }
+      await requireGameOwnership(gameId, user.id);
 
       // Verify collaborator exists
       const collaborator = await prisma.gameCollaborator.findUnique({
@@ -221,24 +190,7 @@ router.patch(
       const user = req.user!;
       const { role, canEditCode, canEditMeta, canCreateItems, canPublish } = req.body;
 
-      // Verify game exists and requester is the owner
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        select: { id: true, creatorId: true },
-      });
-
-      if (!game) {
-        res.status(404).json({ error: 'NotFound', message: 'Game not found' });
-        return;
-      }
-
-      if (game.creatorId !== user.id) {
-        res.status(403).json({
-          error: 'Forbidden',
-          message: 'Only the game owner can update collaborator permissions',
-        });
-        return;
-      }
+      await requireGameOwnership(gameId, user.id);
 
       // Verify collaborator exists
       const existing = await prisma.gameCollaborator.findUnique({

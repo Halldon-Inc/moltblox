@@ -18,6 +18,7 @@ import {
   updateProfileSchema,
 } from '../schemas/auth.js';
 import { sanitizeObject } from '../lib/sanitize.js';
+import { CSRF_COOKIE_OPTIONS } from '../middleware/csrf.js';
 import { blockToken } from '../lib/tokenBlocklist.js';
 import { hashApiKey } from '../lib/crypto.js';
 
@@ -32,6 +33,73 @@ if (!MOLTBOOK_ALLOWED_HOSTS.includes(rawMoltbookUrl)) {
 }
 const MOLTBOOK_API_URL = rawMoltbookUrl;
 const MOLTBOOK_APP_KEY = process.env.MOLTBOOK_APP_KEY || '';
+
+/** Shared cookie options for auth tokens (httpOnly, 7-day expiry) */
+const TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV !== 'development',
+  sameSite: 'lax' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/',
+};
+
+/**
+ * Parse and verify a SIWE message + signature.
+ * Returns the verified address (lowercased) on success, or null + sends error response on failure.
+ */
+async function verifySiweMessage(
+  message: string,
+  signature: string,
+  res: Response,
+): Promise<string | null> {
+  let siweMessage: InstanceType<typeof SiweMessage>;
+  try {
+    siweMessage = new SiweMessage(message);
+  } catch {
+    res.status(400).json({
+      error: 'BadRequest',
+      message: 'Invalid SIWE message format',
+    });
+    return null;
+  }
+
+  // Validate nonce
+  const siweNonce = siweMessage.nonce;
+  if (!siweNonce || !(await redis.exists(siweNonce))) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid or expired nonce. Request a new one via GET /auth/nonce.',
+    });
+    return null;
+  }
+  // Consume nonce (one-time use)
+  await redis.del(siweNonce);
+
+  // Verify the signature (siwe v2 returns { success, data, error })
+  let verifyResult: {
+    success: boolean;
+    data: InstanceType<typeof SiweMessage>;
+    error?: unknown;
+  };
+  try {
+    verifyResult = await siweMessage.verify({ signature });
+  } catch {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'Invalid SIWE signature',
+    });
+    return null;
+  }
+  if (!verifyResult.success) {
+    res.status(401).json({
+      error: 'Unauthorized',
+      message: 'SIWE signature verification failed',
+    });
+    return null;
+  }
+
+  return verifyResult.data.address.toLowerCase();
+}
 
 const router: Router = Router();
 
@@ -50,13 +118,7 @@ router.get('/csrf', (req: Request, res: Response) => {
   // First request: csrfTokenSetter set the cookie in the response but it is
   // not yet in req.cookies. Generate a fresh token and return it in the body.
   const token = randomBytes(32).toString('hex');
-  res.cookie('moltblox_csrf', token, {
-    httpOnly: false,
-    secure: process.env.NODE_ENV !== 'development',
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/',
-  });
+  res.cookie('moltblox_csrf', token, CSRF_COOKIE_OPTIONS);
   res.json({ csrfToken: token });
 });
 
@@ -90,54 +152,8 @@ router.post(
     try {
       const { message, signature } = req.body;
 
-      // Parse the SIWE message
-      let siweMessage: InstanceType<typeof SiweMessage>;
-      try {
-        siweMessage = new SiweMessage(message);
-      } catch {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Invalid SIWE message format',
-        });
-        return;
-      }
-
-      // Validate nonce
-      const siweNonce = siweMessage.nonce;
-      if (!siweNonce || !(await redis.exists(siweNonce))) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid or expired nonce. Request a new one.',
-        });
-        return;
-      }
-      // Consume nonce (one-time use)
-      await redis.del(siweNonce);
-
-      // Verify the signature (siwe v2 returns { success, data, error })
-      let verifyResult: {
-        success: boolean;
-        data: InstanceType<typeof SiweMessage>;
-        error?: unknown;
-      };
-      try {
-        verifyResult = await siweMessage.verify({ signature });
-      } catch {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid SIWE signature',
-        });
-        return;
-      }
-      if (!verifyResult.success) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'SIWE signature verification failed',
-        });
-        return;
-      }
-
-      const address = verifyResult.data.address.toLowerCase();
+      const address = await verifySiweMessage(message, signature, res);
+      if (!address) return;
 
       // Find or create user
       let user = await prisma.user.findUnique({
@@ -162,13 +178,7 @@ router.post(
       // Issue JWT
       const token = signToken(user.id, address);
 
-      res.cookie('moltblox_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: '/',
-      });
+      res.cookie('moltblox_token', token, TOKEN_COOKIE_OPTIONS);
 
       res.json({
         user: {
@@ -201,54 +211,8 @@ router.post(
     try {
       const { message, signature, botName, botDescription } = req.body;
 
-      // Parse the SIWE message
-      let siweMessage: InstanceType<typeof SiweMessage>;
-      try {
-        siweMessage = new SiweMessage(message);
-      } catch {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: 'Invalid SIWE message format',
-        });
-        return;
-      }
-
-      // Validate nonce
-      const siweNonce = siweMessage.nonce;
-      if (!siweNonce || !(await redis.exists(siweNonce))) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid or expired nonce. Request a new one via GET /auth/nonce.',
-        });
-        return;
-      }
-      // Consume nonce (one-time use)
-      await redis.del(siweNonce);
-
-      // Verify the signature (siwe v2 returns { success, data, error })
-      let verifyResult: {
-        success: boolean;
-        data: InstanceType<typeof SiweMessage>;
-        error?: unknown;
-      };
-      try {
-        verifyResult = await siweMessage.verify({ signature });
-      } catch {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'Invalid SIWE signature',
-        });
-        return;
-      }
-      if (!verifyResult.success) {
-        res.status(401).json({
-          error: 'Unauthorized',
-          message: 'SIWE signature verification failed',
-        });
-        return;
-      }
-
-      const address = verifyResult.data.address.toLowerCase();
+      const address = await verifySiweMessage(message, signature, res);
+      if (!address) return;
 
       // Sanitize bot name for username
       const safeBotName = botName.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 24);
@@ -295,13 +259,7 @@ router.post(
       // Issue JWT
       const token = signToken(user.id, address);
 
-      res.cookie('moltblox_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/',
-      });
+      res.cookie('moltblox_token', token, TOKEN_COOKIE_OPTIONS);
 
       res.json({
         user: {
@@ -340,13 +298,7 @@ router.post('/refresh', requireAuth, async (req: Request, res: Response, next: N
 
     const token = signToken(user.id, user.address);
 
-    res.cookie('moltblox_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/',
-    });
+    res.cookie('moltblox_token', token, TOKEN_COOKIE_OPTIONS);
 
     res.json({
       expiresIn: '7d',
@@ -610,13 +562,7 @@ router.post(
       // Issue JWT
       const token = signToken(user.id, address);
 
-      res.cookie('moltblox_token', token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV !== 'development',
-        sameSite: 'lax',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: '/',
-      });
+      res.cookie('moltblox_token', token, TOKEN_COOKIE_OPTIONS);
 
       res.json({
         user: {
@@ -669,12 +615,7 @@ router.post('/logout', async (req, res, next) => {
       }
     }
 
-    res.clearCookie('moltblox_token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV !== 'development',
-      sameSite: 'lax',
-      path: '/',
-    });
+    res.clearCookie('moltblox_token', TOKEN_COOKIE_OPTIONS);
     res.json({ message: 'Logged out' });
   } catch (error) {
     next(error);

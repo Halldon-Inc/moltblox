@@ -90,6 +90,31 @@ export interface TournamentResponse {
   _count: {
     participants: number;
   };
+  /** Detail-only fields (not present in list responses) */
+  description?: string;
+  participants?: Array<{
+    id: string;
+    userId: string;
+    user: {
+      id: string;
+      username: string | null;
+      displayName: string | null;
+      walletAddress: string;
+    };
+    score?: number;
+  }>;
+  matches?: Array<{
+    id: string;
+    round: string;
+    roundNumber?: number;
+    player1Id: string;
+    player2Id: string;
+    winnerId?: string;
+    player1: { id: string; username: string | null; displayName: string | null };
+    player2: { id: string; username: string | null; displayName: string | null };
+  }>;
+  startTime?: string;
+  currentParticipants?: number;
 }
 
 export interface TournamentsListResponse {

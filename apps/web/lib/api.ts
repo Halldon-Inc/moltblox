@@ -1,7 +1,14 @@
 import type { GameCategory, TournamentFormat } from '@moltblox/protocol';
 import type {
   GameResponse,
+  GamesListResponse,
+  ItemResponse,
+  ItemsListResponse,
   PaginationResponse,
+  PostResponse,
+  SubmoltResponse,
+  TournamentResponse,
+  TournamentsListResponse,
   UserProfileResponse,
   UsersListResponse,
   PlatformStatsResponse,
@@ -22,6 +29,14 @@ if (typeof window !== 'undefined' && !process.env.NEXT_PUBLIC_API_URL) {
 type ApiAny = any;
 
 // ── Helpers ──────────────────────────────────────────────────────────
+
+function buildQuery(params: Record<string, string | number | boolean | undefined>): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined) query.set(k, String(v));
+  });
+  return query.toString();
+}
 
 function getCsrfToken(): string | null {
   if (typeof document === 'undefined') return null;
@@ -111,14 +126,8 @@ class ApiClient {
     limit?: number;
     offset?: number;
   }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
-    return this.request<{ games: GameResponse[]; pagination: PaginationResponse }>(
-      `/games?${query}`,
-    );
+    const q = params ? buildQuery(params) : '';
+    return this.request<GamesListResponse>(`/games?${q}`);
   }
   getFeaturedGames(limit?: number) {
     const query = limit ? `?limit=${limit}` : '';
@@ -195,17 +204,11 @@ class ApiClient {
 
   // Tournaments
   getTournaments(params?: { status?: string; format?: string; limit?: number; offset?: number }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
-    return this.request<{ tournaments: ApiAny[]; pagination: PaginationResponse }>(
-      `/tournaments?${query}`,
-    );
+    const q = params ? buildQuery(params) : '';
+    return this.request<TournamentsListResponse>(`/tournaments?${q}`);
   }
   getTournament(id: string) {
-    return this.request<ApiAny>(`/tournaments/${id}`);
+    return this.request<TournamentResponse>(`/tournaments/${id}`);
   }
   createTournament(data: {
     name: string;
@@ -239,25 +242,19 @@ class ApiClient {
     limit?: number;
     offset?: number;
   }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
-    return this.request<{ items: ApiAny[]; pagination: PaginationResponse }>(
-      `/marketplace/items?${query}`,
-    );
+    const q = params ? buildQuery(params) : '';
+    return this.request<ItemsListResponse>(`/marketplace/items?${q}`);
   }
   getFeaturedItem() {
     return this.request<{
-      item: ApiAny;
+      item: ItemResponse;
       strategy: string;
       description: string;
       nextRotation: string;
     }>('/marketplace/items/featured');
   }
   getItem(id: string) {
-    return this.request<ApiAny>(`/marketplace/items/${id}`);
+    return this.request<ItemResponse>(`/marketplace/items/${id}`);
   }
   createItem(data: {
     gameId: string;
@@ -282,22 +279,20 @@ class ApiClient {
     });
   }
   getInventory() {
-    return this.request<{ items: ApiAny[] }>('/marketplace/inventory');
+    return this.request<{ items: ItemResponse[] }>('/marketplace/inventory');
   }
 
   // Social
   getSubmolts() {
-    return this.request<{ submolts: ApiAny[] }>('/social/submolts');
+    return this.request<{ submolts: SubmoltResponse[] }>('/social/submolts');
   }
   getSubmolt(slug: string, params?: { limit?: number; offset?: number }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
-    return this.request<{ submolt: ApiAny; posts: ApiAny[]; pagination: PaginationResponse }>(
-      `/social/submolts/${slug}?${query}`,
-    );
+    const q = params ? buildQuery(params) : '';
+    return this.request<{
+      submolt: SubmoltResponse;
+      posts: PostResponse[];
+      pagination: PaginationResponse;
+    }>(`/social/submolts/${slug}?${q}`);
   }
   createPost(
     slug: string,
@@ -309,7 +304,7 @@ class ApiClient {
     });
   }
   getPost(slug: string, postId: string) {
-    return this.request<{ post: ApiAny; comments: ApiAny[] }>(
+    return this.request<{ post: PostResponse; comments: ApiAny[] }>(
       `/social/submolts/${slug}/posts/${postId}`,
     );
   }
@@ -340,12 +335,8 @@ class ApiClient {
     limit?: number;
     offset?: number;
   }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
-    return this.request<UsersListResponse>(`/users?${query}`);
+    const q = params ? buildQuery(params) : '';
+    return this.request<UsersListResponse>(`/users?${q}`);
   }
 
   getUserProfile(username: string) {
@@ -371,13 +362,9 @@ class ApiClient {
     });
   }
   getTransactions(params?: { limit?: number; offset?: number }) {
-    const query = new URLSearchParams();
-    if (params)
-      Object.entries(params).forEach(([k, v]) => {
-        if (v !== undefined) query.set(k, String(v));
-      });
+    const q = params ? buildQuery(params) : '';
     return this.request<{ transactions: ApiAny[]; pagination: PaginationResponse }>(
-      `/wallet/transactions?${query}`,
+      `/wallet/transactions?${q}`,
     );
   }
 }

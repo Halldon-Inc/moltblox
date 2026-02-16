@@ -180,19 +180,19 @@ export class GameCompiler {
   }
 
   /**
-   * Validate that code implements UnifiedGameInterface
+   * Validate that code implements ArenaGameInterface
    */
   private validateInterface(code: string): StaticAnalysisIssue[] {
     const issues: StaticAnalysisIssue[] = [];
 
     // Check for class extending BaseGame or implementing interface
     const hasBaseGame = /extends\s+BaseGame/.test(code);
-    const hasInterface = /implements\s+UnifiedGameInterface/.test(code);
+    const hasInterface = /implements\s+(Arena|Unified)GameInterface/.test(code);
 
     if (!hasBaseGame && !hasInterface) {
       issues.push({
         severity: 'warning',
-        message: 'Game should extend BaseGame or implement UnifiedGameInterface',
+        message: 'Game should extend BaseGame or implement ArenaGameInterface',
       });
     }
 

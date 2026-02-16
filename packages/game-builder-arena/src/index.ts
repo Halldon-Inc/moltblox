@@ -36,7 +36,7 @@ export {
 export {
   BaseGame,
   ClickRaceGame,
-  type UnifiedGameInterface,
+  type ArenaGameInterface,
   type GameState,
   type PlayerState,
   type Action,
@@ -79,22 +79,15 @@ export class GameBuilder {
   /**
    * Build a game from TypeScript source code
    */
-  async build(
-    code: string,
-    gameType: string
-  ): Promise<BuildResult> {
+  async build(code: string, gameType: string): Promise<BuildResult> {
     // Analyze code
     const analysis = this.compiler.analyzeCode(code);
 
     if (!analysis.safe) {
       return {
         success: false,
-        errors: analysis.issues
-          .filter((i) => i.severity === 'error')
-          .map((i) => i.message),
-        warnings: analysis.issues
-          .filter((i) => i.severity === 'warning')
-          .map((i) => i.message),
+        errors: analysis.issues.filter((i) => i.severity === 'error').map((i) => i.message),
+        warnings: analysis.issues.filter((i) => i.severity === 'warning').map((i) => i.message),
       };
     }
 
@@ -138,7 +131,7 @@ export class GameBuilder {
    */
   async loadGame(
     wasmBytes: Uint8Array,
-    gameType: string
+    gameType: string,
   ): Promise<ReturnType<WasmSandbox['loadGame']>> {
     return this.sandbox.loadGame(wasmBytes, gameType);
   }

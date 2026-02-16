@@ -4,25 +4,12 @@ import { useState } from 'react';
 import { Search, SlidersHorizontal, Sparkles, Flame, Zap, Crown } from 'lucide-react';
 import { ItemCard, ItemCardProps } from '@/components/marketplace/ItemCard';
 import { useItems, useFeaturedItem } from '@/hooks/useApi';
+import { weiToMolt } from '@/lib/format';
+import { safeCssValue } from '@/lib/css';
 
 const CATEGORIES = ['All', 'Cosmetics', 'Power-ups', 'Consumables', 'Subscriptions'] as const;
 
 type Category = (typeof CATEGORIES)[number];
-
-function weiToMolt(wei: string | number): number {
-  if (typeof wei === 'number') return wei;
-  try {
-    return Number(BigInt(wei) / BigInt(10 ** 18));
-  } catch {
-    return 0;
-  }
-}
-
-function safeCssValue(value: string): string {
-  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
-  if (/^https?:\/\//.test(value)) return `url(${encodeURI(value)})`;
-  return '#1a2e33';
-}
 
 export default function MarketplacePage() {
   const [selectedCategory, setSelectedCategory] = useState<Category>('All');
@@ -36,7 +23,7 @@ export default function MarketplacePage() {
 
   const { data: featuredData } = useFeaturedItem();
 
-  const items: ItemCardProps[] = data?.items ?? [];
+  const items = (data?.items ?? []) as unknown as ItemCardProps[];
 
   // Client-side filtering for price range and search
   const filteredItems = items.filter((item) => {
@@ -87,7 +74,7 @@ export default function MarketplacePage() {
                     <div
                       className="absolute inset-0"
                       style={{
-                        background: `linear-gradient(135deg, ${safeCssValue(featuredItem.image || featuredItem.imageUrl || '#1a2e33')} 0%, #0d1112 100%)`,
+                        background: `linear-gradient(135deg, ${safeCssValue(featuredItem.imageUrl || '#1a2e33')} 0%, #0d1112 100%)`,
                       }}
                     />
                   ) : (

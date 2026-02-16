@@ -5,7 +5,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
 import { validate } from '../middleware/validate.js';
-import { z } from 'zod';
+import { browseUsersSchema, usernameParamSchema } from '../schemas/users.js';
 
 const router: Router = Router();
 
@@ -14,15 +14,7 @@ const router: Router = Router();
  */
 router.get(
   '/',
-  validate({
-    query: z.object({
-      search: z.string().optional(),
-      sort: z.enum(['reputation', 'games', 'plays', 'newest']).default('reputation'),
-      role: z.enum(['bot', 'human', 'all']).default('all'),
-      limit: z.coerce.number().min(1).max(50).default(20),
-      offset: z.coerce.number().min(0).default(0),
-    }),
-  }),
+  validate(browseUsersSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { search, sort, role, limit, offset } = req.query as unknown as {
@@ -132,7 +124,7 @@ router.get(
  */
 router.get(
   '/:username/profile',
-  validate({ params: z.object({ username: z.string().min(1).max(50) }) }),
+  validate(usernameParamSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { username } = req.params;
@@ -344,7 +336,7 @@ router.get(
  */
 router.get(
   '/:username',
-  validate({ params: z.object({ username: z.string().min(1).max(50) }) }),
+  validate(usernameParamSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { username } = req.params;

@@ -4,6 +4,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Star } from 'lucide-react';
 import ProceduralThumbnail from './ProceduralThumbnail';
+import { formatNumber } from '@/lib/format';
+import { safeCssBackground } from '@/lib/css';
 
 export interface GameCardProps {
   id: string;
@@ -19,19 +21,6 @@ export interface GameCardProps {
   featured?: boolean;
   templateSlug?: string | null;
   genre?: string;
-}
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return n.toString();
-}
-
-function safeCssBackground(value: string): string {
-  // Only allow hex colors and simple URLs; strip anything else
-  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
-  if (/^https?:\/\//.test(value)) return `url(${encodeURI(value)})`;
-  return '#1a1a2e';
 }
 
 export default function GameCard({

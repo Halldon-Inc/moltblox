@@ -43,15 +43,25 @@ vi.mock('../lib/sentry.js', () => ({
   Sentry: { setupExpressErrorHandler: vi.fn() },
 }));
 
+vi.mock('@sentry/node', () => ({
+  captureException: vi.fn(),
+}));
+
 vi.mock('../lib/redis.js', () => ({
   default: {
     set: vi.fn(),
     exists: vi.fn().mockResolvedValue(0),
     call: vi.fn(),
   },
+  createRedisStore: vi.fn(() => ({
+    init: vi.fn(),
+    increment: vi.fn().mockResolvedValue({ totalHits: 1, resetTime: new Date() }),
+    decrement: vi.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 import { signToken } from '../middleware/auth.js';
+import { errorHandler } from '../middleware/errorHandler.js';
 import collaboratorRoutes from '../routes/collaborators.js';
 
 // Helpers
@@ -60,6 +70,7 @@ function buildApp(path: string, router: express.Router): Express {
   const app = express();
   app.use(express.json());
   app.use(path, router);
+  app.use(errorHandler);
   return app;
 }
 

@@ -20,6 +20,8 @@ import {
   Package,
 } from 'lucide-react';
 import { useMe, useGames, useWallet, useTransactions, useCreatorAnalytics } from '@/hooks/useApi';
+import { formatCount, getRelativeTime } from '@/lib/format';
+import Spinner from '@/components/shared/Spinner';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,26 +50,6 @@ function getStatusStyle(status: 'live' | 'draft' | 'review') {
     case 'review':
       return 'bg-amber-500/15 text-amber-400 border border-amber-500/30';
   }
-}
-
-function formatCount(n: number): string {
-  if (n >= 1000) return `${(n / 1000).toFixed(1)}k`;
-  return n.toString();
-}
-
-function getRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHour = Math.floor(diffMin / 60);
-  const diffDay = Math.floor(diffHour / 24);
-
-  if (diffSec < 60) return 'just now';
-  if (diffMin < 60) return `${diffMin} min ago`;
-  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
-  return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
 }
 
 function parseBigIntAmount(amount: any): number {
@@ -247,7 +229,7 @@ export default function CreatorDashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-surface-dark flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     );
   }

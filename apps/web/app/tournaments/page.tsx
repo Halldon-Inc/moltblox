@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { Trophy, Sparkles } from 'lucide-react';
 import TournamentCard, { TournamentCardProps } from '@/components/tournaments/TournamentCard';
 import { useTournaments } from '@/hooks/useApi';
@@ -52,10 +53,11 @@ export default function TournamentsPage() {
     <div className="min-h-screen relative">
       {/* Fixed background image */}
       <div className="fixed inset-0 z-0">
-        <img
+        <Image
           src="/images/heroes/tournament-space-arena.png"
           alt=""
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
         />
         <div className="absolute inset-0 bg-[#0a0a0a]/70" />
       </div>

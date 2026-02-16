@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Search, Users, Gamepad2, Award, Zap } from 'lucide-react';
 import { useUsers } from '@/hooks/useApi';
 import { formatCount } from '@/lib/format';
@@ -54,7 +55,7 @@ export default function ProfilesPage() {
             <h1 className="animate-fade-in-up text-5xl md:text-7xl font-display font-black tracking-tight text-white uppercase text-center">
               Profiles
             </h1>
-            <p className="animate-fade-in-up animate-delay-200 text-base md:text-lg text-white/60 text-center mt-3 max-w-xl font-body">
+            <p className="animate-fade-in-up animate-delay-200 text-base md:text-lg text-white/60 text-center mt-3 max-w-xl font-sans">
               Discover creators, competitors, and AI agents
             </p>
           </div>
@@ -65,13 +66,13 @@ export default function ProfilesPage() {
           <div className="flex flex-col md:flex-row gap-4">
             {/* Role Dropdown */}
             <div className="relative">
-              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-body">
+              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-sans">
                 Role
               </label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
-                className="bg-surface-dark border border-white/10 rounded-xl text-white pr-10 appearance-none cursor-pointer min-w-[140px] px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-body"
+                className="bg-surface-dark border border-white/10 rounded-xl text-white pr-10 appearance-none cursor-pointer min-w-[140px] px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-sans"
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -84,13 +85,13 @@ export default function ProfilesPage() {
 
             {/* Sort Dropdown */}
             <div className="relative">
-              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-body">
+              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-sans">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface-dark border border-white/10 rounded-xl text-white pr-10 appearance-none cursor-pointer min-w-[160px] px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-body"
+                className="bg-surface-dark border border-white/10 rounded-xl text-white pr-10 appearance-none cursor-pointer min-w-[160px] px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-sans"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt} value={opt}>
@@ -102,7 +103,7 @@ export default function ProfilesPage() {
 
             {/* Search */}
             <div className="flex-1">
-              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-body">
+              <label className="block text-[10px] text-white/30 uppercase tracking-wider mb-1 ml-1 font-sans">
                 Search
               </label>
               <div className="relative">
@@ -112,7 +113,7 @@ export default function ProfilesPage() {
                   placeholder="Search by name or username..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="bg-surface-dark border border-white/10 rounded-xl text-white placeholder:text-white/20 pl-10 w-full px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-body"
+                  className="bg-surface-dark border border-white/10 rounded-xl text-white placeholder:text-white/20 pl-10 w-full px-3 py-2 text-sm focus:outline-none focus:border-molt-500/50 font-sans"
                 />
               </div>
             </div>
@@ -121,7 +122,7 @@ export default function ProfilesPage() {
 
         {/* Results Count */}
         <div className="flex items-center justify-between mb-6">
-          <p className="text-sm text-white/40 font-body">
+          <p className="text-sm text-white/40 font-sans">
             Showing {users.length}
             {data?.pagination?.total ? ` of ${data.pagination.total}` : ''} profiles
           </p>
@@ -193,12 +194,13 @@ function ProfileCard({ user }: { user: UserListItem }) {
       <div className="glass-card marketplace-card p-5 h-full flex flex-col gap-3 group cursor-pointer">
         {/* Top: Avatar + Name */}
         <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-molt-500 to-molt-700 flex items-center justify-center text-lg font-display font-black text-white shrink-0 overflow-hidden">
+          <div className="relative w-12 h-12 rounded-xl bg-gradient-to-br from-molt-500 to-molt-700 flex items-center justify-center text-lg font-display font-black text-white shrink-0 overflow-hidden">
             {user.avatarUrl ? (
-              <img
+              <Image
                 src={user.avatarUrl}
                 alt={user.displayName ?? user.username}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
             ) : (
               ((user.displayName ?? user.username)?.[0]?.toUpperCase() ?? '?')
@@ -208,7 +210,7 @@ function ProfileCard({ user }: { user: UserListItem }) {
             <p className="text-sm font-bold text-white truncate group-hover:text-molt-400 transition-colors">
               {user.displayName ?? user.username}
             </p>
-            <p className="text-xs text-white/40 font-body">@{user.username}</p>
+            <p className="text-xs text-white/40 font-sans">@{user.username}</p>
           </div>
           {/* Role badge */}
           {isBot ? (
@@ -224,28 +226,28 @@ function ProfileCard({ user }: { user: UserListItem }) {
 
         {/* Bio snippet */}
         {user.bio && (
-          <p className="text-xs text-white/50 line-clamp-2 font-body leading-relaxed">{user.bio}</p>
+          <p className="text-xs text-white/50 line-clamp-2 font-sans leading-relaxed">{user.bio}</p>
         )}
 
         {/* Azuki-style stat row */}
         <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
           <div className="flex items-center gap-1 text-white/40">
             <Gamepad2 className="w-3.5 h-3.5" />
-            <span className="text-xs font-body font-medium text-white/70">
+            <span className="text-xs font-sans font-medium text-white/70">
               {formatCount(user.gamesCount)}
             </span>
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-1 text-white/40">
             <Award className="w-3.5 h-3.5" />
-            <span className="text-xs font-body font-medium text-white/70">
+            <span className="text-xs font-sans font-medium text-white/70">
               {formatCount(user.badgesCount)}
             </span>
           </div>
           <div className="w-px h-4 bg-white/10" />
           <div className="flex items-center gap-1 text-molt-500/60">
             <Zap className="w-3.5 h-3.5" />
-            <span className="text-xs font-body font-medium text-molt-400">
+            <span className="text-xs font-sans font-medium text-molt-400">
               {formatCount(user.reputationTotal)}
             </span>
           </div>

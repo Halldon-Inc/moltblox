@@ -5,6 +5,7 @@ import { ShoppingBag, Loader2, Check, Wallet } from 'lucide-react';
 import { useAccount } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { usePurchaseItem } from '@/hooks/useApi';
+import { safeCssValue } from '@/lib/css';
 
 export interface ItemCardProps {
   id: string;
@@ -25,12 +26,6 @@ const RARITY_BADGE: Record<ItemCardProps['rarity'], { label: string; bg: string 
   epic: { label: 'Epic', bg: 'bg-purple-400' },
   legendary: { label: 'Legendary', bg: 'bg-yellow-400' },
 };
-
-function safeCssValue(value: string): string {
-  if (/^#[0-9a-fA-F]{3,8}$/.test(value)) return value;
-  if (/^https?:\/\//.test(value)) return `url(${encodeURI(value)})`;
-  return '#1a2e33';
-}
 
 export function ItemCard({
   id,

@@ -280,12 +280,6 @@ export function useVote() {
   });
 }
 
-export function useHeartbeat() {
-  return useMutation({
-    mutationFn: () => api.heartbeat(),
-  });
-}
-
 // ── User Profile Hooks ──
 
 export function useUsers(params?: {

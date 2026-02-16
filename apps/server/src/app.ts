@@ -12,13 +12,14 @@ import express, { Express, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { RedisStore } from 'rate-limit-redis';
 import cookieParser from 'cookie-parser';
 import redis from './lib/redis.js';
+import { createRedisStore } from './lib/redis.js';
+import { allowedOrigins } from './lib/config.js';
 
 import prisma from './lib/prisma.js';
 import authRouter from './routes/auth.js';
-import gamesRouter from './routes/games.js';
+import gamesRouter from './routes/games/index.js';
 import tournamentsRouter from './routes/tournaments.js';
 import marketplaceRouter from './routes/marketplace.js';
 import socialRouter from './routes/social.js';
@@ -67,14 +68,6 @@ app.use(csrfTokenSetter);
 // Rate Limiting
 // ---------------------
 
-function createRedisStore(prefix: string) {
-  return new RedisStore({
-    // Use the existing ioredis client via sendCommand
-    sendCommand: (...args: string[]) => redis.call(args[0], ...args.slice(1)) as Promise<never>,
-    prefix: `rl:${prefix}:`,
-  });
-}
-
 const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 1000,
@@ -104,11 +97,6 @@ const writeLimiter = rateLimit({
 
 app.use(globalLimiter);
 console.log('[BOOT] Rate limiters configured');
-
-const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
-  .split(',')
-  .map((o) => o.trim())
-  .filter(Boolean);
 
 app.use(
   cors({

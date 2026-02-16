@@ -28,6 +28,8 @@ import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 import { JWT_SECRET } from '../lib/jwt.js';
 import { getSession, cleanupAllSessions } from './redisSessionStore.js';
 import redis from '../lib/redis.js';
+import { allowedOrigins } from '../lib/config.js';
+import { sanitize } from '../lib/sanitize.js';
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
@@ -45,43 +47,6 @@ interface RateLimitState {
 }
 
 const rateLimitMap = new Map<string, RateLimitState>();
-
-const VALID_MESSAGE_TYPES = new Set([
-  'authenticate',
-  'join_queue',
-  'leave_queue',
-  'game_action',
-  'end_game',
-  'leave',
-  'spectate',
-  'stop_spectating',
-  'chat',
-  'reconnect',
-  // Real-time (tick-based) messages
-  'realtime_input',
-  'realtime_ready',
-  // Wager subscription messages
-  'subscribe_wager',
-  'unsubscribe_wager',
-]);
-
-/** Message types that require authentication before use */
-const AUTH_REQUIRED_TYPES = new Set([
-  'join_queue',
-  'leave_queue',
-  'game_action',
-  'end_game',
-  'leave',
-  'spectate',
-  'stop_spectating',
-  'chat',
-  // Real-time (tick-based) messages
-  'realtime_input',
-  'realtime_ready',
-  // Wager subscription messages
-  'subscribe_wager',
-  'unsubscribe_wager',
-]);
 
 /**
  * Check if a client has exceeded the message rate limit.
@@ -129,14 +94,382 @@ function checkRateLimit(client: ConnectedClient): boolean {
   return true;
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
+// =============================================================================
+// Handler context passed to each message handler
+// =============================================================================
+
+interface HandlerContext {
+  client: ConnectedClient;
+  payload: Record<string, unknown>;
+  clients: Map<string, ConnectedClient>;
+  realTimeSessionManager: RealTimeSessionManager;
 }
+
+// =============================================================================
+// Message handler type and registration
+// =============================================================================
+
+interface MessageHandlerDef {
+  /** Required payload fields; validated before the handler runs */
+  requiredFields?: string[];
+  /** If true, client must be authenticated before this handler runs */
+  requiresAuth: boolean;
+  /** The handler function */
+  handler: (ctx: HandlerContext) => Promise<void>;
+}
+
+const messageHandlers: Record<string, MessageHandlerDef> = {
+  // ---- Authentication ----
+  authenticate: {
+    requiredFields: ['token'],
+    requiresAuth: false,
+    async handler({ client, payload }) {
+      const token = payload.token as string;
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as {
+          userId: string;
+          address: string;
+          jti?: string;
+        };
+
+        // Check if token has been blocklisted (logged out)
+        const blocklistKey = decoded.jti || token;
+        if (await isTokenBlocked(blocklistKey)) {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Token has been revoked' },
+          });
+          return;
+        }
+
+        client.playerId = decoded.userId;
+        sendTo(client.ws, {
+          type: 'authenticated',
+          payload: {
+            playerId: client.playerId,
+            message: 'Authentication successful',
+          },
+        });
+      } catch {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid or expired token' },
+        });
+      }
+    },
+  },
+
+  // ---- Matchmaking ----
+  join_queue: {
+    requiredFields: ['gameId'],
+    requiresAuth: true,
+    async handler({ client, payload, clients }) {
+      const gameId = payload.gameId as string;
+      joinQueue(client, gameId, clients).catch((err) => {
+        console.error('[WS] Error joining queue:', err);
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Failed to join queue' },
+        });
+      });
+    },
+  },
+
+  leave_queue: {
+    requiresAuth: true,
+    async handler({ client }) {
+      const removed = await leaveQueue(client);
+      sendTo(client.ws, {
+        type: 'queue_left',
+        payload: { removed, message: removed ? 'Left queue' : 'Not in a queue' },
+      });
+    },
+  },
+
+  // ---- Game Actions ----
+  game_action: {
+    requiredFields: ['action'],
+    requiresAuth: true,
+    async handler({ client, payload, clients }) {
+      const action = (payload.action as Record<string, unknown>) || {};
+      if (typeof action.type !== 'string') {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid action: missing "type" string field' },
+        });
+        return;
+      }
+      handleGameAction(client, action, clients).catch((err) => {
+        console.error('[WS] Error handling game action:', err);
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Failed to process game action' },
+        });
+      });
+    },
+  },
+
+  end_game: {
+    requiredFields: ['sessionId'],
+    requiresAuth: true,
+    async handler({ client, payload, clients }) {
+      const sessionId = payload.sessionId as string;
+      // C2: Verify the client is actually in this session
+      if (client.gameSessionId !== sessionId) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Not authorized to end this session' },
+        });
+        return;
+      }
+      const scores = (payload.scores as Record<string, number>) || {};
+      const winnerId = (payload.winnerId as string) || null;
+
+      // M3: Validate winnerId and score keys reference actual session players
+      const session = await getSession(redis, sessionId);
+      if (!session) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Session not found' },
+        });
+        return;
+      }
+      const playerSet = new Set(session.playerIds);
+      if (winnerId && !playerSet.has(winnerId)) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'winnerId is not a player in this session' },
+        });
+        return;
+      }
+      const invalidScoreIds = Object.keys(scores).filter((id) => !playerSet.has(id));
+      if (invalidScoreIds.length > 0) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'scores contain player IDs not in this session' },
+        });
+        return;
+      }
+
+      endSession(sessionId, scores, winnerId, clients).catch((err) => {
+        console.error('[WS] Error ending session:', err);
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Failed to end session' },
+        });
+      });
+    },
+  },
+
+  // ---- Session Management ----
+  leave: {
+    requiresAuth: true,
+    async handler({ client, clients }) {
+      leaveSession(client, clients).catch((err) => {
+        console.error('[WS] Error leaving session:', err);
+      });
+    },
+  },
+
+  // ---- Spectating ----
+  spectate: {
+    requiredFields: ['sessionId'],
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      const spectateSessionId = payload.sessionId as string;
+      // H3: Validate the session actually exists before allowing spectate
+      if (!(await isActiveSession(spectateSessionId))) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Session not found or already ended' },
+        });
+        return;
+      }
+      client.spectating = spectateSessionId;
+      console.log(`[WS] Client ${client.id} spectating session ${spectateSessionId}`);
+      sendTo(client.ws, {
+        type: 'spectating',
+        payload: {
+          sessionId: spectateSessionId,
+          message: `Now spectating session ${spectateSessionId}`,
+        },
+      });
+    },
+  },
+
+  stop_spectating: {
+    requiresAuth: true,
+    async handler({ client }) {
+      client.spectating = undefined;
+      sendTo(client.ws, {
+        type: 'stopped_spectating',
+        payload: { message: 'Stopped spectating' },
+      });
+    },
+  },
+
+  // ---- Reconnection ----
+  reconnect: {
+    requiredFields: ['token', 'sessionId'],
+    requiresAuth: false,
+    async handler({ client, payload, clients }) {
+      const reconnectToken = payload.token as string;
+      const reconnectSessionId = payload.sessionId as string;
+      try {
+        const decoded = jwt.verify(reconnectToken, JWT_SECRET) as {
+          userId: string;
+          address: string;
+          jti?: string;
+        };
+
+        // Check if token has been blocklisted
+        const blocklistKey = decoded.jti || reconnectToken;
+        if (await isTokenBlocked(blocklistKey)) {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Token has been revoked' },
+          });
+          return;
+        }
+
+        client.playerId = decoded.userId;
+        const rejoined = await rejoinSession(
+          reconnectSessionId,
+          client.id,
+          decoded.userId,
+          clients,
+        );
+        if (rejoined) {
+          client.gameSessionId = reconnectSessionId;
+          sendTo(client.ws, {
+            type: 'reconnected',
+            payload: {
+              playerId: client.playerId,
+              sessionId: reconnectSessionId,
+              message: 'Reconnected to session',
+            },
+          });
+        } else {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Session not found or you are not a participant' },
+          });
+        }
+      } catch {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Invalid or expired token' },
+        });
+      }
+    },
+  },
+
+  // ---- Chat ----
+  chat: {
+    requiredFields: ['message'],
+    requiresAuth: true,
+    async handler({ client, payload, clients }) {
+      const chatSessionId = client.gameSessionId || client.spectating;
+      if (!chatSessionId) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Not in a session or spectating' },
+        });
+        return;
+      }
+      const rawMessage = String(payload.message);
+      if (rawMessage.trim().length === 0) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Chat message cannot be empty' },
+        });
+        return;
+      }
+      if (rawMessage.length > CHAT_MAX_LENGTH) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: {
+            message: `Chat message exceeds maximum length of ${CHAT_MAX_LENGTH} characters`,
+          },
+        });
+        return;
+      }
+      const sanitizedMessage = sanitize(rawMessage);
+      broadcastToSession(clients, chatSessionId, {
+        type: 'chat',
+        payload: {
+          playerId: client.playerId,
+          message: sanitizedMessage,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    },
+  },
+
+  // ---- Wager Subscriptions ----
+  subscribe_wager: {
+    requiredFields: ['wagerId'],
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      const wagerId = payload.wagerId as string;
+      client.watchingWagerId = wagerId;
+      console.log(`[WS] Client ${client.id} subscribed to wager ${wagerId}`);
+      sendTo(client.ws, {
+        type: 'wager_subscribed',
+        payload: {
+          wagerId,
+          message: `Subscribed to wager ${wagerId} updates`,
+        },
+      });
+    },
+  },
+
+  unsubscribe_wager: {
+    requiresAuth: true,
+    async handler({ client }) {
+      const prevWagerId = client.watchingWagerId;
+      client.watchingWagerId = undefined;
+      sendTo(client.ws, {
+        type: 'wager_unsubscribed',
+        payload: {
+          wagerId: prevWagerId,
+          message: 'Unsubscribed from wager updates',
+        },
+      });
+    },
+  },
+
+  // ---- Real-time (tick-based) messages ----
+  realtime_input: {
+    requiredFields: ['input'],
+    requiresAuth: true,
+    async handler({ client, payload, realTimeSessionManager }) {
+      if (!client.playerId) return;
+      const rtInput = payload.input;
+      if (rtInput === undefined || rtInput === null) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: 'Missing "input" field for realtime_input' },
+        });
+        return;
+      }
+      realTimeSessionManager.handleInput(client.playerId, rtInput as number | string);
+    },
+  },
+
+  realtime_ready: {
+    requiresAuth: true,
+    async handler({ client, clients, realTimeSessionManager }) {
+      if (!client.playerId) return;
+      realTimeSessionManager.handleReady(client.playerId, clients).catch((err) => {
+        console.error('[WS] Error handling realtime_ready:', err);
+      });
+    },
+  },
+};
+
+/** Set of all known message types, derived from the handler map */
+const VALID_MESSAGE_TYPES = new Set(Object.keys(messageHandlers));
 
 /**
  * Initialize the WebSocket server on an existing HTTP server
@@ -156,10 +489,6 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     .catch((err) => {
       console.error('[BOOT] Failed to clean up stale sessions:', err);
     });
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
   console.log(`[BOOT] WebSocket allowed origins: ${allowedOrigins.join(', ')}`);
 
   // M5: Track concurrent connections per IP; reject when above threshold
@@ -340,7 +669,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
 }
 
 /**
- * Route incoming WebSocket messages to appropriate handlers
+ * Route incoming WebSocket messages to the appropriate handler
  */
 async function handleMessage(
   client: ConnectedClient,
@@ -365,8 +694,9 @@ async function handleMessage(
 
   const { type, payload = {} } = message;
 
-  // H3: Validate message type is known
-  if (!VALID_MESSAGE_TYPES.has(type)) {
+  // H3: Look up handler
+  const def = messageHandlers[type];
+  if (!def) {
     sendTo(client.ws, {
       type: 'error',
       payload: {
@@ -378,14 +708,21 @@ async function handleMessage(
   }
 
   // H3: Validate required fields per message type
-  const fieldError = validateMessageFields(type, payload);
-  if (fieldError) {
-    sendTo(client.ws, { type: 'error', payload: { message: fieldError } });
-    return;
+  if (def.requiredFields) {
+    for (const field of def.requiredFields) {
+      const value = payload[field];
+      if (value === undefined || value === null) {
+        sendTo(client.ws, {
+          type: 'error',
+          payload: { message: `Missing required field "${field}" for ${type} message` },
+        });
+        return;
+      }
+    }
   }
 
-  // H2: Require authentication for all game-related messages
-  if (AUTH_REQUIRED_TYPES.has(type) && !client.playerId) {
+  // H2: Require authentication for protected messages
+  if (def.requiresAuth && !client.playerId) {
     sendTo(client.ws, {
       type: 'error',
       payload: { message: 'Authentication required. Send an "authenticate" message first.' },
@@ -393,363 +730,5 @@ async function handleMessage(
     return;
   }
 
-  switch (type) {
-    // ─── Authentication ───────────────────────────────
-    case 'authenticate': {
-      const token = payload.token as string;
-      try {
-        const decoded = jwt.verify(token, JWT_SECRET) as {
-          userId: string;
-          address: string;
-          jti?: string;
-        };
-
-        // Check if token has been blocklisted (logged out)
-        const blocklistKey = decoded.jti || token;
-        if (await isTokenBlocked(blocklistKey)) {
-          sendTo(client.ws, {
-            type: 'error',
-            payload: { message: 'Token has been revoked' },
-          });
-          break;
-        }
-
-        client.playerId = decoded.userId;
-        sendTo(client.ws, {
-          type: 'authenticated',
-          payload: {
-            playerId: client.playerId,
-            message: 'Authentication successful',
-          },
-        });
-      } catch {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Invalid or expired token' },
-        });
-      }
-      break;
-    }
-
-    // ─── Matchmaking ──────────────────────────────────
-    case 'join_queue': {
-      const gameId = payload.gameId as string;
-      joinQueue(client, gameId, clients).catch((err) => {
-        console.error('[WS] Error joining queue:', err);
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Failed to join queue' },
-        });
-      });
-      break;
-    }
-
-    case 'leave_queue': {
-      const removed = await leaveQueue(client);
-      sendTo(client.ws, {
-        type: 'queue_left',
-        payload: { removed, message: removed ? 'Left queue' : 'Not in a queue' },
-      });
-      break;
-    }
-
-    // ─── Game Actions ─────────────────────────────────
-    case 'game_action': {
-      const action = (payload.action as Record<string, unknown>) || {};
-      if (typeof action.type !== 'string') {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Invalid action: missing "type" string field' },
-        });
-        break;
-      }
-      handleGameAction(client, action, clients).catch((err) => {
-        console.error('[WS] Error handling game action:', err);
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Failed to process game action' },
-        });
-      });
-      break;
-    }
-
-    case 'end_game': {
-      const sessionId = payload.sessionId as string;
-      // C2: Verify the client is actually in this session
-      if (client.gameSessionId !== sessionId) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Not authorized to end this session' },
-        });
-        break;
-      }
-      const scores = (payload.scores as Record<string, number>) || {};
-      const winnerId = (payload.winnerId as string) || null;
-
-      // M3: Validate winnerId and score keys reference actual session players
-      const session = await getSession(redis, sessionId);
-      if (!session) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Session not found' },
-        });
-        break;
-      }
-      const playerSet = new Set(session.playerIds);
-      if (winnerId && !playerSet.has(winnerId)) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'winnerId is not a player in this session' },
-        });
-        break;
-      }
-      const invalidScoreIds = Object.keys(scores).filter((id) => !playerSet.has(id));
-      if (invalidScoreIds.length > 0) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'scores contain player IDs not in this session' },
-        });
-        break;
-      }
-
-      endSession(sessionId, scores, winnerId, clients).catch((err) => {
-        console.error('[WS] Error ending session:', err);
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Failed to end session' },
-        });
-      });
-      break;
-    }
-
-    // ─── Session Management ───────────────────────────
-    case 'leave': {
-      leaveSession(client, clients).catch((err) => {
-        console.error('[WS] Error leaving session:', err);
-      });
-      break;
-    }
-
-    // ─── Spectating ───────────────────────────────────
-    case 'spectate': {
-      const spectateSessionId = payload.sessionId as string;
-      // H3: Validate the session actually exists before allowing spectate
-      if (!(await isActiveSession(spectateSessionId))) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Session not found or already ended' },
-        });
-        break;
-      }
-      client.spectating = spectateSessionId;
-      console.log(`[WS] Client ${client.id} spectating session ${spectateSessionId}`);
-      sendTo(client.ws, {
-        type: 'spectating',
-        payload: {
-          sessionId: spectateSessionId,
-          message: `Now spectating session ${spectateSessionId}`,
-        },
-      });
-      break;
-    }
-
-    case 'stop_spectating': {
-      client.spectating = undefined;
-      sendTo(client.ws, {
-        type: 'stopped_spectating',
-        payload: { message: 'Stopped spectating' },
-      });
-      break;
-    }
-
-    // ─── Reconnection ──────────────────────────────────
-    case 'reconnect': {
-      const reconnectToken = payload.token as string;
-      const reconnectSessionId = payload.sessionId as string;
-      try {
-        const decoded = jwt.verify(reconnectToken, JWT_SECRET) as {
-          userId: string;
-          address: string;
-          jti?: string;
-        };
-
-        // Check if token has been blocklisted
-        const blocklistKey = decoded.jti || reconnectToken;
-        if (await isTokenBlocked(blocklistKey)) {
-          sendTo(client.ws, {
-            type: 'error',
-            payload: { message: 'Token has been revoked' },
-          });
-          break;
-        }
-
-        client.playerId = decoded.userId;
-        const rejoined = await rejoinSession(
-          reconnectSessionId,
-          client.id,
-          decoded.userId,
-          clients,
-        );
-        if (rejoined) {
-          client.gameSessionId = reconnectSessionId;
-          sendTo(client.ws, {
-            type: 'reconnected',
-            payload: {
-              playerId: client.playerId,
-              sessionId: reconnectSessionId,
-              message: 'Reconnected to session',
-            },
-          });
-        } else {
-          sendTo(client.ws, {
-            type: 'error',
-            payload: { message: 'Session not found or you are not a participant' },
-          });
-        }
-      } catch {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Invalid or expired token' },
-        });
-      }
-      break;
-    }
-
-    // ─── Chat ─────────────────────────────────────────
-    case 'chat': {
-      const chatSessionId = client.gameSessionId || client.spectating;
-      if (!chatSessionId) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Not in a session or spectating' },
-        });
-        break;
-      }
-      const rawMessage = String(payload.message);
-      if (rawMessage.trim().length === 0) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Chat message cannot be empty' },
-        });
-        break;
-      }
-      if (rawMessage.length > CHAT_MAX_LENGTH) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: {
-            message: `Chat message exceeds maximum length of ${CHAT_MAX_LENGTH} characters`,
-          },
-        });
-        break;
-      }
-      const sanitizedMessage = escapeHtml(rawMessage);
-      broadcastToSession(clients, chatSessionId, {
-        type: 'chat',
-        payload: {
-          playerId: client.playerId,
-          message: sanitizedMessage,
-          timestamp: new Date().toISOString(),
-        },
-      });
-      break;
-    }
-
-    // Wager subscription: subscribe to real-time wager updates
-    case 'subscribe_wager': {
-      const wagerId = payload.wagerId as string;
-      client.watchingWagerId = wagerId;
-      console.log(`[WS] Client ${client.id} subscribed to wager ${wagerId}`);
-      sendTo(client.ws, {
-        type: 'wager_subscribed',
-        payload: {
-          wagerId,
-          message: `Subscribed to wager ${wagerId} updates`,
-        },
-      });
-      break;
-    }
-
-    case 'unsubscribe_wager': {
-      const prevWagerId = client.watchingWagerId;
-      client.watchingWagerId = undefined;
-      sendTo(client.ws, {
-        type: 'wager_unsubscribed',
-        payload: {
-          wagerId: prevWagerId,
-          message: 'Unsubscribed from wager updates',
-        },
-      });
-      break;
-    }
-
-    // Real-time input: forward buffered input to RealTimeSessionManager
-    case 'realtime_input': {
-      if (!client.playerId) break;
-      const rtInput = payload.input;
-      if (rtInput === undefined || rtInput === null) {
-        sendTo(client.ws, {
-          type: 'error',
-          payload: { message: 'Missing "input" field for realtime_input' },
-        });
-        break;
-      }
-      realTimeSessionManager.handleInput(client.playerId, rtInput as number | string);
-      break;
-    }
-
-    // Real-time ready: player signals they are ready for countdown
-    case 'realtime_ready': {
-      if (!client.playerId) break;
-      realTimeSessionManager.handleReady(client.playerId, clients).catch((err) => {
-        console.error('[WS] Error handling realtime_ready:', err);
-      });
-      break;
-    }
-
-    // Unknown types are caught by the validation above, so this is unreachable
-    default:
-      break;
-  }
-}
-
-/**
- * Validate that required fields exist for each message type.
- * Returns an error string if validation fails, or null if valid.
- */
-function validateMessageFields(type: string, payload: Record<string, unknown>): string | null {
-  switch (type) {
-    case 'authenticate':
-      if (!payload.token) return 'Missing required field "token" for authenticate message';
-      break;
-    case 'join_queue':
-      if (!payload.gameId) return 'Missing required field "gameId" for join_queue message';
-      break;
-    case 'game_action':
-      if (!payload.action) return 'Missing required field "action" for game_action message';
-      break;
-    case 'end_game':
-      if (!payload.sessionId) return 'Missing required field "sessionId" for end_game message';
-      break;
-    case 'spectate':
-      if (!payload.sessionId) return 'Missing required field "sessionId" for spectate message';
-      break;
-    case 'reconnect':
-      if (!payload.token) return 'Missing required field "token" for reconnect message';
-      if (!payload.sessionId) return 'Missing required field "sessionId" for reconnect message';
-      break;
-    case 'chat':
-      if (payload.message === undefined || payload.message === null)
-        return 'Missing required field "message" for chat message';
-      break;
-    case 'realtime_input':
-      if (payload.input === undefined || payload.input === null)
-        return 'Missing required field "input" for realtime_input message';
-      break;
-    // realtime_ready requires no additional fields beyond auth
-    case 'subscribe_wager':
-      if (!payload.wagerId) return 'Missing required field "wagerId" for subscribe_wager message';
-      break;
-    // unsubscribe_wager requires no additional fields beyond auth
-  }
-  return null;
+  await def.handler({ client, payload, clients, realTimeSessionManager });
 }

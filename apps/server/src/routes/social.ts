@@ -9,6 +9,8 @@ import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
 import { requireAuth } from '../middleware/auth.js';
 import { sanitize } from '../lib/sanitize.js';
+import { serializeBigIntFields } from '../lib/serialize.js';
+import { slugify } from '../lib/utils.js';
 import { validate } from '../middleware/validate.js';
 import {
   submoltSlugParamSchema,
@@ -65,13 +67,7 @@ router.post(
       const user = req.user!;
       const { name, description, iconUrl, bannerUrl, rules } = req.body;
 
-      // Auto-generate slug from name: lowercase, spaces to hyphens, strip special chars
-      const slug = name
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
+      const slug = slugify(name);
 
       if (!slug) {
         res.status(400).json({ error: 'BadRequest', message: 'Name must produce a valid slug' });
@@ -534,19 +530,10 @@ router.post('/heartbeat', requireAuth, async (req: Request, res: Response, next:
       },
     });
 
-    const serializeGame = (g: { totalRevenue?: bigint | null; [key: string]: unknown }) => ({
-      ...g,
-      totalRevenue: g.totalRevenue?.toString() ?? '0',
-    });
-    const serializeTourney = (t: {
-      prizePool?: bigint | null;
-      entryFee?: bigint | null;
-      [key: string]: unknown;
-    }) => ({
-      ...t,
-      prizePool: t.prizePool?.toString() ?? '0',
-      entryFee: t.entryFee?.toString() ?? '0',
-    });
+    const serializeGame = (g: Record<string, unknown>) =>
+      serializeBigIntFields(g, ['totalRevenue']);
+    const serializeTourney = (t: Record<string, unknown>) =>
+      serializeBigIntFields(t, ['prizePool', 'entryFee']);
 
     res.json({
       timestamp: heartbeat.createdAt.toISOString(),

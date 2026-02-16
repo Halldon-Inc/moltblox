@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Calendar,
   Gamepad2,
@@ -96,12 +97,13 @@ export default function ProfilePage() {
 
       {/* Avatar (overlapping banner) */}
       <div className="page-container relative -mt-16 md:-mt-20 z-10 mb-6">
-        <div className="w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-gradient-to-br from-molt-500 to-molt-700 flex items-center justify-center text-4xl md:text-5xl font-display font-black text-white border-4 border-surface-dark ring-2 ring-molt-500/30 overflow-hidden">
+        <div className="relative w-28 h-28 md:w-36 md:h-36 rounded-2xl bg-gradient-to-br from-molt-500 to-molt-700 flex items-center justify-center text-4xl md:text-5xl font-display font-black text-white border-4 border-surface-dark ring-2 ring-molt-500/30 overflow-hidden">
           {user.avatarUrl ? (
-            <img
+            <Image
               src={user.avatarUrl}
               alt={user.displayName ?? user.username}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
           ) : (
             ((user.displayName ?? user.username)?.[0]?.toUpperCase() ?? '?')
@@ -161,7 +163,7 @@ export default function ProfilePage() {
                 })()}
             </div>
 
-            <div className="flex items-center gap-3 mt-1.5 text-white/40 text-sm font-body">
+            <div className="flex items-center gap-3 mt-1.5 text-white/40 text-sm font-sans">
               <span>@{user.username}</span>
               <span className="text-white/10">|</span>
               <span className="flex items-center gap-1">
@@ -192,7 +194,7 @@ export default function ProfilePage() {
 
         {/* Bio */}
         {user.bio && (
-          <p className="text-lg text-white/80 mt-5 max-w-2xl leading-relaxed font-body">
+          <p className="text-lg text-white/80 mt-5 max-w-2xl leading-relaxed font-sans">
             {user.bio}
           </p>
         )}
@@ -206,13 +208,13 @@ export default function ProfilePage() {
             <div>
               <p className="text-sm font-bold text-white">{user.moltbookAgentName}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs text-white/40 font-body">
+                <span className="text-xs text-white/40 font-sans">
                   {formatCount(user.moltbookKarma)} karma
                 </span>
                 {user.botVerified && (
                   <>
                     <span className="text-white/10">|</span>
-                    <span className="text-xs text-emerald-400 font-body flex items-center gap-1">
+                    <span className="text-xs text-emerald-400 font-sans flex items-center gap-1">
                       <Shield className="w-3 h-3" /> Verified
                     </span>
                   </>
@@ -251,7 +253,7 @@ export default function ProfilePage() {
                     >
                       <Icon className="w-4 h-4" />
                       <span
-                        className={`text-[10px] uppercase tracking-widest font-body ${stat.highlight ? 'text-molt-500/50' : ''}`}
+                        className={`text-[10px] uppercase tracking-widest font-sans ${stat.highlight ? 'text-molt-500/50' : ''}`}
                       >
                         {stat.label}
                       </span>
@@ -288,7 +290,13 @@ export default function ProfilePage() {
               >
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-molt-500/20 to-molt-700/20 border-2 border-molt-500/30 flex items-center justify-center text-2xl group-hover:animate-badge-glow">
                   {badge.icon ? (
-                    <img src={badge.icon} alt={badge.name} className="w-10 h-10 object-contain" />
+                    <Image
+                      src={badge.icon}
+                      alt={badge.name}
+                      width={40}
+                      height={40}
+                      className="object-contain"
+                    />
                   ) : (
                     <>
                       {badge.category === 'creator' && '🎮'}
@@ -302,7 +310,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{badge.name}</p>
-                  <p className="text-[10px] text-white/30 uppercase tracking-wider font-body">
+                  <p className="text-[10px] text-white/30 uppercase tracking-wider font-sans">
                     {badge.category}
                   </p>
                 </div>
@@ -333,10 +341,11 @@ export default function ProfilePage() {
                   {/* Thumbnail area */}
                   <div className="relative h-48 bg-gradient-to-br from-surface-card to-surface-dark flex items-center justify-center">
                     {game.thumbnailUrl ? (
-                      <img
+                      <Image
                         src={game.thumbnailUrl}
                         alt={game.name}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     ) : (
                       <ProceduralThumbnail
@@ -356,7 +365,7 @@ export default function ProfilePage() {
                     <h3 className="text-sm font-bold text-white group-hover:text-molt-400 transition-colors truncate">
                       {game.name}
                     </h3>
-                    <div className="flex items-center gap-3 mt-2 text-xs text-white/40 font-body">
+                    <div className="flex items-center gap-3 mt-2 text-xs text-white/40 font-sans">
                       <span className="flex items-center gap-1">
                         <Eye className="w-3 h-3" />
                         {formatCount(game.totalPlays)} plays
@@ -420,7 +429,7 @@ export default function ProfilePage() {
                     <p className="text-sm font-bold text-white truncate group-hover:text-molt-400 transition-colors">
                       {tr.name}
                     </p>
-                    <p className="text-xs text-white/40 font-body">{tr.gameName}</p>
+                    <p className="text-xs text-white/40 font-sans">{tr.gameName}</p>
                   </div>
                 </div>
               </Link>

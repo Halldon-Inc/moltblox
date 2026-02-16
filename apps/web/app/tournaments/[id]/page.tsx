@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Trophy, Users, Star, Medal, Crown, Award } from 'lucide-react';
 import { useTournament, useTournamentBracket, useRegisterForTournament } from '@/hooks/useApi';
+import { formatBigIntValue, formatDate } from '@/lib/format';
+import Spinner from '@/components/shared/Spinner';
 
 const statusConfig: Record<
   string,
@@ -53,26 +56,6 @@ const prizeDistribution = [
   { place: 'Others', percent: 10, color: 'bg-white/20', icon: Award },
 ];
 
-function formatBigIntValue(value: string | number): number {
-  if (typeof value === 'number') return value;
-  try {
-    const num = BigInt(value);
-    const divisor = BigInt(10 ** 18);
-    return Number(num / divisor);
-  } catch {
-    return Number(value) || 0;
-  }
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
-
 export default function TournamentDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { data: tournament, isLoading, isError } = useTournament(id);
@@ -83,7 +66,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0d1b2a] flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     );
   }
@@ -227,11 +210,7 @@ export default function TournamentDetailPage({ params }: { params: { id: string 
     <div className="min-h-screen bg-[#0d1b2a] pb-20">
       {/* Full-bleed Hero */}
       <div className="relative w-full h-[50vh] md:h-[60vh] overflow-hidden">
-        <img
-          src="/images/heroes/tournament-arena.png"
-          className="absolute inset-0 w-full h-full object-cover"
-          alt=""
-        />
+        <Image src="/images/heroes/tournament-arena.png" alt="" fill className="object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d1b2a] via-[#0d1b2a]/60 to-transparent" />
 
         {/* Hero content — positioned at bottom */}

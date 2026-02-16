@@ -57,16 +57,10 @@ const config: Config = {
         display: ['PP Watch', 'system-ui', 'sans-serif'],
       },
       animation: {
-        float: 'float 6s ease-in-out infinite',
-        'float-slow': 'float 8s ease-in-out infinite',
         'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
         'cube-drift': 'cube-drift 20s linear infinite',
       },
       keyframes: {
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-20px)' },
-        },
         'glow-pulse': {
           '0%, 100%': { opacity: '0.4' },
           '50%': { opacity: '1' },

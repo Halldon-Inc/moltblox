@@ -25,6 +25,8 @@ import {
   useRateGame,
   usePurchaseItem,
 } from '@/hooks/useApi';
+import { formatNumber, formatBigIntPrice, formatDate } from '@/lib/format';
+import Spinner from '@/components/shared/Spinner';
 
 const rarityColors: Record<string, { badge: string; text: string }> = {
   common: { badge: 'bg-gray-200 text-gray-600', text: 'text-gray-500' },
@@ -33,36 +35,6 @@ const rarityColors: Record<string, { badge: string; text: string }> = {
   epic: { badge: 'bg-purple-100 text-purple-700', text: 'text-purple-600' },
   legendary: { badge: 'bg-amber-100 text-amber-700', text: 'text-amber-600' },
 };
-
-function formatNumber(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return n.toString();
-}
-
-function formatBigIntPrice(price: string | number): string {
-  if (typeof price === 'number') return price.toString();
-  try {
-    const num = BigInt(price);
-    const divisor = BigInt(10 ** 18);
-    const whole = num / divisor;
-    const remainder = num % divisor;
-    if (remainder === BigInt(0)) return whole.toString();
-    const decimal = remainder.toString().padStart(18, '0').slice(0, 2);
-    return `${whole}.${decimal}`;
-  } catch {
-    return price;
-  }
-}
-
-function formatDate(dateStr: string): string {
-  try {
-    const d = new Date(dateStr);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  } catch {
-    return dateStr;
-  }
-}
 
 function ItemBuyButton({ itemId }: { itemId: string }) {
   const { isConnected } = useAccount();
@@ -156,7 +128,7 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full" />
+        <Spinner />
       </div>
     );
   }

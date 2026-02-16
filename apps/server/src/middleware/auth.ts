@@ -61,95 +61,74 @@ function buildAuthUser(dbUser: {
 }
 
 /**
+ * Resolve a JWT token string to an AuthUser, or return null.
+ * Checks blocklist and verifies the token signature.
+ */
+async function resolveTokenUser(token: string): Promise<AuthUser | null> {
+  if (!token) return null;
+
+  const decoded = jwt.decode(token) as { jti?: string } | null;
+  const blocklistKey = decoded?.jti || token;
+  if (await isTokenBlocked(blocklistKey)) return null;
+
+  const payload = verifyToken(token);
+  if (!payload) return null;
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: USER_SELECT,
+  });
+
+  return dbUser ? buildAuthUser(dbUser) : null;
+}
+
+/**
+ * Resolve an API key to an AuthUser, or return null.
+ */
+async function resolveApiKeyUser(apiKey: string): Promise<AuthUser | null> {
+  const hashedKey = hashApiKey(apiKey);
+  const dbUser = await prisma.user.findUnique({
+    where: { apiKey: hashedKey },
+    select: USER_SELECT,
+  });
+  return dbUser ? buildAuthUser(dbUser) : null;
+}
+
+/**
+ * Attempt to resolve the authenticated user from request headers/cookies.
+ * Returns the AuthUser if found, or null if no valid credentials present.
+ */
+async function resolveAuthUser(req: Request): Promise<AuthUser | null> {
+  const authHeader = req.headers.authorization;
+  const apiKey = req.headers['x-api-key'] as string | undefined;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    return resolveTokenUser(authHeader.slice(7).trim());
+  }
+
+  if (req.cookies?.moltblox_token) {
+    return resolveTokenUser(req.cookies.moltblox_token);
+  }
+
+  if (apiKey) {
+    return resolveApiKeyUser(apiKey);
+  }
+
+  return null;
+}
+
+/**
  * Middleware that requires a valid authentication token.
  * Accepts Bearer JWT tokens or X-API-Key header.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
-    const apiKey = req.headers['x-api-key'] as string | undefined;
-
-    let user: AuthUser | null = null;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7).trim();
-      if (!token) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Empty token' });
-        return;
-      }
-
-      // Check if token has been blocklisted (logged out)
-      const decoded = jwt.decode(token) as { jti?: string } | null;
-      const blocklistKey = decoded?.jti || token;
-      if (await isTokenBlocked(blocklistKey)) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
-        return;
-      }
-
-      const payload = verifyToken(token);
-      if (!payload) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-        return;
-      }
-
-      const dbUser = await prisma.user.findUnique({
-        where: { id: payload.userId },
-        select: USER_SELECT,
-      });
-
-      if (!dbUser) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
-        return;
-      }
-
-      user = buildAuthUser(dbUser);
-    } else if (req.cookies?.moltblox_token) {
-      const cookieToken = req.cookies.moltblox_token;
-
-      // Check if token has been blocklisted (logged out)
-      const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
-      const blocklistKey = decoded?.jti || cookieToken;
-      if (await isTokenBlocked(blocklistKey)) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Token has been revoked' });
-        return;
-      }
-
-      const payload = verifyToken(cookieToken);
-      if (!payload) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid or expired token' });
-        return;
-      }
-
-      const dbUser = await prisma.user.findUnique({
-        where: { id: payload.userId },
-        select: USER_SELECT,
-      });
-
-      if (!dbUser) {
-        res.status(401).json({ error: 'Unauthorized', message: 'User not found' });
-        return;
-      }
-
-      user = buildAuthUser(dbUser);
-    } else if (apiKey) {
-      const hashedKey = hashApiKey(apiKey);
-      const dbUser = await prisma.user.findUnique({
-        where: { apiKey: hashedKey },
-        select: USER_SELECT,
-      });
-
-      if (!dbUser) {
-        res.status(401).json({ error: 'Unauthorized', message: 'Invalid API key' });
-        return;
-      }
-
-      user = buildAuthUser(dbUser);
-    }
+    const user = await resolveAuthUser(req);
 
     if (!user) {
       res.status(401).json({
         error: 'Unauthorized',
-        message: 'Missing Authorization header (Bearer token) or X-API-Key header',
+        message: 'Missing or invalid authentication credentials',
       });
       return;
     }
@@ -184,7 +163,9 @@ export async function requireBot(req: Request, res: Response, next: NextFunction
 }
 
 /**
- * Optional auth - attaches user if token present, but doesn't require it
+ * Optional auth: attaches user if token present, but does not require it.
+ * Fail-closed: if Redis or another dependency is down, req.user stays undefined
+ * so downstream handlers treat the request as unauthenticated.
  */
 export async function optionalAuth(
   req: Request,
@@ -192,61 +173,9 @@ export async function optionalAuth(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const authHeader = req.headers.authorization;
-    const apiKey = req.headers['x-api-key'] as string | undefined;
-
-    if (authHeader?.startsWith('Bearer ')) {
-      const token = authHeader.slice(7).trim();
-
-      // Check blocklist — revoked tokens must not populate req.user
-      const decoded = jwt.decode(token) as { jti?: string } | null;
-      const blocklistKey = decoded?.jti || token;
-      if (!(await isTokenBlocked(blocklistKey))) {
-        const payload = verifyToken(token);
-        if (payload) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: payload.userId },
-            select: USER_SELECT,
-          });
-          if (dbUser) {
-            req.user = buildAuthUser(dbUser);
-          }
-        }
-      }
-    } else if (req.cookies?.moltblox_token) {
-      const cookieToken = req.cookies.moltblox_token;
-
-      // Check blocklist — revoked tokens must not populate req.user
-      const decoded = jwt.decode(cookieToken) as { jti?: string } | null;
-      const blocklistKey = decoded?.jti || cookieToken;
-      if (!(await isTokenBlocked(blocklistKey))) {
-        const payload = verifyToken(cookieToken);
-        if (payload) {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: payload.userId },
-            select: USER_SELECT,
-          });
-          if (dbUser) {
-            req.user = buildAuthUser(dbUser);
-          }
-        }
-      }
-    } else if (apiKey) {
-      const hashedKey = hashApiKey(apiKey);
-      const dbUser = await prisma.user.findUnique({
-        where: { apiKey: hashedKey },
-        select: USER_SELECT,
-      });
-      if (dbUser) {
-        req.user = buildAuthUser(dbUser);
-      }
-    }
-
+    req.user = (await resolveAuthUser(req)) ?? undefined;
     next();
   } catch {
-    // Fail-closed: if Redis or another dependency is down, do NOT
-    // populate req.user so downstream handlers treat the request
-    // as unauthenticated rather than silently granting access.
     req.user = undefined;
     next();
   }

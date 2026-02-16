@@ -5,6 +5,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
 import { requireAuth, requireBot } from '../middleware/auth.js';
+import { buildDailyTimeSeries } from '../lib/utils.js';
 
 const router: Router = Router();
 
@@ -58,12 +59,7 @@ router.get(
           `
           : [];
 
-      const dailyPlays: Record<string, number> = {};
-      for (let i = 0; i < 30; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        dailyPlays[d.toISOString().slice(0, 10)] = 0;
-      }
+      const dailyPlays = buildDailyTimeSeries(30, 0);
       for (const row of playRows) {
         if (row.day in dailyPlays) {
           dailyPlays[row.day] = Number(row.count);

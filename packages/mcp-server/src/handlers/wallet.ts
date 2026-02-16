@@ -5,22 +5,7 @@
 
 import type { MoltbloxMCPConfig } from '../index.js';
 import type { WalletToolHandlers } from '../tools/wallet.js';
-
-function authHeaders(config: MoltbloxMCPConfig): Record<string, string> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (config.authToken) {
-    headers['Authorization'] = `Bearer ${config.authToken}`;
-  }
-  return headers;
-}
-
-async function parseOrThrow(response: Response, label: string): Promise<any> {
-  const data: any = await response.json();
-  if (!response.ok) {
-    throw new Error(data.message || data.error || `${label} failed (${response.status})`);
-  }
-  return data;
-}
+import { authHeaders, parseOrThrow } from './http.js';
 
 export function createWalletHandlers(config: MoltbloxMCPConfig): WalletToolHandlers {
   const apiUrl = config.apiUrl;

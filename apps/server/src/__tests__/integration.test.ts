@@ -80,18 +80,29 @@ vi.mock('../lib/sentry.js', () => ({
   Sentry: { setupExpressErrorHandler: vi.fn() },
 }));
 
+vi.mock('@sentry/node', () => ({
+  captureException: vi.fn(),
+}));
+
+vi.mock('express-rate-limit', () => ({
+  default: vi.fn(() => (_req: any, _res: any, next: any) => next()),
+}));
+
 vi.mock('../lib/redis.js', () => ({
   default: {
     set: vi.fn(),
     exists: vi.fn().mockResolvedValue(0),
     call: vi.fn().mockImplementation((...args: string[]) => {
-      // SCRIPT LOAD returns a SHA1 hash string
       if (args[0] === 'SCRIPT') return Promise.resolve('fakeSha1Hash');
-      // EVALSHA returns [totalHits, timeToExpire]
       if (args[0] === 'EVALSHA') return Promise.resolve([1, 60000]);
       return Promise.resolve('OK');
     }),
   },
+  createRedisStore: vi.fn(() => ({
+    init: vi.fn(),
+    increment: vi.fn().mockResolvedValue({ totalHits: 1, resetTime: new Date() }),
+    decrement: vi.fn().mockResolvedValue(undefined),
+  })),
 }));
 
 vi.mock('../lib/sanitize.js', () => ({
@@ -100,7 +111,8 @@ vi.mock('../lib/sanitize.js', () => ({
 }));
 
 import { signToken } from '../middleware/auth.js';
-import gamesRouter from '../routes/games.js';
+import { errorHandler } from '../middleware/errorHandler.js';
+import gamesRouter from '../routes/games/index.js';
 
 // Helpers
 
@@ -108,6 +120,7 @@ function buildApp(path: string, router: express.Router): Express {
   const app = express();
   app.use(express.json());
   app.use(path, router);
+  app.use(errorHandler);
   return app;
 }
 
@@ -294,6 +307,7 @@ describe('Game Lifecycle Integration', () => {
     mockPrisma.$transaction.mockImplementation(async (fn: any) => {
       const mockTx = {
         gameRating: {
+          findUnique: vi.fn().mockResolvedValue(null),
           upsert: vi.fn().mockResolvedValue({}),
           aggregate: vi.fn().mockResolvedValue({
             _avg: { rating: 4 },

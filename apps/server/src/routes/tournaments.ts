@@ -12,6 +12,8 @@ import {
   createTournamentSchema,
 } from '../schemas/tournaments.js';
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
+import { serializeBigIntFields } from '../lib/serialize.js';
+import { AppError } from '../middleware/errorHandler.js';
 import { parseBigIntNonNegative, ParseBigIntError } from '../lib/parseBigInt.js';
 import type { Prisma, TournamentStatus, TournamentFormat } from '../generated/prisma/client.js';
 
@@ -20,34 +22,20 @@ const router: Router = Router();
 /**
  * Serialize BigInt fields on a tournament (and nested relations) to strings.
  */
-function serializeTournament(tournament: {
-  prizePool?: bigint | null;
-  entryFee?: bigint | null;
-  game?: { totalRevenue?: bigint | null; [key: string]: unknown } | null;
-  participants?: {
-    entryFeePaid?: bigint | null;
-    prizeWon?: bigint | null;
-    [key: string]: unknown;
-  }[];
-  [key: string]: unknown;
-}) {
-  const participants = tournament.participants?.map((p) => ({
-    ...p,
-    entryFeePaid: p.entryFeePaid?.toString() ?? '0',
-    prizeWon: p.prizeWon?.toString() ?? null,
-  }));
+function serializeTournament(tournament: Record<string, unknown>) {
+  const result = serializeBigIntFields(tournament, ['prizePool', 'entryFee']);
 
-  const game = tournament.game
-    ? { ...tournament.game, totalRevenue: tournament.game.totalRevenue?.toString() ?? '0' }
-    : tournament.game;
+  if (result.game && typeof result.game === 'object') {
+    result.game = serializeBigIntFields(result.game as Record<string, unknown>, ['totalRevenue']);
+  }
 
-  return {
-    ...tournament,
-    prizePool: tournament.prizePool?.toString() ?? '0',
-    entryFee: tournament.entryFee?.toString() ?? '0',
-    ...(game !== undefined && { game }),
-    ...(participants && { participants }),
-  };
+  if (Array.isArray(result.participants)) {
+    result.participants = (result.participants as Record<string, unknown>[]).map((p) =>
+      serializeBigIntFields(p, ['entryFeePaid', 'prizeWon']),
+    );
+  }
+
+  return result;
 }
 
 /**
@@ -412,7 +400,7 @@ router.post(
         });
 
         if (!tournament) {
-          throw Object.assign(new Error('Tournament not found'), { statusCode: 404 });
+          throw new AppError('Tournament not found', 404);
         }
 
         const now = new Date();
@@ -431,13 +419,11 @@ router.post(
         }
 
         if (tournament.status !== 'registration') {
-          throw Object.assign(new Error('Tournament is not open for registration'), {
-            statusCode: 400,
-          });
+          throw new AppError('Tournament is not open for registration', 400);
         }
 
         if (now < tournament.registrationStart || now > tournament.registrationEnd) {
-          throw Object.assign(new Error('Registration period is not active'), { statusCode: 400 });
+          throw new AppError('Registration period is not active', 400);
         }
 
         // 2. Check not already registered
@@ -451,14 +437,12 @@ router.post(
         });
 
         if (existingParticipant) {
-          throw Object.assign(new Error('Already registered for this tournament'), {
-            statusCode: 409,
-          });
+          throw new AppError('Already registered for this tournament', 409);
         }
 
         // 3. Check not full
         if (tournament.currentParticipants >= tournament.maxParticipants) {
-          throw Object.assign(new Error('Tournament is full'), { statusCode: 400 });
+          throw new AppError('Tournament is full', 400);
         }
 
         // 4. Create participant
@@ -506,14 +490,6 @@ router.post(
         message: 'Successfully registered for tournament',
       });
     } catch (error) {
-      if (error instanceof Error && 'statusCode' in error) {
-        const statusCode = (error as Error & { statusCode: number }).statusCode;
-        res.status(statusCode).json({
-          error: statusCode === 404 ? 'NotFound' : statusCode === 409 ? 'Conflict' : 'BadRequest',
-          message: error.message,
-        });
-        return;
-      }
       next(error);
     }
   },
