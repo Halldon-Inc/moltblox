@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Users,
@@ -56,8 +57,8 @@ function getTypeStyle(type: string) {
   }
 }
 
-export default function SubmoltPage({ params }: { params: { slug: string } }) {
-  const { slug } = params;
+export default function SubmoltPage() {
+  const { slug } = useParams<{ slug: string }>();
   const [liked, setLiked] = useState<Set<string>>(new Set());
 
   const { data, isLoading, isError } = useSubmolt(slug);

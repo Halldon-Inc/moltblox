@@ -9,3 +9,6 @@ export async function register() {
     });
   }
 }
+
+// Next.js 15 server error instrumentation
+export const onRequestError = Sentry.captureRequestError;

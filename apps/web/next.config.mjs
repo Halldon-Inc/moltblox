@@ -15,6 +15,10 @@ const nextConfig = {
   // The render.yaml Blueprint sets STANDALONE=true automatically.
   ...(process.env.STANDALONE === 'true' && { output: 'standalone' }),
 
+  // Preserve standalone output path structure in pnpm monorepos (Next.js 15.5+ fix).
+  // Without this, standalone may output to @moltblox/web/ instead of apps/web/.
+  turbopack: { root: resolve(__dirname, './') },
+
   webpack: (config, { isServer }) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     config.externals.push('pino-pretty', 'lokijs', 'encoding');

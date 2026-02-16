@@ -122,9 +122,7 @@ export class RankedMatchmaker {
    * Get queue size
    */
   getQueueSize(): number {
-    return Array.from(this.queue.values())
-      .filter(e => e.status === 'searching')
-      .length;
+    return Array.from(this.queue.values()).filter((e) => e.status === 'searching').length;
   }
 
   /**
@@ -187,11 +185,7 @@ export class RankedMatchmaker {
   /**
    * Create a match between two players
    */
-  private createMatch(
-    player1Id: string,
-    player2Id: string,
-    ratingDiff: number
-  ): MatchmakingResult {
+  private createMatch(player1Id: string, player2Id: string, ratingDiff: number): MatchmakingResult {
     const matchId = this.generateMatchId();
 
     // Update both entries
@@ -278,7 +272,7 @@ export class RankedMatchmaker {
       entry.currentRange = Math.min(
         MATCHMAKING_CONFIG.initialSearchRange +
           expansions * MATCHMAKING_CONFIG.searchRangeExpansion,
-        MATCHMAKING_CONFIG.maxSearchRange
+        MATCHMAKING_CONFIG.maxSearchRange,
       );
 
       // Try to find a match
@@ -406,12 +400,12 @@ export class RankedMatchmaker {
     // Estimate time to expand range to reach closest player
     const expansionsNeeded = Math.ceil(
       (closestDiff - MATCHMAKING_CONFIG.initialSearchRange) /
-        MATCHMAKING_CONFIG.searchRangeExpansion
+        MATCHMAKING_CONFIG.searchRangeExpansion,
     );
 
     return Math.min(
       expansionsNeeded * MATCHMAKING_CONFIG.expansionIntervalMs + 5000,
-      MATCHMAKING_CONFIG.maxWaitTimeMs
+      MATCHMAKING_CONFIG.maxWaitTimeMs,
     );
   }
 

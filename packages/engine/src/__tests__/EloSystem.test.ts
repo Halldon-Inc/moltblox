@@ -90,7 +90,11 @@ describe('EloSystem', () => {
       const winnerRating = EloSystem.createNewPlayer('winner1', 'WinBot');
       const loserRating = EloSystem.createNewPlayer('loser1', 'LoseBot');
       const [winnerChange, loserChange] = EloSystem.processMatchResult(
-        'winner1', 'loser1', winnerRating, loserRating, 'match-1'
+        'winner1',
+        'loser1',
+        winnerRating,
+        loserRating,
+        'match-1',
       );
       expect(winnerChange.playerId).toBe('winner1');
       expect(winnerChange.isWin).toBe(true);
@@ -134,8 +138,14 @@ describe('EloSystem', () => {
     it('updates wins correctly on win', () => {
       const player = EloSystem.createNewPlayer('p1', 'Bot');
       const change = {
-        playerId: 'p1', oldRating: 1200, newRating: 1232, change: 32,
-        matchId: 'm1', opponentId: 'p2', isWin: true, timestamp: Date.now(),
+        playerId: 'p1',
+        oldRating: 1200,
+        newRating: 1232,
+        change: 32,
+        matchId: 'm1',
+        opponentId: 'p2',
+        isWin: true,
+        timestamp: Date.now(),
       };
       const updated = EloSystem.applyChange(player, change);
       expect(updated.wins).toBe(1);
@@ -149,8 +159,14 @@ describe('EloSystem', () => {
     it('updates losses correctly on loss', () => {
       const player = EloSystem.createNewPlayer('p1', 'Bot');
       const change = {
-        playerId: 'p1', oldRating: 1200, newRating: 1168, change: -32,
-        matchId: 'm1', opponentId: 'p2', isWin: false, timestamp: Date.now(),
+        playerId: 'p1',
+        oldRating: 1200,
+        newRating: 1168,
+        change: -32,
+        matchId: 'm1',
+        opponentId: 'p2',
+        isWin: false,
+        timestamp: Date.now(),
       };
       const updated = EloSystem.applyChange(player, change);
       expect(updated.wins).toBe(0);
@@ -163,18 +179,36 @@ describe('EloSystem', () => {
     it('tracks streak correctly across multiple changes', () => {
       let player = EloSystem.createNewPlayer('p1', 'Bot');
       player = EloSystem.applyChange(player, {
-        playerId: 'p1', oldRating: 1200, newRating: 1232, change: 32,
-        matchId: 'm1', opponentId: 'p2', isWin: true, timestamp: Date.now(),
+        playerId: 'p1',
+        oldRating: 1200,
+        newRating: 1232,
+        change: 32,
+        matchId: 'm1',
+        opponentId: 'p2',
+        isWin: true,
+        timestamp: Date.now(),
       });
       expect(player.currentStreak).toBe(1);
       player = EloSystem.applyChange(player, {
-        playerId: 'p1', oldRating: 1232, newRating: 1248, change: 16,
-        matchId: 'm2', opponentId: 'p3', isWin: true, timestamp: Date.now(),
+        playerId: 'p1',
+        oldRating: 1232,
+        newRating: 1248,
+        change: 16,
+        matchId: 'm2',
+        opponentId: 'p3',
+        isWin: true,
+        timestamp: Date.now(),
       });
       expect(player.currentStreak).toBe(2);
       player = EloSystem.applyChange(player, {
-        playerId: 'p1', oldRating: 1248, newRating: 1216, change: -32,
-        matchId: 'm3', opponentId: 'p4', isWin: false, timestamp: Date.now(),
+        playerId: 'p1',
+        oldRating: 1248,
+        newRating: 1216,
+        change: -32,
+        matchId: 'm3',
+        opponentId: 'p4',
+        isWin: false,
+        timestamp: Date.now(),
       });
       expect(player.currentStreak).toBe(-1);
     });
@@ -194,7 +228,9 @@ describe('EloSystem', () => {
     it('uses provisional K-factor for new players', () => {
       const provisionalEstimate = EloSystem.estimateChange(1200, 1200, 5);
       const establishedEstimate = EloSystem.estimateChange(1200, 1200, 20);
-      expect(Math.abs(provisionalEstimate.ifWin)).toBeGreaterThan(Math.abs(establishedEstimate.ifWin));
+      expect(Math.abs(provisionalEstimate.ifWin)).toBeGreaterThan(
+        Math.abs(establishedEstimate.ifWin),
+      );
     });
   });
 });

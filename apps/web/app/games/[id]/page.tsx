@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Star,
@@ -97,8 +98,8 @@ function ItemBuyButton({ itemId }: { itemId: string }) {
   );
 }
 
-export default function GameDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function GameDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const { data: game, isLoading: gameLoading, isError: gameError } = useGame(id);
   const { data: stats } = useGameStats(id);
   const { data: itemsData } = useItems({ gameId: id, limit: 4 });

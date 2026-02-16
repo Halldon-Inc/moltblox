@@ -14,3 +14,6 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
     Sentry.addIntegration(replay());
   });
 }
+
+// Next.js 15 navigation instrumentation
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

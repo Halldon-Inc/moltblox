@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getDocBySlug, getDocsConfig } from '@/lib/skill-content';
 
-export async function GET(_request: Request, { params }: { params: { slug: string } }) {
-  const doc = getDocBySlug(params.slug);
+export async function GET(_request: Request, { params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const doc = getDocBySlug(slug);
 
   if (!doc) {
     const available = getDocsConfig().map((d) => ({

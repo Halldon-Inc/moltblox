@@ -1,6 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import type { ComponentType } from 'react';
 
 interface RendererProps {
@@ -47,8 +49,8 @@ const GAMES: Record<string, { component: ComponentType<RendererProps>; name: str
   },
 };
 
-export default function GamePlayPage({ params }: { params: { template: string } }) {
-  const { template } = params;
+export default function GamePlayPage() {
+  const { template } = useParams<{ template: string }>();
   const game = GAMES[template];
 
   if (!game) {
@@ -59,9 +61,9 @@ export default function GamePlayPage({ params }: { params: { template: string } 
           <p className="text-white/50 mb-6">
             Unknown template: <code className="text-neon-cyan">{template}</code>
           </p>
-          <a href="/games/play" className="btn-primary">
+          <Link href="/games/play" className="btn-primary">
             Browse Games
-          </a>
+          </Link>
         </div>
       </div>
     );

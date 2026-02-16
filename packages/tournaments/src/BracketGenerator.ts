@@ -287,7 +287,7 @@ export function generateSwiss(playerIds: string[], rounds: number): BracketMatch
   }
 
   // Placeholder matches for subsequent rounds
-  const matchesPerRound = Math.floor(players.filter(p => p !== '').length / 2);
+  const matchesPerRound = Math.floor(players.filter((p) => p !== '').length / 2);
   for (let round = 2; round <= effectiveRounds; round++) {
     for (let m = 0; m < matchesPerRound; m++) {
       matchCounter++;

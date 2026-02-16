@@ -69,7 +69,11 @@ export type {
 
 // Constants
 export { REVENUE_SPLIT, PRICING_GUIDELINES } from './types/marketplace';
-export { DEFAULT_PRIZE_DISTRIBUTION, TOURNAMENT_SIZES, PRIZE_POOL_GUIDELINES } from './types/tournament';
+export {
+  DEFAULT_PRIZE_DISTRIBUTION,
+  TOURNAMENT_SIZES,
+  PRIZE_POOL_GUIDELINES,
+} from './types/tournament';
 export { DEFAULT_SUBMOLTS } from './types/social';
 
 // Ranking types (ELO, ratings, tiers)

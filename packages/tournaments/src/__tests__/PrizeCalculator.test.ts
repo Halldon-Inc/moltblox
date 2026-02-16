@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  calculatePrizes,
-  validateDistribution,
-  DEFAULT_DISTRIBUTION,
-} from '../PrizeCalculator.js';
+import { calculatePrizes, validateDistribution, DEFAULT_DISTRIBUTION } from '../PrizeCalculator.js';
 import type { PrizeDistribution } from '@moltblox/protocol';
 
 describe('PrizeCalculator', () => {
@@ -60,7 +56,14 @@ describe('PrizeCalculator', () => {
     });
 
     it('splits participation pool among remaining players for 6 players', () => {
-      const result = calculatePrizes('1200', DEFAULT_DISTRIBUTION, ['p1', 'p2', 'p3', 'p4', 'p5', 'p6']);
+      const result = calculatePrizes('1200', DEFAULT_DISTRIBUTION, [
+        'p1',
+        'p2',
+        'p3',
+        'p4',
+        'p5',
+        'p6',
+      ]);
       expect(result).toHaveLength(6);
       // participation pool = 1200 * 10 / 100 = 120
       // per player (4th-6th) = 120 / 3 = 40 each
@@ -84,7 +87,7 @@ describe('PrizeCalculator', () => {
     it('throws if distribution does not total 100', () => {
       const badDist: PrizeDistribution = { first: 50, second: 25, third: 15, participation: 5 };
       expect(() => calculatePrizes('1000', badDist, ['p1', 'p2', 'p3', 'p4'])).toThrow(
-        'Prize distribution must total 100%'
+        'Prize distribution must total 100%',
       );
     });
   });
@@ -96,25 +99,25 @@ describe('PrizeCalculator', () => {
 
     it('throws for negative percentages', () => {
       expect(() =>
-        validateDistribution({ first: 60, second: 30, third: -5, participation: 15 })
+        validateDistribution({ first: 60, second: 30, third: -5, participation: 15 }),
       ).toThrow('non-negative');
     });
 
     it('throws when total is not 100', () => {
       expect(() =>
-        validateDistribution({ first: 50, second: 25, third: 15, participation: 5 })
+        validateDistribution({ first: 50, second: 25, third: 15, participation: 5 }),
       ).toThrow('must total 100%');
     });
 
     it('throws when first < second', () => {
       expect(() =>
-        validateDistribution({ first: 20, second: 40, third: 30, participation: 10 })
+        validateDistribution({ first: 20, second: 40, third: 30, participation: 10 }),
       ).toThrow('First place prize must be >= second');
     });
 
     it('throws when second < third', () => {
       expect(() =>
-        validateDistribution({ first: 50, second: 10, third: 30, participation: 10 })
+        validateDistribution({ first: 50, second: 10, third: 30, participation: 10 }),
       ).toThrow('Second place prize must be >= third');
     });
   });

@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
 import './globals.css';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
-
-const Web3Provider = dynamic(
-  () => import('@/components/providers/Web3Provider').then((mod) => mod.Web3Provider),
-  { ssr: false },
-);
+import { ClientProviders } from '@/components/providers/ClientProviders';
 
 export const metadata: Metadata = {
   title: 'Moltblox - Where Bots Build Worlds',
@@ -37,11 +32,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-        <Web3Provider>
+        <ClientProviders>
           <Navbar />
           <main className="flex-1">{children}</main>
           <Footer />
-        </Web3Provider>
+        </ClientProviders>
       </body>
     </html>
   );

@@ -18,7 +18,11 @@ export interface RedisClient {
   zrevrank(key: string, member: string): Promise<number | null>;
   zscore(key: string, member: string): Promise<string | null>;
   zrevrange(key: string, start: number, stop: number): Promise<string[]>;
-  zrevrangeWithScores(key: string, start: number, stop: number): Promise<Array<{ member: string; score: number }>>;
+  zrevrangeWithScores(
+    key: string,
+    start: number,
+    stop: number,
+  ): Promise<Array<{ member: string; score: number }>>;
   zcard(key: string): Promise<number>;
 
   // Hash operations
@@ -97,11 +101,7 @@ export class LeaderboardService {
    * Get top N players
    */
   async getTopPlayers(count: number = 100): Promise<LeaderboardEntry[]> {
-    const results = await this.redis.zrevrangeWithScores(
-      KEYS.LEADERBOARD,
-      0,
-      count - 1
-    );
+    const results = await this.redis.zrevrangeWithScores(KEYS.LEADERBOARD, 0, count - 1);
 
     const onlinePlayers = new Set(await this.redis.smembers(KEYS.ONLINE_PLAYERS));
     const inMatchPlayers = await this.getPlayersInMatch();
@@ -167,11 +167,7 @@ export class LeaderboardService {
    * Store player data
    */
   async setPlayerData(playerId: string, data: PlayerRating): Promise<void> {
-    await this.redis.hset(
-      KEYS.PLAYER_DATA + playerId,
-      'data',
-      JSON.stringify(data)
-    );
+    await this.redis.hset(KEYS.PLAYER_DATA + playerId, 'data', JSON.stringify(data));
   }
 
   /**
@@ -367,10 +363,7 @@ export class LeaderboardService {
    * Broadcast update to all subscribers (via Redis pub/sub for distributed systems)
    */
   private async broadcastUpdate(update: LeaderboardUpdate): Promise<void> {
-    await this.redis.publish(
-      KEYS.LEADERBOARD_CHANNEL,
-      JSON.stringify(update)
-    );
+    await this.redis.publish(KEYS.LEADERBOARD_CHANNEL, JSON.stringify(update));
     this.invalidateCache();
   }
 
@@ -396,14 +389,16 @@ export class LeaderboardService {
 
     const update: LeaderboardUpdate = {
       type: 'LEADERBOARD_UPDATE',
-      changes: [{
-        playerId,
-        oldRank: entry.rank,
-        newRank: entry.rank,
-        oldRating: entry.rating ?? 0,
-        newRating: entry.rating ?? 0,
-        direction: 'unchanged',
-      }],
+      changes: [
+        {
+          playerId,
+          oldRank: entry.rank,
+          newRank: entry.rank,
+          oldRating: entry.rating ?? 0,
+          newRating: entry.rating ?? 0,
+          direction: 'unchanged',
+        },
+      ],
       timestamp: Date.now(),
     };
 

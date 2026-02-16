@@ -143,7 +143,7 @@ export class TournamentService {
     }
 
     // Check for duplicate registration
-    const existing = tournament.participants.find(p => p.playerId === playerId);
+    const existing = tournament.participants.find((p) => p.playerId === playerId);
     if (existing) {
       throw new Error(`Player ${playerId} is already registered`);
     }
@@ -182,15 +182,13 @@ export class TournamentService {
     }
 
     // Shuffle participants for random seeding
-    const playerIds = shuffleArray(
-      tournament.participants.map(p => p.playerId),
-    );
+    const playerIds = shuffleArray(tournament.participants.map((p) => p.playerId));
 
     // Generate bracket based on format
     const bracketMatches = this.generateBracket(tournament.format, playerIds);
 
     // Convert bracket matches to full TournamentMatch objects
-    const tournamentMatches: TournamentMatch[] = bracketMatches.map(bm => ({
+    const tournamentMatches: TournamentMatch[] = bracketMatches.map((bm) => ({
       id: this.generateMatchId(),
       tournamentId,
       round: bm.round,
@@ -239,7 +237,7 @@ export class TournamentService {
     }
 
     const tournamentMatches = this.matches.get(tournamentId) ?? [];
-    const match = tournamentMatches.find(m => m.id === matchId);
+    const match = tournamentMatches.find((m) => m.id === matchId);
 
     if (!match) {
       throw new Error(`Match ${matchId} not found in tournament ${tournamentId}`);
@@ -263,7 +261,7 @@ export class TournamentService {
     // Update participant status for the loser in elimination formats
     if (tournament.format === 'single_elimination') {
       const loserId = match.player1Id === winnerId ? match.player2Id : match.player1Id;
-      const loser = tournament.participants.find(p => p.playerId === loserId);
+      const loser = tournament.participants.find((p) => p.playerId === loserId);
       if (loser) {
         loser.status = 'eliminated';
       }
@@ -287,24 +285,22 @@ export class TournamentService {
     const updated: TournamentMatch[] = [];
 
     // Find the current round (lowest round with incomplete matches that have players assigned)
-    const rounds = [...new Set(tournamentMatches.map(m => m.round))].sort((a, b) => a - b);
+    const rounds = [...new Set(tournamentMatches.map((m) => m.round))].sort((a, b) => a - b);
 
     for (const round of rounds) {
-      const roundMatches = tournamentMatches.filter(m => m.round === round);
+      const roundMatches = tournamentMatches.filter((m) => m.round === round);
       const allCompleted = roundMatches.every(
-        m => m.status === 'completed' || (!m.player1Id && !m.player2Id),
+        (m) => m.status === 'completed' || (!m.player1Id && !m.player2Id),
       );
 
       if (!allCompleted) continue;
 
       // Find next round matches to populate
-      const nextRound = rounds.find(r => r > round);
+      const nextRound = rounds.find((r) => r > round);
       if (!nextRound) continue;
 
-      const nextRoundMatches = tournamentMatches.filter(m => m.round === nextRound);
-      const winners = roundMatches
-        .filter(m => m.winnerId)
-        .map(m => m.winnerId!);
+      const nextRoundMatches = tournamentMatches.filter((m) => m.round === nextRound);
+      const winners = roundMatches.filter((m) => m.winnerId).map((m) => m.winnerId!);
 
       // Pair winners into next round matches
       let winnerIdx = 0;
@@ -423,7 +419,7 @@ export class TournamentService {
     }
 
     const standings = this.getStandings(tournamentId);
-    const standingsOrder = standings.map(s => s.playerId);
+    const standingsOrder = standings.map((s) => s.playerId);
 
     // Calculate prizes
     const prizeResults = calculatePrizes(
@@ -434,9 +430,9 @@ export class TournamentService {
 
     // Create winner records
     const winners: TournamentWinner[] = prizeResults
-      .filter(pr => BigInt(pr.prizeAmount) > 0n)
-      .map(pr => {
-        const participant = tournament.participants.find(p => p.playerId === pr.playerId);
+      .filter((pr) => BigInt(pr.prizeAmount) > 0n)
+      .map((pr) => {
+        const participant = tournament.participants.find((p) => p.playerId === pr.playerId);
         return {
           playerId: pr.playerId,
           playerAddress: participant?.playerAddress ?? '0x0000000000000000000000000000000000000000',
@@ -449,10 +445,10 @@ export class TournamentService {
 
     // Update participant statuses and placements
     for (const standing of standings) {
-      const participant = tournament.participants.find(p => p.playerId === standing.playerId);
+      const participant = tournament.participants.find((p) => p.playerId === standing.playerId);
       if (participant) {
         participant.placement = standing.placement;
-        const prize = prizeResults.find(pr => pr.playerId === standing.playerId);
+        const prize = prizeResults.find((pr) => pr.playerId === standing.playerId);
         if (prize) {
           participant.prizeWon = prize.prizeAmount;
         }
@@ -488,12 +484,14 @@ export class TournamentService {
    */
   getBracketRounds(tournamentId: string): BracketRound[] {
     const tournamentMatches = this.matches.get(tournamentId) ?? [];
-    const rounds = [...new Set(tournamentMatches.map(m => m.round))].sort((a, b) => a - b);
+    const rounds = [...new Set(tournamentMatches.map((m) => m.round))].sort((a, b) => a - b);
 
-    return rounds.map(roundNumber => {
-      const roundMatches = tournamentMatches.filter(m => m.round === roundNumber);
-      const allCompleted = roundMatches.every(m => m.status === 'completed');
-      const anyInProgress = roundMatches.some(m => m.status === 'in_progress' || m.status === 'scheduled');
+    return rounds.map((roundNumber) => {
+      const roundMatches = tournamentMatches.filter((m) => m.round === roundNumber);
+      const allCompleted = roundMatches.every((m) => m.status === 'completed');
+      const anyInProgress = roundMatches.some(
+        (m) => m.status === 'in_progress' || m.status === 'scheduled',
+      );
 
       let status: 'pending' | 'in_progress' | 'completed';
       if (allCompleted) {
@@ -519,10 +517,10 @@ export class TournamentService {
     let results = [...this.tournaments.values()];
 
     if (filter?.status) {
-      results = results.filter(t => t.status === filter.status);
+      results = results.filter((t) => t.status === filter.status);
     }
     if (filter?.gameId) {
-      results = results.filter(t => t.gameId === filter.gameId);
+      results = results.filter((t) => t.gameId === filter.gameId);
     }
 
     return results;

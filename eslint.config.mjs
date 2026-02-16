@@ -33,6 +33,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.next/**',
       '**/generated/**',
+      '**/next-env.d.ts',
       'contracts/src/**',
       'contracts/artifacts/**',
       'contracts/cache/**',

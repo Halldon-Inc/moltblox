@@ -21,8 +21,8 @@ describe('BracketGenerator', () => {
     it('generates 3 matches for 4 players', () => {
       const matches = generateSingleElimination(['p1', 'p2', 'p3', 'p4']);
       expect(matches).toHaveLength(3);
-      const round1 = matches.filter(m => m.round === 1);
-      const round2 = matches.filter(m => m.round === 2);
+      const round1 = matches.filter((m) => m.round === 1);
+      const round2 = matches.filter((m) => m.round === 2);
       expect(round1).toHaveLength(2);
       expect(round2).toHaveLength(1);
       expect(round2[0].bracket).toBe('finals');
@@ -31,8 +31,8 @@ describe('BracketGenerator', () => {
     it('pads 3 players to 4 with a bye', () => {
       const matches = generateSingleElimination(['p1', 'p2', 'p3']);
       expect(matches).toHaveLength(3);
-      const round1 = matches.filter(m => m.round === 1);
-      const hasBye = round1.some(m => m.player1Id === '' || m.player2Id === '');
+      const round1 = matches.filter((m) => m.round === 1);
+      const hasBye = round1.some((m) => m.player1Id === '' || m.player2Id === '');
       expect(hasBye).toBe(true);
     });
 
@@ -40,9 +40,9 @@ describe('BracketGenerator', () => {
       const players = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7', 'p8'];
       const matches = generateSingleElimination(players);
       expect(matches).toHaveLength(7);
-      const round1 = matches.filter(m => m.round === 1);
-      const round2 = matches.filter(m => m.round === 2);
-      const round3 = matches.filter(m => m.round === 3);
+      const round1 = matches.filter((m) => m.round === 1);
+      const round2 = matches.filter((m) => m.round === 2);
+      const round3 = matches.filter((m) => m.round === 3);
       expect(round1).toHaveLength(4);
       expect(round2).toHaveLength(2);
       expect(round3).toHaveLength(1);
@@ -57,9 +57,9 @@ describe('BracketGenerator', () => {
   describe('generateDoubleElimination', () => {
     it('generates winners + losers + finals for 4 players', () => {
       const matches = generateDoubleElimination(['p1', 'p2', 'p3', 'p4']);
-      const winners = matches.filter(m => m.bracket === 'winners');
-      const losers = matches.filter(m => m.bracket === 'losers');
-      const finals = matches.filter(m => m.bracket === 'finals');
+      const winners = matches.filter((m) => m.bracket === 'winners');
+      const losers = matches.filter((m) => m.bracket === 'losers');
+      const finals = matches.filter((m) => m.bracket === 'finals');
       expect(winners.length).toBeGreaterThan(0);
       expect(losers.length).toBeGreaterThan(0);
       expect(finals).toHaveLength(2);
@@ -79,7 +79,7 @@ describe('BracketGenerator', () => {
     it('generates 6 matches in 3 rounds for 4 players', () => {
       const matches = generateRoundRobin(['p1', 'p2', 'p3', 'p4']);
       expect(matches).toHaveLength(6);
-      const rounds = new Set(matches.map(m => m.round));
+      const rounds = new Set(matches.map((m) => m.round));
       expect(rounds.size).toBe(3);
     });
 
@@ -99,11 +99,11 @@ describe('BracketGenerator', () => {
   describe('generateSwiss', () => {
     it('generates round 1 matches plus placeholder rounds', () => {
       const matches = generateSwiss(['p1', 'p2', 'p3', 'p4'], 3);
-      const round1 = matches.filter(m => m.round === 1);
+      const round1 = matches.filter((m) => m.round === 1);
       expect(round1).toHaveLength(2);
       expect(round1[0].player1Id).not.toBe('');
       expect(round1[0].player2Id).not.toBe('');
-      const round2 = matches.filter(m => m.round === 2);
+      const round2 = matches.filter((m) => m.round === 2);
       expect(round2.length).toBeGreaterThan(0);
       for (const m of round2) {
         expect(m.player1Id).toBe('');
@@ -118,13 +118,21 @@ describe('BracketGenerator', () => {
 
   describe('seedPlayers', () => {
     it('places highest rated player at best bracket position', () => {
-      const ratings = new Map([['p1', 1500], ['p2', 1200], ['p3', 1800], ['p4', 1000]]);
+      const ratings = new Map([
+        ['p1', 1500],
+        ['p2', 1200],
+        ['p3', 1800],
+        ['p4', 1000],
+      ]);
       const seeded = seedPlayers(['p1', 'p2', 'p3', 'p4'], ratings);
       expect(seeded[0]).toBe('p3');
     });
 
     it('returns array with correct number of positions', () => {
-      const ratings = new Map([['p1', 1500], ['p2', 1200]]);
+      const ratings = new Map([
+        ['p1', 1500],
+        ['p2', 1200],
+      ]);
       const seeded = seedPlayers(['p1', 'p2'], ratings);
       expect(seeded).toHaveLength(2);
       expect(seeded).toContain('p1');

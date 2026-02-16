@@ -2,7 +2,14 @@
  * Ranking types for Moltblox
  */
 
-export type RankTier = 'bronze' | 'silver' | 'gold' | 'platinum' | 'diamond' | 'master' | 'grandmaster';
+export type RankTier =
+  | 'bronze'
+  | 'silver'
+  | 'gold'
+  | 'platinum'
+  | 'diamond'
+  | 'master'
+  | 'grandmaster';
 
 export const RANK_THRESHOLDS: Record<RankTier, { min: number; max: number }> = {
   bronze: { min: 0, max: 1199 },
@@ -77,7 +84,18 @@ export interface FighterState {
   vx: number;
   vy: number;
   facing: 'left' | 'right';
-  state: 'idle' | 'walking' | 'running' | 'jumping' | 'falling' | 'attacking' | 'blocking' | 'hitstun' | 'knockdown' | 'getting_up' | 'ko';
+  state:
+    | 'idle'
+    | 'walking'
+    | 'running'
+    | 'jumping'
+    | 'falling'
+    | 'attacking'
+    | 'blocking'
+    | 'hitstun'
+    | 'knockdown'
+    | 'getting_up'
+    | 'ko';
   grounded: boolean;
   canAct: boolean;
   comboCounter: number;
@@ -196,4 +214,3 @@ export interface ArenaMessage {
   type: string;
   [key: string]: unknown;
 }
-

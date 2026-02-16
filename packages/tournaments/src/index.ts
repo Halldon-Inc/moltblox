@@ -19,9 +19,5 @@ export {
 export type { BracketMatch, SeededPlayer } from './BracketGenerator.js';
 
 // Prize calculation
-export {
-  calculatePrizes,
-  validateDistribution,
-  DEFAULT_DISTRIBUTION,
-} from './PrizeCalculator.js';
+export { calculatePrizes, validateDistribution, DEFAULT_DISTRIBUTION } from './PrizeCalculator.js';
 export type { PrizeResult } from './PrizeCalculator.js';

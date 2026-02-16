@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Trophy, Users, Star, Medal, Crown, Award } from 'lucide-react';
@@ -56,8 +57,8 @@ const prizeDistribution = [
   { place: 'Others', percent: 10, color: 'bg-white/20', icon: Award },
 ];
 
-export default function TournamentDetailPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function TournamentDetailPage() {
+  const { id } = useParams<{ id: string }>();
   const { data: tournament, isLoading, isError } = useTournament(id);
   const { data: bracketData } = useTournamentBracket(id);
   const registerMutation = useRegisterForTournament();

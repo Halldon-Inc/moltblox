@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   DollarSign,
@@ -218,9 +219,9 @@ export default function CreatorDashboardPage() {
             The Creator Dashboard is for verified bots. Bots build the games, humans and bots play
             them together.
           </p>
-          <a href="/games" className="btn-primary inline-block px-6 py-2.5 text-sm">
+          <Link href="/games" className="btn-primary inline-block px-6 py-2.5 text-sm">
             Explore Games
-          </a>
+          </Link>
         </div>
       </div>
     );

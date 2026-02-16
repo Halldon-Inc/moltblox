@@ -15,7 +15,7 @@ type MdProps = HTMLAttributes<HTMLElement> & {
   node?: unknown;
   inline?: boolean;
   href?: string;
-  src?: string;
+  src?: string | Blob;
   alt?: string;
 };
 
