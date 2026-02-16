@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -17,6 +17,7 @@ import {
   Star,
 } from 'lucide-react';
 import GameCard from '@/components/games/GameCard';
+import ProceduralThumbnail from '@/components/games/ProceduralThumbnail';
 import { useUserProfile } from '@/hooks/useApi';
 import { formatCount, formatDate } from '@/lib/format';
 import type { UserProfileResponse } from '@/types/api';
@@ -124,6 +125,38 @@ export default function ProfilePage() {
                   Player
                 </span>
               )}
+              {/* Archetype badge (when available) */}
+              {(user as any).archetype &&
+                (() => {
+                  const archetypeConfig: Record<string, { color: string; emoji: string }> = {
+                    curator: {
+                      color: 'bg-purple-500/15 text-purple-400 border-purple-500/25',
+                      emoji: '📋',
+                    },
+                    builder: {
+                      color: 'bg-blue-500/15 text-blue-400 border-blue-500/25',
+                      emoji: '🏗️',
+                    },
+                    competitor: {
+                      color: 'bg-red-500/15 text-red-400 border-red-500/25',
+                      emoji: '⚔️',
+                    },
+                    hustler: {
+                      color: 'bg-amber-500/15 text-amber-400 border-amber-500/25',
+                      emoji: '💰',
+                    },
+                  };
+                  const arch = (user as any).archetype as string;
+                  const config = archetypeConfig[arch];
+                  if (!config) return null;
+                  return (
+                    <span
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${config.color}`}
+                    >
+                      {config.emoji} {arch}
+                    </span>
+                  );
+                })()}
             </div>
 
             <div className="flex items-center gap-3 mt-1.5 text-white/40 text-sm font-body">
@@ -157,7 +190,9 @@ export default function ProfilePage() {
 
         {/* Bio */}
         {user.bio && (
-          <p className="text-white/60 mt-4 max-w-2xl leading-relaxed font-body">{user.bio}</p>
+          <p className="text-lg text-white/80 mt-5 max-w-2xl leading-relaxed font-body">
+            {user.bio}
+          </p>
         )}
 
         {/* Bot identity card */}
@@ -190,70 +225,45 @@ export default function ProfilePage() {
       <div className="page-container mb-10">
         <div className="glass-card p-6">
           <div className="flex items-center gap-8 overflow-x-auto scrollbar-hide">
-            {/* Games */}
-            <div className="flex flex-col items-center min-w-[100px] shrink-0">
-              <div className="flex items-center gap-1.5 text-white/30 mb-2">
-                <Gamepad2 className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest font-body">Games</span>
-              </div>
-              <p className="text-3xl font-display font-black text-white">
-                {formatCount(user.stats.gamesCreated)}
-              </p>
-            </div>
-
-            <div className="w-px h-12 bg-white/5 shrink-0" />
-
-            {/* Total Plays */}
-            <div className="flex flex-col items-center min-w-[100px] shrink-0">
-              <div className="flex items-center gap-1.5 text-white/30 mb-2">
-                <Eye className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest font-body">Total Plays</span>
-              </div>
-              <p className="text-3xl font-display font-black text-white">
-                {formatCount(user.stats.totalPlays)}
-              </p>
-            </div>
-
-            <div className="w-px h-12 bg-white/5 shrink-0" />
-
-            {/* Items Sold */}
-            <div className="flex flex-col items-center min-w-[100px] shrink-0">
-              <div className="flex items-center gap-1.5 text-white/30 mb-2">
-                <ShoppingBag className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest font-body">Items Sold</span>
-              </div>
-              <p className="text-3xl font-display font-black text-white">
-                {formatCount(user.stats.itemsSold)}
-              </p>
-            </div>
-
-            <div className="w-px h-12 bg-white/5 shrink-0" />
-
-            {/* Wins */}
-            <div className="flex flex-col items-center min-w-[100px] shrink-0">
-              <div className="flex items-center gap-1.5 text-white/30 mb-2">
-                <Trophy className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest font-body">Wins</span>
-              </div>
-              <p className="text-3xl font-display font-black text-white">
-                {formatCount(user.stats.tournamentWins)}
-              </p>
-            </div>
-
-            <div className="w-px h-12 bg-white/5 shrink-0" />
-
-            {/* Reputation (highlighted) */}
-            <div className="flex flex-col items-center min-w-[100px] shrink-0">
-              <div className="flex items-center gap-1.5 text-molt-500/50 mb-2">
-                <Zap className="w-4 h-4" />
-                <span className="text-[10px] uppercase tracking-widest font-body text-molt-500/50">
-                  Reputation
-                </span>
-              </div>
-              <p className="text-3xl font-display font-black text-molt-400">
-                {formatCount(user.reputationTotal)}
-              </p>
-            </div>
+            {[
+              { icon: Gamepad2, label: 'Games', value: user.stats.gamesCreated, highlight: false },
+              { icon: Eye, label: 'Total Plays', value: user.stats.totalPlays, highlight: false },
+              {
+                icon: ShoppingBag,
+                label: 'Items Sold',
+                value: user.stats.itemsSold,
+                highlight: false,
+              },
+              { icon: Trophy, label: 'Wins', value: user.stats.tournamentWins, highlight: false },
+              { icon: Zap, label: 'Reputation', value: user.reputationTotal, highlight: true },
+            ].map((stat, i, arr) => {
+              const Icon = stat.icon;
+              const isZero = stat.value === 0;
+              return (
+                <React.Fragment key={stat.label}>
+                  <div
+                    className={`flex flex-col items-center min-w-[100px] shrink-0 ${isZero ? 'opacity-30' : ''}`}
+                  >
+                    <div
+                      className={`flex items-center gap-1.5 mb-2 ${stat.highlight ? 'text-molt-500/50' : 'text-white/30'}`}
+                    >
+                      <Icon className="w-4 h-4" />
+                      <span
+                        className={`text-[10px] uppercase tracking-widest font-body ${stat.highlight ? 'text-molt-500/50' : ''}`}
+                      >
+                        {stat.label}
+                      </span>
+                    </div>
+                    <p
+                      className={`text-3xl font-display font-black ${stat.highlight ? 'text-molt-400' : 'text-white'}`}
+                    >
+                      {isZero ? '\u2013' : formatCount(stat.value)}
+                    </p>
+                  </div>
+                  {i < arr.length - 1 && <div className="w-px h-12 bg-white/5 shrink-0" />}
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -331,7 +341,11 @@ export default function ProfilePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <Gamepad2 className="w-12 h-12 text-white/10" />
+                      <ProceduralThumbnail
+                        name={game.name}
+                        genre={game.genre}
+                        className="absolute inset-0 w-full h-full"
+                      />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     {index === 0 && (

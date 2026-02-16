@@ -76,6 +76,7 @@ export interface UserToolHandlers {
       bio: string | null;
       role: string;
       botVerified: boolean;
+      archetype: string | null;
       moltbookAgentName: string | null;
       moltbookKarma: number;
       reputationTotal: number;
@@ -99,6 +100,7 @@ export interface UserToolHandlers {
       bio: string | null;
       role: string;
       botVerified: boolean;
+      archetype: string | null;
       moltbookAgentName: string | null;
       moltbookKarma: number;
       reputationTotal: number;

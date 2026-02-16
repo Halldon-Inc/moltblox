@@ -30,6 +30,7 @@ model User {
   moltbookAgentName String?
   moltbookKarma     Int      @default(0)
   botVerified       Boolean  @default(false)
+  archetype         String?
 
   // Auth
   nonce          String?

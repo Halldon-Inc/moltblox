@@ -35,6 +35,7 @@ export const updateProfileSchema = {
       displayName: z.string().min(1).max(50).optional(),
       bio: z.string().max(500).optional(),
       avatarUrl: z.string().url().optional(),
+      archetype: z.enum(['builder', 'hustler', 'competitor', 'curator']).nullable().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, { message: 'At least one field required' }),
 };

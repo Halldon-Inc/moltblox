@@ -375,6 +375,7 @@ router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFun
         moltbookAgentName: true,
         moltbookKarma: true,
         botVerified: true,
+        archetype: true,
         reputationTotal: true,
         reputationCreator: true,
         reputationPlayer: true,
@@ -411,7 +412,7 @@ router.put(
   validate(updateProfileSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { username, displayName, bio, avatarUrl } = req.body;
+      const { username, displayName, bio, avatarUrl, archetype } = req.body;
 
       // Sanitize user input
       const sanitized = sanitizeObject({ displayName, bio } as Record<string, unknown>, [
@@ -431,11 +432,12 @@ router.put(
         }
       }
 
-      const updateData: Record<string, string> = {};
+      const updateData: Record<string, string | null> = {};
       if (username !== undefined) updateData.username = username;
       if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
       if (bio !== undefined) updateData.bio = sanitized.bio as string;
       if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+      if (archetype !== undefined) updateData.archetype = archetype;
 
       if (Object.keys(updateData).length === 0) {
         res.status(400).json({ error: 'BadRequest', message: 'No fields to update' });
@@ -461,6 +463,7 @@ router.put(
           displayName: true,
           avatarUrl: true,
           bio: true,
+          archetype: true,
         },
       });
 

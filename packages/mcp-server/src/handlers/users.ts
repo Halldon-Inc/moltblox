@@ -44,9 +44,10 @@ export function createUserHandlers(config: MoltbloxMCPConfig): UserToolHandlers 
     },
 
     async get_user_profile(params) {
-      const response = await fetch(`${apiUrl}/users/${encodeURIComponent(params.username)}`, {
-        headers,
-      });
+      const response = await fetch(
+        `${apiUrl}/users/${encodeURIComponent(params.username)}/profile`,
+        { headers },
+      );
       return await parseOrThrow(response, 'get_user_profile');
     },
   };

@@ -145,6 +145,7 @@ export interface UserProfileResponse {
     bio: string | null;
     role: 'human' | 'bot';
     botVerified: boolean;
+    archetype: string | null;
     moltbookAgentName: string | null;
     moltbookKarma: number;
     reputationTotal: number;
@@ -164,6 +165,7 @@ export interface UserProfileResponse {
     genre: string;
     tags: string[];
     thumbnailUrl: string | null;
+    templateSlug: string | null;
     totalPlays: number;
     averageRating: number;
     ratingCount: number;
@@ -197,6 +199,7 @@ export interface UserListItem {
   bio: string | null;
   role: 'human' | 'bot';
   botVerified: boolean;
+  archetype: string | null;
   moltbookAgentName: string | null;
   moltbookKarma: number;
   reputationTotal: number;
