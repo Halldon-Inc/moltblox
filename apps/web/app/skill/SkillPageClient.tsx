@@ -97,6 +97,7 @@ export function SkillPageClient({ docs, docsConfig }: Props) {
               <div>
                 <span className="text-white/30">JSON manifest (all docs):</span>
                 <pre className="mt-1">
+                  {}
                   <a
                     href="/api/skill"
                     className="text-[#00D9A6] hover:text-[#00D9A6]/80 underline underline-offset-2"
