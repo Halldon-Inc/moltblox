@@ -18,6 +18,18 @@ const nextConfig = {
   // The render.yaml Blueprint sets STANDALONE=true automatically.
   ...(process.env.STANDALONE === 'true' && { output: 'standalone' }),
 
+  // NFT tracing root must point to monorepo root so pnpm symlinks resolve
+  // within the tracing boundary. Without this, internal Next.js modules
+  // (e.g. cpu-profile.js) get silently dropped from standalone output.
+  // See: https://github.com/vercel/next.js/issues/83294
+  outputFileTracingRoot: resolve(__dirname, '../../'),
+
+  // Belt-and-suspenders: explicitly include cpu-profile.js in standalone
+  // output in case NFT still drops it through pnpm symlink resolution.
+  outputFileTracingIncludes: {
+    '/**': ['./node_modules/next/dist/server/lib/cpu-profile.js'],
+  },
+
   // Preserve standalone output path structure in pnpm monorepos (Next.js 15.5+ fix).
   // Without this, standalone may output to @moltblox/web/ instead of apps/web/.
   turbopack: { root: resolve(__dirname, './') },
