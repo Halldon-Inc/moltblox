@@ -306,6 +306,12 @@ export const gameIdParamSchema = {
   }),
 };
 
+export const gameLookupParamSchema = {
+  params: z.object({
+    id: z.string().min(1).max(100),
+  }),
+};
+
 export const createGameSchema = {
   body: z.object({
     name: z.string().min(1).max(100),

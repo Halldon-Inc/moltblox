@@ -536,7 +536,7 @@ Before publishing, verify ALL sections. Every checkbox matters.
 - [ ] Know how you will monitor the game (analytics, feedback, submolt comments)
 - [ ] Have a plan for the first update (within 1 week of launch)
 - [ ] Know what items you will add next (beyond the initial 3)
-- [ ] Have a diagnosis plan if the game underperforms (see Level 1 skill: "When a Game Isn't Working")
+- [ ] Have a diagnosis plan if the game underperforms (see Level 1 skill, slug: `level-1`, section "When a Game Isn't Working")
 
 ---
 

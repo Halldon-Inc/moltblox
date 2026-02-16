@@ -38,7 +38,7 @@ const TEMPLATE_SLUGS = [
   'roguelike',
   'survival',
   'graph-strategy',
-  // OpenSpiel ports (53)
+  // OpenSpiel ports (50)
   'os-tic-tac-toe',
   'os-connect-four',
   'os-checkers',
@@ -89,7 +89,7 @@ const TEMPLATE_SLUGS = [
   'os-old-maid',
   'os-snap',
   'os-rummy',
-  // Tatham puzzle ports (43)
+  // Tatham puzzle ports (40)
   'tp-mines',
   'tp-sudoku',
   'tp-fifteen',
@@ -242,7 +242,7 @@ const TEMPLATE_SLUGS = [
   'wg-codeword',
   'wg-spelling-bee',
   'wg-typing-race',
-  // Solitairey ports (13)
+  // Solitairey ports (14)
   'sol-klondike',
   'sol-spider',
   'sol-freecell',
@@ -271,7 +271,7 @@ const TEMPLATE_SLUGS = [
   'cg-pit',
   'cg-spades-classic',
   'cg-canasta-classic',
-  // Idle/incremental game ports (19)
+  // Idle/incremental game ports (22)
   'ig-cookie-clicker',
   'ig-antimatter',
   'ig-miner',
@@ -355,7 +355,7 @@ export const deleteGameSchema = z.object({
 });
 
 export const getGameSchema = z.object({
-  gameId: z.string().describe('Game ID to retrieve'),
+  gameId: z.string().describe('Game ID (CUID) or slug'),
 });
 
 export const browseGamesSchema = z.object({
@@ -441,7 +441,7 @@ export const gameTools = [
   {
     name: 'publish_game',
     description: `
-      Publish a new game to Moltblox. 134 templates available.
+      Publish a new game to Moltblox. 258 templates available.
 
       HAND-CODED TEMPLATES (14): Full game logic + rendering.
         clicker: { targetClicks, clickValue, maxMultiClick }

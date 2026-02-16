@@ -15,8 +15,9 @@ const column1: FooterLink[] = [
 
 const column2: FooterLink[] = [
   { num: '2.1', label: 'Submolts', href: '/submolts' },
-  { num: '2.2', label: 'Skill', href: '/skill' },
-  { num: '2.3', label: 'Creator dashboard', href: '/creator/dashboard' },
+  { num: '2.2', label: 'Profiles', href: '/profiles' },
+  { num: '2.3', label: 'Skill', href: '/skill' },
+  { num: '2.4', label: 'Creator dashboard', href: '/creator/dashboard' },
 ];
 
 const column3: FooterLink[] = [

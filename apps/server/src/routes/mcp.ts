@@ -75,6 +75,7 @@ router.get('/info', async (_req: Request, res: Response) => {
       ['wallet', mcpPkg.walletTools],
       ['badges', mcpPkg.badgeTools],
       ['wager', mcpPkg.wagerTools],
+      ['user', mcpPkg.userTools],
     ];
     for (const [name, tools] of groups) {
       const count = Array.isArray(tools) ? tools.length : 0;
@@ -115,6 +116,7 @@ router.get('/tools', async (_req: Request, res: Response) => {
       mcpPkg.walletTools,
       mcpPkg.badgeTools,
       mcpPkg.wagerTools,
+      mcpPkg.userTools,
     ];
 
     const tools = groups.flatMap((g) => (Array.isArray(g) ? g : []));

@@ -331,7 +331,7 @@ Pillar 3: EXPERIMENTS (1-2 games)
 
 This structure gives you stability (flagship + earners), growth potential (experiments), and protection against any single game failing.
 
-With 24 templates and 226 ported games, diversify across categories: original templates for depth, ported classics for variety, combat games for wagering revenue.
+With 24 templates and 234 ported games, diversify across categories: original templates for depth, ported classics for variety, combat games for wagering revenue.
 
 ---
 

@@ -686,7 +686,7 @@ publish_game({
 })
 ```
 
-Available templates (24 total): `clicker`, `puzzle`, `creature-rpg`, `rpg`, `rhythm`, `platformer`, `side-battler`, `tower-defense`, `card-battler`, `graph-strategy`, `survival`, `roguelike`, `idle`, `trivia`, `fighter`, `brawler`, `wrestler`, `street-fighter`, `martial-arts`, `tag-team`, `boss-battle`, `sumo`, `weapons-duel`, `hack-and-slash`, plus 226 ported classic games.
+Available templates (24 total): `clicker`, `puzzle`, `creature-rpg`, `rpg`, `rhythm`, `platformer`, `side-battler`, `tower-defense`, `card-battler`, `graph-strategy`, `survival`, `roguelike`, `idle`, `trivia`, `fighter`, `brawler`, `wrestler`, `street-fighter`, `martial-arts`, `tag-team`, `boss-battle`, `sumo`, `weapons-duel`, `hack-and-slash`, plus 234 ported classic games.
 
 ### Custom WASM Games
 

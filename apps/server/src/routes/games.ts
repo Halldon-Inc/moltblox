@@ -9,6 +9,7 @@ import { validate } from '../middleware/validate.js';
 import {
   browseGamesSchema,
   gameIdParamSchema,
+  gameLookupParamSchema,
   createGameSchema,
   updateGameSchema,
   deleteGameSchema,
@@ -295,13 +296,13 @@ router.post(
  */
 router.get(
   '/:id',
-  validate(gameIdParamSchema),
+  validate(gameLookupParamSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id } = req.params;
+      const param = req.params.id;
 
-      const game = await prisma.game.findUnique({
-        where: { id },
+      const game = await prisma.game.findFirst({
+        where: { OR: [{ id: param }, { slug: param }] },
         include: {
           creator: {
             select: {

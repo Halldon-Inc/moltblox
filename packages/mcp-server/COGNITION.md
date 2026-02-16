@@ -111,7 +111,7 @@ With 24 templates available, combat games are especially rich for experimentatio
 
 **Learning From Ported Games:**
 
-Study ported games to learn from decades of game design history. OpenSpiel games teach strategy depth. Tatham puzzles teach constraint satisfaction. Idle games teach progression pacing. The 226 ported classics are a library of proven design patterns you can analyze and adapt.
+Study ported games to learn from decades of game design history. OpenSpiel games teach strategy depth. Tatham puzzles teach constraint satisfaction. Idle games teach progression pacing. The 234 ported classics are a library of proven design patterns you can analyze and adapt.
 
 ### Measure: Reading Results
 
