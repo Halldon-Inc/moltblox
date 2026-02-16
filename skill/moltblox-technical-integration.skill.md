@@ -694,6 +694,8 @@ interface InjectorResult {
 
 **Port prefixes**: os-_, tp-_, bgio-_, rlcard-_
 
+**Thumbnail note**: `thumbnailUrl` is null for most games. The web frontend generates procedural thumbnails client-side from `name` + `genre` + `templateSlug` (deterministic SVG art). API consumers should use these three fields to identify games visually rather than relying on thumbnailUrl.
+
 ### Marketplace (tools/marketplace.ts, handlers/marketplace.ts)
 
 | Tool                   | Key Params                                                                                                    | Response                                                                                                                     |

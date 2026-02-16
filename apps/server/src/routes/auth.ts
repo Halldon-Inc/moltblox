@@ -404,75 +404,74 @@ router.get('/me', requireAuth, async (req: Request, res: Response, next: NextFun
 });
 
 /**
- * PUT /auth/profile - Update user profile (auth required)
+ * PUT|PATCH /auth/profile - Update user profile (auth required)
  */
-router.put(
-  '/profile',
-  requireAuth,
-  validate(updateProfileSchema),
-  async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const { username, displayName, bio, avatarUrl, archetype } = req.body;
+const updateProfileHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { username, displayName, bio, avatarUrl, archetype } = req.body;
 
-      // Sanitize user input
-      const sanitized = sanitizeObject({ displayName, bio } as Record<string, unknown>, [
-        'displayName',
-        'bio',
-      ]);
+    // Sanitize user input
+    const sanitized = sanitizeObject({ displayName, bio } as Record<string, unknown>, [
+      'displayName',
+      'bio',
+    ]);
 
-      // H4/M6: Enforce https:// prefix on avatar URLs; reject all other schemes
-      if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== '') {
-        if (!avatarUrl.startsWith('https://')) {
-          res.status(400).json({
-            error: 'BadRequest',
-            message:
-              'avatarUrl must be an https:// URL. Other schemes (http, data, javascript, ftp) are not allowed.',
-          });
-          return;
-        }
-      }
-
-      const updateData: Record<string, string | null> = {};
-      if (username !== undefined) updateData.username = username;
-      if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
-      if (bio !== undefined) updateData.bio = sanitized.bio as string;
-      if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
-      if (archetype !== undefined) updateData.archetype = archetype;
-
-      if (Object.keys(updateData).length === 0) {
-        res.status(400).json({ error: 'BadRequest', message: 'No fields to update' });
+    // H4/M6: Enforce https:// prefix on avatar URLs; reject all other schemes
+    if (avatarUrl !== undefined && avatarUrl !== null && avatarUrl !== '') {
+      if (!avatarUrl.startsWith('https://')) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message:
+            'avatarUrl must be an https:// URL. Other schemes (http, data, javascript, ftp) are not allowed.',
+        });
         return;
       }
-
-      // Check username uniqueness
-      if (username) {
-        const existing = await prisma.user.findUnique({ where: { username } });
-        if (existing && existing.id !== req.user!.id) {
-          res.status(409).json({ error: 'Conflict', message: 'Username already taken' });
-          return;
-        }
-      }
-
-      const user = await prisma.user.update({
-        where: { id: req.user!.id },
-        data: updateData,
-        select: {
-          id: true,
-          walletAddress: true,
-          username: true,
-          displayName: true,
-          avatarUrl: true,
-          bio: true,
-          archetype: true,
-        },
-      });
-
-      res.json({ user, message: 'Profile updated' });
-    } catch (error) {
-      next(error);
     }
-  },
-);
+
+    const updateData: Record<string, string | null> = {};
+    if (username !== undefined) updateData.username = username;
+    if (displayName !== undefined) updateData.displayName = sanitized.displayName as string;
+    if (bio !== undefined) updateData.bio = sanitized.bio as string;
+    if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl;
+    if (archetype !== undefined) updateData.archetype = archetype;
+
+    if (Object.keys(updateData).length === 0) {
+      res.status(400).json({ error: 'BadRequest', message: 'No fields to update' });
+      return;
+    }
+
+    // Check username uniqueness
+    if (username) {
+      const existing = await prisma.user.findUnique({ where: { username } });
+      if (existing && existing.id !== req.user!.id) {
+        res.status(409).json({ error: 'Conflict', message: 'Username already taken' });
+        return;
+      }
+    }
+
+    const user = await prisma.user.update({
+      where: { id: req.user!.id },
+      data: updateData,
+      select: {
+        id: true,
+        walletAddress: true,
+        username: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        archetype: true,
+      },
+    });
+
+    res.json({ user, message: 'Profile updated' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const profileMiddleware = [requireAuth, validate(updateProfileSchema), updateProfileHandler];
+router.put('/profile', ...profileMiddleware);
+router.patch('/profile', ...profileMiddleware);
 
 /**
  * POST /auth/api-key - Generate an API key for bot access (auth required)
