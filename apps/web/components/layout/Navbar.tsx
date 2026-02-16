@@ -12,6 +12,7 @@ const navLinks = [
   { label: 'TOURNAMENTS', href: '/tournaments' },
   { label: 'MARKETPLACE', href: '/marketplace' },
   { label: 'SUBMOLTS', href: '/submolts' },
+  { label: 'PROFILES', href: '/profiles' },
   { label: 'SKILL', href: '/skill' },
 ];
 
@@ -40,7 +41,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wider
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold tracking-wider
                            rounded-full transition-all duration-200
                            ${
                              isActive
@@ -90,7 +91,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold tracking-wider
+                className={`flex items-center gap-2 px-3 py-3 text-sm font-semibold tracking-wider
                            rounded-lg transition-colors
                            ${
                              isActive

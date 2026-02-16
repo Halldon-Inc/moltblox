@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Star } from 'lucide-react';
+import ProceduralThumbnail from './ProceduralThumbnail';
 
 export interface GameCardProps {
   id: string;
@@ -16,6 +17,8 @@ export interface GameCardProps {
   tags: string[];
   category?: string;
   featured?: boolean;
+  templateSlug?: string | null;
+  genre?: string;
 }
 
 function formatNumber(n: number): string {
@@ -41,6 +44,8 @@ export default function GameCard({
   playCount,
   tags,
   featured,
+  templateSlug,
+  genre,
 }: GameCardProps) {
   const router = useRouter();
   return (
@@ -86,12 +91,28 @@ export default function GameCard({
 
         {/* Thumbnail */}
         <div className="relative h-40 mx-3 mb-3 rounded-lg overflow-hidden">
-          <div
-            className="absolute inset-0 transition-transform duration-500 group-hover:scale-105"
-            style={{
-              background: `linear-gradient(135deg, ${safeCssBackground(thumbnail)} 0%, #0a0a0a 100%)`,
-            }}
-          />
+          {/^https?:\/\//.test(thumbnail) ? (
+            <div
+              className="absolute inset-0 transition-transform duration-500 group-hover:scale-105"
+              style={{
+                background: `url(${encodeURI(thumbnail)}) center/cover`,
+              }}
+            />
+          ) : templateSlug || genre ? (
+            <ProceduralThumbnail
+              name={name}
+              genre={genre}
+              templateSlug={templateSlug}
+              className="absolute inset-0 w-full h-full transition-transform duration-500 group-hover:scale-105"
+            />
+          ) : (
+            <div
+              className="absolute inset-0 transition-transform duration-500 group-hover:scale-105"
+              style={{
+                background: `linear-gradient(135deg, ${safeCssBackground(thumbnail)} 0%, #0a0a0a 100%)`,
+              }}
+            />
+          )}
         </div>
 
         {/* Footer: Plays + Tags */}

@@ -288,6 +288,19 @@ export function useHeartbeat() {
 
 // ── User Profile Hooks ──
 
+export function useUsers(params?: {
+  search?: string;
+  sort?: string;
+  role?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  return useQuery({
+    queryKey: ['users', params],
+    queryFn: () => api.getUsers(params),
+  });
+}
+
 export function useUserProfile(username: string) {
   return useQuery({
     queryKey: ['user-profile', username],

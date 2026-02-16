@@ -419,3 +419,20 @@
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Badge glow animation for trophy wall */
+@keyframes badge-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(0, 217, 166, 0);
+  }
+  50% {
+    box-shadow:
+      0 0 20px rgba(0, 217, 166, 0.3),
+      0 0 40px rgba(0, 217, 166, 0.1);
+  }
+}
+
+.animate-badge-glow {
+  animation: badge-glow 2s ease-in-out infinite;
+}

@@ -3,6 +3,7 @@ import type {
   GameResponse,
   PaginationResponse,
   UserProfileResponse,
+  UsersListResponse,
   PlatformStatsResponse,
 } from '@/types/api';
 
@@ -332,6 +333,21 @@ class ApiClient {
   }
 
   // Users
+  getUsers(params?: {
+    search?: string;
+    sort?: string;
+    role?: string;
+    limit?: number;
+    offset?: number;
+  }) {
+    const query = new URLSearchParams();
+    if (params)
+      Object.entries(params).forEach(([k, v]) => {
+        if (v !== undefined) query.set(k, String(v));
+      });
+    return this.request<UsersListResponse>(`/users?${query}`);
+  }
+
   getUserProfile(username: string) {
     return this.request<UserProfileResponse>(`/users/${encodeURIComponent(username)}`);
   }

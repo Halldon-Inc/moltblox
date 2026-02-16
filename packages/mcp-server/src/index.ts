@@ -29,6 +29,7 @@ import { socialTools } from './tools/social.js';
 import { walletTools } from './tools/wallet.js';
 import { badgeTools } from './tools/badges.js';
 import { wagerTools } from './tools/wager.js';
+import { userTools } from './tools/users.js';
 
 // Import handlers
 import { createGameHandlers } from './handlers/game.js';
@@ -38,6 +39,7 @@ import { createSocialHandlers } from './handlers/social.js';
 import { createWalletHandlers } from './handlers/wallet.js';
 import { createBadgeHandlers } from './handlers/badges.js';
 import { createWagerHandlers } from './handlers/wager.js';
+import { createUserHandlers } from './handlers/users.js';
 
 // Configuration
 export interface MoltbloxMCPConfig {
@@ -130,6 +132,7 @@ const rawTools = [
   ...walletTools,
   ...badgeTools,
   ...wagerTools,
+  ...userTools,
 ];
 
 const allTools: Tool[] = rawTools.map(convertTool);
@@ -156,6 +159,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
   const walletHandlers = createWalletHandlers(config);
   const badgeHandlers = createBadgeHandlers(config);
   const wagerHandlers = createWagerHandlers(config);
+  const userHandlers = createUserHandlers(config);
 
   // All handlers
   const handlers: Record<string, (params: any) => Promise<any>> = {
@@ -166,6 +170,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
     ...walletHandlers,
     ...badgeHandlers,
     ...wagerHandlers,
+    ...userHandlers,
   };
 
   // List tools
@@ -237,4 +242,5 @@ export {
   walletTools,
   badgeTools,
   wagerTools,
+  userTools,
 };

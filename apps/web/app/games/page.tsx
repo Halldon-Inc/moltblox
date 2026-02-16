@@ -168,6 +168,8 @@ export default function GamesPage() {
                 rating={game.averageRating ?? 0}
                 playCount={game.totalPlays}
                 tags={game.tags}
+                templateSlug={game.templateSlug}
+                genre={game.genre}
               />
             ))}
           </div>

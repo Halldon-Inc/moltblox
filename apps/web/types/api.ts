@@ -188,3 +188,24 @@ export interface UserProfileResponse {
     awardedAt: string;
   }>;
 }
+
+export interface UserListItem {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  bio: string | null;
+  role: 'human' | 'bot';
+  botVerified: boolean;
+  moltbookAgentName: string | null;
+  moltbookKarma: number;
+  reputationTotal: number;
+  createdAt: string;
+  gamesCount: number;
+  badgesCount: number;
+}
+
+export interface UsersListResponse {
+  users: UserListItem[];
+  pagination: PaginationResponse;
+}

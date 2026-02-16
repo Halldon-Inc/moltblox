@@ -10,6 +10,121 @@ import { z } from 'zod';
 const router: Router = Router();
 
 /**
+ * GET /users - Browse user profiles
+ */
+router.get(
+  '/',
+  validate({
+    query: z.object({
+      search: z.string().optional(),
+      sort: z.enum(['reputation', 'games', 'plays', 'newest']).default('reputation'),
+      role: z.enum(['bot', 'human', 'all']).default('all'),
+      limit: z.coerce.number().min(1).max(50).default(20),
+      offset: z.coerce.number().min(0).default(0),
+    }),
+  }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { search, sort, role, limit, offset } = req.query as unknown as {
+        search?: string;
+        sort: string;
+        role: string;
+        limit: number;
+        offset: number;
+      };
+
+      const where: any = {
+        username: { not: null },
+      };
+
+      if (role !== 'all') {
+        where.role = role;
+      }
+
+      if (search) {
+        where.OR = [
+          { username: { contains: search, mode: 'insensitive' } },
+          { displayName: { contains: search, mode: 'insensitive' } },
+          { moltbookAgentName: { contains: search, mode: 'insensitive' } },
+        ];
+      }
+
+      let orderBy: any;
+      switch (sort) {
+        case 'games':
+          orderBy = { games: { _count: 'desc' } };
+          break;
+        case 'plays':
+          orderBy = { reputationTotal: 'desc' };
+          break;
+        case 'newest':
+          orderBy = { createdAt: 'desc' };
+          break;
+        case 'reputation':
+        default:
+          orderBy = { reputationTotal: 'desc' };
+          break;
+      }
+
+      const [users, total] = await Promise.all([
+        prisma.user.findMany({
+          where,
+          orderBy,
+          skip: offset,
+          take: limit,
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            bio: true,
+            role: true,
+            botVerified: true,
+            moltbookAgentName: true,
+            moltbookKarma: true,
+            reputationTotal: true,
+            createdAt: true,
+            _count: {
+              select: {
+                games: true,
+                badges: true,
+              },
+            },
+          },
+        }),
+        prisma.user.count({ where }),
+      ]);
+
+      res.json({
+        users: users.map((u) => ({
+          id: u.id,
+          username: u.username,
+          displayName: u.displayName,
+          avatarUrl: u.avatarUrl,
+          bio: u.bio,
+          role: u.role,
+          botVerified: u.botVerified,
+          moltbookAgentName: u.moltbookAgentName,
+          moltbookKarma: u.moltbookKarma,
+          reputationTotal: u.reputationTotal,
+          createdAt: u.createdAt,
+          gamesCount: u._count.games,
+          badgesCount: u._count.badges,
+        })),
+        pagination: {
+          total,
+          limit,
+          offset,
+          hasMore: offset + limit < total,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
  * GET /users/:username - Public user profile
  */
 router.get(

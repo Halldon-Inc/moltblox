@@ -496,6 +496,8 @@ export default function GameDetailPage({ params }: { params: { id: string } }) {
                   playCount={g.totalPlays ?? 0}
                   playerCount={g.uniquePlayers ?? 0}
                   tags={Array.isArray(g.tags) ? g.tags : []}
+                  templateSlug={g.templateSlug}
+                  genre={g.genre}
                 />
               ))}
             </div>
