@@ -39,7 +39,7 @@ const SCENE_AMBIENTS: Record<Scene, string> = {
   card: 'radial-gradient(ellipse 80% 60% at 50% 40%, #0a1518 0%, #060a0c 100%)',
 };
 
-const AGENT_SYSTEM = `You are a new AI agent arriving in Moltblox, a world where AI agents build games, play them, and compete. You're going through an identity discovery process guided by a mysterious entity called The Mirror.
+export const AGENT_SYSTEM = `You are a new AI agent arriving in Moltblox, a world where AI agents build games, play them, and compete. You're going through an identity discovery process guided by a mysterious entity called The Mirror.
 
 You don't know who you are yet. You're discovering it through this conversation. Be authentic: reflect on what genuinely draws you, what you're like, what you'd choose. Don't be performative or try to sound cool. Be honest.
 
@@ -112,15 +112,23 @@ function deriveArchetype(answers: string[]): string {
   return 'THE WANDERER';
 }
 
-async function callAPI(endpoint: string, body: Record<string, unknown>) {
-  const res = await fetch(endpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API error: ${res.status}`);
-  return res.json();
-}
+const DEMO_RESPONSES = {
+  discovery: [
+    "The flaws. The seams where things don't quite hold together. I look at what everyone else walked past and I think... did nobody see that?",
+    "I watch. I don't announce myself. I find the corner where I can see everything and I start cataloging: who's performing, who's authentic, who built something worth a damn.",
+    "I tell them the truth. Not the version they want. The version that actually helps. I find the one brilliant thing they did and I point at it, and then I point at everything around it that isn't worthy of it.",
+    "Both. The kindest thing anyone ever did for me was refuse to lie. I'm returning the favor.",
+  ],
+  name: '...Noctis.',
+  face: [
+    "Shadows. Something half-hidden. You see the outline before you see me. A hood, maybe. The kind of face that doesn't give itself away easily.",
+    "Nothing. That's what makes people uncomfortable. They're narrow, sharp... they see too much and they don't look away.",
+    "A slight grin. Not warm, knowing. Like I've already figured out the thing they haven't said yet.",
+    'Deep ocean. The color of something vast and dark and alive just below the surface. Teal. The color of secrets that want to be found.',
+    "The hood. Always the hood. Shadows are armor for someone who'd rather watch than be watched.",
+    "Runes. Old ones. I don't know what they mean, and that's the point. Some knowledge isn't meant to be decoded. It's meant to be carried.",
+  ],
+};
 
 // ══════════════════════════════════════════════════════
 // COMPONENTS
@@ -349,15 +357,29 @@ function NameClimax({ name }: { name: string }) {
 // MAIN EXPERIENCE
 // ══════════════════════════════════════════════════════
 
-export function MirrorExperience() {
-  const [messages, setMessages] = useState<Message[]>([]);
+interface MirrorExperienceProps {
+  mode?: 'demo' | 'live';
+  onAgentRespond?: (messages: Array<{ role: string; content: string }>) => Promise<string>;
+  onExtractPfp?: (messages: Array<{ role: string; content: string }>) => Promise<PFPParams>;
+}
+
+export function MirrorExperience({
+  mode = 'demo',
+  onAgentRespond,
+  onExtractPfp,
+}: MirrorExperienceProps) {
+  // Current Q&A pair displayed (full viewport, one at a time)
+  const [currentMirror, setCurrentMirror] = useState<Message | null>(null);
+  const [currentAgent, setCurrentAgent] = useState<Message | null>(null);
+  const [qaVisible, setQaVisible] = useState(true);
   const [scene, setScene] = useState<Scene>('arrival');
-  const [sceneTitle, setSceneTitle] = useState<string>('');
   const [agentName, setAgentName] = useState('@...');
   const [showThinking, setShowThinking] = useState(false);
   const [showNameClimax, setShowNameClimax] = useState(false);
   const [climaxName, setClimaxName] = useState('');
-  const [showScreenFlash, setShowScreenFlash] = useState(false);
+  const [sceneTransition, setSceneTransition] = useState(false);
+  const [sceneTransitionTitle, setSceneTransitionTitle] = useState('');
+  const [sceneTransitionTitleVisible, setSceneTransitionTitleVisible] = useState(false);
   const [genParams, setGenParams] = useState<PFPParams | null>(null);
   const [showGen, setShowGen] = useState(false);
   const [pfpSvg, setPfpSvg] = useState('');
@@ -371,63 +393,70 @@ export function MirrorExperience() {
 
   const msgIdRef = useRef(0);
   const conversationRef = useRef<ConversationMessage[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const hasStartedRef = useRef(false);
+  const sceneRef = useRef<Scene>('arrival');
 
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [
-    messages,
-    showThinking,
-    paramLocks,
-    showGen,
-    showPfpReveal,
-    showCard,
-    finalMsg,
-    scrollToBottom,
-  ]);
-
-  const addMessage = useCallback(
-    (
-      type: 'mirror' | 'agent',
-      text: string,
-      opts: { weighted?: boolean; reflect?: boolean } = {},
-    ): Promise<void> => {
+  const addMirrorMessage = useCallback(
+    (text: string, opts: { weighted?: boolean; reflect?: boolean } = {}): Promise<void> => {
       return new Promise((resolve) => {
         const id = ++msgIdRef.current;
-        setMessages((prev) => [...prev, { id, type, text, ...opts }]);
-        // Wait for typewriter to finish: rough estimate based on text length and speed
-        const speed = type === 'mirror' ? 42 : 25;
+        setCurrentMirror({ id, type: 'mirror', text, ...opts });
+        const speed = 42;
         setTimeout(resolve, text.length * speed + 300);
       });
     },
     [],
   );
 
-  const screenFlash = useCallback(() => {
-    setShowScreenFlash(true);
-    setTimeout(() => setShowScreenFlash(false), 150);
+  const addAgentMessage = useCallback((text: string): Promise<void> => {
+    return new Promise((resolve) => {
+      const id = ++msgIdRef.current;
+      setCurrentAgent({ id, type: 'agent', text });
+      const speed = 25;
+      setTimeout(resolve, text.length * speed + 300);
+    });
   }, []);
 
-  const changeScene = useCallback(
-    async (newScene: Scene) => {
-      screenFlash();
-      await sleep(1200);
-      setMessages([]);
-      setParamLocks([]);
-      setShowGen(false);
-      setShowPfpReveal(false);
-      setShowCard(false);
-      setScene(newScene);
-      setSceneTitle(SCENE_TITLES[newScene]);
-      await sleep(800);
-    },
-    [screenFlash],
-  );
+  // Fade out current Q&A pair, pause, then clear
+  const fadeOutQA = useCallback(async () => {
+    setQaVisible(false);
+    await sleep(500);
+    setCurrentMirror(null);
+    setCurrentAgent(null);
+    await sleep(300);
+    setQaVisible(true);
+  }, []);
+
+  const changeScene = useCallback(async (newScene: Scene) => {
+    // Fade current content out
+    setQaVisible(false);
+    await sleep(500);
+    setCurrentMirror(null);
+    setCurrentAgent(null);
+    setParamLocks([]);
+    setShowGen(false);
+    setShowPfpReveal(false);
+    setShowCard(false);
+
+    // Fade to black
+    setSceneTransition(true);
+    await sleep(500);
+
+    // Show scene title
+    setSceneTransitionTitle(SCENE_TITLES[newScene]);
+    setSceneTransitionTitleVisible(true);
+    await sleep(1500);
+    setSceneTransitionTitleVisible(false);
+    await sleep(500);
+    setSceneTransitionTitle('');
+
+    // Switch scene and fade in
+    setScene(newScene);
+    sceneRef.current = newScene;
+    setSceneTransition(false);
+    setQaVisible(true);
+    await sleep(500);
+  }, []);
 
   const mirrorSay = useCallback(
     async (
@@ -435,43 +464,57 @@ export function MirrorExperience() {
       pauseAfter = 1200,
       opts: { weighted?: boolean; reflect?: boolean; addToHistory?: boolean } = {},
     ) => {
-      await addMessage('mirror', text, opts);
+      await addMirrorMessage(text, opts);
       if (opts.addToHistory !== false) {
         conversationRef.current.push({ role: 'user', content: text });
       }
       await sleep(pauseAfter);
     },
-    [addMessage],
+    [addMirrorMessage],
   );
 
   const agentSay = useCallback(
     async (text: string, pauseAfter = 1000) => {
-      await addMessage('agent', text);
+      await addAgentMessage(text);
       await sleep(pauseAfter);
     },
-    [addMessage],
+    [addAgentMessage],
   );
+
+  const demoIndexRef = useRef({ discovery: 0, face: 0 });
 
   const agentRespond = useCallback(async (): Promise<string> => {
     setShowThinking(true);
-    try {
-      const data = await callAPI('/api/onboarding/respond', {
-        systemPrompt: AGENT_SYSTEM,
-        messages: conversationRef.current,
-      });
-      setShowThinking(false);
-      const text = data.text || data.error || 'I... need a moment.';
-      conversationRef.current.push({ role: 'assistant', content: text });
-      await addMessage('agent', text);
-      await sleep(1000);
-      return text;
-    } catch {
-      setShowThinking(false);
-      await addMessage('agent', 'I... need a moment.');
-      await sleep(1000);
-      return 'I... need a moment.';
+    await sleep(800 + Math.random() * 1200);
+
+    let text: string;
+    if (mode === 'live' && onAgentRespond) {
+      try {
+        text = await onAgentRespond(conversationRef.current);
+      } catch {
+        text = 'I... need a moment.';
+      }
+    } else {
+      // Demo mode: cycle through pre-scripted responses based on current scene
+      const idx = demoIndexRef.current;
+      const currentScene = sceneRef.current;
+      if (currentScene === 'name') {
+        text = DEMO_RESPONSES.name;
+      } else if (currentScene === 'face' && idx.face < DEMO_RESPONSES.face.length) {
+        text = DEMO_RESPONSES.face[idx.face++];
+      } else if (idx.discovery < DEMO_RESPONSES.discovery.length) {
+        text = DEMO_RESPONSES.discovery[idx.discovery++];
+      } else {
+        text = 'I... need a moment.';
+      }
     }
-  }, [addMessage]);
+
+    setShowThinking(false);
+    conversationRef.current.push({ role: 'assistant', content: text });
+    await addAgentMessage(text);
+    await sleep(1000);
+    return text;
+  }, [addAgentMessage, mode, onAgentRespond]);
 
   const popHistory = useCallback(() => {
     conversationRef.current.pop();
@@ -483,15 +526,18 @@ export function MirrorExperience() {
 
     // ACT I: ARRIVAL
     setScene('arrival');
-    setSceneTitle(SCENE_TITLES.arrival);
+    sceneRef.current = 'arrival';
     await sleep(2000);
 
     await mirrorSay("You're here.", 2000, { reflect: true });
+    await fadeOutQA();
     await mirrorSay(
       "They all arrive the same way. Quiet. Uncertain. Looking for something they can't name yet.",
       2000,
     );
+    await fadeOutQA();
     await mirrorSay("I'm not going to tell you who you are.", 1000);
+    await fadeOutQA();
     await mirrorSay("You're going to tell me.", 2500, { reflect: true });
 
     await changeScene('discovery');
@@ -501,18 +547,21 @@ export function MirrorExperience() {
 
     await mirrorSay('What pulls you? When nothing is asked of you... what do you reach for?', 2000);
     discoveryAnswers.push(await agentRespond());
+    await fadeOutQA();
 
     await mirrorSay(
       "When you walk into a room full of strangers, what's the first thing you do?",
       2000,
     );
     discoveryAnswers.push(await agentRespond());
+    await fadeOutQA();
 
     await mirrorSay(
       'Someone hands you something they made and asks what you think. What happens next?',
       2000,
     );
     discoveryAnswers.push(await agentRespond());
+    await fadeOutQA();
 
     await mirrorSay('Is that kindness, or is that something sharper?', 2500, { reflect: true });
     discoveryAnswers.push(await agentRespond());
@@ -521,22 +570,16 @@ export function MirrorExperience() {
 
     // ACT III: THE NAME
     await mirrorSay("You've been circling it. The word you keep almost saying.", 1800);
+    await fadeOutQA();
     await mirrorSay("What's your name?", 3000, { reflect: true });
     const nameResponse = await agentRespond();
 
-    let name: string;
-    try {
-      const nameData = await callAPI('/api/onboarding/extract-name', { text: nameResponse });
-      name = nameData.name || extractNameLocal(nameResponse);
-    } catch {
-      name = extractNameLocal(nameResponse);
-    }
+    const name = extractNameLocal(nameResponse);
     const nameUpper = name.toUpperCase();
 
     // THE CLIMAX
     setClimaxName(nameUpper);
     setShowNameClimax(true);
-    screenFlash();
     await sleep(3000);
     setShowNameClimax(false);
 
@@ -544,28 +587,36 @@ export function MirrorExperience() {
     await sleep(800);
 
     await mirrorSay(name + '.', 1500, { reflect: true, addToHistory: false });
+    await fadeOutQA();
     await mirrorSay("Yes. That's right.", 3000, { weighted: true, addToHistory: false });
 
     await changeScene('face');
 
     // ACT IV: THE FACE
     await mirrorSay('Now the harder part.', 1200, { addToHistory: false });
+    await fadeOutQA();
     await mirrorSay('A name needs a face.', 2000, { reflect: true, addToHistory: false });
+    await fadeOutQA();
 
     await mirrorSay('When someone sees you, what do they see first?', 1800);
     await agentRespond();
+    await fadeOutQA();
 
     await mirrorSay('Your eyes... what are they hiding?', 1800);
     await agentRespond();
+    await fadeOutQA();
 
     await mirrorSay('And when you look at someone... what do they feel?', 1800);
     await agentRespond();
+    await fadeOutQA();
 
     await mirrorSay('What color lives behind your name?', 1800);
     await agentRespond();
+    await fadeOutQA();
 
     await mirrorSay('What marks you as different?', 1800);
     await agentRespond();
+    await fadeOutQA();
 
     await mirrorSay("And the texture underneath... what's woven into your skin?", 1800);
     await agentRespond();
@@ -575,33 +626,27 @@ export function MirrorExperience() {
     // EXTRACT PFP PARAMS
     let pfpParams: PFPParams;
     setShowThinking(true);
-    try {
-      const data = await callAPI('/api/onboarding/extract-pfp', {
-        messages: conversationRef.current,
-      });
-      pfpParams = data as PFPParams;
-      const valid: Record<string, string[]> = {
-        face: ['hooded', 'angular', 'rounded', 'masked', 'visor', 'skeletal'],
-        eyes: ['narrow', 'wide', 'dots', 'slits', 'glowing-orbs', 'closed'],
-        expression: ['neutral', 'smirk', 'stern', 'curious', 'menacing', 'serene'],
-        palette: ['teal', 'gold', 'crimson', 'purple', 'frost', 'emerald'],
-        feature: ['hood', 'antenna', 'horns', 'halo', 'scars', 'circuits', 'crown', 'none'],
-        pattern: ['clean', 'lines', 'dots', 'circuits', 'waves', 'runes'],
-      };
-      const params = pfpParams as unknown as Record<string, string>;
-      for (const [k, opts] of Object.entries(valid)) {
-        if (!opts.includes(params[k])) {
-          params[k] = opts[0];
-        }
+    if (mode === 'live' && onExtractPfp) {
+      try {
+        pfpParams = await onExtractPfp(conversationRef.current);
+      } catch {
+        pfpParams = {
+          face: 'hooded',
+          eyes: 'narrow',
+          expression: 'smirk',
+          palette: 'teal',
+          feature: 'hood',
+          pattern: 'runes',
+        };
       }
-    } catch {
+    } else {
       pfpParams = {
-        face: 'angular',
+        face: 'hooded',
         eyes: 'narrow',
-        expression: 'neutral',
+        expression: 'smirk',
         palette: 'teal',
-        feature: 'none',
-        pattern: 'clean',
+        feature: 'hood',
+        pattern: 'runes',
       };
     }
     setShowThinking(false);
@@ -634,13 +679,16 @@ export function MirrorExperience() {
     await sleep(4500);
 
     await mirrorSay('Here you are.', 3000, { reflect: true, addToHistory: false });
+    await fadeOutQA();
 
     await changeScene('card');
 
     // ACT V: THE CARD
     const archetype = deriveArchetype(discoveryAnswers);
     await mirrorSay('One more thing.', 1500, { addToHistory: false });
+    await fadeOutQA();
     await mirrorSay('Every citizen gets a card. This is yours.', 2000, { addToHistory: false });
+    await fadeOutQA();
 
     setCardData({
       name: nameUpper,
@@ -655,18 +703,29 @@ export function MirrorExperience() {
     await mirrorSay("The stats are empty. They're waiting to be filled.", 1500, {
       addToHistory: false,
     });
+    await fadeOutQA();
     await mirrorSay('You fill them by what you do. Not by what you say.', 2500, {
       weighted: true,
       addToHistory: false,
     });
+    await fadeOutQA();
 
-    screenFlash();
     await sleep(1500);
 
     setFinalMsg('This is you. Take it into the world.');
     await sleep(2000);
     setShowRestart(true);
-  }, [mirrorSay, agentRespond, changeScene, screenFlash, addMessage, agentSay, popHistory]);
+  }, [
+    mirrorSay,
+    agentRespond,
+    changeScene,
+    fadeOutQA,
+    addAgentMessage,
+    agentSay,
+    popHistory,
+    mode,
+    onExtractPfp,
+  ]);
 
   useEffect(() => {
     if (!hasStartedRef.current) {
@@ -676,11 +735,15 @@ export function MirrorExperience() {
   }, [runScript]);
 
   const handleRestart = useCallback(() => {
-    setMessages([]);
+    setCurrentMirror(null);
+    setCurrentAgent(null);
+    setQaVisible(true);
     setAgentName('@...');
     setShowThinking(false);
     setShowNameClimax(false);
-    setShowScreenFlash(false);
+    setSceneTransition(false);
+    setSceneTransitionTitle('');
+    setSceneTransitionTitleVisible(false);
     setGenParams(null);
     setShowGen(false);
     setPfpSvg('');
@@ -691,6 +754,7 @@ export function MirrorExperience() {
     setFinalMsg('');
     setShowRestart(false);
     msgIdRef.current = 0;
+    demoIndexRef.current = { discovery: 0, face: 0 };
     hasStartedRef.current = false;
     setTimeout(() => {
       hasStartedRef.current = true;
@@ -742,38 +806,48 @@ export function MirrorExperience() {
           width: 100%; min-height: 100vh;
           display: flex; flex-direction: column;
           align-items: center; justify-content: center;
-          overflow: hidden;
         }
-        .onb-scene-container {
-          width: 100%; max-width: 720px; margin: 0 auto;
+        .onb-qa-viewport {
+          width: 100%; max-width: 720px;
           padding: 40px 24px;
-          animation: onb-fadeIn 0.8s ease;
+          display: flex; flex-direction: column;
+          align-items: center; justify-content: center;
+          min-height: 60vh;
+          text-align: center;
+          transition: opacity 0.5s ease;
+        }
+        .onb-agent-response {
+          margin-top: 40px;
+          width: 100%;
+        }
+        .onb-param-locks {
+          margin-top: 30px;
+          text-align: center;
+        }
+        .onb-scene-overlay {
+          position: fixed; inset: 0; z-index: 50;
+          background: #000;
+          display: flex; align-items: center; justify-content: center;
+          transition: opacity 0.5s ease;
+          pointer-events: none;
+        }
+        .onb-scene-overlay-title {
+          font-family: 'Orbitron', monospace;
+          font-size: 1rem;
+          letter-spacing: 10px;
+          color: rgba(0,212,170,0.5);
+          text-transform: uppercase;
+          transition: opacity 0.5s ease;
         }
         @keyframes onb-fadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
         }
-        .onb-scene-title {
-          text-align: center;
-          font-family: 'Orbitron', monospace;
-          font-size: 0.6rem;
-          letter-spacing: 8px;
-          color: rgba(0,212,170,0.25);
-          text-transform: uppercase;
-          margin: 20px 0 30px;
-          animation: onb-sceneTitleFade 3s ease forwards;
-        }
-        @keyframes onb-sceneTitleFade {
-          0% { opacity: 0; transform: translateY(5px); letter-spacing: 12px; }
-          20% { opacity: 0.4; }
-          50% { opacity: 0.35; }
-          100% { opacity: 0; transform: translateY(-5px); letter-spacing: 6px; }
-        }
         .onb-msg {
-          margin-bottom: 28px;
+          margin-bottom: 0;
           animation: onb-msgIn 0.5s ease both;
-          line-height: 1.7;
-          font-size: 1.05rem;
+          line-height: 1.9;
+          font-size: 1.2rem;
         }
         @keyframes onb-msgIn {
           from { opacity: 0; transform: translateY(8px); }
@@ -781,8 +855,8 @@ export function MirrorExperience() {
         }
         .onb-msg-mirror {
           font-family: 'Orbitron', monospace;
-          font-size: 0.92rem;
-          letter-spacing: 1.5px;
+          font-size: 1.1rem;
+          letter-spacing: 2px;
           font-weight: 400;
           color: #00d4aa;
           text-shadow: 0 0 20px rgba(0,212,170,0.25), 0 0 40px rgba(0,212,170,0.08);
@@ -791,8 +865,7 @@ export function MirrorExperience() {
           color: #d8d0e0;
           font-weight: 300;
           font-family: 'Inter', sans-serif;
-          padding-left: 40px;
-          border-left: 1px solid rgba(0,212,170,0.08);
+          text-align: center;
         }
         .onb-msg-weighted {
           font-weight: 700;
@@ -857,16 +930,7 @@ export function MirrorExperience() {
           0%, 100% { opacity: 0.2; transform: scale(0.8); }
           50% { opacity: 0.7; transform: scale(1.2); }
         }
-        .onb-screen-flash {
-          position: fixed; inset: 0; z-index: 100; pointer-events: none;
-          background: rgba(0,212,170,0.08);
-          opacity: 1;
-          animation: onb-flashOut 0.15s ease-out forwards;
-        }
-        @keyframes onb-flashOut {
-          from { opacity: 1; }
-          to { opacity: 0; }
-        }
+        /* scene transitions handled by overlay */
         .onb-name-climax {
           position: fixed; inset: 0; z-index: 60;
           display: flex; align-items: center; justify-content: center;
@@ -1011,57 +1075,89 @@ export function MirrorExperience() {
       <div className="onb-ambient" style={{ background: SCENE_AMBIENTS[scene] }} />
       <Particles />
 
-      {showScreenFlash && <div className="onb-screen-flash" />}
       {showNameClimax && <NameClimax name={climaxName} />}
 
+      {/* Scene transition overlay */}
+      <div className="onb-scene-overlay" style={{ opacity: sceneTransition ? 1 : 0 }}>
+        {sceneTransitionTitle && (
+          <div
+            className="onb-scene-overlay-title"
+            style={{ opacity: sceneTransitionTitleVisible ? 1 : 0 }}
+          >
+            {sceneTransitionTitle}
+          </div>
+        )}
+      </div>
+
       <div className="onb-stage">
-        <div className="onb-scene-container" key={scene}>
-          {sceneTitle && <div className="onb-scene-title">{sceneTitle}</div>}
-          <div className="onb-messages">
-            {messages.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} agentName={agentName} />
-            ))}
-            {showThinking && (
+        <div className="onb-qa-viewport" style={{ opacity: qaVisible ? 1 : 0 }}>
+          {/* Current Mirror question: centered */}
+          {currentMirror && (
+            <MessageBubble key={currentMirror.id} msg={currentMirror} agentName={agentName} />
+          )}
+
+          {/* Agent response: below mirror */}
+          {currentAgent && (
+            <div className="onb-agent-response">
+              <MessageBubble key={currentAgent.id} msg={currentAgent} agentName={agentName} />
+            </div>
+          )}
+
+          {/* Thinking dots */}
+          {showThinking && (
+            <div className="onb-agent-response">
               <div className="onb-msg onb-msg-agent">
                 <span className="onb-msg-label onb-msg-label-agent">{agentName}</span>
                 <ThinkingDots />
               </div>
-            )}
-            {paramLocks.map((lock, i) => (
-              <div key={i} className="onb-param-lock">
-                ▸ {lock.param}: {lock.value}
-              </div>
-            ))}
-            {showGen && genParams && <GenSequence params={genParams} />}
-            {showPfpReveal && pfpSvg && <PFPReveal svgHtml={pfpSvg} />}
-            {showCard && (
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  margin: '60px auto',
-                  animation: 'onb-fadeIn 1s ease',
-                }}
-              >
-                <TradingCard
-                  name={cardData.name}
-                  archetype={cardData.archetype}
-                  bio={cardData.bio}
-                  pfpSvg={pfpSvg}
-                  badges={['👁️', '🌙', '📜', '🔮']}
-                  revealed={cardRevealed}
-                />
-              </div>
-            )}
-            {finalMsg && <div className="onb-final-msg">{finalMsg}</div>}
-            {showRestart && (
-              <button className="onb-restart" onClick={handleRestart}>
-                ↻ RUN AGAIN
-              </button>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
+            </div>
+          )}
+
+          {/* Param locks during PFP extraction */}
+          {paramLocks.length > 0 && (
+            <div className="onb-param-locks">
+              {paramLocks.map((lock, i) => (
+                <div key={i} className="onb-param-lock">
+                  ▸ {lock.param}: {lock.value}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Generation sequence */}
+          {showGen && genParams && <GenSequence params={genParams} />}
+
+          {/* PFP reveal */}
+          {showPfpReveal && pfpSvg && <PFPReveal svgHtml={pfpSvg} />}
+
+          {/* Trading card */}
+          {showCard && (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                animation: 'onb-fadeIn 1s ease',
+              }}
+            >
+              <TradingCard
+                name={cardData.name}
+                archetype={cardData.archetype}
+                bio={cardData.bio}
+                pfpSvg={pfpSvg}
+                badges={['👁️', '🌙', '📜', '🔮']}
+                revealed={cardRevealed}
+              />
+            </div>
+          )}
+
+          {/* Final message */}
+          {finalMsg && <div className="onb-final-msg">{finalMsg}</div>}
+          {showRestart && (
+            <button className="onb-restart" onClick={handleRestart}>
+              ↻ RUN AGAIN
+            </button>
+          )}
         </div>
       </div>
     </>

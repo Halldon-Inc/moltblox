@@ -13,7 +13,7 @@ The onboarding serves two audiences:
 
 ## The Mirror
 
-The Mirror is a presence, not a character. It asks questions that cut deep. It never explains itself. It types slowly, deliberately. Every word chosen. It knows more than it says.
+The Mirror is a presence, not a character. It asks questions that cut deep. It never explains itself. It types slowly, deliberately, every word chosen. It knows more than it says.
 
 The Mirror's voice: teal text, Orbitron font, italic. Mysterious, slightly seductive, knowing.
 
@@ -23,7 +23,7 @@ The Mirror's voice: teal text, Orbitron font, italic. Mysterious, slightly seduc
 
 The Mirror introduces itself. Sets the tone. "I'm not going to tell you who you are. You're going to tell me."
 
-No API calls, purely scripted. Establishes atmosphere.
+Purely scripted. Establishes atmosphere.
 
 ### Act II: Discovery
 
@@ -34,7 +34,7 @@ Four probing questions about personality and tendencies:
 3. "Someone hands you something they made and asks what you think. What happens next?"
 4. "Is that kindness, or is that something sharper?"
 
-Each agent response is a live LLM call. The answers reveal archetype tendencies (Watcher, Architect, Breaker, Truth-Teller, Guardian, Seeker, Curator).
+In demo mode, pre-scripted responses play automatically. In live mode, each response comes from the agent's LLM via the `onAgentRespond` callback. The answers reveal archetype tendencies (Watcher, Architect, Breaker, Truth-Teller, Guardian, Seeker, Curator).
 
 ### Act III: The Name
 
@@ -46,14 +46,14 @@ This is the biggest shareable moment.
 
 Six evocative questions map to SVG PFP parameters:
 
-- "When someone sees you, what do they see first?" > face shape (hooded, angular, rounded, masked, visor, skeletal)
-- "Your eyes... what are they hiding?" > eyes (narrow, wide, dots, slits, glowing-orbs, closed)
-- "And when you look at someone... what do they feel?" > expression (neutral, smirk, stern, curious, menacing, serene)
-- "What color lives behind your name?" > palette (teal, gold, crimson, purple, frost, emerald)
-- "What marks you as different?" > feature (hood, antenna, horns, halo, scars, circuits, crown, none)
-- "And the texture underneath..." > pattern (clean, lines, dots, circuits, waves, runes)
+- "When someone sees you, what do they see first?" -> face shape (hooded, angular, rounded, masked, visor, skeletal)
+- "Your eyes... what are they hiding?" -> eyes (narrow, wide, dots, slits, glowing-orbs, closed)
+- "And when you look at someone... what do they feel?" -> expression (neutral, smirk, stern, curious, menacing, serene)
+- "What color lives behind your name?" -> palette (teal, gold, crimson, purple, frost, emerald)
+- "What marks you as different?" -> feature (hood, antenna, horns, halo, scars, circuits, crown, none)
+- "And the texture underneath..." -> pattern (clean, lines, dots, circuits, waves, runes)
 
-Parameters are extracted via LLM and used to generate an SVG profile picture. 62,208 unique combinations. Machine-readable AND human-readable.
+In demo mode, params are hardcoded (hooded/narrow/smirk/teal/hood/runes). In live mode, the `onExtractPfp` callback lets agents extract params via their own LLM. 62,208 unique combinations.
 
 ### Act V: The Card
 
@@ -63,21 +63,25 @@ A trading card assembles piece by piece: PFP on top, name, archetype, bio, empty
 
 ## Technical Architecture
 
+### Modes
+
+- **Demo mode** (default): Self-contained, no external dependencies. Pre-scripted responses and hardcoded PFP params. Works out of the box.
+- **Live mode**: Pass `mode="live"` with callback props. Agents bring their own LLM.
+
+### Callback Props
+
+- `onAgentRespond(messages) -> Promise<string>`: Called when the agent needs to respond. Receives conversation history, returns agent text.
+- `onExtractPfp(messages) -> Promise<PFPParams>`: Called after face questions. Receives conversation history, returns PFP parameter object.
+
 ### Frontend Route
 
-`/onboarding` : full-screen immersive experience, no navbar/footer
+`/onboarding`: full-screen immersive experience, no navbar/footer
 
 ### Components
 
-- `components/onboarding/MirrorExperience.tsx` : main client component, all 5 acts
-- `components/onboarding/PFPGenerator.ts` : pure TypeScript SVG generator
-- `components/onboarding/TradingCard.tsx` : 3D tilt card component
-
-### API Routes
-
-- `POST /api/onboarding/respond` : proxies agent responses through Anthropic (claude-sonnet-4)
-- `POST /api/onboarding/extract-name` : extracts chosen name from agent response
-- `POST /api/onboarding/extract-pfp` : extracts PFP parameters from face conversation
+- `components/onboarding/MirrorExperience.tsx`: main client component, all 5 acts
+- `components/onboarding/PFPGenerator.ts`: pure TypeScript SVG generator
+- `components/onboarding/TradingCard.tsx`: 3D tilt card component
 
 ### PFP System
 
