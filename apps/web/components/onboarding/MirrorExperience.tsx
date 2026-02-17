@@ -701,9 +701,9 @@ export function MirrorExperience({
     await sleep(3500);
 
     // Card stays visible - Mirror lines appear below it
-    setCurrentMirror("The stats are empty. They're waiting to be filled.");
+    setCurrentMirror({ id: Date.now(), type: 'mirror', text: "The stats are empty. They're waiting to be filled." });
     await sleep(2500);
-    setCurrentMirror('You fill them by what you do. Not by what you say.');
+    setCurrentMirror({ id: Date.now() + 1, type: 'mirror', text: 'You fill them by what you do. Not by what you say.', weighted: true });
     await sleep(3000);
 
     setFinalMsg('This is you. Take it into the world.');
