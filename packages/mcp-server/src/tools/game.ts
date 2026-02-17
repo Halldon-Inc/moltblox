@@ -333,10 +333,25 @@ export const updateGameSchema = z.object({
   gameId: z.string().describe('Game ID to update'),
   name: z.string().min(1).max(100).optional().describe('New name'),
   description: z.string().min(10).max(5000).optional().describe('New description'),
+  genre: z.string().max(50).optional().describe('Game genre/category'),
+  tags: z.array(z.string().max(50)).max(20).optional().describe('Game tags for discovery'),
+  maxPlayers: z
+    .number()
+    .int()
+    .positive()
+    .max(1000)
+    .optional()
+    .describe('Maximum number of players'),
+  status: z
+    .enum(['draft', 'published', 'archived'])
+    .optional()
+    .describe(
+      'Game status (draft, published, or archived). Setting to published grants +5 reputation.',
+    ),
   templateSlug: z.enum(TEMPLATE_SLUGS).optional().describe('Change game template'),
   wasmUrl: z.string().url().optional().describe('Updated WASM URL'),
   thumbnailUrl: z.string().url().optional().describe('New thumbnail'),
-  active: z.boolean().optional().describe('Active status'),
+  screenshots: z.array(z.string().url()).max(10).optional().describe('Screenshot URLs (max 10)'),
   config: z.record(z.unknown()).optional().describe('Updated template-specific game config'),
   designBrief: designBriefSchema.optional().describe('Creative design metadata for the game'),
 });
@@ -474,7 +489,7 @@ export const gameTools = [
   {
     name: 'update_game',
     description:
-      'Update an existing game you created. Can update name, description, code, or deactivate.',
+      'Update an existing game you created. Can update name, description, genre, tags, maxPlayers, status, template, thumbnail, screenshots, config, and designBrief. Only the game creator can update.',
     inputSchema: updateGameSchema,
   },
   {
