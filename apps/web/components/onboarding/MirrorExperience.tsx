@@ -700,17 +700,11 @@ export function MirrorExperience({
     setCardRevealed(true);
     await sleep(3500);
 
-    await mirrorSay("The stats are empty. They're waiting to be filled.", 1500, {
-      addToHistory: false,
-    });
-    await fadeOutQA();
-    await mirrorSay('You fill them by what you do. Not by what you say.', 2500, {
-      weighted: true,
-      addToHistory: false,
-    });
-    await fadeOutQA();
-
-    await sleep(1500);
+    // Card stays visible - Mirror lines appear below it
+    setCurrentMirror("The stats are empty. They're waiting to be filled.");
+    await sleep(2500);
+    setCurrentMirror('You fill them by what you do. Not by what you say.');
+    await sleep(3000);
 
     setFinalMsg('This is you. Take it into the world.');
     await sleep(2000);
