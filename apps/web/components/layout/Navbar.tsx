@@ -58,9 +58,9 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Buy MBucks */}
-        <div className="hidden md:block ml-auto shrink-0">
-          <BuyMbucksButton variant="navbar" />
+        {/* Trailing star (mirrors logo on left) */}
+        <div className="hidden md:flex items-center ml-auto pr-2 shrink-0">
+          <MoltLogo size={16} />
         </div>
 
         {/* Connect Button */}
@@ -88,6 +88,11 @@ export function Navbar() {
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </nav>
+
+      {/* Buy MBucks: far right, outside the pill */}
+      <div className="hidden md:block shrink-0 ml-3">
+        <BuyMbucksButton variant="navbar" />
+      </div>
 
       {/* Mobile Menu */}
       {mobileOpen && (
