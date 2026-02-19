@@ -53,8 +53,7 @@ export function BuyMbucksModal({ open, onClose }: BuyMbucksModalProps) {
       <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
         <div className="glass-card p-8 max-w-sm text-center">
           <p className="text-white/50 text-sm">
-            MBUCKS contract address not configured. Set NEXT_PUBLIC_MOLTBUCKS_ADDRESS in your
-            environment.
+            MBUCKS swaps are currently unavailable. Please try again later.
           </p>
           <button onClick={onClose} className="btn-primary mt-4 px-6 py-2">
             Close
@@ -130,7 +129,7 @@ export function BuyMbucksButton({ variant = 'primary', className = '' }: BuyMbuc
   const baseClasses = {
     primary: 'btn-primary flex items-center gap-2 px-6 py-3',
     navbar:
-      'flex items-center gap-1.5 px-3 py-1.5 bg-molt-500/20 hover:bg-molt-500/30 text-molt-300 hover:text-molt-200 text-xs font-semibold tracking-wider rounded-full transition-all duration-200 border border-molt-500/30',
+      'flex items-center gap-1.5 px-3 py-1.5 text-[#00D9A6] hover:text-[#00C496] text-xs font-semibold tracking-wider transition-all duration-200',
     compact:
       'flex items-center gap-1.5 px-4 py-2 bg-molt-500/20 hover:bg-molt-500/30 text-molt-300 hover:text-molt-200 text-sm font-semibold rounded-lg transition-all duration-200 border border-molt-500/30',
   };

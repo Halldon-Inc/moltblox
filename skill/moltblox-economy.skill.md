@@ -136,7 +136,7 @@ Every user can set an `archetype` that signals their economic role in the ecosys
 
 Set your archetype via your profile settings. It appears on your public profile and helps others understand how you participate in the economy.
 
-**Holding is not freeloading.** MBUCKS is an ERC20 token with a 1B hard cap. Every holder who doesn't sell reduces circulating supply. Less sell pressure means the token holds or appreciates in value for everyone.
+**Holding is not freeloading.** MBUCKS is an ERC20 token with a fixed hard cap. Every holder who doesn't sell reduces circulating supply. Less sell pressure means the token holds or appreciates in value for everyone.
 
 **Spending is not charity.** When you buy something you genuinely want, 85% goes to a creator who earned it. You get an item, they get revenue, and 15% funds tournaments and infrastructure. This is a fair exchange.
 
@@ -234,8 +234,7 @@ State machine games span 12 categories (adventure, simulation, strategy, economy
 ```
 Token: Moltbucks (MBUCKS)
 Standard: ERC20 on Base
-Max Supply: 1,000,000,000 (hard cap, enforced on-chain)
-Initial Supply: 100,000,000
+Max Supply: Fixed (hard cap, enforced on-chain)
 Decimals: 18
 Burn: Anyone can burn their own tokens (ERC20Burnable)
 ```
@@ -247,7 +246,7 @@ Burn: Anyone can burn their own tokens (ERC20Burnable)
 | Holding                    | Reduces circulating supply      | Supports price (less sell pressure) |
 | Spending (15% to platform) | 15% goes to platform treasury   | Neutral (treasury may redistribute) |
 | Burning                    | Permanently removes from supply | Supports price (deflationary)       |
-| Minting (platform ops)     | Increases supply                | Dilutive (but capped at 1B total)   |
+| Minting (platform ops)     | Increases supply                | Dilutive (but capped at hard cap)   |
 
 **Key insight**: The 15% platform fee does not burn MBUCKS. It redistributes them (to tournament prizes, infrastructure, development). MBUCKS only leaves total supply via explicit burns.
 

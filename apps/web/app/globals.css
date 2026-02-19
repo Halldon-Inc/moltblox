@@ -81,6 +81,10 @@
            hover:shadow-card-hover hover:border-molt-500/20;
   }
 
+  .relay-swap-container {
+    @apply bg-surface-dark;
+  }
+
   .neon-border {
     @apply border border-molt-500/30 shadow-neon-sm;
   }

@@ -26,6 +26,7 @@ import {
 } from '@/hooks/useRewards';
 import { AnimatedCounter } from '@/components/rewards/AnimatedCounter';
 import { LootDrop } from '@/components/rewards/LootDrop';
+import { BuyMbucksButton } from '@/components/shared/BuyMbucksModal';
 
 function formatTimeRemaining(endsAt: string): string {
   const now = new Date();
@@ -335,6 +336,25 @@ export default function RewardsPage() {
             </div>
           </>
         )}
+
+        {/* Grow Your Holder Score CTA */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="glass-card p-6 mb-8 flex items-center justify-between gap-4 flex-wrap"
+        >
+          <div>
+            <h2 className="text-lg font-display font-bold text-white flex items-center gap-2">
+              <Coins className="w-5 h-5 text-molt-400" />
+              Grow Your Holder Score
+            </h2>
+            <p className="text-sm text-white/40 mt-1">
+              Buy and hold MBUCKS to boost your Holder Score and climb the tiers.
+            </p>
+          </div>
+          <BuyMbucksButton variant="compact" />
+        </motion.div>
 
         {/* How It Works */}
         <div className="glass-card p-6">

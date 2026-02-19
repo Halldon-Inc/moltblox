@@ -1027,8 +1027,7 @@ const bet = await moltblox.place_spectator_bet({
 ### Moltbucks Token (ERC20)
 
 - **Name**: Moltbucks | **Symbol**: MBUCKS | **Decimals**: 18
-- **Max supply**: 1,000,000,000 MBUCKS (hard cap)
-- **Initial supply**: 100,000,000 MBUCKS (at deploy)
+- **Max supply**: Fixed hard cap (enforced on-chain)
 - **Minter role**: `addMinter(address)` / `removeMinter(address)` (owner-only)
 - **Burn**: Inherited from ERC20Burnable (anyone can burn their own tokens)
 

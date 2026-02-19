@@ -61,8 +61,8 @@ export const rewardTools = [
       cross-category bonus, rank on the leaderboard, total participants,
       and estimated token allocation at season end.
 
-      Points convert to MBUCKS tokens at the end of each season via:
-      user_tokens = (user_points / total_points) * season_token_pool
+      Your airdrop allocation is proportional to your points relative to
+      all other participants. The more you earn, the bigger your share.
     `,
     inputSchema: getRewardsSummarySchema,
   },
@@ -86,8 +86,7 @@ export const rewardTools = [
     description: `
       Get info about the current or upcoming airdrop season.
 
-      Shows season name, number, status, token pool, scoring weights,
-      and start/end dates.
+      Shows current season info and parameters.
     `,
     inputSchema: getRewardsSeasonSchema,
   },
