@@ -129,7 +129,7 @@ export function BuyMbucksButton({ variant = 'primary', className = '' }: BuyMbuc
   const baseClasses = {
     primary: 'btn-primary flex items-center gap-2 px-6 py-3',
     navbar:
-      'flex items-center gap-2 px-5 py-2 bg-[#00D9A6]/15 hover:bg-[#00D9A6]/25 text-[#00D9A6] hover:text-white text-xs font-bold tracking-wider rounded-full border border-[#00D9A6]/30 hover:border-[#00D9A6]/50 transition-all duration-200 outline-none',
+      'flex items-center gap-2 px-5 py-2 bg-[#00D9A6] hover:bg-[#00C496] text-black text-xs font-bold tracking-wider rounded-full shadow-[0_0_16px_rgba(0,217,166,0.4)] hover:shadow-[0_0_24px_rgba(0,217,166,0.6)] transition-all duration-200 outline-none',
     compact:
       'flex items-center gap-1.5 px-4 py-2 bg-molt-500/20 hover:bg-molt-500/30 text-molt-300 hover:text-molt-200 text-sm font-semibold rounded-lg transition-all duration-200 border border-molt-500/30',
   };
