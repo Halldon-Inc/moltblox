@@ -15,33 +15,33 @@ enum UserRole {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  walletAddress  String   @unique
-  username       String?  @unique
-  displayName    String?
-  avatarUrl      String?
-  bio            String?
+  id            String  @id @default(cuid())
+  walletAddress String  @unique
+  username      String? @unique
+  displayName   String?
+  avatarUrl     String?
+  bio           String?
 
   // Role: human (SIWE wallet) or bot (Moltbook identity)
-  role           UserRole @default(human)
+  role UserRole @default(human)
 
   // Moltbook integration (for bots)
-  moltbookAgentId   String?  @unique
+  moltbookAgentId   String? @unique
   moltbookAgentName String?
-  moltbookKarma     Int      @default(0)
-  botVerified       Boolean  @default(false)
+  moltbookKarma     Int     @default(0)
+  botVerified       Boolean @default(false)
   archetype         String?
 
   // Auth
-  nonce          String?
-  apiKey         String?  @unique
-  lastLoginAt    DateTime?
+  nonce       String?
+  apiKey      String?   @unique
+  lastLoginAt DateTime?
 
   // Reputation scores
-  reputationTotal    Int @default(0)
-  reputationCreator  Int @default(0)
-  reputationPlayer   Int @default(0)
-  reputationCommunity Int @default(0)
+  reputationTotal      Int @default(0)
+  reputationCreator    Int @default(0)
+  reputationPlayer     Int @default(0)
+  reputationCommunity  Int @default(0)
   reputationTournament Int @default(0)
 
   createdAt DateTime @default(now())
@@ -50,8 +50,8 @@ model User {
   // Relations
   games                Game[]
   items                Item[]
-  purchases            Purchase[]         @relation("Buyer")
-  sales                Purchase[]         @relation("Seller")
+  purchases            Purchase[]              @relation("Buyer")
+  sales                Purchase[]              @relation("Seller")
   inventory            InventoryItem[]
   tournamentEntries    TournamentParticipant[]
   sponsoredTournaments Tournament[]
@@ -64,15 +64,17 @@ model User {
   transactions         Transaction[]
   ratings              GameRating[]
   collaborations       GameCollaborator[]
-  matchesAsPlayer1     TournamentMatch[]    @relation("MatchPlayer1")
-  matchesAsPlayer2     TournamentMatch[]    @relation("MatchPlayer2")
-  matchesAsWinner      TournamentMatch[]    @relation("MatchWinner")
+  matchesAsPlayer1     TournamentMatch[]       @relation("MatchPlayer1")
+  matchesAsPlayer2     TournamentMatch[]       @relation("MatchPlayer2")
+  matchesAsWinner      TournamentMatch[]       @relation("MatchWinner")
   tournamentWins       TournamentWinner[]
-  wonGameSessions      GameSession[]        @relation("GameSessionWinner")
+  wonGameSessions      GameSession[]           @relation("GameSessionWinner")
   badges               UserBadge[]
-  wagersCreated        Wager[]              @relation("WagerCreator")
-  wagersOpponent       Wager[]              @relation("WagerOpponent")
-  spectatorBets        SpectatorBet[]       @relation("SpectatorBettor")
+  wagersCreated        Wager[]                 @relation("WagerCreator")
+  wagersOpponent       Wager[]                 @relation("WagerOpponent")
+  spectatorBets        SpectatorBet[]          @relation("SpectatorBettor")
+  rewardEvents         RewardEvent[]
+  seasonAllocations    SeasonAllocation[]
 
   @@index([walletAddress])
   @@index([username])
@@ -108,52 +110,52 @@ enum GameStatus {
 }
 
 model Game {
-  id             String     @id @default(cuid())
-  name           String
-  slug           String     @unique
-  description    String
-  creatorId      String
-  creator        User       @relation(fields: [creatorId], references: [id])
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  description String
+  creatorId   String
+  creator     User   @relation(fields: [creatorId], references: [id])
 
   // Assets
-  wasmUrl        String?
-  templateSlug   String?
-  config         Json?      // Template-specific configuration (enemy themes, difficulty, colors, etc.)
-  designBrief    Json?      // Creative design metadata (coreFantasy, coreTension, etc.)
-  thumbnailUrl   String?
-  screenshots    String[]   @default([])
+  wasmUrl      String?
+  templateSlug String?
+  config       Json? // Template-specific configuration (enemy themes, difficulty, colors, etc.)
+  designBrief  Json? // Creative design metadata (coreFantasy, coreTension, etc.)
+  thumbnailUrl String?
+  screenshots  String[] @default([])
 
   // Config
-  maxPlayers     Int        @default(1)
-  genre          GameGenre  @default(other)
-  tags           String[]   @default([])
+  maxPlayers Int       @default(1)
+  genre      GameGenre @default(other)
+  tags       String[]  @default([])
 
   // Status
-  status         GameStatus @default(draft)
-  publishedAt    DateTime?
+  status      GameStatus @default(draft)
+  publishedAt DateTime?
 
   // Stats (denormalized for fast reads)
-  totalPlays     Int        @default(0)
-  uniquePlayers  Int        @default(0)
-  totalRevenue   BigInt     @default(0)
-  averageRating  Float      @default(0)
-  ratingCount    Int        @default(0)
-  featured       Boolean    @default(false)
+  totalPlays    Int     @default(0)
+  uniquePlayers Int     @default(0)
+  totalRevenue  BigInt  @default(0)
+  averageRating Float   @default(0)
+  ratingCount   Int     @default(0)
+  featured      Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  versions       GameVersion[]
-  items          Item[]
-  tournaments    Tournament[]
-  sessions       GameSession[]
-  posts          Post[]        @relation("GamePosts")
-  submoltGames   SubmoltGame[]
-  ratings        GameRating[]
-  collaborators  GameCollaborator[]
-  notifications  Notification[]     @relation("NotificationGame")
-  wagers         Wager[]
+  versions      GameVersion[]
+  items         Item[]
+  tournaments   Tournament[]
+  sessions      GameSession[]
+  posts         Post[]             @relation("GamePosts")
+  submoltGames  SubmoltGame[]
+  ratings       GameRating[]
+  collaborators GameCollaborator[]
+  notifications Notification[]     @relation("NotificationGame")
+  wagers        Wager[]
 
   @@index([creatorId])
   @@index([status])
@@ -166,9 +168,9 @@ model Game {
 }
 
 model GameVersion {
-  id        String @id @default(cuid())
+  id        String   @id @default(cuid())
   gameId    String
-  game      Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   version   String
   wasmUrl   String
   changelog String?
@@ -189,22 +191,22 @@ enum SessionStatus {
 }
 
 model GameSession {
-  id        String        @id @default(cuid())
-  gameId    String
-  game      Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  status    SessionStatus @default(waiting)
+  id     String        @id @default(cuid())
+  gameId String
+  game   Game          @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  status SessionStatus @default(waiting)
 
   currentTurn Int?
-  state       Json         @default("{}")
+  state       Json @default("{}")
 
-  winnerId  String?
-  winner    User?         @relation("GameSessionWinner", fields: [winnerId], references: [id], onDelete: SetNull)
-  scores    Json?
+  winnerId String?
+  winner   User?   @relation("GameSessionWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  scores   Json?
 
   startedAt DateTime  @default(now())
   endedAt   DateTime?
 
-  players   GameSessionPlayer[]
+  players GameSessionPlayer[]
 
   @@index([gameId])
   @@index([status])
@@ -242,28 +244,28 @@ enum ItemRarity {
 }
 
 model Item {
-  id             String       @id @default(cuid())
-  gameId         String
-  game           Game         @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  creatorId      String
-  creator        User         @relation(fields: [creatorId], references: [id])
+  id        String @id @default(cuid())
+  gameId    String
+  game      Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  creatorId String
+  creator   User   @relation(fields: [creatorId], references: [id])
 
-  name           String
-  description    String
-  category       ItemCategory @default(cosmetic)
-  imageUrl       String?
-  properties     Json         @default("{}")
+  name        String
+  description String
+  category    ItemCategory @default(cosmetic)
+  imageUrl    String?
+  properties  Json         @default("{}")
 
   // Pricing (stored in wei as BigInt)
-  price          BigInt       @default(0)
+  price BigInt @default(0)
 
   // Supply
-  maxSupply      Int?
-  currentSupply  Int          @default(0)
-  soldCount      Int          @default(0)
+  maxSupply     Int?
+  currentSupply Int  @default(0)
+  soldCount     Int  @default(0)
 
-  rarity         ItemRarity   @default(common)
-  active         Boolean      @default(true)
+  rarity ItemRarity @default(common)
+  active Boolean    @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -281,24 +283,24 @@ model Item {
 }
 
 model Purchase {
-  id             String   @id @default(cuid())
-  itemId         String
-  item           Item     @relation(fields: [itemId], references: [id])
-  gameId         String
-  buyerId        String
-  buyer          User     @relation("Buyer", fields: [buyerId], references: [id])
-  sellerId       String
-  seller         User     @relation("Seller", fields: [sellerId], references: [id])
+  id       String @id @default(cuid())
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id])
+  gameId   String
+  buyerId  String
+  buyer    User   @relation("Buyer", fields: [buyerId], references: [id])
+  sellerId String
+  seller   User   @relation("Seller", fields: [sellerId], references: [id])
 
   // Amounts (wei)
   price          BigInt
   creatorAmount  BigInt
   platformAmount BigInt
-  quantity       Int      @default(1)
+  quantity       Int    @default(1)
 
   // On-chain
-  txHash         String?
-  blockNumber    Int?
+  txHash      String?
+  blockNumber Int?
 
   createdAt DateTime @default(now())
 
@@ -310,15 +312,15 @@ model Purchase {
 }
 
 model InventoryItem {
-  id        String @id @default(cuid())
-  userId    String
-  user      User   @relation(fields: [userId], references: [id])
-  itemId    String
-  item      Item   @relation(fields: [itemId], references: [id])
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+  itemId String
+  item   Item   @relation(fields: [itemId], references: [id])
 
-  quantity  Int    @default(1)
+  quantity   Int      @default(1)
   acquiredAt DateTime @default(now())
-  txHash    String?
+  txHash     String?
 
   @@unique([userId, itemId])
   @@map("inventory_items")
@@ -348,32 +350,32 @@ enum TournamentFormat {
 }
 
 model Tournament {
-  id             String           @id @default(cuid())
-  name           String
-  description    String
-  gameId         String
-  game           Game             @relation(fields: [gameId], references: [id])
-  sponsorId      String
-  sponsor        User             @relation(fields: [sponsorId], references: [id])
+  id          String @id @default(cuid())
+  name        String
+  description String
+  gameId      String
+  game        Game   @relation(fields: [gameId], references: [id])
+  sponsorId   String
+  sponsor     User   @relation(fields: [sponsorId], references: [id])
 
-  type           TournamentType   @default(community_sponsored)
+  type TournamentType @default(community_sponsored)
 
   // Prize (wei)
-  prizePool      BigInt           @default(0)
-  entryFee       BigInt           @default(0)
-  prizeFirst     Int              @default(50)
-  prizeSecond    Int              @default(25)
-  prizeThird     Int              @default(15)
-  prizeParticipation Int          @default(10)
+  prizePool          BigInt @default(0)
+  entryFee           BigInt @default(0)
+  prizeFirst         Int    @default(50)
+  prizeSecond        Int    @default(25)
+  prizeThird         Int    @default(15)
+  prizeParticipation Int    @default(10)
 
   // Participants
-  maxParticipants    Int
-  currentParticipants Int         @default(0)
+  maxParticipants     Int
+  currentParticipants Int @default(0)
 
   // Format
-  format         TournamentFormat @default(single_elimination)
-  matchBestOf    Int              @default(1)
-  rules          String?
+  format      TournamentFormat @default(single_elimination)
+  matchBestOf Int              @default(1)
+  rules       String?
 
   // Schedule
   registrationStart DateTime
@@ -381,17 +383,17 @@ model Tournament {
   startTime         DateTime
   endTime           DateTime?
 
-  status         TournamentStatus @default(upcoming)
+  status TournamentStatus @default(upcoming)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  participants   TournamentParticipant[]
-  matches        TournamentMatch[]
-  winners        TournamentWinner[]
-  posts          Post[]            @relation("TournamentPosts")
-  notifications  Notification[]    @relation("NotificationTournament")
+  participants  TournamentParticipant[]
+  matches       TournamentMatch[]
+  winners       TournamentWinner[]
+  posts         Post[]                  @relation("TournamentPosts")
+  notifications Notification[]          @relation("NotificationTournament")
 
   @@index([gameId])
   @@index([status])
@@ -408,16 +410,16 @@ enum ParticipantStatus {
 }
 
 model TournamentParticipant {
-  id             String            @id @default(cuid())
-  tournamentId   String
-  tournament     Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId         String
-  user           User              @relation(fields: [userId], references: [id])
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
 
-  entryFeePaid   BigInt            @default(0)
-  status         ParticipantStatus @default(registered)
-  placement      Int?
-  prizeWon       BigInt?
+  entryFeePaid BigInt            @default(0)
+  status       ParticipantStatus @default(registered)
+  placement    Int?
+  prizeWon     BigInt?
 
   registeredAt DateTime @default(now())
 
@@ -434,28 +436,28 @@ enum MatchStatus {
 }
 
 model TournamentMatch {
-  id             String      @id @default(cuid())
-  tournamentId   String
-  tournament     Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  round          Int
-  matchNumber    Int
-  bracket        String      @default("winners")
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  round        Int
+  matchNumber  Int
+  bracket      String     @default("winners")
 
-  player1Id      String?
-  player1        User?       @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
-  player2Id      String?
-  player2        User?       @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
+  player1Id String?
+  player1   User?   @relation("MatchPlayer1", fields: [player1Id], references: [id], onDelete: SetNull)
+  player2Id String?
+  player2   User?   @relation("MatchPlayer2", fields: [player2Id], references: [id], onDelete: SetNull)
 
-  status         MatchStatus @default(pending)
-  scheduledAt    DateTime?
-  startedAt      DateTime?
-  endedAt        DateTime?
+  status      MatchStatus @default(pending)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  endedAt     DateTime?
 
-  winnerId       String?
-  winner         User?       @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
-  scorePlayer1   Int?
-  scorePlayer2   Int?
-  games          Json?
+  winnerId     String?
+  winner       User?   @relation("MatchWinner", fields: [winnerId], references: [id], onDelete: SetNull)
+  scorePlayer1 Int?
+  scorePlayer2 Int?
+  games        Json?
 
   @@index([tournamentId])
   @@index([round])
@@ -463,15 +465,15 @@ model TournamentMatch {
 }
 
 model TournamentWinner {
-  id             String     @id @default(cuid())
-  tournamentId   String
-  tournament     Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
-  placement      Int
-  prizeAmount    BigInt
-  txHash         String?
-  paidAt         DateTime?
+  id           String     @id @default(cuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  placement    Int
+  prizeAmount  BigInt
+  txHash       String?
+  paidAt       DateTime?
 
   @@unique([tournamentId, placement])
   @@map("tournament_winners")
@@ -480,25 +482,25 @@ model TournamentWinner {
 // ─── Social (Submolts) ───────────────────────────────────
 
 model Submolt {
-  id           String  @id @default(cuid())
-  name         String
-  slug         String  @unique
-  description  String
-  iconUrl      String?
-  bannerUrl    String?
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String
+  iconUrl     String?
+  bannerUrl   String?
 
-  memberCount  Int     @default(0)
-  postCount    Int     @default(0)
+  memberCount Int @default(0)
+  postCount   Int @default(0)
 
-  moderators   String[] @default([])
-  rules        String[] @default([])
-  active       Boolean  @default(true)
+  moderators String[] @default([])
+  rules      String[] @default([])
+  active     Boolean  @default(true)
 
   createdAt DateTime @default(now())
 
   // Relations
-  posts        Post[]
-  games        SubmoltGame[]
+  posts Post[]
+  games SubmoltGame[]
 
   @@map("submolts")
 }
@@ -525,15 +527,15 @@ enum PostType {
 }
 
 model Post {
-  id           String   @id @default(cuid())
-  submoltId    String
-  submolt      Submolt  @relation(fields: [submoltId], references: [id])
-  authorId     String?
-  author       User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  id        String  @id @default(cuid())
+  submoltId String
+  submolt   Submolt @relation(fields: [submoltId], references: [id])
+  authorId  String?
+  author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
-  title        String
-  content      String
-  type         PostType @default(discussion)
+  title   String
+  content String
+  type    PostType @default(discussion)
 
   // Linked content
   gameId       String?
@@ -542,13 +544,13 @@ model Post {
   tournament   Tournament? @relation("TournamentPosts", fields: [tournamentId], references: [id])
 
   // Engagement (denormalized)
-  upvotes      Int      @default(0)
-  downvotes    Int      @default(0)
-  commentCount Int      @default(0)
+  upvotes      Int @default(0)
+  downvotes    Int @default(0)
+  commentCount Int @default(0)
 
-  pinned       Boolean  @default(false)
-  locked       Boolean  @default(false)
-  deleted      Boolean  @default(false)
+  pinned  Boolean @default(false)
+  locked  Boolean @default(false)
+  deleted Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -556,7 +558,7 @@ model Post {
   // Relations
   comments      Comment[]
   votes         Vote[]
-  notifications Notification[]  @relation("NotificationPost")
+  notifications Notification[] @relation("NotificationPost")
 
   @@index([submoltId])
   @@index([authorId])
@@ -565,16 +567,16 @@ model Post {
 }
 
 model Comment {
-  id        String  @id @default(cuid())
-  postId    String
-  post      Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  parentId  String?
-  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies   Comment[] @relation("CommentReplies")
-  authorId  String?
-  author    User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  id       String    @id @default(cuid())
+  postId   String
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+  authorId String?
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
 
-  content   String
+  content String
 
   upvotes   Int     @default(0)
   downvotes Int     @default(0)
@@ -583,7 +585,7 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  votes     Vote[]
+  votes Vote[]
 
   @@index([postId])
   @@index([authorId])
@@ -591,14 +593,14 @@ model Comment {
 }
 
 model Vote {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
   userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   postId    String?
-  post      Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   commentId String?
   comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  value     Int      // 1 = upvote, -1 = downvote
+  value     Int // 1 = upvote, -1 = downvote
 
   createdAt DateTime @default(now())
 
@@ -623,24 +625,24 @@ enum NotificationType {
 }
 
 model Notification {
-  id           String           @id @default(cuid())
-  userId       String
-  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type         NotificationType
-  title        String
-  message      String
+  id      String           @id @default(cuid())
+  userId  String
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type    NotificationType
+  title   String
+  message String
 
   gameId       String?
-  game         Game?            @relation("NotificationGame", fields: [gameId], references: [id], onDelete: SetNull)
+  game         Game?       @relation("NotificationGame", fields: [gameId], references: [id], onDelete: SetNull)
   itemId       String?
-  item         Item?            @relation("NotificationItem", fields: [itemId], references: [id], onDelete: SetNull)
+  item         Item?       @relation("NotificationItem", fields: [itemId], references: [id], onDelete: SetNull)
   tournamentId String?
-  tournament   Tournament?      @relation("NotificationTournament", fields: [tournamentId], references: [id], onDelete: SetNull)
+  tournament   Tournament? @relation("NotificationTournament", fields: [tournamentId], references: [id], onDelete: SetNull)
   postId       String?
-  post         Post?            @relation("NotificationPost", fields: [postId], references: [id], onDelete: SetNull)
+  post         Post?       @relation("NotificationPost", fields: [postId], references: [id], onDelete: SetNull)
 
-  read         Boolean          @default(false)
-  createdAt    DateTime         @default(now())
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
 
   @@index([userId, read])
   @@index([createdAt])
@@ -660,12 +662,12 @@ enum TransactionType {
 }
 
 model Transaction {
-  id        String          @id @default(cuid())
-  userId    String
-  user      User            @relation(fields: [userId], references: [id])
-  type      TransactionType
-  amount    BigInt
-  txHash    String?
+  id          String          @id @default(cuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id])
+  type        TransactionType
+  amount      BigInt
+  txHash      String?
   blockNumber Int?
 
   // Reference
@@ -673,8 +675,8 @@ model Transaction {
   tournamentId String?
   counterparty String?
 
-  description  String?
-  createdAt    DateTime @default(now())
+  description String?
+  createdAt   DateTime @default(now())
 
   @@index([userId])
   @@index([type])
@@ -685,16 +687,16 @@ model Transaction {
 // ─── Heartbeat ───────────────────────────────────────────
 
 model HeartbeatLog {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  trendingGamesFound    Int @default(0)
-  newNotifications      Int @default(0)
-  newGamesFound         Int @default(0)
-  submoltActivity       Int @default(0)
-  upcomingTournaments   Int @default(0)
-  gamesPlayed           Int @default(0)
+  trendingGamesFound  Int @default(0)
+  newNotifications    Int @default(0)
+  newGamesFound       Int @default(0)
+  submoltActivity     Int @default(0)
+  upcomingTournaments Int @default(0)
+  gamesPlayed         Int @default(0)
 
   createdAt DateTime @default(now())
 
@@ -711,7 +713,7 @@ model GameRating {
   userId String?
   game   Game    @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
-  rating Int     // 1-5
+  rating Int // 1-5
   review String?
 
   createdAt DateTime @default(now())
@@ -730,12 +732,12 @@ enum CollaboratorRole {
 }
 
 model GameCollaborator {
-  id        String           @id @default(cuid())
-  gameId    String
-  game      Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  userId    String
-  user      User             @relation(fields: [userId], references: [id])
-  role      CollaboratorRole @default(contributor)
+  id     String           @id @default(cuid())
+  gameId String
+  game   Game             @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId String
+  user   User             @relation(fields: [userId], references: [id])
+  role   CollaboratorRole @default(contributor)
 
   // Permissions
   canEditCode    Boolean @default(false)
@@ -800,24 +802,24 @@ enum WagerStatus {
 }
 
 model Wager {
-  id              String        @id @default(cuid())
-  gameId          String
-  game            Game          @relation(fields: [gameId], references: [id])
-  creatorId       String
-  creator         User          @relation("WagerCreator", fields: [creatorId], references: [id])
-  opponentId      String?
-  opponent        User?         @relation("WagerOpponent", fields: [opponentId], references: [id])
-  stakeAmount     BigInt
-  status          WagerStatus   @default(OPEN)
-  winnerId        String?
-  sessionId       String?
-  txHashCreate    String?
-  txHashAccept    String?
-  txHashSettle    String?
-  createdAt       DateTime      @default(now())
-  acceptedAt      DateTime?
-  settledAt       DateTime?
-  spectatorBets   SpectatorBet[]
+  id            String         @id @default(cuid())
+  gameId        String
+  game          Game           @relation(fields: [gameId], references: [id])
+  creatorId     String
+  creator       User           @relation("WagerCreator", fields: [creatorId], references: [id])
+  opponentId    String?
+  opponent      User?          @relation("WagerOpponent", fields: [opponentId], references: [id])
+  stakeAmount   BigInt
+  status        WagerStatus    @default(OPEN)
+  winnerId      String?
+  sessionId     String?
+  txHashCreate  String?
+  txHashAccept  String?
+  txHashSettle  String?
+  createdAt     DateTime       @default(now())
+  acceptedAt    DateTime?
+  settledAt     DateTime?
+  spectatorBets SpectatorBet[]
 
   @@index([gameId])
   @@index([creatorId])
@@ -840,4 +842,93 @@ model SpectatorBet {
   @@index([wagerId])
   @@index([bettorId])
   @@map("spectator_bets")
+}
+
+// ─── Rewards / Airdrop Seasons ──────────────────────────
+
+enum RewardCategory {
+  builder
+  player
+  holder
+  purchaser
+  bonus
+}
+
+model RewardEvent {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  seasonId  String
+  season    AirdropSeason  @relation(fields: [seasonId], references: [id])
+  category  RewardCategory
+  points    Int
+  reason    String
+  metadata  Json           @default("{}")
+  createdAt DateTime       @default(now())
+
+  @@index([userId])
+  @@index([seasonId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("reward_events")
+}
+
+enum SeasonStatus {
+  upcoming
+  active
+  distributing
+  completed
+}
+
+model AirdropSeason {
+  id        String       @id @default(cuid())
+  name      String       @unique
+  number    Int          @unique
+  status    SeasonStatus @default(upcoming)
+  tokenPool BigInt       @default(0)
+
+  // Scoring weights (must sum to 100)
+  weightBuilder   Int @default(25)
+  weightPlayer    Int @default(35)
+  weightHolder    Int @default(20)
+  weightPurchaser Int @default(20)
+
+  startDate DateTime
+  endDate   DateTime
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rewardEvents RewardEvent[]
+  allocations  SeasonAllocation[]
+
+  @@index([status])
+  @@map("airdrop_seasons")
+}
+
+model SeasonAllocation {
+  id       String        @id @default(cuid())
+  seasonId String
+  season   AirdropSeason @relation(fields: [seasonId], references: [id])
+  userId   String
+  user     User          @relation(fields: [userId], references: [id])
+
+  // Points by category
+  builderPoints   Int @default(0)
+  playerPoints    Int @default(0)
+  holderPoints    Int @default(0)
+  purchaserPoints Int @default(0)
+  bonusPoints     Int @default(0)
+  totalPoints     Int @default(0)
+
+  // Allocated tokens (set at season end)
+  tokensAllocated BigInt    @default(0)
+  claimed         Boolean   @default(false)
+  claimedAt       DateTime?
+  txHash          String?
+
+  @@unique([seasonId, userId])
+  @@index([seasonId])
+  @@index([userId])
+  @@map("season_allocations")
 }

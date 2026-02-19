@@ -367,6 +367,31 @@ class ApiClient {
       `/wallet/transactions?${q}`,
     );
   }
+
+  // Rewards
+  getRewardsSummary() {
+    return this.request<{ data: ApiAny }>('/rewards/summary');
+  }
+  getRewardsLeaderboard(params?: { limit?: number; category?: string }) {
+    const q = params ? buildQuery(params) : '';
+    return this.request<{ data: ApiAny[]; season: ApiAny }>(`/rewards/leaderboard?${q}`);
+  }
+  getRewardsHistory(params?: { limit?: number; offset?: number }) {
+    const q = params ? buildQuery(params) : '';
+    return this.request<{ data: ApiAny[]; total: number }>(`/rewards/history?${q}`);
+  }
+  getRewardsSeason() {
+    return this.request<{ data: ApiAny }>('/rewards/season');
+  }
+  getRewardsMultipliers() {
+    return this.request<{ data: ApiAny }>('/rewards/multipliers');
+  }
+  claimHolderPoints(balanceMbucks: number) {
+    return this.request<{ message: string; points: number; eventId?: string }>(
+      '/rewards/claim-holder',
+      { method: 'POST', body: JSON.stringify({ balanceMbucks }) },
+    );
+  }
 }
 
 export const api = new ApiClient();

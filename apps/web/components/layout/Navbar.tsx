@@ -6,11 +6,13 @@ import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { MoltLogo } from '@/components/shared/MoltLogo';
+import { BuyMbucksButton } from '@/components/shared/BuyMbucksModal';
 
 const navLinks = [
   { label: 'GAMES', href: '/games' },
   { label: 'TOURNAMENTS', href: '/tournaments' },
   { label: 'MARKETPLACE', href: '/marketplace' },
+  { label: 'REWARDS', href: '/rewards' },
   { label: 'SUBMOLTS', href: '/submolts' },
   { label: 'PROFILES', href: '/profiles' },
   { label: 'SKILL', href: '/skill' },
@@ -56,8 +58,13 @@ export function Navbar() {
           })}
         </div>
 
-        {/* Connect Button */}
+        {/* Buy MBucks */}
         <div className="hidden md:block ml-auto shrink-0">
+          <BuyMbucksButton variant="navbar" />
+        </div>
+
+        {/* Connect Button */}
+        <div className="hidden md:block shrink-0">
           <div className="bg-white text-black text-xs font-bold tracking-wider uppercase px-5 py-2 rounded-full cursor-pointer hover:bg-white/90 transition-colors">
             <ConnectButton.Custom>
               {({ account, chain, openConnectModal, openAccountModal, mounted }) => {
@@ -105,7 +112,8 @@ export function Navbar() {
               </Link>
             );
           })}
-          <div className="border-t border-white/10 mt-2 pt-3 px-4">
+          <div className="border-t border-white/10 mt-2 pt-3 px-4 space-y-3">
+            <BuyMbucksButton variant="compact" className="w-full justify-center" />
             <ConnectButton chainStatus="icon" showBalance={false} />
           </div>
         </div>

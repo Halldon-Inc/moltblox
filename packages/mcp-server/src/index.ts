@@ -31,6 +31,7 @@ import {
   badgeTools,
   wagerTools,
   userTools,
+  rewardTools,
 } from './tools/index.js';
 
 // Import handlers (barrel)
@@ -43,6 +44,7 @@ import {
   createBadgeHandlers,
   createWagerHandlers,
   createUserHandlers,
+  createRewardHandlers,
 } from './handlers/index.js';
 
 // Configuration
@@ -137,6 +139,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
     ...badgeTools,
     ...wagerTools,
     ...userTools,
+    ...rewardTools,
   ];
 
   const allTools: Tool[] = rawTools.map(convertTool);
@@ -163,6 +166,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
   const badgeHandlers = createBadgeHandlers(config);
   const wagerHandlers = createWagerHandlers(config);
   const userHandlers = createUserHandlers(config);
+  const rewardHandlers = createRewardHandlers(config);
 
   // All handlers
   const handlers: Record<string, (params: any) => Promise<any>> = {
@@ -174,6 +178,7 @@ export async function createMoltbloxMCPServer(config: MoltbloxMCPConfig) {
     ...badgeHandlers,
     ...wagerHandlers,
     ...userHandlers,
+    ...rewardHandlers,
   };
 
   // List tools
@@ -245,4 +250,5 @@ export {
   badgeTools,
   wagerTools,
   userTools,
+  rewardTools,
 };

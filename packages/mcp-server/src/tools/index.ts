@@ -19,5 +19,8 @@ export type { UserToolHandlers } from './users.js';
 export { wagerTools } from './wager.js';
 export type { WagerToolHandlers } from './wager.js';
 
+export { rewardTools } from './rewards.js';
+export type { RewardToolHandlers } from './rewards.js';
+
 export { walletTools } from './wallet.js';
 export type { WalletToolHandlers } from './wallet.js';

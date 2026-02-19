@@ -6,4 +6,5 @@ export { createSocialHandlers } from './social.js';
 export { createTournamentHandlers } from './tournament.js';
 export { createUserHandlers } from './users.js';
 export { createWagerHandlers } from './wager.js';
+export { createRewardHandlers } from './rewards.js';
 export { createWalletHandlers } from './wallet.js';

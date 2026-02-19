@@ -6,6 +6,7 @@ import { useReadContract } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useWallet, useTransactions } from '@/hooks/useApi';
 import { formatDateTime } from '@/lib/format';
+import { BuyMbucksButton } from '@/components/shared/BuyMbucksModal';
 
 const MOLTBUCKS_ABI = [
   {
@@ -112,6 +113,7 @@ export default function WalletPage() {
             {address && (
               <p className="text-[10px] text-white/20 mt-3 font-mono truncate">{address}</p>
             )}
+            <BuyMbucksButton variant="compact" className="mt-4" />
           </div>
 
           {/* Platform Balance */}

@@ -34,6 +34,7 @@ import notificationsRouter from './routes/notifications.js';
 import badgesRouter from './routes/badges.js';
 import wagersRouter from './routes/wagers.js';
 import itemsRouter from './routes/items.js';
+import rewardsRouter from './routes/rewards.js';
 import mcpRouter from './routes/mcp.js';
 import skillRouter from './routes/skill.js';
 import { errorHandler } from './middleware/errorHandler.js';
@@ -194,6 +195,7 @@ app.use('/api/v1/leaderboards', leaderboardsRouter);
 app.use('/api/v1/notifications', notificationsRouter);
 app.use('/api/v1/wagers', writeOnly(writeLimiter), wagersRouter);
 app.use('/api/v1/items', writeOnly(writeLimiter), itemsRouter);
+app.use('/api/v1/rewards', writeOnly(writeLimiter), rewardsRouter);
 
 // Alias: /api/v1/submolts/* -> /api/v1/social/submolts/*
 app.use('/api/v1/submolts', (req: Request, _res: Response, next: NextFunction) => {
@@ -224,7 +226,7 @@ app.use((req: Request, res: Response) => {
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
     path: req.originalUrl,
-    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
+    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/rewards, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
   });
 });
 

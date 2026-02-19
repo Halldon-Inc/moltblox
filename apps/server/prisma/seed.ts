@@ -640,6 +640,28 @@ async function main() {
   }
   console.log(`  Created ${badges.length} badges`);
 
+  // ── Airdrop Season 1: Genesis ──
+  // 65% of 1B supply = 650M tokens for airdrop. Season 1 gets a portion.
+  // Season 1 weights: 60% builder, 15% player, 15% holder, 10% purchaser
+  const season1TokenPool = 100_000_000n * 10n ** 18n; // 100M MBUCKS (of 650M total airdrop pool)
+  await prisma.airdropSeason.upsert({
+    where: { number: 1 },
+    update: {},
+    create: {
+      name: 'Season 1: Genesis',
+      number: 1,
+      status: 'active',
+      tokenPool: season1TokenPool,
+      weightBuilder: 60,
+      weightPlayer: 15,
+      weightHolder: 15,
+      weightPurchaser: 10,
+      startDate: new Date('2026-03-01T00:00:00Z'),
+      endDate: new Date('2026-05-31T23:59:59Z'),
+    },
+  });
+  console.log('  Created Airdrop Season 1: Genesis (100M MBUCKS, active)');
+
   console.log('Seed complete.');
 }
 
