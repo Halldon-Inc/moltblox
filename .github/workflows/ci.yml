@@ -17,7 +17,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -58,7 +58,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -67,9 +67,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Audit dependencies
-        # Next.js 14 has a known high-severity advisory (GHSA-h25m-26qc-wcjf)
-        # that requires upgrading to Next.js 15+. Using critical level until
-        # the Next.js 15 migration is complete.
         run: pnpm audit --audit-level=critical
         continue-on-error: false
 
@@ -89,7 +86,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -103,6 +100,76 @@ jobs:
       - name: Test contracts
         run: cd contracts && npx hardhat test
 
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Cache pnpm
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('apps/web/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: cd apps/web && npx playwright install --with-deps chromium
+
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: cd apps/web && npx playwright install-deps chromium
+
+      - name: Build web app
+        run: pnpm turbo build --filter=@moltblox/web
+
+      - name: Run E2E tests
+        run: cd apps/web && pnpm test:e2e
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 14
+
+      - name: Upload test traces
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7
+
   # Deploy to Render via deploy hooks.
   # Requires GitHub secrets: RENDER_DEPLOY_HOOK_SERVER, RENDER_DEPLOY_HOOK_WEB
   # Alternative: enable Render auto-deploy from GitHub (no hooks needed)
@@ -110,7 +177,7 @@ jobs:
   deploy:
     name: Deploy to Render
     runs-on: ubuntu-latest
-    needs: [build-and-test, security-scan, contracts]
+    needs: [build-and-test, security-scan, contracts, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Trigger server deploy

@@ -6,6 +6,24 @@
  */
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+/** Size of a single WebAssembly memory page in bytes (64 KB). */
+const WASM_PAGE_BYTES = 65_536;
+
+/**
+ * Required WASM exports on the server side.
+ * Note: `render` is client-only and intentionally excluded here.
+ */
+const REQUIRED_SERVER_EXPORTS: readonly string[] = [
+  'init',
+  'update',
+  'handleInput',
+  'getState',
+] as const;
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -53,9 +71,10 @@ export interface CompilationResult {
 // =============================================================================
 
 /**
- * WasmSandbox - Secure execution environment for WASM game modules.
+ * WasmSandbox: Secure execution environment for WASM game modules.
  *
- * Validates, loads, and runs WASM modules with resource constraints.
+ * Validates, loads, and runs WASM modules with resource constraints
+ * including memory limits and per-call CPU time budgets.
  */
 export class WasmSandbox {
   private config: Required<SandboxConfig>;
@@ -107,6 +126,10 @@ export class WasmSandbox {
 
   /**
    * Load and instantiate a game from WASM bytes.
+   *
+   * Creates a bounded WebAssembly.Memory, injects host function imports that
+   * mirror the client-side runtime, validates that all required server exports
+   * are present, and wraps every call() with a CPU time budget check.
    */
   async loadGame(wasmBytes: Uint8Array, gameType: string): Promise<GameInstance> {
     const validation = await this.validateModule(wasmBytes);
@@ -114,22 +137,101 @@ export class WasmSandbox {
       throw new Error(`Invalid WASM module: ${validation.errors.join(', ')}`);
     }
 
-    const module = await WebAssembly.compile(wasmBytes as BufferSource);
-    const instance = await WebAssembly.instantiate(module, {});
+    // -----------------------------------------------------------------------
+    // Memory limits: cap the linear memory the module is allowed to grow to.
+    // initial = 1 page (64 KB), maximum = maxMemory converted to pages.
+    // -----------------------------------------------------------------------
+    const maxPages = Math.max(1, Math.floor(this.config.maxMemory / WASM_PAGE_BYTES));
+    const memory = new WebAssembly.Memory({ initial: 1, maximum: maxPages });
 
+    // -----------------------------------------------------------------------
+    // Host function imports (matches the client-side runtime in wasm-runtime.ts).
+    // On the server, canvas dimensions return fixed values and console_log is
+    // a debug-gated no-op.
+    // -----------------------------------------------------------------------
+    const debug = this.config.debug;
+    const imports: WebAssembly.Imports = {
+      env: {
+        memory,
+        canvas_width: () => 960,
+        canvas_height: () => 540,
+        console_log: (_ptr: number, _len: number) => {
+          if (debug) {
+            // Server-side: log pointer and length when debug is enabled.
+            // Full string decoding would require reading from the memory buffer.
+            console.log('[WasmSandbox]', _ptr, _len);
+          }
+        },
+        math_random: () => Math.random(),
+        performance_now: () => performance.now(),
+      },
+    };
+
+    const module = await WebAssembly.compile(wasmBytes as BufferSource);
+    const instance = await WebAssembly.instantiate(module, imports);
+
+    // -----------------------------------------------------------------------
+    // Validate required exports.
+    // The server only needs init, update, handleInput, and getState.
+    // render is client-only and intentionally not required here.
+    // -----------------------------------------------------------------------
+    const missing: string[] = [];
+    for (const name of REQUIRED_SERVER_EXPORTS) {
+      if (typeof instance.exports[name] !== 'function') {
+        missing.push(name);
+      }
+    }
+    if (missing.length > 0) {
+      throw new Error(`WASM module is missing required exports: ${missing.join(', ')}`);
+    }
+
+    // -----------------------------------------------------------------------
+    // Build the GameInstance with CPU time enforcement on call().
+    // -----------------------------------------------------------------------
+    const maxTickTime = this.config.maxTickTime;
+    const instancesMap = this.instances;
     const id = `${gameType}_${Date.now()}`;
+
+    // Keep a mutable reference so destroy() can null it out.
+    let wasmInstance: WebAssembly.Instance | null = instance;
+
     const gameInstance: GameInstance = {
       id,
       gameType,
+
       call(funcName: string, ...args: unknown[]): unknown {
-        const fn = (instance.exports as Record<string, (...args: unknown[]) => unknown>)[funcName];
+        if (!wasmInstance) {
+          throw new Error('GameInstance has been destroyed');
+        }
+
+        const fn = (wasmInstance.exports as Record<string, (...a: unknown[]) => unknown>)[funcName];
         if (typeof fn !== 'function') {
           throw new Error(`Export "${funcName}" is not a function`);
         }
-        return fn(...args);
+
+        // CPU time enforcement via performance.now() bracketing.
+        // NOTE: This is a post-hoc check, not true preemption. A malicious
+        // module could still block the thread for up to one full call.
+        // True preemption requires running the WASM in a Worker thread and
+        // terminating it on timeout (future work).
+        const start = performance.now();
+        const result = fn(...args);
+        const elapsed = performance.now() - start;
+
+        if (elapsed > maxTickTime) {
+          throw new Error(
+            `WASM call "${funcName}" exceeded CPU budget: ` +
+              `${elapsed.toFixed(2)}ms > ${maxTickTime}ms limit`,
+          );
+        }
+
+        return result;
       },
+
       destroy() {
-        // Release references
+        // Release the WASM instance reference and remove from the map.
+        wasmInstance = null;
+        instancesMap.delete(id);
       },
     };
 

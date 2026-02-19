@@ -7,8 +7,8 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import multer, { FileFilterCallback } from 'multer';
-import { randomUUID } from 'crypto';
-import { existsSync, mkdirSync } from 'fs';
+import { randomUUID, createHash } from 'crypto';
+import { existsSync, mkdirSync, statSync } from 'fs';
 import { join, extname, resolve } from 'path';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -32,6 +32,14 @@ if (!existsSync(UPLOAD_DIR)) {
 
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+
+/** Map file extensions to proper Content-Type values for serving. */
+const EXT_TO_CONTENT_TYPE: Record<string, string> = {
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+};
 
 /**
  * File filter: only accept image files (jpg, png, webp).
@@ -176,6 +184,12 @@ router.post(
 /**
  * GET /uploads/:filename
  * Serve an uploaded file by filename. Public access (no auth required).
+ *
+ * Optimizations:
+ *   - 1-year immutable cache (filenames are UUIDs, content never changes)
+ *   - ETag based on file mtime + size for conditional request support
+ *   - Explicit Content-Type from extension (avoids MIME sniffing)
+ *   - CORS header so a CDN or external embed can fetch images directly
  */
 router.get('/:filename', (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -201,8 +215,35 @@ router.get('/:filename', (req: Request, res: Response, next: NextFunction) => {
       return;
     }
 
-    // Cache uploaded assets for 1 day
-    res.setHeader('Cache-Control', 'public, max-age=86400');
+    // ── File stats (for ETag) ──────────────────────────────
+    const stat = statSync(filePath);
+
+    // ── ETag: hash of mtime + size (lightweight, no file read) ──
+    const etagSource = `${stat.mtimeMs}:${stat.size}`;
+    const etag = `"${createHash('md5').update(etagSource).digest('hex')}"`;
+
+    // If the client already has a matching version, return 304
+    if (req.headers['if-none-match'] === etag) {
+      res.status(304).end();
+      return;
+    }
+
+    // ── Content-Type from extension ────────────────────────
+    const ext = extname(filename).toLowerCase();
+    const contentType = EXT_TO_CONTENT_TYPE[ext];
+    if (contentType) {
+      res.set('Content-Type', contentType);
+    }
+
+    // ── Cache headers ──────────────────────────────────────
+    // UUID filenames are unique per upload, so content is immutable.
+    // 1 year max-age + immutable tells browsers and CDNs to never revalidate.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('ETag', etag);
+
+    // ── CORS for CDN / external embeds ─────────────────────
+    res.set('Access-Control-Allow-Origin', '*');
+
     res.sendFile(filePath);
   } catch (error) {
     next(error);
