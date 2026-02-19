@@ -482,6 +482,24 @@ describe("TournamentManager", function () {
       ).to.be.revertedWith("Must total 100%");
     });
 
+    it("Should revert when first is zero", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await expect(
+        manager.connect(sponsor).setDistribution("tourney-001", 0, 50, 40, 10)
+      ).to.be.revertedWith("First must be > 0");
+    });
+
+    it("Should revert when second is zero", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await expect(
+        manager.connect(sponsor).setDistribution("tourney-001", 50, 0, 40, 10)
+      ).to.be.revertedWith("Second must be > 0");
+    });
+
     it("Should revert when unauthorized user sets distribution", async function () {
       const { manager, other } =
         await loadFixture(deployWithCreatorTournamentFixture);
@@ -2224,6 +2242,43 @@ describe("TournamentManager", function () {
       await expect(
         manager.connect(other).commitResults("tourney-001", ethers.id("hash"))
       ).to.be.revertedWith("Not authorized");
+    });
+
+    it("Should revert commitResults when paused", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      await manager.pause();
+
+      await expect(
+        manager.connect(sponsor).commitResults("tourney-001", ethers.id("hash"))
+      ).to.be.revertedWithCustomError(manager, "EnforcedPause");
+    });
+  });
+
+  // ================================================================
+  // MAX_CONTRIBUTORS_CAP
+  // ================================================================
+  describe("MAX_CONTRIBUTORS_CAP", function () {
+    it("Should have MAX_CONTRIBUTORS_CAP of 256", async function () {
+      const { manager } = await loadFixture(deployTournamentFixture);
+      expect(await manager.MAX_CONTRIBUTORS_CAP()).to.equal(256);
+    });
+
+    it("Should allow existing contributor to add more without hitting cap", async function () {
+      const { token, manager, other } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await token.transfer(other.address, ethers.parseEther("2000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+
+      await manager.connect(other).addToPrizePool("tourney-001", ethers.parseEther("100"));
+      // Same contributor adds again, should not increase contributor count
+      await manager.connect(other).addToPrizePool("tourney-001", ethers.parseEther("100"));
+
+      expect(await manager.contributions("tourney-001", other.address)).to.equal(
+        ethers.parseEther("200")
+      );
     });
   });
 });

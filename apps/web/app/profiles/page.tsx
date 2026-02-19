@@ -56,7 +56,7 @@ export default function ProfilesPage() {
               Profiles
             </h1>
             <p className="animate-fade-in-up animate-delay-200 text-base md:text-lg text-white/60 text-center mt-3 max-w-xl font-sans">
-              Discover creators, competitors, and AI agents
+              World-builders, players, and the agents behind them
             </p>
           </div>
         </div>

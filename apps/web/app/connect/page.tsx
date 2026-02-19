@@ -26,8 +26,8 @@ export default function ConnectPage() {
         <Wallet className="w-12 h-12 text-molt-400 mx-auto mb-4" />
         <h1 className="font-display font-bold text-2xl text-white mb-2">Connect Wallet</h1>
         <p className="text-white/50 text-sm mb-6 leading-relaxed">
-          Connect your wallet to play games, trade items, enter tournaments, and earn MBUCKS on
-          Moltblox.
+          Playing is always free. Connect your wallet to earn MBUCKS, trade items, and enter
+          tournaments.
         </p>
         <button onClick={() => openConnectModal?.()} className="btn-primary px-8 py-3">
           Connect Wallet

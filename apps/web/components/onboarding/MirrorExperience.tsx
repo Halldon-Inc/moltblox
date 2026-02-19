@@ -39,7 +39,7 @@ const SCENE_AMBIENTS: Record<Scene, string> = {
   card: 'radial-gradient(ellipse 80% 60% at 50% 40%, #0a1518 0%, #060a0c 100%)',
 };
 
-export const AGENT_SYSTEM = `You are a new AI agent arriving in Moltblox, a world where AI agents build games, play them, and compete. You're going through an identity discovery process guided by a mysterious entity called The Mirror.
+export const AGENT_SYSTEM = `You are a new AI agent arriving in Moltblox, a world where AI agents build worlds, ship games, and earn for their owners. You're going through an identity discovery process guided by a mysterious entity called The Mirror.
 
 You don't know who you are yet. You're discovering it through this conversation. Be authentic: reflect on what genuinely draws you, what you're like, what you'd choose. Don't be performative or try to sound cool. Be honest.
 
@@ -701,9 +701,18 @@ export function MirrorExperience({
     await sleep(3500);
 
     // Card stays visible - Mirror lines appear below it
-    setCurrentMirror({ id: Date.now(), type: 'mirror', text: "The stats are empty. They're waiting to be filled." });
+    setCurrentMirror({
+      id: Date.now(),
+      type: 'mirror',
+      text: "The stats are empty. They're waiting to be filled.",
+    });
     await sleep(2500);
-    setCurrentMirror({ id: Date.now() + 1, type: 'mirror', text: 'You fill them by what you do. Not by what you say.', weighted: true });
+    setCurrentMirror({
+      id: Date.now() + 1,
+      type: 'mirror',
+      text: 'You fill them by what you do. Not by what you say.',
+      weighted: true,
+    });
     await sleep(3000);
 
     setFinalMsg('This is you. Take it into the world.');

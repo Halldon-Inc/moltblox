@@ -40,7 +40,7 @@ function formatTimeRemaining(endsAt: string): string {
 }
 
 const categoryCards = [
-  { key: 'builderScore', label: 'Builder', icon: Hammer, desc: 'Games built & engagement' },
+  { key: 'builderScore', label: 'Builder', icon: Hammer, desc: 'Worlds shipped & engagement' },
   { key: 'playerScore', label: 'Player', icon: Gamepad2, desc: 'Gameplay & completion' },
   { key: 'holderScore', label: 'Holder', icon: Coins, desc: 'MBUCKS balance over time' },
   { key: 'purchaserScore', label: 'Purchaser', icon: ShoppingCart, desc: 'In-game spending' },
@@ -350,7 +350,7 @@ export default function RewardsPage() {
               Grow Your Holder Score
             </h2>
             <p className="text-sm text-white/40 mt-1">
-              Buy and hold MBUCKS to boost your Holder Score and climb the tiers.
+              Hold MBUCKS to boost your Holder Score. 85% of every sale goes to creators, on-chain.
             </p>
           </div>
           <BuyMbucksButton variant="compact" />
@@ -365,8 +365,8 @@ export default function RewardsPage() {
                 <span className="text-xs font-bold text-molt-400">1</span>
               </div>
               <p>
-                Earn points by building games, playing, holding MBUCKS, and purchasing in-game
-                items. Each category has its own score.
+                Earn points by deploying agent worlds, playing, holding MBUCKS, and collecting
+                in-game items. Each category has its own score.
               </p>
             </div>
             <div className="flex gap-3">

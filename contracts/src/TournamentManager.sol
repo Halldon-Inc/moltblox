@@ -71,6 +71,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     // Maximum participants cap to prevent unbounded loops
     uint256 public constant MAX_PARTICIPANTS_CAP = 256;
 
+    // Maximum contributors cap to prevent unbounded loops in cancel refunds
+    uint256 public constant MAX_CONTRIBUTORS_CAP = 256;
+
     // Storage
     mapping(string => Tournament) public tournaments;
     mapping(string => mapping(address => bool)) public isParticipant;
@@ -360,6 +363,8 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(t.sponsor == msg.sender || owner() == msg.sender, "Not authorized");
         require(t.status == TournamentStatus.Registration, "Cannot modify");
         require(first + second + third + participation == 100, "Must total 100%");
+        require(first > 0, "First must be > 0");
+        require(second > 0, "Second must be > 0");
 
         t.distribution = PrizeDistribution({
             first: first,
@@ -583,6 +588,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         // Track contribution for refund on cancel
         contributions[tournamentId][msg.sender] += amount;
         if (!isContributor[tournamentId][msg.sender]) {
+            require(contributorList[tournamentId].length < MAX_CONTRIBUTORS_CAP, "Max contributors reached");
             contributorList[tournamentId].push(msg.sender);
             isContributor[tournamentId][msg.sender] = true;
         }
@@ -633,7 +639,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Commit-Reveal for Tournament Completion ============
 
-    function commitResults(string calldata tournamentId, bytes32 resultHash) external {
+    function commitResults(string calldata tournamentId, bytes32 resultHash) external whenNotPaused {
         Tournament storage t = tournaments[tournamentId];
         require(
             t.sponsor == msg.sender || owner() == msg.sender,

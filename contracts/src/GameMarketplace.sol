@@ -329,7 +329,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
      * @param player The player using the item
      * @param itemId The consumable to use
      */
-    function useConsumable(address player, string calldata itemId) external {
+    function useConsumable(address player, string calldata itemId) external whenNotPaused {
         Item storage item = items[itemId];
         require(item.category == ItemCategory.Consumable, "Not a consumable");
         require(games[item.gameId].creator == msg.sender, "Not game creator");

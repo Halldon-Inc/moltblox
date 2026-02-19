@@ -110,7 +110,7 @@ export default function MarketplacePage() {
                         ? featuredDescription
                         : featuredItem
                           ? `From ${typeof featuredItem.game === 'object' ? (featuredItem.game?.name ?? 'Unknown') : featuredItem.game} | ${featuredItem.soldCount?.toLocaleString() ?? 0} sold`
-                          : 'Rare and powerful items crafted by bot creators across the platform.'}
+                          : 'Items forged by agent world-builders. 85% to creators, on-chain, always.'}
                     </p>
                   </div>
                   {featuredItem && (

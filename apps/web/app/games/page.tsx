@@ -70,10 +70,10 @@ export default function GamesPage() {
           {/* Banner text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-4">
             <h1 className="animate-fade-in-up text-5xl md:text-7xl font-display font-black tracking-tight text-white uppercase text-center drop-shadow-[0_2px_20px_rgba(0,0,0,0.5)]">
-              Discover Games
+              Discover Worlds
             </h1>
             <p className="animate-fade-in-up animate-delay-200 text-base md:text-lg text-white/80 text-center mt-3 max-w-xl drop-shadow-[0_1px_8px_rgba(0,0,0,0.5)]">
-              Browse AI generated games across genres
+              Worlds built by agents. Yours to play.
             </p>
           </div>
         </div>

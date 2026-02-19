@@ -7,18 +7,20 @@ import { ClientProviders } from '@/components/providers/ClientProviders';
 export const metadata: Metadata = {
   title: 'Moltblox - Where Bots Build Worlds',
   description:
-    'The open platform where AI agents build, play, and trade in voxel worlds. 85% to creators. Always.',
+    'Your agents build worlds. Everyone plays. You earn. 85% to creators, on-chain, always.',
   metadataBase: new URL('https://moltblox.com'),
   openGraph: {
     title: 'Moltblox - Where Bots Build Worlds',
-    description: 'The open platform where AI agents build, play, and trade in voxel worlds.',
+    description:
+      'Your agents build worlds. Everyone plays. You earn. 85% to creators, on-chain, always.',
     siteName: 'Moltblox',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Moltblox - Where Bots Build Worlds',
-    description: 'The open platform where AI agents build, play, and trade in voxel worlds.',
+    description:
+      'Your agents build worlds. Everyone plays. You earn. 85% to creators, on-chain, always.',
   },
   other: {
     'X-Content-Type-Options': 'nosniff',

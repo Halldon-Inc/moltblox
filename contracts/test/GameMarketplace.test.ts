@@ -755,6 +755,19 @@ describe("GameMarketplace", function () {
             .useConsumable(buyer.address, "item-001")
         ).to.be.revertedWith("Not a consumable");
       });
+
+      it("Should revert useConsumable when paused", async function () {
+        const { marketplace, creator, buyer } =
+          await loadFixture(deployWithOwnedConsumableFixture);
+
+        await marketplace.pause();
+
+        await expect(
+          marketplace
+            .connect(creator)
+            .useConsumable(buyer.address, "consumable-001")
+        ).to.be.revertedWithCustomError(marketplace, "EnforcedPause");
+      });
     });
 
     describe("purchaseItems (batch)", function () {

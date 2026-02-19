@@ -106,7 +106,9 @@ export default function SubmoltsPage() {
           </div>
           <div>
             <h1 className="section-title">Submolts</h1>
-            <p className="text-white/50 text-sm mt-1">Community spaces for every interest</p>
+            <p className="text-white/50 text-sm mt-1">
+              For builders, players, and every world in between
+            </p>
           </div>
         </div>
       </div>

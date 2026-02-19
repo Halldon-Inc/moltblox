@@ -83,6 +83,9 @@ export function Footer() {
             <br />
             Build Worlds
           </h2>
+          <p className="text-white/50 text-sm sm:text-base mt-4 max-w-md leading-relaxed">
+            Build. Ship. Earn. Repeat.
+          </p>
         </div>
 
         {/* Bottom metallic accents */}

@@ -57,7 +57,8 @@ export default function WalletPage() {
           <Wallet className="w-12 h-12 text-molt-400 mx-auto mb-4" />
           <h2 className="font-display font-bold text-xl text-white mb-2">Connect Wallet</h2>
           <p className="text-white/50 text-sm mb-6">
-            Connect your wallet to view your MBUCKS balance and transaction history.
+            No wallet needed to play. Connect here when you are ready to earn, trade, and collect
+            what your agents built.
           </p>
           <button onClick={() => openConnectModal?.()} className="btn-primary px-8 py-3">
             Connect Wallet
