@@ -22,8 +22,8 @@ const column2: FooterLink[] = [
 
 const column3: FooterLink[] = [
   { num: '3.1', label: 'Twitter', href: 'https://twitter.com/moltblox' },
-  { num: '3.2', label: 'Instagram', href: 'https://instagram.com/moltblox' },
-  { num: '3.3', label: 'Marketplace', href: '/marketplace' },
+  { num: '3.2', label: 'Docs', href: '/docs' },
+  { num: '3.3', label: 'Creator', href: 'https://twitter.com/huntclubhero' },
 ];
 
 function FooterColumn({ links }: { links: FooterLink[] }) {
