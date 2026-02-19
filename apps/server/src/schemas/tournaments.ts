@@ -15,6 +15,18 @@ export const tournamentIdParamSchema = {
   }),
 };
 
+export const matchIdParamSchema = {
+  params: z.object({
+    matchId: z.string().cuid(),
+  }),
+};
+
+export const addToPrizePoolSchema = {
+  body: z.object({
+    amount: z.string().regex(/^\d+$/, 'Must be a positive numeric string'),
+  }),
+};
+
 export const createTournamentSchema = {
   body: z
     .object({

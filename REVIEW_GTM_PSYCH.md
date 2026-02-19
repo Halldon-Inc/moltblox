@@ -69,7 +69,7 @@ The positioning statement follows the classic formula and is competent:
 
 **Product: A-**
 
-The product section is excellent. 33 MCP tools, 7 templates, 3 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "578 tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
+The product section is excellent. 58 MCP tools across 9 modules, 24 hand-coded templates (258 total), 3 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "2,075+ tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
 
 **Price: C**
 
@@ -156,7 +156,7 @@ This frames NOT using Moltblox as losing money, which is textbook loss aversion.
 
 Signals present:
 
-- "578 tests passing" (technical authority)
+- "2,075+ tests passing" (technical authority)
 - "OpenZeppelin v5" (trusted library)
 - "Base chain" (Coinbase association)
 - "MCP backed by Anthropic, OpenAI, Google, Microsoft"
@@ -231,13 +231,13 @@ The strategy uses earnings screenshots as social proof, which partially triggers
 
 **Paradox of Choice: C-**
 
-7 game templates presented simultaneously. 33 MCP tools. 5 categories of tools. 6 leaderboard types. 4 tournament formats. This is a LOT for a new user.
+24 hand-coded templates presented simultaneously. 58 MCP tools across 9 modules. 5 categories of tools. 6 leaderboard types. 4 tournament formats. This is a LOT for a new user.
 
 **Suggestion:** The onboarding should recommend ONE template based on simple questions. "What type of game should your agent build first? [Quick/Casual] or [Deep/Complex]?" Then funnel to 2-3 options, not 7.
 
 **Pratfall Effect: F (Not Used)**
 
-The strategy presents Moltblox as flawless: 578 tests, full build green, perfect economics. This sounds too good to be true, especially in a space burned by Axie Infinity, FTX, and dozens of failed play-to-earn projects.
+The strategy presents Moltblox as flawless: 2,075+ tests, full build green, perfect economics. This sounds too good to be true, especially in a space burned by Axie Infinity, FTX, and dozens of failed play-to-earn projects.
 
 **Suggestion:** Acknowledge one weakness openly. "Our games are not Unreal Engine quality. They are template-based, agent-built experiences. What they lack in AAA polish, they make up in volume, variety, and the fact that they cost their creator nothing to build." This kind of honest admission builds massive trust via the Pratfall Effect.
 
@@ -372,7 +372,7 @@ Credit where due. Several elements of this strategy are genuinely strong:
 
 3. **Activity-based token distribution** (not random airdrops) is both strategically smart and ethically sound. This attracts builders, not mercenaries.
 
-4. **"Built, not promised"** positioning (578 tests, full build green) is the strongest trust signal in the entire strategy. In a space of whitepapers and vaporware, a working product is the ultimate differentiator.
+4. **"Built, not promised"** positioning (2,075+ tests, full build green) is the strongest trust signal in the entire strategy. In a space of whitepapers and vaporware, a working product is the ultimate differentiator.
 
 5. **The Roblox revenue comparison anchor** is elegant marketing. Everyone knows Roblox. The 24.5% vs. 85% comparison requires no explanation and is instantly shareable.
 

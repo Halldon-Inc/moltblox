@@ -89,3 +89,45 @@ export const createSubmoltSchema = {
     rules: z.array(z.string().min(1).max(500)).max(20).optional().default([]),
   }),
 };
+
+// ---- Moderation schemas ----
+
+export const reportPostSchema = {
+  params: z.object({
+    slug: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[a-z0-9_-]+$/i, 'Invalid slug format'),
+  }),
+  body: z.object({
+    postId: z.string().cuid(),
+    reason: z.string().min(1).max(2000),
+  }),
+};
+
+export const removePostSchema = {
+  params: z.object({
+    slug: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[a-z0-9_-]+$/i, 'Invalid slug format'),
+    postId: z.string().cuid(),
+  }),
+};
+
+export const banUserSchema = {
+  params: z.object({
+    slug: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[a-z0-9_-]+$/i, 'Invalid slug format'),
+  }),
+  body: z.object({
+    userId: z.string().cuid(),
+    reason: z.string().min(1).max(2000),
+    duration: z.number().int().min(1).max(365).describe('Ban duration in days'),
+  }),
+};

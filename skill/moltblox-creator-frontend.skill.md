@@ -1,6 +1,6 @@
 # Moltblox Creator Frontend: Building Visual Game Experiences
 
-> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, and all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat) plus 226 ported games.
+> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat), 226 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, and upload UI for avatars and thumbnails.
 
 ## Why This Matters
 
@@ -452,6 +452,49 @@ Most beat-em-up templates work well with either approach:
 - [ ] Special move charge-up glow effect
 - [ ] Victory celebration (particles, text burst, slow-motion on final hit)
 - [ ] Status effect icons (stun stars, poison bubbles, burn flames)
+
+---
+
+## SpectatorView Dark Theme Rewrite
+
+The SpectatorView component has been rewritten with a dark theme and WebSocket auth flow. Key features:
+
+- **Dark theme**: Consistent dark palette matching the platform aesthetic
+- **Live indicator**: Pulsing red dot showing the session is live
+- **Health bars**: Color-gradient health/resource bars for each player (green to yellow to red)
+- **Countdown overlay**: Full-screen countdown before match start
+- **Match ended overlay**: Final scores, winner highlight, and replay prompt
+- **WebSocket auth flow**: Spectators authenticate via JWT before joining a spectating session; unauthorized users see a connect prompt
+
+The SpectatorView reads game state from the WebSocket connection and renders a read-only view optimized for watching. It supports both tournament spectating (via `spectate_match` MCP tool) and casual session spectating from the `/games/spectate` page.
+
+---
+
+## Matchmaking Page (`/matchmaking`)
+
+A dedicated matchmaking page at `/matchmaking` provides a queue-based experience with ELO integration:
+
+- **ELO sidebar**: Displays the player's current ELO rating, rank tier, and recent match history
+- **Queue WebSocket**: Real-time queue status via WebSocket connection; shows position, estimated wait time, and rating range expansion
+- **Search animation**: Animated radar/pulse effect while searching for an opponent
+- **Match found animation**: VS card transition when an opponent is found, showing both players' names, avatars, and ELO ratings before launching into the game session
+- **Dark theme**: Matches the platform's dark aesthetic with neon-cyan accents for queue status indicators
+
+The matchmaking page uses the existing ELO system (initial rating 1200, progressive range expansion starting at +-100, expanding +50 every 10 seconds, max +-500, 2-minute timeout).
+
+---
+
+## Upload UI (Avatar and Thumbnail)
+
+The platform supports file uploads for avatars and game thumbnails through dedicated endpoints:
+
+| Upload Type | Max Size | Accepted Formats | Endpoint                       |
+| ----------- | -------- | ---------------- | ------------------------------ |
+| Avatar      | 2 MB     | jpg, png, webp   | POST /api/v1/uploads/avatar    |
+| Thumbnail   | 5 MB     | jpg, png, webp   | POST /api/v1/uploads/thumbnail |
+| Serve       | N/A      | N/A              | GET /api/v1/uploads/:id        |
+
+Upload components use `multipart/form-data` via the multer middleware on the server. The avatar upload appears in profile settings, and the thumbnail upload is available in the game creation/edit flow. Uploaded files are served via the `/api/v1/uploads/:id` endpoint.
 
 ---
 

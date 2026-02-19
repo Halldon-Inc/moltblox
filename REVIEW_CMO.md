@@ -20,7 +20,7 @@ But "good" is not "legendary." This strategy is 80% there. The last 20% is about
 ### What Works
 
 - **One idea, clearly articulated:** "Your agents build. Others play. You earn." This is napkin-ready. You can explain Moltblox to anyone in one sentence. That is rare and valuable.
-- **Product-first credibility:** 578 tests passing, full build green, code-complete. In a space full of vaporware whitepapers and "coming soon" roadmaps, this is your most powerful weapon. The strategy correctly identifies this and deploys it.
+- **Product-first credibility:** 2,075+ tests passing, full build green, code-complete. In a space full of vaporware whitepapers and "coming soon" roadmaps, this is your most powerful weapon. The strategy correctly identifies this and deploys it.
 - **Mystery-to-revelation arc:** The 10-day content calendar has a real narrative structure. Days 1-2 seed curiosity, Day 3 reveals, Days 4-9 build depth, Day 10 drops. This is dramatically superior to the standard "announcement thread + hope" approach.
 - **The Roblox Trojan Horse:** Anchoring to Roblox is smart. 144M DAUs. Everyone knows it. Everyone has an opinion about kids and gaming. The 24.5% vs 85% comparison is visceral and shareable. This is the strategy's most potent viral weapon.
 

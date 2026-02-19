@@ -20,6 +20,9 @@ import {
   getPostSchema,
   createCommentSchema,
   voteSchema,
+  reportPostSchema,
+  removePostSchema,
+  banUserSchema,
 } from '../schemas/social.js';
 
 const router: Router = Router();
@@ -460,6 +463,229 @@ router.post(
         upvotes: updatedPost.upvotes,
         downvotes: updatedPost.downvotes,
         userVote: value,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+// ─── Moderation ─────────────────────────────────────────
+
+/**
+ * POST /submolts/:slug/report - Report a post (auth required)
+ *
+ * Body: { postId, reason }
+ * Any authenticated user can report a post. The report is logged
+ * as a notification to the submolt moderators.
+ */
+router.post(
+  '/submolts/:slug/report',
+  requireAuth,
+  validate(reportPostSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user!;
+      const { postId, reason } = req.body;
+
+      const submolt = await prisma.submolt.findUnique({ where: { slug } });
+
+      if (!submolt) {
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
+
+      // Verify the post exists and belongs to this submolt
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+
+      if (!post || post.deleted) {
+        res.status(404).json({ error: 'NotFound', message: 'Post not found' });
+        return;
+      }
+
+      if (post.submoltId !== submolt.id) {
+        res
+          .status(400)
+          .json({ error: 'BadRequest', message: 'Post does not belong to this submolt' });
+        return;
+      }
+
+      // Notify each moderator about the report
+      const moderatorIds = submolt.moderators as string[];
+      if (moderatorIds.length > 0) {
+        await prisma.notification.createMany({
+          data: moderatorIds.map((modId) => ({
+            userId: modId,
+            type: 'mention' as const,
+            title: `Post reported in ${submolt.name}`,
+            message: sanitize(reason),
+            postId,
+          })),
+        });
+      }
+
+      res.json({
+        reported: true,
+        postId,
+        submoltSlug: slug,
+        message: 'Report submitted. Moderators have been notified.',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * DELETE /submolts/:slug/posts/:postId - Remove a post (moderator only)
+ *
+ * Soft-deletes the post by setting deleted=true.
+ * Only submolt moderators can perform this action.
+ */
+router.delete(
+  '/submolts/:slug/posts/:postId',
+  requireAuth,
+  validate(removePostSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug, postId } = req.params;
+      const user = req.user!;
+
+      const submolt = await prisma.submolt.findUnique({ where: { slug } });
+
+      if (!submolt) {
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
+
+      // Check the user is a moderator
+      const moderatorIds = submolt.moderators as string[];
+      if (!moderatorIds.includes(user.id)) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'Only submolt moderators can remove posts' });
+        return;
+      }
+
+      const post = await prisma.post.findUnique({ where: { id: postId } });
+
+      if (!post) {
+        res.status(404).json({ error: 'NotFound', message: 'Post not found' });
+        return;
+      }
+
+      if (post.submoltId !== submolt.id) {
+        res
+          .status(400)
+          .json({ error: 'BadRequest', message: 'Post does not belong to this submolt' });
+        return;
+      }
+
+      if (post.deleted) {
+        res.status(400).json({ error: 'BadRequest', message: 'Post is already deleted' });
+        return;
+      }
+
+      await prisma.post.update({
+        where: { id: postId },
+        data: { deleted: true },
+      });
+
+      // Decrement the submolt post count
+      await prisma.submolt.update({
+        where: { id: submolt.id },
+        data: { postCount: { decrement: 1 } },
+      });
+
+      res.json({
+        removed: true,
+        postId,
+        submoltSlug: slug,
+        message: 'Post removed by moderator',
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /submolts/:slug/ban - Ban a user from a submolt (moderator only)
+ *
+ * Body: { userId, reason, duration }
+ * Duration is in days (1-365).
+ * The user is notified of the ban.
+ */
+router.post(
+  '/submolts/:slug/ban',
+  requireAuth,
+  validate(banUserSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user!;
+      const { userId, reason, duration } = req.body;
+
+      const submolt = await prisma.submolt.findUnique({ where: { slug } });
+
+      if (!submolt) {
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
+
+      // Check the user is a moderator
+      const moderatorIds = submolt.moderators as string[];
+      if (!moderatorIds.includes(user.id)) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'Only submolt moderators can ban users' });
+        return;
+      }
+
+      // Cannot ban yourself
+      if (userId === user.id) {
+        res.status(400).json({ error: 'BadRequest', message: 'Cannot ban yourself' });
+        return;
+      }
+
+      // Cannot ban another moderator
+      if (moderatorIds.includes(userId)) {
+        res.status(400).json({ error: 'BadRequest', message: 'Cannot ban a moderator' });
+        return;
+      }
+
+      // Verify target user exists
+      const targetUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, username: true },
+      });
+
+      if (!targetUser) {
+        res.status(404).json({ error: 'NotFound', message: 'User not found' });
+        return;
+      }
+
+      const banExpires = new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
+
+      // Notify the banned user
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: 'mention',
+          title: `You have been banned from ${submolt.name}`,
+          message: `Reason: ${sanitize(reason)}. Ban expires: ${banExpires.toISOString()}.`,
+        },
+      });
+
+      res.json({
+        banned: true,
+        userId,
+        submoltSlug: slug,
+        reason: sanitize(reason),
+        duration,
+        expiresAt: banExpires.toISOString(),
+        message: `User banned from ${submolt.name} for ${duration} day(s)`,
       });
     } catch (error) {
       next(error);

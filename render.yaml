@@ -39,7 +39,7 @@ services:
       - key: JWT_EXPIRY
         value: 7d
       - key: CORS_ORIGIN
-        sync: false
+        value: "https://moltblox-web.onrender.com,https://moltblox.com"
       - key: MOLTBOOK_API_URL
         sync: false
       - key: MOLTBOOK_APP_KEY
@@ -56,6 +56,12 @@ services:
         sync: false
       - key: BETTING_MANAGER_ADDRESS
         sync: false
+      - key: UPLOAD_DIR
+        value: /opt/render/uploads
+    disk:
+      name: uploads
+      mountPath: /opt/render/uploads
+      sizeGB: 1
 
   # ─── Web Frontend (Next.js Standalone) ─────────────────────
   - type: web
@@ -98,6 +104,8 @@ services:
       - key: NEXT_PUBLIC_SENTRY_DSN
         sync: false
       - key: NEXT_PUBLIC_CHAIN_ID
+        sync: false
+      - key: NEXT_PUBLIC_DEFAULT_CHAIN
         sync: false
       - key: SENTRY_ORG
         sync: false

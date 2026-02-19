@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Trophy, Users, Star, Medal, Crown, Award } from 'lucide-react';
+import { Trophy, Users, Star, Medal, Crown, Award, Eye } from 'lucide-react';
 import { useTournament, useTournamentBracket, useRegisterForTournament } from '@/hooks/useApi';
 import { formatBigIntValue, formatDate } from '@/lib/format';
 import Spinner from '@/components/shared/Spinner';
@@ -440,27 +440,36 @@ export default function TournamentDetailPage() {
           </div>
         </div>
 
-        {/* Register CTA */}
+        {/* Register / Spectate CTA */}
         {displayStatus !== 'completed' && (
           <div className="text-center mt-12">
-            <button
-              onClick={displayStatus === 'upcoming' ? handleRegister : undefined}
-              disabled={registerMutation.isPending || displayStatus === 'live'}
-              className="btn-primary text-lg px-12 py-4 inline-flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={displayStatus === 'live' ? 'Spectating coming soon' : undefined}
-            >
-              {registerMutation.isPending ? (
-                <>
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
-                  Registering...
-                </>
-              ) : (
-                <>
-                  <Trophy className="w-5 h-5" />
-                  {displayStatus === 'live' ? 'Spectate (Coming Soon)' : 'Register Now'}
-                </>
-              )}
-            </button>
+            {displayStatus === 'live' ? (
+              <Link
+                href={`/games/spectate?tournamentId=${id}`}
+                className="btn-primary text-lg px-12 py-4 inline-flex items-center gap-3"
+              >
+                <Eye className="w-5 h-5" />
+                Spectate Live
+              </Link>
+            ) : (
+              <button
+                onClick={handleRegister}
+                disabled={registerMutation.isPending}
+                className="btn-primary text-lg px-12 py-4 inline-flex items-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {registerMutation.isPending ? (
+                  <>
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full" />
+                    Registering...
+                  </>
+                ) : (
+                  <>
+                    <Trophy className="w-5 h-5" />
+                    Register Now
+                  </>
+                )}
+              </button>
+            )}
             {registerMutation.isSuccess && (
               <p className="text-sm text-green-400 mt-3">Successfully registered!</p>
             )}

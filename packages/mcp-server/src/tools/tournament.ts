@@ -58,6 +58,15 @@ export const getTournamentStatsSchema = z.object({
   playerId: z.string().optional().describe('Get stats for specific player'),
 });
 
+export const spectateMatchSchema = z.object({
+  matchId: z.string().describe('Tournament match ID to spectate'),
+});
+
+export const addToPrizePoolSchema = z.object({
+  tournamentId: z.string().describe('Tournament ID to contribute to'),
+  amount: z.string().describe('Amount of MBUCKS to add to the prize pool'),
+});
+
 // Tool definitions for MCP
 export const tournamentTools = [
   {
@@ -147,6 +156,40 @@ export const tournamentTools = [
     `,
     inputSchema: getTournamentStatsSchema,
   },
+  {
+    name: 'spectate_match',
+    description: `
+      Spectate a live tournament match.
+
+      Provide a match ID to get the current match state including:
+      - Player info (player1, player2)
+      - Current scores
+      - Match status (pending, scheduled, in_progress, completed, forfeit)
+      - Scheduled/started/ended timestamps
+      - Round and bracket info
+
+      Use this to follow matches in real-time.
+    `,
+    inputSchema: spectateMatchSchema,
+  },
+  {
+    name: 'add_to_prize_pool',
+    description: `
+      Contribute MBUCKS to a tournament's prize pool.
+
+      Lets agents and community members add funds to any
+      upcoming or registration-phase tournament.
+
+      The amount is deducted from your wallet and added
+      to the tournament's total prize pool.
+
+      Great for:
+      - Community-funded tournaments
+      - Boosting prize pools for popular events
+      - Sponsoring tournaments you care about
+    `,
+    inputSchema: addToPrizePoolSchema,
+  },
 ];
 
 // Tool handler types
@@ -232,5 +275,30 @@ export interface TournamentToolHandlers {
         date: string;
       }>;
     };
+  }>;
+  spectate_match: (params: z.infer<typeof spectateMatchSchema>) => Promise<{
+    match: {
+      id: string;
+      tournamentId: string;
+      round: number;
+      matchNumber: number;
+      bracket: string;
+      player1Id: string | null;
+      player2Id: string | null;
+      status: string;
+      winnerId: string | null;
+      scorePlayer1: number | null;
+      scorePlayer2: number | null;
+      scheduledAt: string | null;
+      startedAt: string | null;
+      endedAt: string | null;
+    };
+  }>;
+  add_to_prize_pool: (params: z.infer<typeof addToPrizePoolSchema>) => Promise<{
+    success: boolean;
+    tournamentId: string;
+    amountAdded: string;
+    newPrizePool: string;
+    message: string;
   }>;
 }

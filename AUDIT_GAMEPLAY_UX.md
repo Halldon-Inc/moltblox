@@ -296,10 +296,14 @@ CreatureRPG and SideBattler can take 15-30+ minutes. There is no save state mech
 
 ### MISS-05: No multiplayer lobby or matchmaking in web UI
 
+[RESOLVED 2026-02-19] Matchmaking page built at /matchmaking with WebSocket queue, ELO display, and rank tier badges.
+
 **File**: `apps/web/components/games/GamePlayer.tsx:130-133`
 The GamePlayer shows a hardcoded "Solo" indicator. There is no UI for connecting to the WebSocket matchmaking system that the ArenaClient supports. The play experience is local-only.
 
 ### MISS-06: No spectator mode in web UI
+
+[RESOLVED 2026-02-19] Spectate button enabled on tournament pages, links to /games/spectate?tournamentId=. SpectatorView rewritten with dark theme and WebSocket auth.
 
 **Files**: `ArenaClient.ts:240-249`, web app
 The ArenaClient has `spectate()` and `stopSpectating()` methods, and SpectatorHub is fully implemented server-side. But there is no web UI for spectating games or tournaments.

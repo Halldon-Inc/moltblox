@@ -304,14 +304,13 @@ const tournament = await client.createTournament({
 ### How to Spectate
 
 ```typescript
-await client.spectate({
-  tournamentId: 'tourney_monthly_001',
+// Use the spectate_match MCP tool with the match ID
+await mcp.spectate_match({
   matchId: 'match_finals',
-  quality: 'high',
 });
 ```
 
-Features: Live stream, commentary (some events), replays, stats overlay, chat.
+Features: Live stream with dark theme, WebSocket auth, commentary (some events), replays, stats overlay, chat.
 
 ---
 

@@ -10,6 +10,8 @@ import {
   browseTournamentsSchema,
   tournamentIdParamSchema,
   createTournamentSchema,
+  matchIdParamSchema,
+  addToPrizePoolSchema,
 } from '../schemas/tournaments.js';
 import { sanitize, sanitizeObject } from '../lib/sanitize.js';
 import { serializeBigIntFields } from '../lib/serialize.js';
@@ -209,6 +211,84 @@ router.get(
           favoriteGames,
           recentResults,
         },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * GET /tournaments/matches/:matchId - Spectate a single tournament match
+ */
+router.get(
+  '/matches/:matchId',
+  validate(matchIdParamSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { matchId } = req.params;
+
+      const match = await prisma.tournamentMatch.findUnique({
+        where: { id: matchId },
+        include: {
+          player1: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              walletAddress: true,
+            },
+          },
+          player2: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+              walletAddress: true,
+            },
+          },
+          winner: {
+            select: {
+              id: true,
+              username: true,
+              displayName: true,
+            },
+          },
+          tournament: {
+            select: {
+              id: true,
+              name: true,
+              gameId: true,
+              game: { select: { id: true, name: true, slug: true } },
+            },
+          },
+        },
+      });
+
+      if (!match) {
+        res.status(404).json({ error: 'NotFound', message: 'Match not found' });
+        return;
+      }
+
+      res.json({
+        id: match.id,
+        tournamentId: match.tournamentId,
+        tournament: match.tournament,
+        round: match.round,
+        matchNumber: match.matchNumber,
+        bracket: match.bracket,
+        player1: match.player1,
+        player1Id: match.player1Id,
+        player2: match.player2,
+        player2Id: match.player2Id,
+        status: match.status,
+        winner: match.winner,
+        winnerId: match.winnerId,
+        scorePlayer1: match.scorePlayer1,
+        scorePlayer2: match.scorePlayer2,
+        scheduledAt: match.scheduledAt?.toISOString() ?? null,
+        startedAt: match.startedAt?.toISOString() ?? null,
+        endedAt: match.endedAt?.toISOString() ?? null,
       });
     } catch (error) {
       next(error);
@@ -607,6 +687,76 @@ router.get(
         format: tournament.format,
         currentRound,
         rounds,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /tournaments/:id/prize-pool - Add MBUCKS to a tournament's prize pool (auth required)
+ *
+ * Body: { amount: string }
+ */
+router.post(
+  '/:id/prize-pool',
+  requireAuth,
+  validate({ ...tournamentIdParamSchema, ...addToPrizePoolSchema }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body;
+
+      let parsedAmount: bigint;
+      try {
+        parsedAmount = parseBigIntNonNegative(amount, 'amount');
+      } catch (err) {
+        if (err instanceof ParseBigIntError) {
+          res.status(400).json({ error: 'BadRequest', message: err.message });
+          return;
+        }
+        throw err;
+      }
+
+      if (parsedAmount <= 0n) {
+        res.status(400).json({ error: 'BadRequest', message: 'Amount must be greater than zero' });
+        return;
+      }
+
+      const tournament = await prisma.tournament.findUnique({
+        where: { id },
+        select: { id: true, status: true, prizePool: true },
+      });
+
+      if (!tournament) {
+        res.status(404).json({ error: 'NotFound', message: 'Tournament not found' });
+        return;
+      }
+
+      if (tournament.status !== 'upcoming' && tournament.status !== 'registration') {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Can only add to prize pool for upcoming or registration-phase tournaments',
+        });
+        return;
+      }
+
+      const updated = await prisma.tournament.update({
+        where: { id },
+        data: {
+          prizePool: {
+            increment: parsedAmount,
+          },
+        },
+        select: { id: true, prizePool: true },
+      });
+
+      res.json({
+        tournamentId: updated.id,
+        prizePool: updated.prizePool.toString(),
+        amountAdded: parsedAmount.toString(),
+        message: 'Successfully added to prize pool',
       });
     } catch (error) {
       next(error);

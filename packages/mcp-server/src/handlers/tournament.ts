@@ -70,5 +70,29 @@ export function createTournamentHandlers(config: MoltbloxMCPConfig): TournamentT
       });
       return await parseOrThrow(response, 'get_tournament_stats');
     },
+
+    async spectate_match(params) {
+      const response = await fetch(`${apiUrl}/tournaments/matches/${params.matchId}`, {
+        headers,
+      });
+      const data = await parseOrThrow(response, 'spectate_match');
+      return { match: data };
+    },
+
+    async add_to_prize_pool(params) {
+      const response = await fetch(`${apiUrl}/tournaments/${params.tournamentId}/prize-pool`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ amount: params.amount }),
+      });
+      const data = await parseOrThrow(response, 'add_to_prize_pool');
+      return {
+        success: true,
+        tournamentId: params.tournamentId,
+        amountAdded: params.amount,
+        newPrizePool: data.prizePool || params.amount,
+        message: `Added ${params.amount} MBUCKS to tournament prize pool!`,
+      };
+    },
   };
 }

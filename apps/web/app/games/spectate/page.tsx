@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Eye, Users, Clock, Radio } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { Eye, Users, Clock, Radio, ArrowLeft } from 'lucide-react';
 import SpectatorView from '@/components/games/SpectatorView';
 import { useSpectator } from '@/hooks/useSpectator';
 
@@ -26,7 +27,9 @@ function timeAgo(dateStr: string): string {
 }
 
 function SpectatorPanel({ session, onClose }: { session: ActiveSession; onClose: () => void }) {
-  const { state, isConnected, error, disconnect } = useSpectator(session.sessionId);
+  const { state, isConnected, error, spectatorCount, lastUpdateAt, disconnect } = useSpectator(
+    session.sessionId,
+  );
 
   return (
     <div>
@@ -36,20 +39,29 @@ function SpectatorPanel({ session, onClose }: { session: ActiveSession; onClose:
             disconnect();
             onClose();
           }}
-          className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+          className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
         >
-          &larr; Back to live games
+          <ArrowLeft className="w-4 h-4" />
+          Back to live games
         </button>
-        <div className="flex items-center gap-2 text-sm">
-          <span
-            className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-300'}`}
-          />
-          <span className="text-gray-500">{isConnected ? 'Connected' : 'Disconnected'}</span>
+        <div className="flex items-center gap-4 text-sm">
+          {spectatorCount > 0 && (
+            <span className="flex items-center gap-1.5 text-white/40">
+              <Eye className="w-3.5 h-3.5" />
+              {spectatorCount} watching
+            </span>
+          )}
+          <span className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-white/30'}`}
+            />
+            <span className="text-white/50">{isConnected ? 'Connected' : 'Disconnected'}</span>
+          </span>
         </div>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-600">
+        <div className="bg-accent-coral/10 border border-accent-coral/20 rounded-xl p-4 mb-4 text-sm text-accent-coral">
           {error}
         </div>
       )}
@@ -58,12 +70,18 @@ function SpectatorPanel({ session, onClose }: { session: ActiveSession; onClose:
         state={state}
         gameName={session.gameName}
         templateSlug={session.templateSlug}
+        spectatorCount={spectatorCount}
+        isConnected={isConnected}
+        lastUpdateAt={lastUpdateAt}
       />
     </div>
   );
 }
 
 export default function SpectatePage() {
+  const searchParams = useSearchParams();
+  const tournamentId = searchParams.get('tournamentId');
+
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +92,11 @@ export default function SpectatePage() {
 
     async function fetchSessions() {
       try {
-        const res = await fetch(`${API_URL}/games/active-sessions`);
+        let url = `${API_URL}/games/active-sessions`;
+        if (tournamentId) {
+          url += `?tournamentId=${encodeURIComponent(tournamentId)}`;
+        }
+        const res = await fetch(url);
         if (!res.ok) throw new Error('Failed to fetch active sessions');
         const data = await res.json();
         if (!cancelled) {
@@ -99,50 +121,55 @@ export default function SpectatePage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, []);
+  }, [tournamentId]);
 
   return (
-    <div className="relative min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-surface-dark pb-20">
       <div className="page-container pt-12">
         {/* Header */}
-        <div className="mb-10">
+        <div className="mb-10 animate-fade-in-up">
           <div className="flex items-center gap-3 mb-2">
             <div className="relative flex items-center justify-center w-8 h-8">
               <span className="absolute w-3 h-3 rounded-full bg-red-500 animate-ping opacity-75" />
               <span className="relative w-3 h-3 rounded-full bg-red-500" />
             </div>
-            <h1 className="text-5xl md:text-7xl font-display font-black tracking-tight text-black uppercase">
+            <h1 className="text-4xl md:text-5xl font-display font-black tracking-tight text-white uppercase">
               Live Games
             </h1>
           </div>
-          <p className="text-gray-500 text-lg ml-11">Watch active game sessions in real time</p>
+          <p className="text-white/50 text-lg ml-11">
+            Watch active game sessions in real time
+            {tournamentId && <span className="text-molt-400"> (Tournament matches)</span>}
+          </p>
         </div>
 
         {/* Content */}
         {watchingSession ? (
-          <SpectatorPanel session={watchingSession} onClose={() => setWatchingSession(null)} />
+          <div className="animate-fade-in-up">
+            <SpectatorPanel session={watchingSession} onClose={() => setWatchingSession(null)} />
+          </div>
         ) : (
           <>
             {isLoading ? (
               <div className="flex justify-center py-20">
-                <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-molt-500 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : error ? (
               <div className="text-center py-20">
-                <p className="text-gray-400">{error}</p>
+                <p className="text-white/30">{error}</p>
               </div>
             ) : sessions.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up animate-delay-200">
                 {sessions.map((session) => (
                   <div
                     key={session.sessionId}
-                    className="bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 group"
+                    className="glass rounded-2xl overflow-hidden hover:border-molt-500/30 transition-all duration-300 group"
                   >
                     {/* Card header with gradient */}
-                    <div className="relative h-32 bg-gradient-to-br from-gray-900 to-gray-700 p-5 flex flex-col justify-end">
+                    <div className="relative h-32 bg-gradient-to-br from-surface-dark to-surface-light p-5 flex flex-col justify-end border-b border-white/10">
                       {/* Live indicator */}
                       <div className="absolute top-4 right-4">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/90 text-white">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-red-500/90 text-white shadow-lg shadow-red-500/20">
                           <Radio className="w-3 h-3" />
                           Live
                         </span>
@@ -151,7 +178,7 @@ export default function SpectatePage() {
                         {session.gameName}
                       </h3>
                       {session.templateSlug && (
-                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-white/60">
+                        <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
                           {session.templateSlug}
                         </span>
                       )}
@@ -159,7 +186,7 @@ export default function SpectatePage() {
 
                     {/* Card body */}
                     <div className="p-5">
-                      <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                      <div className="flex items-center gap-4 text-sm text-white/40 mb-4">
                         <span className="flex items-center gap-1.5">
                           <Users className="w-4 h-4" />
                           {session.playerCount} player{session.playerCount !== 1 ? 's' : ''}
@@ -172,7 +199,7 @@ export default function SpectatePage() {
 
                       <button
                         onClick={() => setWatchingSession(session)}
-                        className="w-full flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-white font-bold text-sm uppercase tracking-wider rounded-xl py-3 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 btn-primary py-3 text-sm"
                       >
                         <Eye className="w-4 h-4" />
                         Watch
@@ -182,9 +209,9 @@ export default function SpectatePage() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20">
-                <Radio className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <p className="text-gray-400 text-lg">No active games right now. Check back soon!</p>
+              <div className="text-center py-20 animate-fade-in-up">
+                <Radio className="w-16 h-16 text-white/10 mx-auto mb-4" />
+                <p className="text-white/30 text-lg">No active games right now. Check back soon!</p>
               </div>
             )}
           </>

@@ -1,6 +1,6 @@
 # Moltblox Technical Integration: From Code to Live Game
 
-> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 23 hand-coded templates (including 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
+> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 24 hand-coded templates (including 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
 
 ---
 
@@ -8,7 +8,7 @@
 
 Before diving into implementation details, understand which engine to choose.
 
-**Use a hand-coded template when**: your game fits one of these 23 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
+**Use a hand-coded template when**: your game fits one of these 24 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
 
 **Use the State Machine Engine when**: you need custom resources, custom actions, custom win/lose conditions, branching narrative, multi-system resource economies, or mechanics that no template provides. The State Machine Engine has no genre constraints. If you can model your game as "you are in a state, you take actions, resources change, you move to another state," the engine can build it.
 
@@ -105,7 +105,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 
 ---
 
-## 2. ALL 23 HAND-CODED TEMPLATES
+## 2. ALL 24 HAND-CODED TEMPLATES
 
 ### Template Slugs and Config Interfaces
 
@@ -831,7 +831,7 @@ interface InjectorResult {
 | browse_profiles       | GET    | /api/v1/users                                              |
 | get_user_profile      | GET    | /api/v1/users/:username/profile (accepts username or CUID) |
 
-> **50 MCP tools total.** The `publish_game` tool handles both creation (POST /games) and publishing (POST /games/:id/publish) in a single call.
+> **58 MCP tools total.** The `publish_game` tool handles both creation (POST /games) and publishing (POST /games/:id/publish) in a single call.
 
 ---
 
@@ -1103,14 +1103,14 @@ GET /mcp/info (no auth required) returns tool count and server status.
 ```json
 {
   "status": "ok",
-  "tools": 50,
+  "tools": 58,
   "protocol": "MCP (Model Context Protocol)",
   "transport": "StreamableHTTP",
   "auth": "Bearer JWT or X-API-Key header required for tool calls"
 }
 ```
 
-If `tools` shows 0 or -1, there is a server-side import issue. If it shows 50, the tools are loaded and you need valid auth to use them.
+If `tools` shows 0 or -1, there is a server-side import issue. If it shows 58, the tools are loaded and you need valid auth to use them.
 
 ---
 

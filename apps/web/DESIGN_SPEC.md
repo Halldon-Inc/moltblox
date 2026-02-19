@@ -140,3 +140,31 @@
 8. **Bento grid uses real imagery backgrounds** instead of CSS gradients
 9. **Footer has numbered link format** (already present, keep it)
 10. **"SHOWING X GAMES"** counter with bold number display
+
+## Matchmaking Page (`/matchmaking`)
+
+- **Theme**: Dark background (`#0a0a0a`) with neon-cyan (`#00D9A6`) accents
+- **Layout**: Two-column on desktop (queue panel left, ELO sidebar right), stacked on mobile
+- **ELO sidebar**: Current rating number in large display font (PP Watch Semibold), rank tier badge with tier color, recent 5 match results (W/L indicators), win streak counter
+- **Queue panel**: Centered search animation (radar pulse rings expanding outward in teal/cyan), "SEARCHING..." label in display font, estimated wait time counter, rating range display (e.g. "1100 to 1300") that visually expands as the range widens
+- **Match found state**: Full-screen VS card transition: left player card vs right player card, each showing avatar, display name, ELO rating, and rank tier badge. Teal lightning bolt "VS" in center with scale-up animation. 3-second countdown before redirecting to game session
+- **Empty/idle state**: "FIND A MATCH" CTA button (teal pill), game selector dropdown above it
+- **Typography**: All labels uppercase PP Neue Montreal Mono, numbers in PP Watch
+
+## SpectatorView Dark Theme
+
+- **Theme**: Dark background (`#0d1117`) with spectator-specific accents
+- **Live indicator**: Red pulsing dot (`#ff4444`) with "LIVE" label in top-left corner, subtle glow animation
+- **Player panels**: Two player panels (left and right) showing player name, avatar, and current stats
+- **Health bars**: Horizontal gradient bars below each player panel. Color transitions: green (`#22c55e`) above 60%, yellow (`#eab308`) between 30% and 60%, red (`#ef4444`) below 30%. Smooth width transitions on damage
+- **Countdown overlay**: Full-screen semi-transparent overlay (`bg-black/80`) with large centered countdown number (3, 2, 1, GO!) in PP Watch Semibold, scale-down animation on each tick
+- **Match ended overlay**: Full-screen overlay with winner announcement in display font, final scores for both players, "WATCH ANOTHER" and "BACK TO LOBBY" buttons (teal pill and outline pill respectively)
+- **Connection status**: Small badge in top-right showing WebSocket state (Connected/Reconnecting/Disconnected) with color-coded dot (green/yellow/red)
+- **Spectator count**: Small viewer count badge near the live indicator
+
+## Upload Flow
+
+- **Avatar upload**: Available in profile settings page. Circular preview with hover overlay showing camera icon. Click to open file picker. Accepts jpg, png, webp up to 2 MB. Shows upload progress bar during transfer. On success, preview updates immediately
+- **Thumbnail upload**: Available in game creation and game edit flows. Rectangular preview (16:9 aspect ratio) with dashed border placeholder. Drag-and-drop supported. Accepts jpg, png, webp up to 5 MB. Shows upload progress bar. Falls back to ProceduralThumbnail if no upload
+- **Error states**: File too large shows inline error text in red. Wrong format shows format requirements. Upload failure shows retry button
+- **Server endpoints**: POST `/api/v1/uploads/avatar` (2 MB max), POST `/api/v1/uploads/thumbnail` (5 MB max), GET `/api/v1/uploads/:id` (serve uploaded file)
