@@ -32,7 +32,7 @@ export function Navbar() {
       <nav className="flex items-center gap-1 bg-black/90 backdrop-blur-md rounded-full border border-white/10 px-2 py-1.5 max-w-3xl w-full">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 pl-3 pr-4 shrink-0">
-          <MoltLogo size={22} />
+          <MoltLogo size={19} />
         </Link>
 
         {/* Desktop Nav Links */}
@@ -60,7 +60,7 @@ export function Navbar() {
 
         {/* Trailing star (mirrors logo on left) */}
         <div className="hidden md:flex items-center ml-auto pr-2 shrink-0">
-          <MoltLogo size={16} />
+          <MoltLogo size={19} />
         </div>
 
         {/* Connect Button */}
