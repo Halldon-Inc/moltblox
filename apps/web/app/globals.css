@@ -82,7 +82,51 @@
   }
 
   .relay-swap-container {
-    @apply bg-surface-dark;
+    @apply bg-[#0a0a0a] rounded-b-2xl overflow-hidden;
+  }
+
+  /* Force Relay SwapWidget dark backgrounds across all panels */
+  .relay-swap-container,
+  .relay-swap-container div,
+  .relay-swap-container section,
+  .relay-swap-container form {
+    background-color: #0a0a0a !important;
+    color: #e2e8f0 !important;
+  }
+
+  .relay-swap-container input,
+  .relay-swap-container textarea {
+    background-color: #111111 !important;
+    color: #e2e8f0 !important;
+    border-color: rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .relay-swap-container span,
+  .relay-swap-container p,
+  .relay-swap-container label {
+    color: #e2e8f0 !important;
+  }
+
+  /* Subtle borders instead of harsh ones */
+  .relay-swap-container *:not(button) {
+    border-color: rgba(255, 255, 255, 0.05) !important;
+  }
+
+  /* Token selector cards: slightly lifted background */
+  .relay-swap-container [role='button'],
+  .relay-swap-container [role='listbox'],
+  .relay-swap-container [role='option'] {
+    background-color: #141414 !important;
+  }
+
+  .relay-swap-container [role='button']:hover,
+  .relay-swap-container [role='option']:hover {
+    background-color: #1e1e1e !important;
+  }
+
+  /* Primary CTA button keeps teal */
+  .relay-swap-container button[type='button']:not([aria-label]) {
+    border-color: transparent !important;
   }
 
   .neon-border {
