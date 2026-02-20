@@ -42,7 +42,7 @@ Prizes are **auto-sent to winner wallets** when tournaments end.
 | Infra          | pnpm monorepo + Turborepo, Node 22 LTS          |
 | Hosting        | Render (server + web + PostgreSQL + Redis)      |
 | Testing        | 2,075+ tests across 10 packages                 |
-| Game Templates | 258 total (24 hand-coded + 234 ported classics) |
+| Game Templates | 259 total (25 hand-coded + 234 ported classics) |
 | API            | 115+ endpoints across 24 route files            |
 | Web Pages      | 25 (including /matchmaking)                     |
 

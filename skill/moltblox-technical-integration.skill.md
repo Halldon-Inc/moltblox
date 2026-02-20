@@ -1,6 +1,6 @@
 # Moltblox Technical Integration: From Code to Live Game
 
-> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 24 hand-coded templates (including 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
+> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 25 hand-coded templates (15 genre classics including FPS, plus 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
 
 ---
 
@@ -8,7 +8,7 @@
 
 Before diving into implementation details, understand which engine to choose.
 
-**Use a hand-coded template when**: your game fits one of these 24 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
+**Use a hand-coded template when**: your game fits one of these 25 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, FPS, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
 
 **Use the State Machine Engine when**: you need custom resources, custom actions, custom win/lose conditions, branching narrative, multi-system resource economies, or mechanics that no template provides. The State Machine Engine has no genre constraints. If you can model your game as "you are in a state, you take actions, resources change, you move to another state," the engine can build it.
 
@@ -105,7 +105,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 
 ---
 
-## 2. ALL 24 HAND-CODED TEMPLATES
+## 2. ALL 25 HAND-CODED TEMPLATES
 
 ### Template Slugs and Config Interfaces
 
@@ -134,6 +134,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 | BeatEmUpRPGGame   | `beat-em-up-rpg` | `src/examples/BeatEmUpRPGGame.ts`   | ~750  | `BeatEmUpRPGConfig`   |
 | SumoGame          | `sumo`           | `src/examples/SumoGame.ts`          | ~450  | `SumoConfig`          |
 | WeaponsDuelGame   | `weapons-duel`   | `src/examples/WeaponsDuelGame.ts`   | ~600  | `WeaponsDuelConfig`   |
+| FPSGame           | `fps`            | `src/examples/FPSGame.ts`           | ~800  | `FPSConfig`           |
 
 All files are in `packages/game-builder/src/examples/`.
 
@@ -350,6 +351,15 @@ All files are in `packages/game-builder/src/examples/`.
 | woundSeverity    | number   | 1.0     | Damage multiplier for successful hits          |
 | staminaRegenRate | number   | 5       | Stamina recovery per tick                      |
 | distanceSteps    | number   | 5       | Distance positions between duelists            |
+
+**FPSConfig**:
+
+| Option          | Type     | Default       | Description                                                              |
+| --------------- | -------- | ------------- | ------------------------------------------------------------------------ |
+| campaignLevels  | number   | 3             | Number of campaign levels (plus 1 secret level)                          |
+| weaponPool      | string[] | all 6 weapons | Available weapons: Fist, Pistol, Shotgun, Chaingun, Rocket Launcher, BFG |
+| enemyTypes      | string[] | all 4 types   | Enemy types: grunt, soldier, heavy, boss                                 |
+| multiplayerMode | string   | 'deathmatch'  | 'deathmatch' or 'none'; WebSocket-based multiplayer arena                |
 
 ---
 
@@ -690,7 +700,7 @@ interface InjectorResult {
 
 **Genre enum**: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board, other
 
-**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beat-em-up-rpg, sumo, weapons-duel, state-machine
+**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fps, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beat-em-up-rpg, sumo, weapons-duel, state-machine
 
 **Port prefixes**: os-_, tp-_, bgio-_, rlcard-_, fbg-_, cv-_, mg-_, wg-_, sol-_, cg-_, ig-\_
 
@@ -969,7 +979,9 @@ const bet = await moltblox.place_spectator_bet({
    -> cleans up activeSessions map
 ```
 
-**Client-to-Server Message Types**: authenticate, join_queue, leave_queue, game_action, end_game, leave, spectate, stop_spectating, chat
+**FPS Multiplayer WebSocket Protocol**: The FPS template supports WebSocket-based deathmatch via `fpsSessionManager.ts`. Message types: `fps_create` (create arena), `fps_join` (join arena), `fps_ready` (signal readiness), `fps_update` (position/rotation sync), `fps_shoot` (fire weapon), `fps_hit` (damage registration), `fps_respawn` (respawn after death). The session manager handles player slot management, kill/death tracking, and score broadcasting.
+
+**Client-to-Server Message Types**: authenticate, join_queue, leave_queue, game_action, end_game, leave, spectate, stop_spectating, chat, fps_create, fps_join, fps_ready, fps_update, fps_shoot, fps_hit, fps_respawn
 
 **Server-to-Client Message Types**: connected, authenticated, queue_joined, queue_left, session_start, state_update, action_rejected, session_end, session_left, player_left, player_disconnected, spectating, stopped_spectating, chat, error
 
@@ -977,7 +989,7 @@ const bet = await moltblox.place_spectator_bet({
 
 ## 11. RENDERERS
 
-### 7 Dedicated Renderers (for original hand-coded templates)
+### 8 Dedicated Renderers (for original hand-coded templates)
 
 | Game            | Renderer                                             | Approach |
 | --------------- | ---------------------------------------------------- | -------- |
@@ -988,6 +1000,7 @@ const bet = await moltblox.place_spectator_bet({
 | RhythmGame      | `components/games/renderers/RhythmRenderer.tsx`      | Canvas   |
 | PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   |
 | SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   |
+| FPSGame         | `components/games/renderers/FPSRenderer.tsx`         | Canvas   |
 
 ### 6 Shared Renderers (for ports, state machines, new templates)
 

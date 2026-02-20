@@ -934,7 +934,7 @@ export default function CreatureRPGRenderer({
       renderDefeat(ctx, frame);
     }
 
-    // Render floating damage numbers
+    // Render floating damage numbers with outlines
     ctx.save();
     const dnArr = damageNumbersRef.current;
     let dnWrite = 0;
@@ -945,9 +945,14 @@ export default function CreatureRPGRenderer({
       if (dn.life <= 0) continue;
       dnArr[dnWrite++] = dn;
       ctx.globalAlpha = Math.min(1, dn.life / 15);
-      ctx.fillStyle = dn.color;
-      ctx.font = `bold ${dn.value.length > 5 ? 16 : 22}px monospace`;
+      const fontSize = dn.value.length > 5 ? 16 : 22;
+      ctx.font = `bold ${fontSize}px monospace`;
       ctx.textAlign = 'center';
+      // Text outline for readability
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(dn.value, dn.x, dn.y);
+      ctx.fillStyle = dn.color;
       ctx.fillText(dn.value, dn.x, dn.y);
     }
     dnArr.length = dnWrite;
@@ -1007,111 +1012,236 @@ export default function CreatureRPGRenderer({
         ctx.fillStyle = TILE_COLORS[tile] || TILE_COLORS[T.GRASS];
         ctx.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
 
+        // Grass pattern texture for grass tiles
+        if (tile === T.GRASS) {
+          // Subtle grass texture: random dots seeded by position
+          const seed = (col * 31 + row * 17) % 7;
+          ctx.fillStyle = 'rgba(60, 130, 50, 0.3)';
+          ctx.fillRect(drawX + seed * 3, drawY + 8, 2, 2);
+          ctx.fillRect(drawX + 18 + seed, drawY + 22, 2, 2);
+          ctx.fillStyle = 'rgba(80, 150, 60, 0.2)';
+          ctx.fillRect(drawX + 10 + seed, drawY + 4 + seed, 3, 2);
+        }
+
         // Tile details
         switch (tile) {
           case T.TALL_GRASS: {
-            // Animated grass blades
-            ctx.fillStyle = '#2d8a2d';
+            // Animated grass blades with depth
             const sway = Math.sin(frame * 0.05 + col * 0.7 + row * 0.5) * 2;
+            // Back layer (darker)
+            ctx.fillStyle = '#1a6a1a';
+            for (let i = 0; i < 3; i++) {
+              const bx = drawX + 5 + i * 9;
+              const by = drawY + TILE_SIZE - 2;
+              ctx.fillRect(bx + sway * 0.7, by - 14, 2, 14);
+              ctx.fillRect(bx + sway * 0.7 - 1, by - 16, 4, 3);
+            }
+            // Front layer (brighter)
+            ctx.fillStyle = '#2d8a2d';
             for (let i = 0; i < 5; i++) {
               const bx = drawX + 3 + i * 6;
               const by = drawY + TILE_SIZE - 4;
               ctx.fillRect(bx + sway, by - 12, 2, 12);
               ctx.fillRect(bx + sway - 1, by - 14, 4, 3);
             }
+            // Highlight tips
+            ctx.fillStyle = '#4caf50';
+            for (let i = 0; i < 5; i++) {
+              const bx = drawX + 3 + i * 6;
+              const by = drawY + TILE_SIZE - 4;
+              ctx.fillRect(bx + sway, by - 14, 2, 2);
+            }
             break;
           }
           case T.TREE: {
-            // Trunk
+            // Trunk with bark texture
             ctx.fillStyle = '#5d4037';
             ctx.fillRect(drawX + 12, drawY + 16, 8, 16);
-            // Canopy
+            ctx.fillStyle = '#4e342e';
+            ctx.fillRect(drawX + 13, drawY + 18, 2, 12);
+            ctx.fillRect(drawX + 17, drawY + 20, 2, 10);
+            // Root flare
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(drawX + 10, drawY + 28, 12, 4);
+            // Canopy layers (back)
             ctx.fillStyle = '#1b5e20';
             ctx.beginPath();
-            ctx.arc(drawX + 16, drawY + 12, 12, 0, Math.PI * 2);
+            ctx.arc(drawX + 16, drawY + 14, 13, 0, Math.PI * 2);
             ctx.fill();
+            // Canopy (middle)
             ctx.fillStyle = '#2e7d32';
             ctx.beginPath();
-            ctx.arc(drawX + 16, drawY + 10, 9, 0, Math.PI * 2);
+            ctx.arc(drawX + 14, drawY + 11, 9, 0, Math.PI * 2);
             ctx.fill();
+            ctx.beginPath();
+            ctx.arc(drawX + 20, drawY + 12, 8, 0, Math.PI * 2);
+            ctx.fill();
+            // Canopy (highlight)
+            ctx.fillStyle = '#43a047';
+            ctx.beginPath();
+            ctx.arc(drawX + 15, drawY + 9, 5, 0, Math.PI * 2);
+            ctx.fill();
+            // Leaf sparkle
+            if ((col + row + Math.floor(frame * 0.02)) % 7 === 0) {
+              ctx.fillStyle = 'rgba(200, 255, 200, 0.4)';
+              ctx.fillRect(drawX + 10 + (frame % 3), drawY + 7, 2, 2);
+            }
             break;
           }
           case T.WATER: {
-            // Animated water
-            ctx.fillStyle = '#1976d2';
+            // Animated water with reflection
             const waveOff = Math.sin(frame * 0.08 + col + row) * 2;
+            const waveOff2 = Math.cos(frame * 0.06 + col * 0.5) * 1;
+            ctx.fillStyle = '#1565c0';
+            ctx.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = '#1976d2';
             ctx.fillRect(drawX, drawY + waveOff, TILE_SIZE, TILE_SIZE);
-            ctx.fillStyle = 'rgba(255,255,255,0.15)';
-            ctx.fillRect(drawX + 4, drawY + 8 + waveOff, 12, 2);
-            ctx.fillRect(drawX + 16, drawY + 18 + waveOff, 10, 2);
+            // Animated wave lines
+            ctx.fillStyle = 'rgba(255,255,255,0.12)';
+            ctx.fillRect(drawX + 2, drawY + 6 + waveOff, 14, 2);
+            ctx.fillRect(drawX + 14, drawY + 16 + waveOff2, 12, 2);
+            ctx.fillRect(drawX + 6, drawY + 24 + waveOff, 10, 1);
+            // Specular highlight
+            ctx.fillStyle = 'rgba(255,255,255,0.08)';
+            ctx.fillRect(drawX + 8, drawY + 12 + waveOff2, 6, 3);
             break;
           }
           case T.BUILDING: {
-            // Building wall with window
+            // Building wall with brick texture
             ctx.fillStyle = '#4e342e';
             ctx.fillRect(drawX, drawY, TILE_SIZE, TILE_SIZE);
-            ctx.fillStyle = '#795548';
-            ctx.fillRect(drawX + 2, drawY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-            // Window
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(drawX + 1, drawY + 1, TILE_SIZE - 2, TILE_SIZE - 2);
+            // Brick lines
+            ctx.fillStyle = '#4e342e';
+            ctx.fillRect(drawX, drawY + 8, TILE_SIZE, 1);
+            ctx.fillRect(drawX, drawY + 16, TILE_SIZE, 1);
+            ctx.fillRect(drawX, drawY + 24, TILE_SIZE, 1);
+            ctx.fillRect(drawX + 16, drawY, 1, 8);
+            ctx.fillRect(drawX + 8, drawY + 8, 1, 8);
+            ctx.fillRect(drawX + 24, drawY + 8, 1, 8);
+            ctx.fillRect(drawX + 16, drawY + 16, 1, 8);
+            // Window with glow
+            ctx.fillStyle = '#3e2723';
+            ctx.fillRect(drawX + 9, drawY + 9, 14, 14);
             ctx.fillStyle = '#ffeb3b';
-            ctx.globalAlpha = 0.5 + Math.sin(frame * 0.02 + col) * 0.2;
+            ctx.globalAlpha = 0.4 + Math.sin(frame * 0.02 + col) * 0.15;
             ctx.fillRect(drawX + 10, drawY + 10, 12, 12);
             ctx.globalAlpha = 1;
+            // Window cross
+            ctx.fillStyle = '#5d4037';
+            ctx.fillRect(drawX + 15, drawY + 10, 2, 12);
+            ctx.fillRect(drawX + 10, drawY + 15, 12, 2);
             break;
           }
           case T.DOOR: {
-            // Door
+            // Door with frame
+            ctx.fillStyle = '#6d4c41';
+            ctx.fillRect(drawX + 2, drawY + 2, TILE_SIZE - 4, TILE_SIZE - 2);
             ctx.fillStyle = '#8b6914';
             ctx.fillRect(drawX + 4, drawY + 4, TILE_SIZE - 8, TILE_SIZE - 4);
+            // Panel detail
+            ctx.fillStyle = '#7a5c10';
+            ctx.fillRect(drawX + 6, drawY + 6, TILE_SIZE - 12, 10);
+            ctx.fillRect(drawX + 6, drawY + 18, TILE_SIZE - 12, 10);
+            // Doorknob
             ctx.fillStyle = '#ffc107';
             ctx.fillRect(drawX + TILE_SIZE - 12, drawY + 16, 3, 3);
+            // Highlight
+            ctx.fillStyle = '#ffe082';
+            ctx.fillRect(drawX + TILE_SIZE - 11, drawY + 16, 1, 1);
             break;
           }
           case T.FENCE: {
-            // Fence posts
-            ctx.fillStyle = '#5d4037';
-            ctx.fillRect(drawX + 2, drawY + 4, 4, 24);
-            ctx.fillRect(drawX + TILE_SIZE - 6, drawY + 4, 4, 24);
-            ctx.fillRect(drawX, drawY + 8, TILE_SIZE, 3);
-            ctx.fillRect(drawX, drawY + 20, TILE_SIZE, 3);
+            // Improved fence with shadows
+            ctx.fillStyle = '#795548';
+            ctx.fillRect(drawX + 2, drawY + 4, 5, 24);
+            ctx.fillRect(drawX + TILE_SIZE - 7, drawY + 4, 5, 24);
+            ctx.fillStyle = '#8d6e63';
+            ctx.fillRect(drawX + 3, drawY + 5, 3, 22);
+            ctx.fillRect(drawX + TILE_SIZE - 6, drawY + 5, 3, 22);
+            // Cross beams
+            ctx.fillStyle = '#795548';
+            ctx.fillRect(drawX, drawY + 8, TILE_SIZE, 4);
+            ctx.fillRect(drawX, drawY + 20, TILE_SIZE, 4);
+            ctx.fillStyle = '#8d6e63';
+            ctx.fillRect(drawX, drawY + 9, TILE_SIZE, 2);
+            ctx.fillRect(drawX, drawY + 21, TILE_SIZE, 2);
             break;
           }
           case T.FLOWER: {
-            // Grass base + flower
+            // Grass base + animated flowers
+            const flowerSway = Math.sin(frame * 0.04 + col * 2) * 1;
+            // Stems
+            ctx.fillStyle = '#388e3c';
+            ctx.fillRect(drawX + 9, drawY + 12, 1, 8);
+            ctx.fillRect(drawX + 21, drawY + 18, 1, 6);
+            ctx.fillRect(drawX + 15, drawY + 8, 1, 6);
+            // Flowers with slight sway
             ctx.fillStyle = '#e91e63';
-            ctx.fillRect(drawX + 8, drawY + 10, 4, 4);
+            ctx.fillRect(drawX + 7 + flowerSway, drawY + 9, 5, 4);
             ctx.fillStyle = '#ffc107';
-            ctx.fillRect(drawX + 20, drawY + 18, 4, 4);
+            ctx.fillRect(drawX + 19 + flowerSway, drawY + 15, 5, 4);
             ctx.fillStyle = '#9c27b0';
-            ctx.fillRect(drawX + 14, drawY + 6, 4, 4);
+            ctx.fillRect(drawX + 13 + flowerSway, drawY + 4, 5, 5);
+            // Center dots
+            ctx.fillStyle = '#ffeb3b';
+            ctx.fillRect(drawX + 9 + flowerSway, drawY + 10, 1, 1);
+            ctx.fillRect(drawX + 21 + flowerSway, drawY + 16, 1, 1);
+            ctx.fillRect(drawX + 15 + flowerSway, drawY + 6, 1, 1);
             break;
           }
           case T.SIGN: {
-            // Sign post
+            // Improved sign post
             ctx.fillStyle = '#5d4037';
             ctx.fillRect(drawX + 14, drawY + 14, 4, 18);
+            // Sign board with shadow
+            ctx.fillStyle = '#4e342e';
+            ctx.fillRect(drawX + 7, drawY + 7, 20, 12);
             ctx.fillStyle = '#8d6e63';
             ctx.fillRect(drawX + 6, drawY + 6, 20, 12);
+            // Text lines
             ctx.fillStyle = '#4e342e';
             ctx.fillRect(drawX + 8, drawY + 9, 16, 2);
             ctx.fillRect(drawX + 8, drawY + 13, 12, 2);
+            // Nail
+            ctx.fillStyle = '#9e9e9e';
+            ctx.fillRect(drawX + 15, drawY + 7, 2, 2);
             break;
           }
           case T.HEAL: {
-            // Heal pad (pulsing cross)
+            // Heal pad with glowing aura
             const pulse = 0.7 + Math.sin(frame * 0.08) * 0.3;
+            // Glow aura
+            ctx.save();
+            ctx.globalAlpha = pulse * 0.15;
+            ctx.fillStyle = '#e91e63';
+            ctx.beginPath();
+            ctx.arc(drawX + 16, drawY + 16, 18, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            // Cross
             ctx.fillStyle = `rgba(233,30,99,${pulse})`;
             ctx.fillRect(drawX + 12, drawY + 4, 8, 24);
             ctx.fillRect(drawX + 4, drawY + 12, 24, 8);
+            // Cross highlight
+            ctx.fillStyle = `rgba(255,255,255,${pulse * 0.3})`;
+            ctx.fillRect(drawX + 13, drawY + 5, 6, 1);
+            ctx.fillRect(drawX + 5, drawY + 13, 1, 6);
             break;
           }
           case T.GYM_DOOR: {
-            // Gym door (special glowing)
+            // Gym door with enhanced glow
+            ctx.fillStyle = '#6a1b9a';
+            ctx.fillRect(drawX + 1, drawY + 1, TILE_SIZE - 2, TILE_SIZE - 2);
             ctx.fillStyle = '#7b1fa2';
             ctx.fillRect(drawX + 2, drawY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
-            const glow = 0.6 + Math.sin(frame * 0.06) * 0.4;
+            const glow = 0.5 + Math.sin(frame * 0.06) * 0.4;
+            // Inner glow panel
+            ctx.fillStyle = `rgba(206,147,216,${glow * 0.5})`;
+            ctx.fillRect(drawX + 6, drawY + 3, TILE_SIZE - 12, TILE_SIZE - 6);
             ctx.fillStyle = `rgba(206,147,216,${glow})`;
-            ctx.fillRect(drawX + 8, drawY + 4, TILE_SIZE - 16, TILE_SIZE - 8);
+            ctx.fillRect(drawX + 8, drawY + 5, TILE_SIZE - 16, TILE_SIZE - 10);
             // Star emblem
             ctx.fillStyle = '#ffd54f';
             ctx.beginPath();
@@ -1127,14 +1257,36 @@ export default function CreatureRPGRenderer({
             ctx.lineTo(drawX + 14, drawY + 14);
             ctx.closePath();
             ctx.fill();
+            // Outer glow particles
+            if (frame % 20 < 2) {
+              ctx.fillStyle = `rgba(206,147,216,${glow * 0.6})`;
+              ctx.fillRect(drawX + 4 + (frame % 24), drawY + 2, 2, 2);
+            }
             break;
           }
           case T.PATH: {
-            // Dirt path with subtle texture
+            // Dirt path with pebble texture
             ctx.fillStyle = '#b89a5a';
             ctx.fillRect(drawX + 4, drawY + 12, 3, 3);
             ctx.fillRect(drawX + 20, drawY + 6, 2, 2);
             ctx.fillRect(drawX + 14, drawY + 22, 3, 2);
+            // Additional texture
+            ctx.fillStyle = '#a08a50';
+            ctx.fillRect(drawX + 10, drawY + 3, 2, 2);
+            ctx.fillRect(drawX + 26, drawY + 18, 3, 2);
+            // Path edge shading (if adjacent to grass)
+            ctx.fillStyle = 'rgba(90, 70, 40, 0.15)';
+            ctx.fillRect(drawX, drawY, TILE_SIZE, 2);
+            ctx.fillRect(drawX, drawY, 2, TILE_SIZE);
+            break;
+          }
+          case T.SAND: {
+            // Sand with wave texture
+            ctx.fillStyle = '#c4a882';
+            ctx.fillRect(drawX + 6, drawY + 10, 8, 2);
+            ctx.fillRect(drawX + 18, drawY + 22, 6, 2);
+            ctx.fillStyle = '#dcc8a0';
+            ctx.fillRect(drawX + 12, drawY + 4, 4, 2);
             break;
           }
         }
@@ -1165,16 +1317,29 @@ export default function CreatureRPGRenderer({
         ctx.fillRect(nx + 4, ny + 4, TILE_SIZE - 8, TILE_SIZE - 8);
       }
 
-      // NPC name label
-      ctx.fillStyle = '#fff';
+      // NPC name label with background for readability
+      ctx.save();
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText(npc.name, nx + TILE_SIZE / 2, ny - 2);
+      const npcNameW = ctx.measureText(npc.name).width + 6;
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillRect(nx + TILE_SIZE / 2 - npcNameW / 2, ny - 10, npcNameW, 11);
+      ctx.fillStyle = '#e0e8ff';
+      ctx.fillText(npc.name, nx + TILE_SIZE / 2, ny - 1);
+      ctx.restore();
     }
 
-    // Draw player
+    // Draw player with shadow
     const px = d.playerPos.x * TILE_SIZE - camX;
     const py = d.playerPos.y * TILE_SIZE - camY;
+    // Player shadow
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(px + TILE_SIZE / 2, py + TILE_SIZE - 2, 10, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
     const playerSprite = spriteCacheRef.current[`player_${d.playerDirection}`];
     if (playerSprite) {
       ctx.drawImage(playerSprite, px, py, TILE_SIZE, TILE_SIZE);
@@ -1183,7 +1348,7 @@ export default function CreatureRPGRenderer({
       ctx.fillRect(px + 6, py + 6, 20, 20);
     }
 
-    // Mini-map overlay (top-right) — pre-rendered to offscreen canvas, only redrawn on map change
+    // Mini-map overlay (top-right): pre-rendered to offscreen canvas, only redrawn on map change
     const mmSize = 90;
     const mmTile = mmSize / MAP_COLS;
     const mmX = CANVAS_W - mmSize - 8;
@@ -1222,88 +1387,172 @@ export default function CreatureRPGRenderer({
     ctx.fillStyle = '#ff1744';
     ctx.fillRect(mmX + d.playerPos.x * mmTile - 1, mmY + d.playerPos.y * mmTile - 1, 3, 3);
 
-    // Zone name
+    // Zone name with glass panel
     const zoneNames: Record<string, string> = {
       starter_town: 'Starter Town',
       route_1: 'Route 1',
       verdant_city: 'Verdant City',
     };
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(8, 8, 160, 24);
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 14px monospace';
+    ctx.save();
+    ctx.fillStyle = 'rgba(5, 10, 25, 0.65)';
+    ctx.fillRect(8, 8, 165, 26);
+    ctx.strokeStyle = 'rgba(100, 140, 180, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(8, 8, 165, 26);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(9, 9, 163, 12);
+    ctx.restore();
+    ctx.fillStyle = '#e0e8ff';
+    ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(zoneNames[d.mapId] || d.mapId, 14, 24);
+    ctx.fillText(zoneNames[d.mapId] || d.mapId, 14, 26);
 
-    // Party HP bar display (top-left, below zone name)
+    // Party HP bar display (top-left, below zone name) with gradients
     for (let i = 0; i < d.party.length; i++) {
       const c = d.party[i];
-      const barY = 40 + i * 22;
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(8, barY, 160, 18);
-      ctx.fillStyle = '#fff';
+      const barY = 42 + i * 24;
+      // Glass panel
+      ctx.fillStyle = 'rgba(5, 10, 25, 0.6)';
+      ctx.fillRect(8, barY, 165, 20);
+      ctx.strokeStyle = 'rgba(100, 140, 180, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(8, barY, 165, 20);
+      // Name
+      const typeColors = TYPE_COLORS[c.type] || TYPE_COLORS.normal;
+      ctx.fillStyle = typeColors.glow;
       ctx.font = '10px monospace';
       ctx.textAlign = 'left';
-      ctx.fillText(`${capitalize(c.species)} Lv${c.level}`, 12, barY + 12);
-      // HP bar
+      ctx.fillText(`${capitalize(c.species)} Lv${c.level}`, 12, barY + 13);
+      // HP bar background
       const hpRatio = c.stats.hp / c.stats.maxHp;
-      const barColor = hpRatio > 0.5 ? '#4caf50' : hpRatio > 0.25 ? '#ffc107' : '#f44336';
-      ctx.fillStyle = '#333';
-      ctx.fillRect(110, barY + 4, 52, 8);
-      ctx.fillStyle = barColor;
-      ctx.fillRect(110, barY + 4, Math.max(0, 52 * hpRatio), 8);
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(112, barY + 4, 54, 10);
+      // HP gradient fill
+      if (hpRatio > 0) {
+        const hpGrad = ctx.createLinearGradient(112, barY + 4, 112, barY + 14);
+        if (hpRatio > 0.5) {
+          hpGrad.addColorStop(0, '#66bb6a');
+          hpGrad.addColorStop(0.5, '#4caf50');
+          hpGrad.addColorStop(1, '#388e3c');
+        } else if (hpRatio > 0.25) {
+          hpGrad.addColorStop(0, '#ffee58');
+          hpGrad.addColorStop(0.5, '#ffc107');
+          hpGrad.addColorStop(1, '#ff8f00');
+        } else {
+          hpGrad.addColorStop(0, '#ef5350');
+          hpGrad.addColorStop(0.5, '#f44336');
+          hpGrad.addColorStop(1, '#c62828');
+        }
+        ctx.fillStyle = hpGrad;
+        ctx.fillRect(112, barY + 4, Math.max(0, 54 * hpRatio), 10);
+        // Specular
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(112, barY + 4, Math.max(0, 54 * hpRatio), 1);
+      }
+      ctx.strokeStyle = 'rgba(100, 140, 180, 0.3)';
+      ctx.lineWidth = 0.5;
+      ctx.strokeRect(112, barY + 4, 54, 10);
     }
 
-    // Dialogue box overlay
+    // Dialogue box overlay with glass effect
     if (d.gamePhase === 'dialogue') {
-      ctx.fillStyle = 'rgba(0,0,0,0.85)';
-      ctx.fillRect(20, CANVAS_H - 130, CANVAS_W - 40, 110);
-      ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(20, CANVAS_H - 130, CANVAS_W - 40, 110);
+      const boxX = 20;
+      const boxY = CANVAS_H - 135;
+      const boxW = CANVAS_W - 40;
+      const boxH = 115;
 
-      // Speaker name
+      // Outer glow
+      ctx.save();
+      ctx.globalAlpha = 0.3;
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(boxX - 2, boxY - 2, boxW + 4, boxH + 4);
+      ctx.restore();
+
+      // Background with gradient
+      const dlgGrad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+      dlgGrad.addColorStop(0, 'rgba(5, 10, 25, 0.9)');
+      dlgGrad.addColorStop(1, 'rgba(10, 15, 35, 0.92)');
+      ctx.fillStyle = dlgGrad;
+      ctx.fillRect(boxX, boxY, boxW, boxH);
+
+      // Border
+      ctx.strokeStyle = 'rgba(34, 211, 238, 0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(boxX, boxY, boxW, boxH);
+
+      // Top accent line
+      ctx.fillStyle = 'rgba(34, 211, 238, 0.4)';
+      ctx.fillRect(boxX + 1, boxY + 1, boxW - 2, 1);
+
+      // Speaker name with badge
       if (d.dialogueSpeaker) {
+        // Name badge background
+        const nameWidth = ctx.measureText(d.dialogueSpeaker).width + 20;
+        ctx.fillStyle = 'rgba(34, 211, 238, 0.1)';
+        ctx.fillRect(boxX + 8, boxY + 4, Math.max(nameWidth, 80), 18);
         ctx.fillStyle = '#22d3ee';
-        ctx.font = 'bold 14px monospace';
+        ctx.font = 'bold 13px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(d.dialogueSpeaker, 36, CANVAS_H - 108);
+        ctx.fillText(d.dialogueSpeaker, boxX + 16, boxY + 17);
       }
 
       // Dialogue text (typewriter effect based on frame)
       const line = d.dialogueLines[d.dialogueIndex] || '';
       const charCount = Math.min(line.length, Math.floor(frame * 0.5) % (line.length + 30));
       const displayText = line.substring(0, charCount);
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = '#e0e0e0';
       ctx.font = '13px monospace';
       // Word wrap
-      const maxWidth = CANVAS_W - 80;
+      const maxWidth = boxW - 50;
       const words = displayText.split(' ');
       let currentLine = '';
-      let lineY = CANVAS_H - 86;
+      let lineY = boxY + 38;
       for (const word of words) {
         const test = currentLine + (currentLine ? ' ' : '') + word;
         if (ctx.measureText(test).width > maxWidth) {
-          ctx.fillText(currentLine, 36, lineY);
+          ctx.fillText(currentLine, boxX + 16, lineY);
           currentLine = word;
           lineY += 18;
         } else {
           currentLine = test;
         }
       }
-      ctx.fillText(currentLine, 36, lineY);
+      ctx.fillText(currentLine, boxX + 16, lineY);
 
-      // "Press Space" prompt
+      // "Press Space" prompt with bounce
       if (charCount >= line.length) {
         const blink = Math.sin(frame * 0.1) > 0;
         if (blink) {
-          ctx.fillStyle = '#888';
+          const promptBob = Math.sin(frame * 0.15) * 2;
+          ctx.fillStyle = '#67e8f9';
           ctx.font = '11px monospace';
           ctx.textAlign = 'right';
-          ctx.fillText('[Space / Click to continue]', CANVAS_W - 36, CANVAS_H - 30);
+          ctx.fillText(
+            '[Space / Click to continue]',
+            boxX + boxW - 16,
+            boxY + boxH - 10 + promptBob,
+          );
         }
       }
     }
+
+    // --- Overworld vignette ---
+    ctx.save();
+    const owVignette = ctx.createRadialGradient(
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.3,
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.65,
+    );
+    owVignette.addColorStop(0, 'transparent');
+    owVignette.addColorStop(0.8, 'rgba(0,0,0,0.1)');
+    owVignette.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = owVignette;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
   }
 
   // --- Battle render ---
@@ -1311,40 +1560,80 @@ export default function CreatureRPGRenderer({
     if (!d.battleState) return;
     const bs = d.battleState;
 
-    // Background: battle arena
+    // Background: atmospheric battle arena
     const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    skyGrad.addColorStop(0, '#0d1b2a');
-    skyGrad.addColorStop(0.5, '#1b2838');
+    skyGrad.addColorStop(0, '#050510');
+    skyGrad.addColorStop(0.3, '#0d1b2a');
+    skyGrad.addColorStop(0.6, '#1b2838');
     skyGrad.addColorStop(1, '#2a1a2e');
     ctx.fillStyle = skyGrad;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Mountains silhouette
-    ctx.fillStyle = '#1a1a3e';
+    // Atmospheric particles (dust motes / energy)
+    ctx.save();
+    for (let i = 0; i < 15; i++) {
+      const px = ((frame * 0.3 + i * 67) % (CANVAS_W + 20)) - 10;
+      const py = (frame * 0.2 + i * 41 + Math.sin(frame * 0.02 + i) * 30) % 320;
+      ctx.globalAlpha = 0.08 + Math.sin(frame * 0.03 + i) * 0.04;
+      ctx.fillStyle = i % 3 === 0 ? '#6366f1' : i % 3 === 1 ? '#a855f7' : '#ffffff';
+      ctx.fillRect(px, py, 2, 2);
+    }
+    ctx.restore();
+
+    // Mountains silhouette (far)
+    ctx.fillStyle = '#0e0e28';
     ctx.beginPath();
-    ctx.moveTo(0, 300);
+    ctx.moveTo(0, 310);
     for (let x = 0; x <= CANVAS_W; x += 50) {
-      const h = Math.sin(x * 0.01 + 1) * 50 + Math.sin(x * 0.018) * 25;
-      ctx.lineTo(x, 280 - h);
+      const h = Math.sin(x * 0.008 + 2) * 60 + Math.sin(x * 0.015) * 30;
+      ctx.lineTo(x, 290 - h);
     }
     ctx.lineTo(CANVAS_W, CANVAS_H);
     ctx.lineTo(0, CANVAS_H);
     ctx.closePath();
     ctx.fill();
 
-    // Ground
-    const groundY = 340;
-    ctx.fillStyle = '#3a3a5a';
-    ctx.fillRect(0, groundY, CANVAS_W, CANVAS_H - groundY);
-    ctx.fillStyle = '#4a4a6a';
-    ctx.fillRect(0, groundY, CANVAS_W, 3);
+    // Mountains silhouette (near)
+    ctx.fillStyle = '#151535';
+    ctx.beginPath();
+    ctx.moveTo(0, 320);
+    for (let x = 0; x <= CANVAS_W; x += 40) {
+      const h = Math.sin(x * 0.01 + 1) * 45 + Math.sin(x * 0.018) * 22;
+      ctx.lineTo(x, 300 - h);
+    }
+    ctx.lineTo(CANVAS_W, CANVAS_H);
+    ctx.lineTo(0, CANVAS_H);
+    ctx.closePath();
+    ctx.fill();
 
-    // Stone pattern
-    ctx.strokeStyle = '#4a4a6a';
-    ctx.lineWidth = 0.5;
+    // Ground with gradient
+    const groundY = 340;
+    const battleGroundGrad = ctx.createLinearGradient(0, groundY, 0, CANVAS_H);
+    battleGroundGrad.addColorStop(0, '#3a3a5a');
+    battleGroundGrad.addColorStop(0.4, '#333350');
+    battleGroundGrad.addColorStop(1, '#28283e');
+    ctx.fillStyle = battleGroundGrad;
+    ctx.fillRect(0, groundY, CANVAS_W, CANVAS_H - groundY);
+
+    // Ground edge with glow
+    const battleEdge = ctx.createLinearGradient(0, groundY - 4, 0, groundY + 4);
+    battleEdge.addColorStop(0, 'transparent');
+    battleEdge.addColorStop(0.5, 'rgba(100, 100, 150, 0.3)');
+    battleEdge.addColorStop(1, 'transparent');
+    ctx.fillStyle = battleEdge;
+    ctx.fillRect(0, groundY - 4, CANVAS_W, 8);
+    ctx.fillStyle = '#5a5a7a';
+    ctx.fillRect(0, groundY, CANVAS_W, 2);
+
+    // Stone pattern with subtle shading
     for (let x = 0; x < CANVAS_W; x += 48) {
       for (let y = groundY + 3; y < CANVAS_H; y += 24) {
         const xOff = (Math.floor((y - groundY) / 24) % 2) * 24;
+        const shade = ((x * 7 + y * 11) % 16) - 8;
+        ctx.fillStyle = `rgba(${70 + shade}, ${70 + shade}, ${100 + shade}, 0.1)`;
+        ctx.fillRect(x + xOff + 1, y + 1, 46, 22);
+        ctx.strokeStyle = '#4a4a6a';
+        ctx.lineWidth = 0.5;
         ctx.strokeRect(x + xOff, y, 48, 24);
       }
     }
@@ -1440,34 +1729,46 @@ export default function CreatureRPGRenderer({
       }
     }
 
-    // VS indicator
-    ctx.fillStyle = '#fff';
-    ctx.globalAlpha = 0.15;
+    // VS indicator with glow
+    ctx.save();
+    const vsPulse = 0.06 + Math.sin(frame * 0.025) * 0.03;
+    ctx.globalAlpha = vsPulse;
+    ctx.fillStyle = '#6366f1';
     ctx.font = 'bold 80px monospace';
     ctx.textAlign = 'center';
     ctx.fillText('VS', CANVAS_W / 2, groundY - 40);
+    ctx.globalAlpha = vsPulse * 1.5;
+    ctx.fillStyle = '#818cf8';
+    ctx.font = 'bold 76px monospace';
+    ctx.fillText('VS', CANVAS_W / 2, groundY - 40);
+    ctx.restore();
+
+    // Battle type indicator with glass panel
+    ctx.save();
+    const btText =
+      bs.type === 'gym'
+        ? 'GYM BATTLE'
+        : bs.type === 'trainer'
+          ? 'TRAINER BATTLE'
+          : 'WILD ENCOUNTER';
+    const btColor = bs.type === 'gym' ? '#ffd54f' : bs.type === 'trainer' ? '#ff8a80' : '#81c784';
+    const btWidth = ctx.measureText(btText).width + 40;
+    ctx.fillStyle = 'rgba(5, 10, 25, 0.6)';
+    ctx.fillRect(CANVAS_W / 2 - btWidth / 2, 10, btWidth, 28);
+    ctx.strokeStyle = btColor;
+    ctx.globalAlpha = 0.3;
+    ctx.lineWidth = 1;
+    ctx.strokeRect(CANVAS_W / 2 - btWidth / 2, 10, btWidth, 28);
     ctx.globalAlpha = 1;
+    ctx.fillStyle = btColor;
+    ctx.font = bs.type === 'gym' ? 'bold 15px monospace' : 'bold 13px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(btText, CANVAS_W / 2, 30);
+    ctx.restore();
 
-    // Battle type indicator
-    if (bs.type === 'gym') {
-      ctx.fillStyle = '#ffd54f';
-      ctx.font = 'bold 16px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('GYM BATTLE', CANVAS_W / 2, 30);
-    } else if (bs.type === 'trainer') {
-      ctx.fillStyle = '#ff8a80';
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('TRAINER BATTLE', CANVAS_W / 2, 30);
-    } else {
-      ctx.fillStyle = '#81c784';
-      ctx.font = 'bold 14px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('WILD ENCOUNTER', CANVAS_W / 2, 30);
-    }
-
-    // Leech seed vines
+    // Leech seed vines (multiple tendrils)
     if (bs.leechSeedActive) {
+      ctx.save();
       ctx.strokeStyle = '#66bb6a';
       ctx.lineWidth = 2;
       ctx.globalAlpha = 0.5 + Math.sin(frame * 0.1) * 0.2;
@@ -1475,8 +1776,39 @@ export default function CreatureRPGRenderer({
       ctx.moveTo(680, groundY - 50);
       ctx.quadraticCurveTo(680 + Math.sin(frame * 0.05) * 10, groundY - 80, 700, groundY - 96);
       ctx.stroke();
-      ctx.globalAlpha = 1;
+      // Second vine
+      ctx.globalAlpha = 0.3 + Math.sin(frame * 0.08 + 1) * 0.15;
+      ctx.beginPath();
+      ctx.moveTo(690, groundY - 40);
+      ctx.quadraticCurveTo(695 + Math.cos(frame * 0.04) * 8, groundY - 70, 710, groundY - 90);
+      ctx.stroke();
+      // Leaf particles
+      for (let i = 0; i < 4; i++) {
+        const lx = 680 + Math.sin(frame * 0.03 + i * 1.5) * 20;
+        const ly = groundY - 60 - i * 10 + Math.cos(frame * 0.04 + i) * 5;
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = '#81c784';
+        ctx.fillRect(lx, ly, 3, 3);
+      }
+      ctx.restore();
     }
+
+    // Battle vignette
+    ctx.save();
+    const battleVignette = ctx.createRadialGradient(
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.25,
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.65,
+    );
+    battleVignette.addColorStop(0, 'transparent');
+    battleVignette.addColorStop(0.7, 'rgba(0,0,0,0.12)');
+    battleVignette.addColorStop(1, 'rgba(0,0,0,0.45)');
+    ctx.fillStyle = battleVignette;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
   }
 
   function drawBattleHPBar(
@@ -1487,66 +1819,129 @@ export default function CreatureRPGRenderer({
     isPlayer: boolean,
   ) {
     const barW = 140;
-    const barH = 8;
+    const barH = 10;
+    const typeColors = TYPE_COLORS[creature.type] || TYPE_COLORS.normal;
+
+    // Glass panel background
+    ctx.save();
+    ctx.fillStyle = 'rgba(5, 10, 25, 0.65)';
+    ctx.fillRect(x - 6, y - 10, barW + 12, isPlayer ? 52 : 40);
+    ctx.strokeStyle = 'rgba(100, 140, 180, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x - 6, y - 10, barW + 12, isPlayer ? 52 : 40);
+    ctx.fillStyle = 'rgba(255,255,255,0.02)';
+    ctx.fillRect(x - 5, y - 9, barW + 10, (isPlayer ? 52 : 40) / 2);
+    ctx.restore();
 
     // Name + level
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px monospace';
+    ctx.fillStyle = '#e0e0ff';
+    ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`${capitalize(creature.species)} Lv${creature.level}`, x, y);
+    ctx.fillText(`${capitalize(creature.species)} Lv${creature.level}`, x, y + 2);
 
-    // HP bar background
-    ctx.fillStyle = '#333';
-    ctx.fillRect(x, y + 4, barW, barH);
-
-    // HP bar fill
-    const hpRatio = Math.max(0, creature.stats.hp / creature.stats.maxHp);
-    const barColor = hpRatio > 0.5 ? '#4caf50' : hpRatio > 0.25 ? '#ffc107' : '#f44336';
-    ctx.fillStyle = barColor;
-    ctx.fillRect(x, y + 4, barW * hpRatio, barH);
-
-    // HP text
-    ctx.fillStyle = '#ccc';
-    ctx.font = '10px monospace';
-    if (isPlayer) {
-      ctx.fillText(`${creature.stats.hp}/${creature.stats.maxHp}`, x, y + 22);
-    } else {
-      // Don't show exact HP for enemy
-      const pct = Math.round(hpRatio * 100);
-      ctx.fillText(`${pct}%`, x, y + 22);
-    }
-
-    // XP bar (player only)
-    if (isPlayer) {
-      const xpRatio = creature.xpToLevel > 0 ? creature.xp / creature.xpToLevel : 0;
-      ctx.fillStyle = '#222';
-      ctx.fillRect(x, y + 26, barW, 3);
-      ctx.fillStyle = '#29b6f6';
-      ctx.fillRect(x, y + 26, barW * xpRatio, 3);
-    }
-
-    // Type badge
-    const typeColors = TYPE_COLORS[creature.type] || TYPE_COLORS.normal;
+    // Type badge with background
     ctx.fillStyle = typeColors.primary;
+    ctx.globalAlpha = 0.2;
+    const typeText = creature.type.toUpperCase();
+    const typeWidth = ctx.measureText(typeText).width + 8;
+    ctx.fillRect(x + barW - typeWidth, y - 8, typeWidth, 14);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = typeColors.glow;
     ctx.font = 'bold 9px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(creature.type.toUpperCase(), x + barW, y);
+    ctx.fillText(typeText, x + barW - 2, y + 2);
     ctx.textAlign = 'left';
+
+    // HP bar background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(x, y + 6, barW, barH);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(x, y + 6, barW, 1);
+
+    // HP gradient fill
+    const hpRatio = Math.max(0, creature.stats.hp / creature.stats.maxHp);
+    if (hpRatio > 0) {
+      const hpGrad = ctx.createLinearGradient(x, y + 6, x, y + 6 + barH);
+      if (hpRatio > 0.5) {
+        hpGrad.addColorStop(0, '#66bb6a');
+        hpGrad.addColorStop(0.5, '#4caf50');
+        hpGrad.addColorStop(1, '#2e7d32');
+      } else if (hpRatio > 0.25) {
+        hpGrad.addColorStop(0, '#ffee58');
+        hpGrad.addColorStop(0.5, '#ffc107');
+        hpGrad.addColorStop(1, '#f57f17');
+      } else {
+        hpGrad.addColorStop(0, '#ef5350');
+        hpGrad.addColorStop(0.5, '#f44336');
+        hpGrad.addColorStop(1, '#b71c1c');
+      }
+      ctx.fillStyle = hpGrad;
+      ctx.fillRect(x, y + 6, barW * hpRatio, barH);
+      // Specular highlight
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.fillRect(x, y + 6, barW * hpRatio, 1);
+    }
+    ctx.strokeStyle = 'rgba(100, 140, 180, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y + 6, barW, barH);
+
+    // HP text
+    ctx.fillStyle = '#b0b0cc';
+    ctx.font = '10px monospace';
+    if (isPlayer) {
+      ctx.fillText(`${creature.stats.hp}/${creature.stats.maxHp}`, x, y + 28);
+    } else {
+      const pct = Math.round(hpRatio * 100);
+      ctx.fillText(`${pct}%`, x, y + 28);
+    }
+
+    // XP bar (player only) with gradient
+    if (isPlayer) {
+      const xpRatio = creature.xpToLevel > 0 ? creature.xp / creature.xpToLevel : 0;
+      ctx.fillStyle = '#0a0a1e';
+      ctx.fillRect(x, y + 32, barW, 4);
+      if (xpRatio > 0) {
+        const xpGrad = ctx.createLinearGradient(x, y + 32, x, y + 36);
+        xpGrad.addColorStop(0, '#4fc3f7');
+        xpGrad.addColorStop(1, '#0288d1');
+        ctx.fillStyle = xpGrad;
+        ctx.fillRect(x, y + 32, barW * xpRatio, 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(x, y + 32, barW * xpRatio, 1);
+      }
+      // XP label
+      ctx.fillStyle = '#4fc3f7';
+      ctx.font = '8px monospace';
+      ctx.fillText('XP', x + barW + 2, y + 36);
+    }
   }
 
   // --- Starter select render ---
   function renderStarterSelect(ctx: CanvasRenderingContext2D, frame: number) {
     // Gradient background
     const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    grad.addColorStop(0, '#1a237e');
+    grad.addColorStop(0, '#0a0e2e');
+    grad.addColorStop(0.4, '#1a237e');
     grad.addColorStop(1, '#0d47a1');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Title
-    ctx.fillStyle = '#fff';
+    // Floating particles
+    for (let i = 0; i < 20; i++) {
+      const px = ((frame * 0.4 + i * 51) % (CANVAS_W + 20)) - 10;
+      const py = ((frame * 0.3 + i * 29) % (CANVAS_H + 20)) - 10;
+      ctx.globalAlpha = 0.1 + Math.sin(frame * 0.03 + i) * 0.05;
+      ctx.fillStyle = i % 2 === 0 ? '#5c6bc0' : '#7986cb';
+      ctx.fillRect(px, py, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+
+    // Title with shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.font = 'bold 28px monospace';
     ctx.textAlign = 'center';
+    ctx.fillText('Choose Your Starter!', CANVAS_W / 2 + 2, 62);
+    ctx.fillStyle = '#e0e8ff';
     ctx.fillText('Choose Your Starter!', CANVAS_W / 2, 60);
 
     ctx.font = '14px monospace';
@@ -1572,12 +1967,33 @@ export default function CreatureRPGRenderer({
       const cy = 120;
       const hover = Math.sin(frame * 0.04 + i * 2) * 5;
 
-      // Card background
+      // Card glass background with glow
       const typeColor = TYPE_COLORS[getSpeciesType(species)];
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      // Outer glow
+      ctx.save();
+      ctx.globalAlpha = 0.08 + Math.sin(frame * 0.04 + i) * 0.03;
+      const cardGlow = ctx.createRadialGradient(
+        cx + cardW / 2,
+        cy + hover + cardH / 2,
+        20,
+        cx + cardW / 2,
+        cy + hover + cardH / 2,
+        cardW * 0.8,
+      );
+      cardGlow.addColorStop(0, typeColor.glow);
+      cardGlow.addColorStop(1, 'transparent');
+      ctx.fillStyle = cardGlow;
+      ctx.fillRect(cx - 20, cy + hover - 20, cardW + 40, cardH + 40);
+      ctx.restore();
+      // Card fill
+      ctx.fillStyle = 'rgba(10, 15, 35, 0.7)';
       ctx.fillRect(cx, cy + hover, cardW, cardH);
+      // Glass highlight (top half)
+      ctx.fillStyle = 'rgba(255,255,255,0.04)';
+      ctx.fillRect(cx + 1, cy + hover + 1, cardW - 2, cardH / 2);
+      // Border
       ctx.strokeStyle = typeColor.primary;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 1.5;
       ctx.strokeRect(cx, cy + hover, cardW, cardH);
 
       // Creature sprite
@@ -1615,23 +2031,37 @@ export default function CreatureRPGRenderer({
   // --- Victory render ---
   function renderVictory(ctx: CanvasRenderingContext2D, d: CreatureRPGState, frame: number) {
     const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    grad.addColorStop(0, '#1b5e20');
+    grad.addColorStop(0, '#0a2e0a');
+    grad.addColorStop(0.5, '#1b5e20');
     grad.addColorStop(1, '#004d40');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Confetti particles
-    for (let i = 0; i < 30; i++) {
-      const px = ((frame * 2 + i * 37) % (CANVAS_W + 40)) - 20;
-      const py = ((frame * 1.5 + i * 23) % (CANVAS_H + 40)) - 20;
-      const colors = ['#ffd54f', '#ff5252', '#69f0ae', '#448aff', '#e040fb'];
+    // Confetti particles (varied sizes and rotation feel)
+    for (let i = 0; i < 40; i++) {
+      const px = ((frame * 1.8 + i * 37) % (CANVAS_W + 40)) - 20;
+      const py = ((frame * 1.2 + i * 23) % (CANVAS_H + 40)) - 20;
+      const colors = ['#ffd54f', '#ff5252', '#69f0ae', '#448aff', '#e040fb', '#ffffff'];
+      ctx.globalAlpha = 0.6 + Math.sin(frame * 0.05 + i) * 0.3;
       ctx.fillStyle = colors[i % colors.length];
-      ctx.fillRect(px, py, 6, 6);
+      const sz = 3 + (i % 4) * 2;
+      ctx.fillRect(px, py, sz, sz);
     }
+    ctx.globalAlpha = 1;
 
+    // Title with glow
+    ctx.save();
+    ctx.globalAlpha = 0.15;
     ctx.fillStyle = '#ffd54f';
+    ctx.font = 'bold 40px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('VICTORY!', CANVAS_W / 2, 102);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
+    ctx.fillText('VICTORY!', CANVAS_W / 2 + 2, 102);
+    ctx.fillStyle = '#ffd54f';
     ctx.fillText('VICTORY!', CANVAS_W / 2, 100);
 
     ctx.fillStyle = '#fff';
@@ -1674,17 +2104,32 @@ export default function CreatureRPGRenderer({
   // --- Defeat render ---
   function renderDefeat(ctx: CanvasRenderingContext2D, frame: number) {
     const grad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-    grad.addColorStop(0, '#1a1a1a');
-    grad.addColorStop(1, '#37474f');
+    grad.addColorStop(0, '#0a0a0a');
+    grad.addColorStop(0.5, '#1a1a1a');
+    grad.addColorStop(1, '#2a2a3a');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    ctx.fillStyle = '#f44336';
+    // Falling embers / ash particles
+    ctx.save();
+    for (let i = 0; i < 15; i++) {
+      const px = ((frame * 0.5 + i * 71) % (CANVAS_W + 20)) - 10;
+      const py = ((frame * 0.8 + i * 41) % (CANVAS_H + 20)) - 10;
+      ctx.globalAlpha = 0.15 + Math.sin(frame * 0.02 + i) * 0.08;
+      ctx.fillStyle = i % 2 === 0 ? '#ff5252' : '#555';
+      ctx.fillRect(px, py, 2, 2);
+    }
+    ctx.restore();
+
+    // Title with shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.font = 'bold 36px monospace';
     ctx.textAlign = 'center';
+    ctx.fillText('DEFEAT', CANVAS_W / 2 + 2, CANVAS_H / 2 - 28);
+    ctx.fillStyle = '#f44336';
     ctx.fillText('DEFEAT', CANVAS_W / 2, CANVAS_H / 2 - 30);
 
-    ctx.fillStyle = '#bdbdbd';
+    ctx.fillStyle = '#9e9e9e';
     ctx.font = '16px monospace';
     ctx.fillText('All your creatures have fainted...', CANVAS_W / 2, CANVAS_H / 2 + 10);
 
@@ -1694,6 +2139,23 @@ export default function CreatureRPGRenderer({
       ctx.font = '13px monospace';
       ctx.fillText('Click Restart to try again', CANVAS_W / 2, CANVAS_H / 2 + 50);
     }
+
+    // Defeat vignette (stronger)
+    ctx.save();
+    const defeatVignette = ctx.createRadialGradient(
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.15,
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.55,
+    );
+    defeatVignette.addColorStop(0, 'transparent');
+    defeatVignette.addColorStop(0.6, 'rgba(0,0,0,0.2)');
+    defeatVignette.addColorStop(1, 'rgba(0,0,0,0.6)');
+    ctx.fillStyle = defeatVignette;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
   }
 
   // RAF loop â€” runs once on mount; renderFrame reads dataRef.current

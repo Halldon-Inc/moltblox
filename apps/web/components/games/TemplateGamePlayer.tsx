@@ -40,6 +40,10 @@ const TEMPLATE_RENDERERS: Record<string, ComponentType<RendererProps>> = {
     ssr: false,
     loading: () => <TemplateLoading />,
   }),
+  fps: dynamic(() => import('@/components/games/renderers/FPSRenderer'), {
+    ssr: false,
+    loading: () => <TemplateLoading />,
+  }),
 };
 
 function TemplateLoading() {

@@ -22,6 +22,7 @@ const templateSlugValues = [
   'roguelike',
   'survival',
   'graph-strategy',
+  'fps',
   // OpenSpiel ports: board games
   'os-tic-tac-toe',
   'os-connect-four',

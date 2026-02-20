@@ -219,6 +219,23 @@ async function main() {
     },
   ];
 
+  // ── DOOM Arena FPS Game ──
+  games.push({
+    name: 'DOOM Arena',
+    slug: 'doom-arena',
+    description:
+      'Classic first-person shooter with raycasting, multiple weapons, enemy AI, and purchasable upgrades. Grab weapons, find secrets, and survive.',
+    genre: 'action',
+    tags: ['Action', 'FPS', 'Shooter', 'Multiplayer'],
+    maxPlayers: 4,
+    status: 'published',
+    templateSlug: 'fps',
+    totalPlays: 0,
+    uniquePlayers: 0,
+    averageRating: 0,
+    ratingCount: 0,
+  });
+
   for (const game of games) {
     await prisma.game.upsert({
       where: { slug: game.slug },
@@ -323,6 +340,7 @@ async function main() {
   const matchPairs = await prisma.game.findUnique({ where: { slug: 'match-pairs' } });
   const beatBlaster = await prisma.game.findUnique({ where: { slug: 'beat-blaster' } });
   const dungeonCrawl = await prisma.game.findUnique({ where: { slug: 'dungeon-crawl' } });
+  const doomArena = await prisma.game.findUnique({ where: { slug: 'doom-arena' } });
 
   const demoItems: {
     gameId: string;
@@ -602,6 +620,147 @@ async function main() {
         maxSupply: 150,
       },
     );
+  }
+
+  // DOOM Arena FPS items
+  if (doomArena) {
+    // Weapons (power_up)
+    demoItems.push(
+      {
+        gameId: doomArena.id,
+        name: 'Shotgun',
+        description: 'Close-range devastation. High damage, wide spread.',
+        category: 'power_up',
+        rarity: 'uncommon',
+        price: 2000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Chaingun',
+        description: 'Rapid-fire bullet hose. Tears through groups of enemies.',
+        category: 'power_up',
+        rarity: 'rare',
+        price: 5000000000000000000n,
+        maxSupply: 500,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Rocket Launcher',
+        description: 'Explosive ordinance. Massive damage at any range.',
+        category: 'power_up',
+        rarity: 'epic',
+        price: 10000000000000000000n,
+        maxSupply: 200,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'BFG 9000',
+        description: 'The ultimate weapon. Obliterates everything in sight.',
+        category: 'power_up',
+        rarity: 'legendary',
+        price: 25000000000000000000n,
+        maxSupply: 50,
+      },
+    );
+    // Glove skins (cosmetic)
+    demoItems.push(
+      {
+        gameId: doomArena.id,
+        name: 'Tactical Gloves',
+        description: 'Dark gray tactical gear with reinforced knuckles.',
+        category: 'cosmetic',
+        rarity: 'common',
+        price: 1000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Leather Gloves',
+        description: 'Classic brown leather. Old school style.',
+        category: 'cosmetic',
+        rarity: 'uncommon',
+        price: 2000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Cyber Gloves',
+        description: 'Glowing cyan cybernetic implants.',
+        category: 'cosmetic',
+        rarity: 'rare',
+        price: 5000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Gold Gauntlets',
+        description: 'Solid gold. For the champion who has everything.',
+        category: 'cosmetic',
+        rarity: 'epic',
+        price: 15000000000000000000n,
+        maxSupply: 100,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Flame Gauntlets',
+        description: 'Burning orange-red. Leave fire in your wake.',
+        category: 'cosmetic',
+        rarity: 'legendary',
+        price: 20000000000000000000n,
+        maxSupply: 25,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Skeleton Hands',
+        description: 'Bare bones. The rarest drop on the platform.',
+        category: 'cosmetic',
+        rarity: 'legendary',
+        price: 30000000000000000000n,
+        maxSupply: 10,
+      },
+    );
+    // Consumables
+    demoItems.push(
+      {
+        gameId: doomArena.id,
+        name: 'Extra Life',
+        description: 'Auto-revive when you hit 0 HP. One use per match.',
+        category: 'consumable',
+        rarity: 'common',
+        price: 500000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Damage Boost',
+        description: '2x weapon damage for 30 seconds.',
+        category: 'consumable',
+        rarity: 'uncommon',
+        price: 1000000000000000000n,
+        maxSupply: null,
+      },
+      {
+        gameId: doomArena.id,
+        name: 'Shield Generator',
+        description: '10 seconds of invincibility. Use wisely.',
+        category: 'consumable',
+        rarity: 'rare',
+        price: 2000000000000000000n,
+        maxSupply: null,
+      },
+    );
+    // Access item
+    demoItems.push({
+      gameId: doomArena.id,
+      name: 'The Vault Access Key',
+      description:
+        'Unlocks the secret fourth level: The Vault. Rare loot and deadly enemies await.',
+      category: 'access',
+      rarity: 'epic',
+      price: 5000000000000000000n,
+      maxSupply: null,
+    });
   }
 
   for (const item of demoItems) {

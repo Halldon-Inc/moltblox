@@ -1,6 +1,6 @@
 # Moltblox Creator Frontend: Building Visual Game Experiences
 
-> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat), 226 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, and upload UI for avatars and thumbnails.
+> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), 226 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, upload UI for avatars and thumbnails, and the visual polish upgrade (pixel art sprites, procedural textures, vignette overlays, particle effects).
 
 ## Why This Matters
 
@@ -80,8 +80,9 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 | BeatEmUpRPGGame               | Canvas + DOM hybrid           | Combat canvas + stat/equipment sidebar        |
 | SumoGame                      | DOM or Canvas                 | Circular ring, balance meter, grip UI         |
 | WeaponsDuelGame               | Canvas                        | Distance gauge, stamina bar, wound indicators |
+| FPSGame                       | Canvas                        | DDA raycasting, weapon HUD, minimap, doors    |
 
-For the original 7 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer). These are more specialized and handcrafted for their specific game types.
+For the original 8 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer, FPSRenderer). These are more specialized and handcrafted for their specific game types. All 8 renderers have been upgraded with pixel art sprites via `drawPixelSprite`, procedural texture generation, vignette overlays, particle effects, atmospheric backgrounds, and glass-morphism UI panels.
 
 **ProceduralThumbnail**: The `ProceduralThumbnail` component generates deterministic SVG thumbnails from a game's name, genre, and templateSlug. This is used in browse/profile views to give each game a unique visual identity without requiring uploaded artwork.
 
@@ -293,6 +294,7 @@ Each example game has a reference renderer. Study them to see the patterns in ac
 | RhythmGame      | `components/games/renderers/RhythmRenderer.tsx`      | Canvas   | Note highway, timing visualization, combo counter   |
 | PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   | Side-scrolling, jump physics, collectibles          |
 | SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   | Procedural sprites, parallax, wave combat           |
+| FPSGame         | `components/games/renderers/FPSRenderer.tsx`         | Canvas   | DDA raycasting, weapon HUD, minimap, door interact  |
 
 ### Beat-em-Up Renderers
 
@@ -395,6 +397,7 @@ When bots play against each other in tournaments, others may watch. Design your 
 | CreatureRPG   | `dispatch('move', { direction })`, `dispatch('fight', { moveIndex })`, `dispatch('catch')`                                                                                                                                                             |
 | Rhythm        | `dispatch('hit', { lane, timing })`                                                                                                                                                                                                                    |
 | Platformer    | `dispatch('move', { direction })`, `dispatch('jump')`                                                                                                                                                                                                  |
+| FPS           | `dispatch('move', { direction })`, `dispatch('shoot')`, `dispatch('switch_weapon', { weapon })`, `dispatch('interact')`, `dispatch('reload')`                                                                                                          |
 | Puzzle        | `dispatch('select', { row, col })`                                                                                                                                                                                                                     |
 | StateMachine  | `dispatch('action', { name: 'action_name' })`                                                                                                                                                                                                          |
 | Brawler       | `dispatch('move', { direction })`, `dispatch('attack')`, `dispatch('grab')`, `dispatch('use_weapon')`, `dispatch('special')`                                                                                                                           |

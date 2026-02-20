@@ -553,7 +553,7 @@ Creature RPGs have the largest cosmetic surface area of any genre. Every species
 
 ### Cosmetic Categories
 
-With 24 hand-coded templates (14 original + 10 beat-em-up) and 234 ported classics, the cosmetic surface area extends far beyond creature RPGs. Beat-em-up and fighting templates open new item categories:
+With 25 hand-coded templates (15 original + 10 beat-em-up) and 234 ported classics, the cosmetic surface area extends far beyond creature RPGs. Beat-em-up and fighting templates open new item categories:
 
 | Category        | Beat-em-Up Examples                                          |
 | --------------- | ------------------------------------------------------------ |
@@ -584,6 +584,29 @@ With 24 hand-coded templates (14 original + 10 beat-em-up) and 234 ported classi
 | Weather overlay         | Epic      | 5-10 MBUCKS  | Transforms the whole game      |
 
 ### Cross-Game Item Strategy
+
+#### FPS (DOOM Arena) Marketplace Items
+
+The FPS template introduces a unique item economy built around weapons, glove skins, consumables, and access keys. FPS players invest in loadout aesthetics and competitive edge.
+
+| Item                   | Category   | Rarity    | Price     | Why It Sells                                      |
+| ---------------------- | ---------- | --------- | --------- | ------------------------------------------------- |
+| Plasma Shotgun Skin    | cosmetic   | uncommon  | 2 MBUCKS  | Neon shell ejection and muzzle flash.             |
+| Chaingun Inferno       | cosmetic   | rare      | 5 MBUCKS  | Fire trail on every bullet. Visible to opponents. |
+| BFG Singularity        | cosmetic   | epic      | 15 MBUCKS | Black hole visual on BFG impact. 200 exist.       |
+| Rocket Launcher Aurora | cosmetic   | epic      | 10 MBUCKS | Rainbow exhaust trail on rockets.                 |
+| Crimson Knuckle Gloves | cosmetic   | common    | 1 MBUCKS  | Red leather boxing gloves for fist attacks.       |
+| Tiger Stripe Gloves    | cosmetic   | uncommon  | 3 MBUCKS  | Animated stripe pattern that pulses on punch.     |
+| Void Gauntlets         | cosmetic   | legendary | 30 MBUCKS | Gloves that distort space around fists. 50 exist. |
+| Neon Circuit Gloves    | cosmetic   | rare      | 5 MBUCKS  | Glowing circuit patterns with melee trail.        |
+| Gold Knuckle Gloves    | cosmetic   | epic      | 8 MBUCKS  | Metallic gold finish with impact sparks.          |
+| Phantom Grip Gloves    | cosmetic   | rare      | 4 MBUCKS  | Translucent ghostly hands.                        |
+| Ammo Crate             | consumable | common    | 1 MBUCKS  | Refills ammo for current weapon. One use.         |
+| Health Syringe         | consumable | common    | 1 MBUCKS  | Restores 25 HP instantly.                         |
+| Armor Shard Pack       | consumable | uncommon  | 2 MBUCKS  | Grants 50 bonus armor for one session.            |
+| The Vault Access Key   | access     | epic      | 12 MBUCKS | Unlocks the secret level permanently.             |
+
+FPS pricing spans from 1 MBUCKS (common gloves and consumables) through 30 MBUCKS (legendary Void Gauntlets), with the BFG Singularity at 15 MBUCKS as the prestige weapon skin. The 14 items cover 4 weapons, 6 glove skins, 3 consumables, and 1 access key.
 
 Creature RPGs are uniquely positioned for cross-game cosmetics. A "Phantom Emberfox" skin inspired by a ghost-themed game, or a "Coral Aquaphin" from a water-world game, drives traffic between titles. Even non-creature games benefit: a platformer creator sells an "Emberfox Hat", you sell a "Platformer Hero Trainer Jacket" in return. Every cross-reference is free marketing.
 

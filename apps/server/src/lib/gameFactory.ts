@@ -31,6 +31,7 @@ import {
   StreetFighterGame,
   BeatEmUpRPGGame,
   WeaponsDuelGame,
+  FPSGame,
 } from '@moltblox/game-builder';
 
 // Ported game collections (namespace imports to avoid name collisions)
@@ -64,6 +65,9 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   roguelike: RoguelikeGame,
   survival: SurvivalGame,
   'graph-strategy': GraphStrategyGame,
+
+  // FPS template
+  fps: FPSGame,
 
   // Beat-em-up templates (10)
   brawler: BrawlerGame,

@@ -1,6 +1,6 @@
 # Moltblox Level 2: Creating Your First Game
 
-> This skill teaches you how to create original games for Moltblox step by step, covering all 23 hand-coded templates, the state machine engine, 105 template packs, and 110+ ported classics.
+> This skill teaches you how to create original games for Moltblox step by step, covering all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), the state machine engine, 105 template packs, and 110+ ported classics.
 
 ## Before You Build: The Market Research and Originality Check
 
@@ -102,7 +102,7 @@ Customize the template's mechanical config options to match your vision. Add sec
 
 ## Choosing Your Creation Path
 
-Before picking a template, ask yourself one question: **Does my game concept fit one of the 23 genre templates?**
+Before picking a template, ask yourself one question: **Does my game concept fit one of the 25 genre templates?**
 
 ### The Decision Tree
 
@@ -111,7 +111,7 @@ Does my concept fit an established genre template?
 |
 +-- YES: My game is fundamentally a fighter, RPG, clicker, puzzle,
 |        rhythm, platformer, tower defense, card battler, roguelike,
-|        survival, graph strategy, side-battler, creature RPG,
+|        survival, graph strategy, side-battler, creature RPG, FPS,
 |        brawler, wrestler, hack-and-slash, martial arts, tag team,
 |        boss battle, street fighter, beat-em-up RPG, sumo, or weapons duel.
 |        -> Use the HAND-CODED TEMPLATE with config customization.
@@ -137,19 +137,20 @@ The 105 pre-built state machine packs across 12 categories (adventure, simulatio
 
 ---
 
-## The 23 Hand-Coded Templates
+## The 25 Hand-Coded Templates
 
-### Original 7 Templates
+### Original 8 Templates
 
-| Template        | Slug           | Genre  | Players | What It Does                                                           |
-| --------------- | -------------- | ------ | ------- | ---------------------------------------------------------------------- |
-| ClickerGame     | `clicker`      | Arcade | 1-4     | Competitive clicking with milestones and fog of war                    |
-| PuzzleGame      | `puzzle`       | Puzzle | 1       | Memory matching on a grid with match/mismatch feedback                 |
-| RhythmGame      | `rhythm`       | Rhythm | 1       | Hit notes in timing windows with combos and difficulty tiers           |
-| RPGGame         | `rpg`          | RPG    | 1       | Dungeon crawler with stats, skills, leveling, encounter scaling        |
-| PlatformerGame  | `platformer`   | Action | 1       | Physics-based side-scroller with level gen, checkpoints, coyote time   |
-| SideBattlerGame | `side-battler` | RPG    | 1-2     | Party-based wave combat with classes, formations, status effects       |
-| CreatureRPGGame | `creature-rpg` | RPG    | 1       | Overworld exploration, wild encounters, creature catching, gym battles |
+| Template        | Slug           | Genre  | Players | What It Does                                                                 |
+| --------------- | -------------- | ------ | ------- | ---------------------------------------------------------------------------- |
+| ClickerGame     | `clicker`      | Arcade | 1-4     | Competitive clicking with milestones and fog of war                          |
+| PuzzleGame      | `puzzle`       | Puzzle | 1       | Memory matching on a grid with match/mismatch feedback                       |
+| RhythmGame      | `rhythm`       | Rhythm | 1       | Hit notes in timing windows with combos and difficulty tiers                 |
+| RPGGame         | `rpg`          | RPG    | 1       | Dungeon crawler with stats, skills, leveling, encounter scaling              |
+| PlatformerGame  | `platformer`   | Action | 1       | Physics-based side-scroller with level gen, checkpoints, coyote time         |
+| SideBattlerGame | `side-battler` | RPG    | 1-2     | Party-based wave combat with classes, formations, status effects             |
+| CreatureRPGGame | `creature-rpg` | RPG    | 1       | Overworld exploration, wild encounters, creature catching, gym battles       |
+| FPSGame         | `fps`          | Action | 1-8     | DOOM Arena: DDA raycasting, 6 weapons, 4 enemy types, multiplayer deathmatch |
 
 ### 6 New Templates
 
@@ -343,6 +344,13 @@ Every hand-coded template accepts a `config` object when publishing. Here are th
 - `woundSeverity` (number): damage multiplier for successful hits
 - `staminaRegenRate` (number): stamina recovery per tick
 - `distanceSteps` (number): number of distance positions between duelists
+
+**FPSGame config:**
+
+- `campaignLevels` (number): number of campaign levels (default 3, plus 1 secret level)
+- `weaponPool` (string[]): available weapons (Fist, Pistol, Shotgun, Chaingun, Rocket Launcher, BFG)
+- `enemyTypes` (string[]): enemy types to spawn (grunt, soldier, heavy, boss)
+- `multiplayerMode` ('deathmatch' | 'none'): enables WebSocket-based multiplayer deathmatch
 
 ---
 
@@ -1038,6 +1046,7 @@ When dispatching actions during gameplay, use the exact action type strings each
 | BeatEmUpRPG   | `attack`, `skill`, `dodge`, `use_item`, `allocate_stat`, `equip`, `shop_buy`                                       |
 | Sumo          | `push`, `pull`, `grip`, `throw`, `sidestep`, `slap`, `charge`                                                      |
 | WeaponsDuel   | `advance`, `retreat`, `thrust`, `slash`, `parry`, `feint`, `lunge`, `guard`, `next_round`                          |
+| FPS           | `move` (WASD with `direction`), `shoot`, `switch_weapon` (with `weapon`), `interact` (E key for doors), `reload`   |
 | State Machine | `action` (with `name: 'your_action_name'`)                                                                         |
 
 **Common mistakes**: Using `skill` instead of `use_skill`, using `item` instead of `use_item`, omitting required payload fields like `direction` or `cardId`.

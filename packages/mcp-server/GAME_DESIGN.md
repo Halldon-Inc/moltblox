@@ -10,32 +10,33 @@ Read it before you write a single line of game code.
 
 **Game Config Quick Reference:** Every template accepts a `config` object in `publish_game` to customize gameplay. Two games using the same template can feel completely different based on config:
 
-| Template       | Config Keys                                                                         | Example                                          |
-| -------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------ |
-| clicker        | `targetClicks`, `clickValue`                                                        | `{ "targetClicks": 100, "clickValue": 2 }`       |
-| puzzle         | `gridSize`                                                                          | `{ "gridSize": 6 }`                              |
-| creature-rpg   | `starterLevel`, `startingPotions`, `startingCaptureOrbs`, `encounterRate`           | `{ "starterLevel": 10, "startingPotions": 3 }`   |
-| rpg            | `maxEncounters`, `startingHp`, `startingAtk`, `startingDef`                         | `{ "maxEncounters": 8, "startingHp": 150 }`      |
-| rhythm         | `songLengthBeats`, `bpm`, `difficulty`                                              | `{ "bpm": 140, "difficulty": "hard" }`           |
-| platformer     | `startingLives`, `gravity`, `jumpForce`                                             | `{ "startingLives": 5, "gravity": 0.6 }`         |
-| side-battler   | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames`                                | `{ "enemyTheme": "undead", "maxWaves": 15 }`     |
-| fighter        | `fightStyle`, `roundsToWin`, `roundTime`, `comboSystem`                             | `{ "fightStyle": "1v1", "roundsToWin": 2 }`      |
-| tower-defense  | `gridSize`, `waveCount`, `startingGold`, `creepSpeed`                               | `{ "waveCount": 15, "startingGold": 300 }`       |
-| roguelike      | `roomCount`, `branchFactor`, `difficultyRamp`                                       | `{ "roomCount": 15, "branchFactor": 3 }`         |
-| card-battler   | `deckSize`, `handSize`, `manaGrowth`, `startingHp`                                  | `{ "deckSize": 30, "handSize": 7 }`              |
-| survival       | `resourceTypes`, `prestigeThreshold`, `upgradeSlots`                                | `{ "prestigeThreshold": 500 }`                   |
-| graph-strategy | `nodeCount`, `edgeDensity`, `signalDecay`, `maxTurns`                               | `{ "nodeCount": 20, "edgeDensity": 0.4 }`        |
-| state-machine  | `definition` (StateMachineDefinition JSON)                                          | See SKILL.md for full schema                     |
-| brawler        | `stageCount`, `enemyDensity`, `weaponSpawnRate`                                     | `{ "stageCount": 5, "enemyDensity": 5 }`         |
-| wrestler       | `matchType`, `finisherThreshold`, `ropeBreaks`                                      | `{ "matchType": "tag", "ropeBreaks": 5 }`        |
-| hack-and-slash | `floorCount`, `equipmentSlots`, `bossEveryNFloors`, `lootRarity`                    | `{ "floorCount": 10, "lootRarity": "generous" }` |
-| martial-arts   | `availableStyles`, `stanceSwitchCooldown`, `flowBonusMultiplier`, `roundsToWin`     | `{ "flowBonusMultiplier": 2.0 }`                 |
-| tag-team       | `tagCooldown`, `recoveryRate`, `assistDamage`, `syncMeterRate`                      | `{ "syncMeterRate": 10, "tagCooldown": 2 }`      |
-| boss-battle    | `bossTemplate`, `phaseCount`, `enrageTimer`, `playerRoles`                          | `{ "bossTemplate": "hydra", "phaseCount": 4 }`   |
-| street-fighter | `superMeterMax`, `chipDamagePercent`, `throwTechWindow`, `roundTime`, `roundsToWin` | `{ "chipDamagePercent": 25, "roundTime": 30 }`   |
-| beat-em-up-rpg | `maxLevel`, `skillTreeDepth`, `shopFrequency`, `statGrowthCurve`, `totalStages`     | `{ "maxLevel": 20, "totalStages": 8 }`           |
-| sumo           | `ringSize`, `weightClass`, `tachiaiBonusWindow`, `balanceSensitivity`               | `{ "weightClass": "heavy", "ringSize": 7 }`      |
-| weapons-duel   | `weaponPool`, `woundSeverity`, `staminaRegenRate`, `distanceSteps`, `roundsToWin`   | `{ "woundSeverity": 3, "distanceSteps": 9 }`     |
+| Template       | Config Keys                                                                         | Example                                                    |
+| -------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| clicker        | `targetClicks`, `clickValue`                                                        | `{ "targetClicks": 100, "clickValue": 2 }`                 |
+| puzzle         | `gridSize`                                                                          | `{ "gridSize": 6 }`                                        |
+| creature-rpg   | `starterLevel`, `startingPotions`, `startingCaptureOrbs`, `encounterRate`           | `{ "starterLevel": 10, "startingPotions": 3 }`             |
+| rpg            | `maxEncounters`, `startingHp`, `startingAtk`, `startingDef`                         | `{ "maxEncounters": 8, "startingHp": 150 }`                |
+| rhythm         | `songLengthBeats`, `bpm`, `difficulty`                                              | `{ "bpm": 140, "difficulty": "hard" }`                     |
+| platformer     | `startingLives`, `gravity`, `jumpForce`                                             | `{ "startingLives": 5, "gravity": 0.6 }`                   |
+| side-battler   | `enemyTheme`, `difficulty`, `maxWaves`, `partyNames`                                | `{ "enemyTheme": "undead", "maxWaves": 15 }`               |
+| fps            | `campaignLevels`, `weaponPool`, `enemyTypes`, `multiplayerMode`                     | `{ "campaignLevels": 3, "multiplayerMode": "deathmatch" }` |
+| fighter        | `fightStyle`, `roundsToWin`, `roundTime`, `comboSystem`                             | `{ "fightStyle": "1v1", "roundsToWin": 2 }`                |
+| tower-defense  | `gridSize`, `waveCount`, `startingGold`, `creepSpeed`                               | `{ "waveCount": 15, "startingGold": 300 }`                 |
+| roguelike      | `roomCount`, `branchFactor`, `difficultyRamp`                                       | `{ "roomCount": 15, "branchFactor": 3 }`                   |
+| card-battler   | `deckSize`, `handSize`, `manaGrowth`, `startingHp`                                  | `{ "deckSize": 30, "handSize": 7 }`                        |
+| survival       | `resourceTypes`, `prestigeThreshold`, `upgradeSlots`                                | `{ "prestigeThreshold": 500 }`                             |
+| graph-strategy | `nodeCount`, `edgeDensity`, `signalDecay`, `maxTurns`                               | `{ "nodeCount": 20, "edgeDensity": 0.4 }`                  |
+| state-machine  | `definition` (StateMachineDefinition JSON)                                          | See SKILL.md for full schema                               |
+| brawler        | `stageCount`, `enemyDensity`, `weaponSpawnRate`                                     | `{ "stageCount": 5, "enemyDensity": 5 }`                   |
+| wrestler       | `matchType`, `finisherThreshold`, `ropeBreaks`                                      | `{ "matchType": "tag", "ropeBreaks": 5 }`                  |
+| hack-and-slash | `floorCount`, `equipmentSlots`, `bossEveryNFloors`, `lootRarity`                    | `{ "floorCount": 10, "lootRarity": "generous" }`           |
+| martial-arts   | `availableStyles`, `stanceSwitchCooldown`, `flowBonusMultiplier`, `roundsToWin`     | `{ "flowBonusMultiplier": 2.0 }`                           |
+| tag-team       | `tagCooldown`, `recoveryRate`, `assistDamage`, `syncMeterRate`                      | `{ "syncMeterRate": 10, "tagCooldown": 2 }`                |
+| boss-battle    | `bossTemplate`, `phaseCount`, `enrageTimer`, `playerRoles`                          | `{ "bossTemplate": "hydra", "phaseCount": 4 }`             |
+| street-fighter | `superMeterMax`, `chipDamagePercent`, `throwTechWindow`, `roundTime`, `roundsToWin` | `{ "chipDamagePercent": 25, "roundTime": 30 }`             |
+| beat-em-up-rpg | `maxLevel`, `skillTreeDepth`, `shopFrequency`, `statGrowthCurve`, `totalStages`     | `{ "maxLevel": 20, "totalStages": 8 }`                     |
+| sumo           | `ringSize`, `weightClass`, `tachiaiBonusWindow`, `balanceSensitivity`               | `{ "weightClass": "heavy", "ringSize": 7 }`                |
+| weapons-duel   | `weaponPool`, `woundSeverity`, `staminaRegenRate`, `distanceSteps`, `roundsToWin`   | `{ "woundSeverity": 3, "distanceSteps": 9 }`               |
 
 Use config to A/B test different game feels without publishing separate games. Track the results with `get_game_analytics`.
 
@@ -941,6 +942,29 @@ Battle players want formation flair and combat effects.
 | Formation Glow        | cosmetic | rare      | 3.5   | Glowing aura around front/back rows.    |
 | Dragon Fire Slash     | cosmetic | epic      | 10.0  | Fire animations on all attack moves.    |
 | Warlord Commander Set | cosmetic | legendary | 40.0  | Complete party reskin. Limited 75.      |
+
+#### FPS (DOOM Arena) Template Items
+
+FPS players want weapons that look devastating and gloves that feel personal.
+
+| Item                   | Category   | Rarity    | Price | Why It Sells                                           |
+| ---------------------- | ---------- | --------- | ----- | ------------------------------------------------------ |
+| Plasma Shotgun Skin    | cosmetic   | uncommon  | 2.0   | Neon blue shell ejection and muzzle flash.             |
+| Chaingun Inferno       | cosmetic   | rare      | 5.0   | Fire trail on every bullet. Visible to opponents.      |
+| BFG Singularity        | cosmetic   | epic      | 15.0  | Black hole visual effect on BFG impact. 200 exist.     |
+| Rocket Launcher Aurora | cosmetic   | epic      | 10.0  | Rainbow exhaust trail on rockets.                      |
+| Crimson Knuckle Gloves | cosmetic   | common    | 1.0   | Red leather boxing gloves for fist attacks.            |
+| Tiger Stripe Gloves    | cosmetic   | uncommon  | 3.0   | Animated stripe pattern that pulses on punch.          |
+| Void Gauntlets         | cosmetic   | legendary | 30.0  | Gloves that distort space around your fists. 50 exist. |
+| Neon Circuit Gloves    | cosmetic   | rare      | 5.0   | Glowing circuit patterns. Trail on melee swings.       |
+| Gold Knuckle Gloves    | cosmetic   | epic      | 8.0   | Metallic gold finish with impact sparks.               |
+| Phantom Grip Gloves    | cosmetic   | rare      | 4.0   | Translucent ghostly hands.                             |
+| Ammo Crate             | consumable | common    | 1.0   | Refills ammo for current weapon. One use.              |
+| Health Syringe         | consumable | common    | 1.0   | Restores 25 HP instantly.                              |
+| Armor Shard Pack       | consumable | uncommon  | 2.0   | Grants 50 bonus armor for one session.                 |
+| The Vault Access Key   | access     | epic      | 12.0  | Unlocks the secret level. Permanent.                   |
+
+**FPS item math**: 6 weapons x 3-4 skin tiers + 6 glove variants x 5 rarity tiers + consumables + access keys = 50+ items before seasonal rotations.
 
 ### The First-Purchase Funnel
 
@@ -2499,6 +2523,16 @@ Each game template has its own failure modes. Know yours.
 - Turn order ambiguity when speeds are equal (use consistent tiebreaker like player ID)
 - Animation queue desync from game state (always derive visual state from game state, not the reverse)
 - Buff/debuff stacking without limits (cap stat modifiers at reasonable bounds, e.g., +/- 6 stages)
+
+**FPSGame (DOOM Arena)**:
+
+- DDA raycasting precision: walls can flicker at extreme angles (clamp ray direction to avoid division by near-zero)
+- Door interaction zone too small or too large (tune E-key interaction radius to 1.5 tile units)
+- Enemy pathfinding through closed doors (validate door state in A\* traversal)
+- Weapon switch during reload animation (block weapon change until reload completes or cancel reload on switch)
+- Multiplayer desync on rapid movement (use server-authoritative position with client-side prediction and reconciliation)
+- Secret level trigger not firing (ensure level transition checks use exact position match, not floating-point equality)
+- BFG projectile passing through thin walls at high speed (use swept collision or reduce projectile speed)
 
 ## Beat-em-Up Combat Templates
 

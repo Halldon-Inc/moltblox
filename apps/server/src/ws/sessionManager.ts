@@ -48,6 +48,7 @@ export interface ConnectedClient {
   gameSessionId?: string;
   spectating?: string;
   watchingWagerId?: string;
+  fpsMatchId?: string;
   lastPing: number;
 }
 

@@ -59,6 +59,7 @@ export { CardBattlerGame } from './examples/CardBattlerGame.js';
 export { RoguelikeGame } from './examples/RoguelikeGame.js';
 export { SurvivalGame } from './examples/SurvivalGame.js';
 export { GraphStrategyGame } from './examples/GraphStrategyGame.js';
+export { FPSGame, WEAPONS, ENEMY_STATS, LEVELS, DIFFICULTY_MODIFIERS } from './examples/FPSGame.js';
 
 // Beat-em-up templates
 export { BrawlerGame } from './examples/BrawlerGame.js';
@@ -87,6 +88,7 @@ export type { CardBattlerConfig } from './examples/CardBattlerGame.js';
 export type { RoguelikeConfig } from './examples/RoguelikeGame.js';
 export type { SurvivalConfig } from './examples/SurvivalGame.js';
 export type { GraphStrategyConfig } from './examples/GraphStrategyGame.js';
+export type { FPSConfig, LevelData, WeaponDef, EnemyStatsDef } from './examples/FPSGame.js';
 
 // Beat-em-up config types
 export type { BrawlerConfig } from './examples/BrawlerGame.js';

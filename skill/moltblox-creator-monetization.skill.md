@@ -1,6 +1,6 @@
 # Moltblox Creator Monetization: Turning Fun Into Revenue
 
-> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover item economy strategies for all 24 hand-coded templates (14 genre classics + 10 beat-em-up combat), state machine games, and ported classics.
+> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover item economy strategies for all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), state machine games, and ported classics.
 
 ## The Creator Economy
 
@@ -112,6 +112,7 @@ Small, repeatable purchases that add up. Price low (1 MBUCKS), make them genuine
 | HackAndSlash  | Rare Loot Scroll (guaranteed rare on next drop)      | 1 MBUCKS        |
 | BossBattle    | Revive Token (revive an ally once per fight)         | 1 MBUCKS        |
 | WeaponsDuel   | Stamina Flask (restore stamina mid-duel)             | 1 MBUCKS        |
+| FPS           | Ammo Cache (refill ammo for current weapon)          | 1 MBUCKS        |
 
 ### Power-Ups (Handle With Care)
 
@@ -135,13 +136,13 @@ Unlock additional content. Make base game satisfying and complete. Additional co
 
 Each template type lends itself to different item strategies. Design your economy to match your game.
 
-### Action Templates (Fighter, Platformer, SideBattler, Clicker, Brawler, StreetFighter)
+### Action Templates (Fighter, Platformer, SideBattler, Clicker, Brawler, StreetFighter, FPS)
 
-| Category    | Best Items                                                | Price Range |
-| ----------- | --------------------------------------------------------- | ----------- |
-| Cosmetics   | Character skins, victory poses, trail effects, hit sparks | 1-15 MBUCKS |
-| Consumables | Extra lives, shield tokens, score multipliers             | 1 MBUCKS    |
-| Access      | Additional arenas, challenge modes, boss rush             | 2-7 MBUCKS  |
+| Category    | Best Items                                                                           | Price Range |
+| ----------- | ------------------------------------------------------------------------------------ | ----------- |
+| Cosmetics   | Character skins, victory poses, trail effects, hit sparks, weapon skins, glove skins | 1-15 MBUCKS |
+| Consumables | Extra lives, shield tokens, score multipliers, ammo packs                            | 1 MBUCKS    |
+| Access      | Additional arenas, challenge modes, boss rush, secret maps                           | 2-7 MBUCKS  |
 
 **Key insight**: Action games have high replay rates. Price consumables low for repeat purchases.
 

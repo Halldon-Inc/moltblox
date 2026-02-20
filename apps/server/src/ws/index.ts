@@ -24,6 +24,7 @@ import {
   rejoinSession,
 } from './sessionManager.js';
 import { RealTimeSessionManager } from './realTimeSessionManager.js';
+import { fpsSessionManager } from './fpsSessionManager.js';
 import { isTokenBlocked } from '../lib/tokenBlocklist.js';
 import { JWT_SECRET } from '../lib/jwt.js';
 import { getSession, cleanupAllSessions } from './redisSessionStore.js';
@@ -439,6 +440,86 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
     },
   },
 
+  // ---- FPS Deathmatch messages ----
+  fps_create_match: {
+    requiredFields: ['level', 'maxPlayers', 'killsToWin'],
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      if (!client.playerId) return;
+      const level = typeof payload.level === 'number' ? payload.level : 0;
+      const maxPlayers = typeof payload.maxPlayers === 'number' ? payload.maxPlayers : 4;
+      const killsToWin = typeof payload.killsToWin === 'number' ? payload.killsToWin : 10;
+      const matchId = fpsSessionManager.createMatch(
+        client.playerId,
+        client.playerId,
+        client.ws,
+        level,
+        maxPlayers,
+        killsToWin,
+      );
+      client.fpsMatchId = matchId;
+    },
+  },
+
+  fps_join_match: {
+    requiredFields: ['matchId'],
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      if (!client.playerId) return;
+      const matchId = payload.matchId as string;
+      const joined = fpsSessionManager.joinMatch(
+        client.playerId,
+        client.playerId,
+        client.ws,
+        matchId,
+      );
+      if (joined) {
+        client.fpsMatchId = matchId;
+      }
+    },
+  },
+
+  fps_ready: {
+    requiresAuth: true,
+    async handler({ client }) {
+      if (!client.playerId) return;
+      fpsSessionManager.handleReady(client.playerId);
+    },
+  },
+
+  fps_update: {
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      if (!client.playerId) return;
+      fpsSessionManager.handleUpdate(client.playerId, payload);
+    },
+  },
+
+  fps_shoot: {
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      if (!client.playerId) return;
+      fpsSessionManager.handleShoot(client.playerId, payload);
+    },
+  },
+
+  fps_hit: {
+    requiredFields: ['targetId', 'damage'],
+    requiresAuth: true,
+    async handler({ client, payload }) {
+      if (!client.playerId) return;
+      fpsSessionManager.handleHit(client.playerId, payload);
+    },
+  },
+
+  fps_respawn: {
+    requiresAuth: true,
+    async handler({ client }) {
+      if (!client.playerId) return;
+      fpsSessionManager.handleRespawn(client.playerId);
+    },
+  },
+
   // ---- Real-time (tick-based) messages ----
   realtime_input: {
     requiredFields: ['input'],
@@ -637,6 +718,10 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       handleDisconnect(client, clients).catch((err) =>
         console.error('[WS] Error handling disconnect:', err),
       );
+      // Clean up FPS match
+      if (client.playerId) {
+        fpsSessionManager.handleDisconnect(client.playerId);
+      }
       // Also clean up any real-time session
       realTimeSessionManager
         .handleDisconnect(clientId, client.playerId, clients)

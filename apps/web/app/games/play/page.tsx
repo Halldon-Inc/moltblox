@@ -1,7 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowLeft, Gamepad2, Mouse, Swords, Music, MapPin, Puzzle, Shield } from 'lucide-react';
+import {
+  ArrowLeft,
+  Gamepad2,
+  Mouse,
+  Swords,
+  Music,
+  MapPin,
+  Puzzle,
+  Shield,
+  Crosshair,
+} from 'lucide-react';
 
 const EXAMPLE_GAMES = [
   {
@@ -68,6 +78,15 @@ const EXAMPLE_GAMES = [
     color: 'from-cyan-500/20 to-teal-500/10',
     players: '1-2',
   },
+  {
+    slug: 'fps',
+    name: 'DOOM Arena',
+    genre: 'First-Person Shooter',
+    description: 'Classic DOOM-style FPS with raycasting, multiple weapons, and 3 campaign levels.',
+    icon: Crosshair,
+    color: 'from-red-600/20 to-rose-500/10',
+    players: '1',
+  },
 ];
 
 export default function PlayIndexPage() {
@@ -83,7 +102,7 @@ export default function PlayIndexPage() {
 
         <h1 className="section-title mb-2">Play Examples</h1>
         <p className="text-lg text-white/50 mb-10 max-w-2xl">
-          Seven fully playable game templates built with BaseGame. Play them here, study their code
+          Eight fully playable game templates built with BaseGame. Play them here, study their code
           to build your own, or find them as full platform games in the{' '}
           <Link href="/games" className="text-neon-cyan hover:underline">
             Games catalog

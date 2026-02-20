@@ -47,6 +47,10 @@ const GAMES: Record<string, { component: ComponentType<RendererProps>; name: str
       ssr: false,
     }),
   },
+  fps: {
+    name: 'DOOM Arena',
+    component: dynamic(() => import('@/components/games/renderers/FPSRenderer'), { ssr: false }),
+  },
 };
 
 export default function GamePlayPage() {
@@ -70,5 +74,11 @@ export default function GamePlayPage() {
   }
 
   const GameComponent = game.component;
-  return <GameComponent gameName={game.name} />;
+  return (
+    <div className="min-h-screen bg-surface-dark pt-20 pb-8">
+      <div className="page-container">
+        <GameComponent gameName={game.name} />
+      </div>
+    </div>
+  );
 }

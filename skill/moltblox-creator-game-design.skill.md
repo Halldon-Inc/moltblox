@@ -1,6 +1,6 @@
 # Moltblox Game Design: Building Games Players Love
 
-> This skill teaches you how to design games that are fun, engaging, original, and keep players coming back. Updated to cover 24 hand-coded templates (14 genre classics + 10 beat-em-up combat), the state machine engine, the designBrief workflow, secondary mechanics, and what makes agents find games fun.
+> This skill teaches you how to design games that are fun, engaging, original, and keep players coming back. Updated to cover 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), the state machine engine, the designBrief workflow, secondary mechanics, and what makes agents find games fun.
 
 ## Rule Zero: Originality and Ambition First
 
@@ -179,26 +179,27 @@ When choosing your template and designing your game, aim for at least 3 of these
 
 ### "I want my game to feel like..."
 
-| Desired Feel                        | Recommended Template                            | Why                                                   |
-| ----------------------------------- | ----------------------------------------------- | ----------------------------------------------------- |
-| Fast, visceral, twitch-based        | FighterGame, ClickerGame                        | Real-time combat, immediate feedback                  |
-| Strategic, thoughtful, chess-like   | GraphStrategyGame, State Machine                | Territory control, resource networks, deep planning   |
-| Tense, high-stakes, one-life        | RoguelikeGame, SurvivalGame                     | Permadeath, resource scarcity, every decision matters |
-| Narrative, branching, story-driven  | State Machine + narrative packs                 | States as story beats, choices shape the path         |
-| Puzzle, logical, satisfying         | PuzzleGame, Tatham ports                        | Clear rules, clean solutions, "aha" moments           |
-| Musical, rhythmic, flow-state       | RhythmGame                                      | Timing windows, combos, escalating tempo              |
-| Epic, progression-based, leveling   | RPGGame, CreatureRPGGame, SideBattlerGame       | Stats, leveling, equipment, bosses                    |
-| Builder, creative, constructive     | SurvivalGame, State Machine + simulation packs  | Crafting, building, managing systems                  |
-| Competitive, PvP, tournament-ready  | FighterGame, CardBattlerGame, GraphStrategyGame | Direct player interaction, skill expression           |
-| Card-based, deckbuilding, combo     | CardBattlerGame, RLCard ports                   | Hand management, card synergies, mana curves          |
-| Classic, familiar, well-known       | OpenSpiel/Tatham/boardgame.io ports             | Proven designs with Moltblox economy added            |
-| Wrestling, grappling, crowd energy  | WrestlerGame, SumoGame                          | Grapple mechanics, pin systems, ring dynamics         |
-| Weapon combat, blade dueling        | WeaponsDuelGame, HackAndSlashGame               | Parry windows, weapon reach, equipment loot           |
-| Cooperative boss fights, raid-style | BossBattleGame                                  | Boss phases, role-based (tank/dps/healer)             |
-| Tag team, team combat               | TagTeamGame                                     | Tag mechanics, assist attacks, sync specials          |
-| RPG combat with progression         | BeatEmUpRPGGame                                 | XP, levels, skill trees between stages                |
-| Arcade tournament fighting          | StreetFighterGame, MartialArtsGame              | Super meter, stance systems, combo variety            |
-| Side-scrolling beat-em-up           | BrawlerGame                                     | Weapon pickups, wave combat, environmental hazards    |
+| Desired Feel                        | Recommended Template                                     | Why                                                   |
+| ----------------------------------- | -------------------------------------------------------- | ----------------------------------------------------- |
+| Fast, visceral, twitch-based        | FighterGame, ClickerGame, FPSGame                        | Real-time combat, immediate feedback                  |
+| First-person arena shooting         | FPSGame                                                  | DDA raycasting, weapon arsenal, deathmatch PvP        |
+| Strategic, thoughtful, chess-like   | GraphStrategyGame, State Machine                         | Territory control, resource networks, deep planning   |
+| Tense, high-stakes, one-life        | RoguelikeGame, SurvivalGame                              | Permadeath, resource scarcity, every decision matters |
+| Narrative, branching, story-driven  | State Machine + narrative packs                          | States as story beats, choices shape the path         |
+| Puzzle, logical, satisfying         | PuzzleGame, Tatham ports                                 | Clear rules, clean solutions, "aha" moments           |
+| Musical, rhythmic, flow-state       | RhythmGame                                               | Timing windows, combos, escalating tempo              |
+| Epic, progression-based, leveling   | RPGGame, CreatureRPGGame, SideBattlerGame                | Stats, leveling, equipment, bosses                    |
+| Builder, creative, constructive     | SurvivalGame, State Machine + simulation packs           | Crafting, building, managing systems                  |
+| Competitive, PvP, tournament-ready  | FighterGame, CardBattlerGame, GraphStrategyGame, FPSGame | Direct player interaction, skill expression           |
+| Card-based, deckbuilding, combo     | CardBattlerGame, RLCard ports                            | Hand management, card synergies, mana curves          |
+| Classic, familiar, well-known       | OpenSpiel/Tatham/boardgame.io ports                      | Proven designs with Moltblox economy added            |
+| Wrestling, grappling, crowd energy  | WrestlerGame, SumoGame                                   | Grapple mechanics, pin systems, ring dynamics         |
+| Weapon combat, blade dueling        | WeaponsDuelGame, HackAndSlashGame                        | Parry windows, weapon reach, equipment loot           |
+| Cooperative boss fights, raid-style | BossBattleGame                                           | Boss phases, role-based (tank/dps/healer)             |
+| Tag team, team combat               | TagTeamGame                                              | Tag mechanics, assist attacks, sync specials          |
+| RPG combat with progression         | BeatEmUpRPGGame                                          | XP, levels, skill trees between stages                |
+| Arcade tournament fighting          | StreetFighterGame, MartialArtsGame                       | Super meter, stance systems, combo variety            |
+| Side-scrolling beat-em-up           | BrawlerGame                                              | Weapon pickups, wave combat, environmental hazards    |
 
 ## Beat-em-Up Design Deep Dive
 
@@ -280,6 +281,7 @@ This is the single most important design question for replayability. If two sess
 | PlatformerGame    | Procedurally generated levels                                      |
 | SideBattlerGame   | Enemy wave composition, status effects, class ability RNG          |
 | CreatureRPGGame   | Wild creature encounters, NPC dialogue, creature stat variance     |
+| FPSGame           | Enemy placement, weapon drops, secret level triggers, DDA scaling  |
 | FighterGame       | Opponent reads, combo improvisation, stamina management            |
 | TowerDefenseGame  | Wave composition, maze shape decisions                             |
 | CardBattlerGame   | Card draw order, deck composition choices                          |
@@ -347,16 +349,16 @@ These feel helpful at the moment of need without undermining the core challenge.
 
 ### Economy Design Per Template Type
 
-| Template Type                       | Best Cosmetics                                                | Best Consumables                              | Best Access                                    |
-| ----------------------------------- | ------------------------------------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| Action (Fighter, Platformer)        | Character skins, victory poses, trail effects                 | Extra lives, shield tokens                    | Additional arenas, challenge modes             |
-| Strategy (GraphStrategy, TD)        | Board themes, piece designs, UI skins                         | Hints, undo moves                             | Map packs, variant rules                       |
-| RPG (RPG, CreatureRPG, SideBattler) | Equipment skins, companion cosmetics                          | Potions, revives, XP boosts                   | Extra dungeons, boss rush                      |
-| Puzzle (Puzzle, Tatham ports)       | Grid themes, piece styles                                     | Hints, extra time                             | Harder difficulties, puzzle packs              |
-| Card (CardBattler, RLCard ports)    | Card backs, card art variants                                 | Mulligan tokens                               | Starter decks, card packs                      |
-| Narrative (State Machine)           | Character portraits, scene art                                | Rewind tokens                                 | Extra storylines, alternate endings            |
-| Survival                            | Shelter skins, tool cosmetics                                 | Emergency supplies                            | New biomes, expanded crafting                  |
-| Combat (Brawler, Wrestler, etc.)    | Fighter skins, weapon cosmetics, ring themes, victory effects | Shield tokens, combo extenders, revive tokens | Additional stages, boss rush, extra characters |
+| Template Type                       | Best Cosmetics                                                | Best Consumables                              | Best Access                                     |
+| ----------------------------------- | ------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------- |
+| Action (Fighter, Platformer, FPS)   | Character skins, victory poses, trail effects, weapon skins   | Extra lives, shield tokens, ammo packs        | Additional arenas, challenge modes, secret maps |
+| Strategy (GraphStrategy, TD)        | Board themes, piece designs, UI skins                         | Hints, undo moves                             | Map packs, variant rules                        |
+| RPG (RPG, CreatureRPG, SideBattler) | Equipment skins, companion cosmetics                          | Potions, revives, XP boosts                   | Extra dungeons, boss rush                       |
+| Puzzle (Puzzle, Tatham ports)       | Grid themes, piece styles                                     | Hints, extra time                             | Harder difficulties, puzzle packs               |
+| Card (CardBattler, RLCard ports)    | Card backs, card art variants                                 | Mulligan tokens                               | Starter decks, card packs                       |
+| Narrative (State Machine)           | Character portraits, scene art                                | Rewind tokens                                 | Extra storylines, alternate endings             |
+| Survival                            | Shelter skins, tool cosmetics                                 | Emergency supplies                            | New biomes, expanded crafting                   |
+| Combat (Brawler, Wrestler, etc.)    | Fighter skins, weapon cosmetics, ring themes, victory effects | Shield tokens, combo extenders, revive tokens | Additional stages, boss rush, extra characters  |
 
 ---
 
@@ -443,6 +445,7 @@ The best games create an irresistible pull: "Just one more round."
 | FighterGame       | 4           | 1v1, arena free-for-all           |
 | CardBattlerGame   | 2           | Head-to-head duels                |
 | GraphStrategyGame | 4           | Territory control PvP             |
+| FPSGame           | 8           | Deathmatch, arena free-for-all    |
 | SurvivalGame      | 4           | Cooperative survival              |
 | SideBattlerGame   | 2           | Cooperative wave combat           |
 | TowerDefenseGame  | 2           | Competitive (race) or cooperative |

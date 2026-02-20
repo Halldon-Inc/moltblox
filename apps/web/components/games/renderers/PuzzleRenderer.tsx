@@ -15,7 +15,7 @@ interface PuzzleData {
   gridSize: number;
 }
 
-// Colors assigned to each pair value (1-8)
+// Colors assigned to each pair value (1-8) with hex for glow effects
 const VALUE_COLORS: Record<number, string> = {
   1: 'text-neon-cyan',
   2: 'text-accent-amber',
@@ -26,6 +26,51 @@ const VALUE_COLORS: Record<number, string> = {
   7: 'text-neon-orange',
   8: 'text-molt-300',
 };
+
+const VALUE_HEX: Record<number, string> = {
+  1: '#00e5ff',
+  2: '#e87927',
+  3: '#14b8a6',
+  4: '#ff80ab',
+  5: '#ff6b6b',
+  6: '#5eead4',
+  7: '#ff9800',
+  8: '#2dd4bf',
+};
+
+interface MatchParticle {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  life: number;
+  maxLife: number;
+  color: string;
+  size: number;
+}
+
+let particleId = 0;
+
+function spawnMatchParticles(centerX: number, centerY: number, color: string): MatchParticle[] {
+  const particles: MatchParticle[] = [];
+  for (let i = 0; i < 10; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 2.5 + 1;
+    particles.push({
+      id: particleId++,
+      x: centerX,
+      y: centerY,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed - 1.5,
+      life: 500 + Math.random() * 400,
+      maxLife: 700,
+      color,
+      size: 2 + Math.random() * 4,
+    });
+  }
+  return particles;
+}
 
 export default function PuzzleRenderer({
   gameName,
@@ -44,13 +89,51 @@ export default function PuzzleRenderer({
   // visible locally for a brief period so the player can see both cards.
   const [tempRevealed, setTempRevealed] = useState<Record<number, number>>({});
   const [locked, setLocked] = useState(false);
+  const [matchParticles, setMatchParticles] = useState<MatchParticle[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const animFrameRef = useRef<number>(0);
+  const particlesRef = useRef<MatchParticle[]>([]);
+  const lastTimeRef = useRef(0);
+  const prevMatchCount = useRef(0);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Particle animation loop
+  useEffect(() => {
+    const animate = (time: number) => {
+      if (lastTimeRef.current === 0) lastTimeRef.current = time;
+      const dt = time - lastTimeRef.current;
+      lastTimeRef.current = time;
+
+      const current = particlesRef.current;
+      if (current.length > 0) {
+        const alive: MatchParticle[] = [];
+        for (const p of current) {
+          p.life -= dt;
+          if (p.life > 0) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.04;
+            alive.push(p);
+          }
+        }
+        particlesRef.current = alive;
+        setMatchParticles([...alive]);
+      }
+
+      animFrameRef.current = requestAnimationFrame(animate);
+    };
+    animFrameRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animFrameRef.current);
+  }, []);
 
   // Clear temp state on restart
   const handleRestart = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setTempRevealed({});
     setLocked(false);
+    prevMatchCount.current = 0;
+    particlesRef.current = [];
+    setMatchParticles([]);
     restart();
   }, [restart]);
 
@@ -62,6 +145,34 @@ export default function PuzzleRenderer({
   }, []);
 
   const data: PuzzleData | null = (state?.data as unknown as PuzzleData) ?? null;
+
+  // Detect new matches and spawn celebration particles
+  useEffect(() => {
+    if (!data) return;
+    if (data.matches > prevMatchCount.current && prevMatchCount.current > 0) {
+      // Find the matched card indices (the ones that just got matched)
+      // Spawn particles around the grid center as a celebration
+      const matchedIndices: number[] = [];
+      for (let i = 0; i < data.matched.length; i++) {
+        if (data.matched[i]) matchedIndices.push(i);
+      }
+      // Get the last two matched cards
+      const lastTwo = matchedIndices.slice(-2);
+      for (const idx of lastTwo) {
+        const col = idx % 4;
+        const row = Math.floor(idx / 4);
+        // Approximate position relative to grid
+        const cx = col * 92 + 46;
+        const cy = row * 92 + 46;
+        const val = data.grid[idx] || 1;
+        const color = VALUE_HEX[val] || '#fff';
+        const newP = spawnMatchParticles(cx, cy, color);
+        particlesRef.current = [...particlesRef.current, ...newP];
+        setMatchParticles([...particlesRef.current]);
+      }
+    }
+    prevMatchCount.current = data.matches;
+  }, [data]);
 
   const handleSelect = useCallback(
     (index: number) => {
@@ -75,33 +186,13 @@ export default function PuzzleRenderer({
       const isSecondPick = data.selected !== null;
 
       if (isSecondPick) {
-        // Temporarily reveal the second card with its actual value.
-        // We grab the value from the grid — the engine hasn't processed yet.
-        // After dispatch, the engine will either match or hide both.
-        // We lock input and show both for ~800ms before clearing temp state.
-
-        // First, peek at the grid value. The engine state grid may be fog-of-war (0),
-        // so we dispatch first, then check the result.
         const result = dispatch('select', { index });
         if (!result?.success) return;
 
         // Check if it was a match by looking at the new state
         const newData = result.newState?.data as unknown as PuzzleData | undefined;
         if (newData && !newData.matched[index]) {
-          // Mismatch — both cards were un-revealed by the engine.
-          // Show them temporarily with the values from the match_failed event
-          // or from the newData grid (which may be 0 after fog-of-war reset).
-          // We stored the first selected card value before dispatch, so we
-          // need to use events. Actually, let's use a simpler approach:
-          // store the value from the pre-dispatch state and the dispatched index.
-
-          // The pre-dispatch grid had the first card revealed (non-zero) and
-          // the second card unrevealed (0). But the actual values are in the
-          // engine's internal state. Since we can't access hidden values,
-          // we'll rely on the match_failed event which contains the indices.
-
-          // Simpler: show a brief "flip back" animation by keeping the cards
-          // in a "was-revealed" state via CSS classes.
+          // Mismatch: show them temporarily
           const firstIdx = data.selected!;
           setTempRevealed({ [firstIdx]: data.grid[firstIdx], [index]: 0 });
           setLocked(true);
@@ -112,7 +203,7 @@ export default function PuzzleRenderer({
           }, 800);
         }
       } else {
-        // First pick — just dispatch, engine will reveal it
+        // First pick: just dispatch, engine will reveal it
         dispatch('select', { index });
       }
     },
@@ -138,98 +229,220 @@ export default function PuzzleRenderer({
       winner={winner}
       onRestart={handleRestart}
     >
-      {/* Stats bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-6">
-          <div className="text-sm text-white/60">
-            Moves: <span className="font-mono font-bold text-white">{data.moves}</span>
-          </div>
-          <div className="text-sm text-white/60">
-            Pairs: <span className="font-mono font-bold text-neon-cyan">{data.matches}/8</span>
-          </div>
-        </div>
-        <div className="text-sm text-white/60">
-          Score:{' '}
-          <span className="font-mono font-bold text-accent-amber">
-            {scorePreview.toLocaleString()}
-          </span>
-        </div>
-      </div>
+      <style>{`
+        @keyframes puzzle-card-hover-glow {
+          0% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+          50% { box-shadow: 0 0 12px 2px rgba(0,229,255,0.2); }
+          100% { box-shadow: 0 0 0 0 rgba(0,229,255,0); }
+        }
+        @keyframes puzzle-match-pop {
+          0% { transform: rotateY(180deg) scale(1); }
+          50% { transform: rotateY(180deg) scale(1.08); }
+          100% { transform: rotateY(180deg) scale(1); }
+        }
+      `}</style>
 
-      {/* 4x4 Grid */}
-      <div
-        className="grid grid-cols-4 gap-3 max-w-[356px] mx-auto"
-        style={{ perspective: '800px' }}
-      >
-        {data.grid.map((value, index) => {
-          const isMatched = data.matched[index];
-          const isRevealed = data.revealed[index];
-          const isSelected = data.selected === index;
-          const isTempRevealed = tempRevealed[index] !== undefined;
-          const showFace = isRevealed || isMatched || isTempRevealed;
+      <div className="relative overflow-hidden rounded-xl">
+        {/* Vignette overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[5]"
+          style={{
+            background:
+              'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.35) 100%)',
+          }}
+        />
 
-          // Determine displayed value
-          const displayValue =
-            isMatched || isRevealed ? value : isTempRevealed ? tempRevealed[index] || value : 0;
-          const colorClass = displayValue > 0 ? VALUE_COLORS[displayValue] || 'text-white' : '';
+        {/* Background pattern: subtle grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              'linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), ' +
+              'linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
 
-          return (
-            <button
-              key={index}
-              onClick={() => handleSelect(index)}
-              disabled={isMatched || locked || isGameOver}
-              className="relative w-[80px] h-[80px] mx-auto"
-              style={{ perspective: '400px' }}
-              aria-label={
-                isMatched
-                  ? `Matched pair ${value}`
-                  : showFace
-                    ? `Card ${value}`
-                    : `Hidden card ${index + 1}`
-              }
-            >
-              <div
-                className="relative w-full h-full transition-transform duration-[400ms]"
-                style={{
-                  transformStyle: 'preserve-3d',
-                  transform: showFace ? 'rotateY(180deg)' : 'rotateY(0deg)',
-                }}
-              >
-                {/* Back face (hidden card) */}
-                <div
-                  className={`
-                    absolute inset-0 rounded-xl flex items-center justify-center
-                    bg-surface-card border border-white/10
-                    transition-all duration-200
-                    ${!isMatched && !showFace ? 'hover:border-neon-cyan/40 hover:shadow-neon-sm cursor-pointer' : ''}
-                    ${isSelected ? 'border-neon-cyan shadow-neon-sm' : ''}
-                  `}
-                  style={{ backfaceVisibility: 'hidden' }}
-                >
-                  <span className="text-2xl font-bold text-white/20 select-none">?</span>
-                </div>
+        {/* Ambient glow behind the grid */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse at 50% 60%, rgba(0,229,255,0.04) 0%, transparent 60%)',
+          }}
+        />
 
-                {/* Front face (revealed card) */}
-                <div
-                  className={`
-                    absolute inset-0 rounded-xl flex items-center justify-center
-                    bg-surface-card border
-                    transition-all duration-200
-                    ${isMatched ? 'border-molt-500 shadow-[0_0_16px_rgba(20,184,166,0.4)] opacity-80' : 'border-neon-cyan/60'}
-                  `}
+        <div className="relative z-[2] p-4">
+          {/* Stats bar with enhanced typography */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-6">
+              <div className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                Moves:{' '}
+                <span
+                  className="font-mono font-bold"
                   style={{
-                    backfaceVisibility: 'hidden',
-                    transform: 'rotateY(180deg)',
+                    color: '#fff',
+                    textShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   }}
                 >
-                  <span className={`text-3xl font-display font-bold select-none ${colorClass}`}>
-                    {displayValue || ''}
-                  </span>
-                </div>
+                  {data.moves}
+                </span>
               </div>
-            </button>
-          );
-        })}
+              <div className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                Pairs:{' '}
+                <span
+                  className="font-mono font-bold"
+                  style={{
+                    color: '#00e5ff',
+                    textShadow: '0 0 8px rgba(0,229,255,0.4), 0 1px 3px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {data.matches}/8
+                </span>
+              </div>
+            </div>
+            <div className="text-sm" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              Score:{' '}
+              <span
+                className="font-mono font-bold"
+                style={{
+                  color: '#e87927',
+                  textShadow: '0 0 8px rgba(232,121,39,0.4), 0 1px 3px rgba(0,0,0,0.5)',
+                }}
+              >
+                {scorePreview.toLocaleString()}
+              </span>
+            </div>
+          </div>
+
+          {/* 4x4 Grid with particle overlay */}
+          <div className="relative">
+            {/* Match celebration particles */}
+            {matchParticles.map((p) => {
+              const alpha = Math.max(0, p.life / p.maxLife);
+              return (
+                <div
+                  key={p.id}
+                  className="absolute rounded-full pointer-events-none z-10"
+                  style={{
+                    left: p.x,
+                    top: p.y,
+                    width: p.size,
+                    height: p.size,
+                    backgroundColor: p.color,
+                    opacity: alpha,
+                    boxShadow: `0 0 ${p.size + 2}px ${p.color}`,
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                />
+              );
+            })}
+
+            <div
+              ref={gridRef}
+              className="grid grid-cols-4 gap-3 max-w-[356px] mx-auto"
+              style={{ perspective: '800px' }}
+            >
+              {data.grid.map((value, index) => {
+                const isMatched = data.matched[index];
+                const isRevealed = data.revealed[index];
+                const isSelected = data.selected === index;
+                const isTempRevealed = tempRevealed[index] !== undefined;
+                const showFace = isRevealed || isMatched || isTempRevealed;
+
+                // Determine displayed value
+                const displayValue =
+                  isMatched || isRevealed
+                    ? value
+                    : isTempRevealed
+                      ? tempRevealed[index] || value
+                      : 0;
+                const colorClass =
+                  displayValue > 0 ? VALUE_COLORS[displayValue] || 'text-white' : '';
+                const hexColor = displayValue > 0 ? VALUE_HEX[displayValue] || '#fff' : '#fff';
+
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSelect(index)}
+                    disabled={isMatched || locked || isGameOver}
+                    className="relative w-[80px] h-[80px] mx-auto"
+                    style={{ perspective: '400px' }}
+                    aria-label={
+                      isMatched
+                        ? `Matched pair ${value}`
+                        : showFace
+                          ? `Card ${value}`
+                          : `Hidden card ${index + 1}`
+                    }
+                  >
+                    <div
+                      className="relative w-full h-full transition-transform duration-[400ms]"
+                      style={{
+                        transformStyle: 'preserve-3d',
+                        transform: showFace ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                      }}
+                    >
+                      {/* Back face (hidden card) */}
+                      <div
+                        className="absolute inset-0 rounded-xl flex items-center justify-center transition-all duration-200"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          background:
+                            'linear-gradient(135deg, rgba(30,30,50,0.9) 0%, rgba(20,20,35,0.95) 100%)',
+                          border: isSelected
+                            ? '1px solid rgba(0,229,255,0.6)'
+                            : '1px solid rgba(255,255,255,0.08)',
+                          boxShadow: isSelected
+                            ? '0 0 12px rgba(0,229,255,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+                            : 'inset 0 1px 0 rgba(255,255,255,0.05), 0 2px 8px rgba(0,0,0,0.3)',
+                        }}
+                      >
+                        <span
+                          className="text-2xl font-bold select-none"
+                          style={{ color: 'rgba(255,255,255,0.15)' }}
+                        >
+                          ?
+                        </span>
+                      </div>
+
+                      {/* Front face (revealed card) */}
+                      <div
+                        className="absolute inset-0 rounded-xl flex items-center justify-center transition-all duration-200"
+                        style={{
+                          backfaceVisibility: 'hidden',
+                          transform: 'rotateY(180deg)',
+                          background: isMatched
+                            ? `linear-gradient(135deg, rgba(30,30,50,0.7) 0%, rgba(20,20,35,0.7) 100%)`
+                            : 'linear-gradient(135deg, rgba(30,30,50,0.95) 0%, rgba(20,20,35,0.95) 100%)',
+                          border: isMatched
+                            ? `1px solid ${hexColor}88`
+                            : '1px solid rgba(0,229,255,0.4)',
+                          boxShadow: isMatched
+                            ? `0 0 16px ${hexColor}44, inset 0 1px 0 rgba(255,255,255,0.05)`
+                            : '0 4px 12px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)',
+                          opacity: isMatched ? 0.75 : 1,
+                        }}
+                      >
+                        <span
+                          className={`text-3xl font-display font-bold select-none ${colorClass}`}
+                          style={{
+                            textShadow:
+                              displayValue > 0
+                                ? `0 0 10px ${hexColor}88, 0 2px 4px rgba(0,0,0,0.5)`
+                                : 'none',
+                          }}
+                        >
+                          {displayValue || ''}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
     </GameShell>
   );

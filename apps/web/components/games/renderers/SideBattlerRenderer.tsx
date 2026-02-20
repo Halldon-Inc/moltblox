@@ -614,25 +614,65 @@ export default function SideBattlerRenderer({
     // --- Background: parallax sky --- cached gradient
     if (!skyGradRef.current) {
       const skyGrad = ctx.createLinearGradient(0, 0, 0, CANVAS_H);
-      skyGrad.addColorStop(0, '#0a0a1a');
-      skyGrad.addColorStop(0.4, '#1a1a3e');
-      skyGrad.addColorStop(1, '#2a1a2e');
+      skyGrad.addColorStop(0, '#050510');
+      skyGrad.addColorStop(0.25, '#0a0a1a');
+      skyGrad.addColorStop(0.5, '#1a1a3e');
+      skyGrad.addColorStop(0.75, '#2a1a3e');
+      skyGrad.addColorStop(1, '#1a0a1e');
       skyGradRef.current = skyGrad;
     }
     ctx.fillStyle = skyGradRef.current;
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-    // Stars (twinkling)
+    // Subtle aurora / nebula glow
+    ctx.save();
+    ctx.globalAlpha = 0.06 + Math.sin(frame * 0.008) * 0.02;
+    const auroraGrad = ctx.createRadialGradient(
+      CANVAS_W * 0.3,
+      CANVAS_H * 0.2,
+      20,
+      CANVAS_W * 0.3,
+      CANVAS_H * 0.2,
+      250,
+    );
+    auroraGrad.addColorStop(0, '#6366f1');
+    auroraGrad.addColorStop(0.5, '#a855f7');
+    auroraGrad.addColorStop(1, 'transparent');
+    ctx.fillStyle = auroraGrad;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H * 0.6);
+    const aurora2 = ctx.createRadialGradient(
+      CANVAS_W * 0.7,
+      CANVAS_H * 0.15,
+      10,
+      CANVAS_W * 0.7,
+      CANVAS_H * 0.15,
+      200,
+    );
+    aurora2.addColorStop(0, '#22d3ee');
+    aurora2.addColorStop(0.5, '#3b82f6');
+    aurora2.addColorStop(1, 'transparent');
+    ctx.fillStyle = aurora2;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H * 0.5);
+    ctx.restore();
+
+    // Stars (twinkling with color variation)
     for (const star of starsRef.current) {
-      const twinkle = star.brightness + Math.sin(frame * 0.05 + star.x) * 0.2;
-      ctx.globalAlpha = Math.max(0.2, Math.min(1, twinkle));
-      ctx.fillStyle = '#fff';
+      const twinkle = star.brightness + Math.sin(frame * 0.05 + star.x) * 0.25;
+      ctx.globalAlpha = Math.max(0.15, Math.min(1, twinkle));
+      // Slight color variation based on position
+      const hue = (star.x * 0.3 + star.y * 0.2) % 60;
+      ctx.fillStyle = hue < 20 ? '#cce5ff' : hue < 40 ? '#ffe5cc' : '#ffffff';
       ctx.fillRect(star.x, star.y, star.size, star.size);
+      // Star glow for brighter ones
+      if (star.brightness > 0.75) {
+        ctx.globalAlpha = twinkle * 0.15;
+        ctx.fillRect(star.x - 1, star.y - 1, star.size + 2, star.size + 2);
+      }
     }
     ctx.globalAlpha = 1;
 
-    // Layer 2: Mountain silhouettes
-    ctx.fillStyle = '#1a1a3e';
+    // Layer 2: Mountain silhouettes (far)
+    ctx.fillStyle = '#12122e';
     ctx.beginPath();
     ctx.moveTo(0, CANVAS_H * 0.55);
     const mountainOffset = Math.sin(frame * 0.002) * 2;
@@ -645,35 +685,118 @@ export default function SideBattlerRenderer({
     ctx.closePath();
     ctx.fill();
 
-    // Layer 2b: Nearer mountains
-    ctx.fillStyle = '#252545';
+    // Layer 2b: Nearer mountains with top highlight
+    ctx.fillStyle = '#1e1e40';
     ctx.beginPath();
     ctx.moveTo(0, CANVAS_H * 0.65);
+    const nearMtnPoints: { x: number; y: number }[] = [];
     for (let x = 0; x <= CANVAS_W; x += 40) {
       const h = Math.sin(x * 0.012 + 3) * 40 + Math.sin(x * 0.02 + 1) * 20;
-      ctx.lineTo(x, CANVAS_H * 0.6 - h);
+      const py = CANVAS_H * 0.6 - h;
+      ctx.lineTo(x, py);
+      nearMtnPoints.push({ x, y: py });
     }
     ctx.lineTo(CANVAS_W, CANVAS_H);
     ctx.lineTo(0, CANVAS_H);
     ctx.closePath();
     ctx.fill();
-
-    // Layer 3: Ground / arena floor
-    ctx.fillStyle = '#3a3a5a';
-    ctx.fillRect(0, GROUND_Y, CANVAS_W, CANVAS_H - GROUND_Y);
-    // Stone tile pattern
-    ctx.strokeStyle = '#4a4a6a';
+    // Mountain top edge glow
+    ctx.save();
+    ctx.strokeStyle = '#3a3a6a';
     ctx.lineWidth = 1;
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    if (nearMtnPoints.length > 0) {
+      ctx.moveTo(nearMtnPoints[0].x, nearMtnPoints[0].y);
+      for (let i = 1; i < nearMtnPoints.length; i++) {
+        ctx.lineTo(nearMtnPoints[i].x, nearMtnPoints[i].y);
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
+
+    // Stone wall / dungeon pillars behind the arena
+    ctx.fillStyle = '#1a1a30';
+    ctx.fillRect(0, CANVAS_H * 0.55, CANVAS_W, GROUND_Y - CANVAS_H * 0.55);
+    // Pillar details
+    for (let px = 80; px < CANVAS_W; px += 180) {
+      ctx.fillStyle = '#252540';
+      ctx.fillRect(px, CANVAS_H * 0.48, 24, GROUND_Y - CANVAS_H * 0.48);
+      ctx.fillStyle = '#2a2a50';
+      ctx.fillRect(px + 2, CANVAS_H * 0.48, 20, GROUND_Y - CANVAS_H * 0.48);
+      // Pillar cap
+      ctx.fillStyle = '#353560';
+      ctx.fillRect(px - 4, CANVAS_H * 0.47, 32, 8);
+      ctx.fillRect(px - 2, CANVAS_H * 0.46, 28, 4);
+    }
+
+    // Torch flames on pillars (animated)
+    for (let px = 80; px < CANVAS_W; px += 180) {
+      const torchX = px + 12;
+      const torchY = CANVAS_H * 0.48 + 20;
+      const flicker = Math.sin(frame * 0.15 + px) * 2;
+      const flicker2 = Math.cos(frame * 0.2 + px * 0.5) * 1.5;
+      // Torch bracket
+      ctx.fillStyle = '#5a5a7a';
+      ctx.fillRect(torchX - 2, torchY, 4, 10);
+      // Outer glow
+      ctx.save();
+      ctx.globalAlpha = 0.08 + Math.sin(frame * 0.1 + px) * 0.03;
+      const torchGlow = ctx.createRadialGradient(torchX, torchY - 4, 2, torchX, torchY - 4, 60);
+      torchGlow.addColorStop(0, '#ff8c00');
+      torchGlow.addColorStop(0.4, '#ff4500');
+      torchGlow.addColorStop(1, 'transparent');
+      ctx.fillStyle = torchGlow;
+      ctx.fillRect(torchX - 60, torchY - 64, 120, 120);
+      ctx.restore();
+      // Flame
+      ctx.fillStyle = '#ff6a00';
+      ctx.beginPath();
+      ctx.ellipse(torchX + flicker2, torchY - 6 + flicker, 4, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffaa00';
+      ctx.beginPath();
+      ctx.ellipse(torchX + flicker2 * 0.5, torchY - 8 + flicker * 0.7, 2.5, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffe066';
+      ctx.beginPath();
+      ctx.ellipse(torchX, torchY - 8 + flicker * 0.3, 1.5, 3, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Layer 3: Ground / arena floor with depth gradient
+    const groundGrad = ctx.createLinearGradient(0, GROUND_Y, 0, CANVAS_H);
+    groundGrad.addColorStop(0, '#3a3a5a');
+    groundGrad.addColorStop(0.3, '#333350');
+    groundGrad.addColorStop(1, '#2a2a42');
+    ctx.fillStyle = groundGrad;
+    ctx.fillRect(0, GROUND_Y, CANVAS_W, CANVAS_H - GROUND_Y);
+    // Stone tile pattern with subtle shading
     for (let x = 0; x < CANVAS_W; x += 48) {
       for (let y = GROUND_Y; y < CANVAS_H; y += 24) {
         const xOff = (Math.floor((y - GROUND_Y) / 24) % 2) * 24;
-        ctx.strokeRect(x + xOff, y, 48, 24);
+        const tileX = x + xOff;
+        // Slight per-tile brightness variation
+        const shade = ((tileX * 7 + y * 13) % 20) - 10;
+        ctx.fillStyle = `rgba(${80 + shade}, ${80 + shade}, ${110 + shade}, 0.15)`;
+        ctx.fillRect(tileX + 1, y + 1, 46, 22);
+        ctx.strokeStyle = '#4a4a6a';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(tileX, y, 48, 24);
       }
     }
 
-    // Ground edge highlight
+    // Ground edge highlight with glow
+    const edgeGlow = ctx.createLinearGradient(0, GROUND_Y - 6, 0, GROUND_Y + 4);
+    edgeGlow.addColorStop(0, 'transparent');
+    edgeGlow.addColorStop(0.5, 'rgba(100, 100, 140, 0.3)');
+    edgeGlow.addColorStop(1, 'transparent');
+    ctx.fillStyle = edgeGlow;
+    ctx.fillRect(0, GROUND_Y - 6, CANVAS_W, 10);
+    ctx.fillStyle = '#6a6a8a';
+    ctx.fillRect(0, GROUND_Y, CANVAS_W, 2);
     ctx.fillStyle = '#5a5a7a';
-    ctx.fillRect(0, GROUND_Y, CANVAS_W, 3);
+    ctx.fillRect(0, GROUND_Y + 2, CANVAS_W, 1);
 
     // --- Draw party characters ---
     const partyPositions = getPartyPositions(data.party.length);
@@ -735,7 +858,7 @@ export default function SideBattlerRenderer({
         drawY += 10;
       }
 
-      // Turn indicator: pulsing glow
+      // Turn indicator: glowing pulse with radial highlight
       const currentTurn = data.turnOrder[data.currentTurnIndex];
       if (
         currentTurn &&
@@ -744,23 +867,100 @@ export default function SideBattlerRenderer({
         data.battlePhase === 'combat'
       ) {
         const pulse = Math.sin(frame * 0.1) * 0.3 + 0.5;
+        const pulseSize = Math.sin(frame * 0.08) * 2;
         ctx.save();
+        // Outer glow aura
+        ctx.globalAlpha = pulse * 0.15;
+        const turnGlow = ctx.createRadialGradient(
+          drawX + SPRITE_SIZE / 2,
+          drawY + SPRITE_SIZE / 2,
+          SPRITE_SIZE * 0.3,
+          drawX + SPRITE_SIZE / 2,
+          drawY + SPRITE_SIZE / 2,
+          SPRITE_SIZE * 1.5,
+        );
+        turnGlow.addColorStop(0, '#22d3ee');
+        turnGlow.addColorStop(1, 'transparent');
+        ctx.fillStyle = turnGlow;
+        ctx.fillRect(drawX - 20, drawY - 20, SPRITE_SIZE + 40, SPRITE_SIZE + 40);
+        // Border
         ctx.globalAlpha = pulse;
         ctx.strokeStyle = '#22d3ee';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(drawX - 6, drawY - 6, SPRITE_SIZE + 12, SPRITE_SIZE + 12);
-        ctx.globalAlpha = 1;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+          drawX - 6 - pulseSize,
+          drawY - 6 - pulseSize,
+          SPRITE_SIZE + 12 + pulseSize * 2,
+          SPRITE_SIZE + 12 + pulseSize * 2,
+        );
+        // Corner accents
+        const cLen = 6;
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#67e8f9';
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(drawX - 6, drawY - 6 + cLen);
+        ctx.lineTo(drawX - 6, drawY - 6);
+        ctx.lineTo(drawX - 6 + cLen, drawY - 6);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(drawX + SPRITE_SIZE + 6 - cLen, drawY - 6);
+        ctx.lineTo(drawX + SPRITE_SIZE + 6, drawY - 6);
+        ctx.lineTo(drawX + SPRITE_SIZE + 6, drawY - 6 + cLen);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(drawX - 6, drawY + SPRITE_SIZE + 6 - cLen);
+        ctx.lineTo(drawX - 6, drawY + SPRITE_SIZE + 6);
+        ctx.lineTo(drawX - 6 + cLen, drawY + SPRITE_SIZE + 6);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(drawX + SPRITE_SIZE + 6 - cLen, drawY + SPRITE_SIZE + 6);
+        ctx.lineTo(drawX + SPRITE_SIZE + 6, drawY + SPRITE_SIZE + 6);
+        ctx.lineTo(drawX + SPRITE_SIZE + 6, drawY + SPRITE_SIZE + 6 - cLen);
+        ctx.stroke();
         ctx.restore();
 
-        // Arrow above
+        // Bouncing arrow above
+        const arrowBob = Math.sin(frame * 0.12) * 3;
         ctx.fillStyle = '#22d3ee';
         ctx.beginPath();
-        ctx.moveTo(drawX + SPRITE_SIZE / 2, drawY - 18);
-        ctx.lineTo(drawX + SPRITE_SIZE / 2 - 6, drawY - 10);
-        ctx.lineTo(drawX + SPRITE_SIZE / 2 + 6, drawY - 10);
+        ctx.moveTo(drawX + SPRITE_SIZE / 2, drawY - 20 + arrowBob);
+        ctx.lineTo(drawX + SPRITE_SIZE / 2 - 7, drawY - 10 + arrowBob);
+        ctx.lineTo(drawX + SPRITE_SIZE / 2 + 7, drawY - 10 + arrowBob);
         ctx.closePath();
         ctx.fill();
+        // Arrow glow
+        ctx.save();
+        ctx.globalAlpha = 0.3;
+        ctx.fillStyle = '#22d3ee';
+        ctx.beginPath();
+        ctx.moveTo(drawX + SPRITE_SIZE / 2, drawY - 22 + arrowBob);
+        ctx.lineTo(drawX + SPRITE_SIZE / 2 - 9, drawY - 9 + arrowBob);
+        ctx.lineTo(drawX + SPRITE_SIZE / 2 + 9, drawY - 9 + arrowBob);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
       }
+
+      // Drop shadow
+      ctx.save();
+      ctx.globalAlpha = opacity * 0.25;
+      ctx.fillStyle = '#000';
+      ctx.beginPath();
+      ctx.ellipse(
+        drawX + SPRITE_SIZE / 2,
+        drawY + SPRITE_SIZE * 2 + 2,
+        SPRITE_SIZE * 0.5,
+        4,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+      ctx.restore();
 
       // Draw sprite
       const spriteKey = char.classType;
@@ -779,11 +979,36 @@ export default function SideBattlerRenderer({
         ctx.restore();
       }
 
-      // Defending shield overlay
+      // Defending shield overlay with animated ring
       if (char.isDefending) {
         ctx.save();
-        ctx.globalAlpha = 0.4;
-        ctx.fillStyle = '#3b82f6';
+        const shieldPulse = 0.25 + Math.sin(frame * 0.08) * 0.1;
+        ctx.globalAlpha = shieldPulse;
+        const shieldGrad = ctx.createRadialGradient(
+          drawX + SPRITE_SIZE / 2,
+          drawY + SPRITE_SIZE / 2,
+          SPRITE_SIZE * 0.2,
+          drawX + SPRITE_SIZE / 2,
+          drawY + SPRITE_SIZE / 2,
+          SPRITE_SIZE * 0.9,
+        );
+        shieldGrad.addColorStop(0, 'rgba(59, 130, 246, 0.05)');
+        shieldGrad.addColorStop(0.6, 'rgba(59, 130, 246, 0.15)');
+        shieldGrad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+        ctx.fillStyle = shieldGrad;
+        ctx.beginPath();
+        ctx.arc(
+          drawX + SPRITE_SIZE / 2,
+          drawY + SPRITE_SIZE / 2,
+          SPRITE_SIZE * 0.9,
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+        // Shield ring
+        ctx.globalAlpha = shieldPulse + 0.2;
+        ctx.strokeStyle = '#60a5fa';
+        ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(
           drawX + SPRITE_SIZE / 2,
@@ -792,31 +1017,62 @@ export default function SideBattlerRenderer({
           0,
           Math.PI * 2,
         );
-        ctx.fill();
-        ctx.globalAlpha = 1;
+        ctx.stroke();
         ctx.restore();
       }
 
-      // HP bar
+      // HP bar with gradient fill
       const barY = drawY - 24;
       const barW = 48;
-      const barH = 5;
+      const barH = 6;
       const hpPct = Math.max(0, char.stats.hp / char.stats.maxHp);
-      ctx.fillStyle = '#333';
+      // Background with inner shadow
+      ctx.fillStyle = '#1a1a2e';
       ctx.fillRect(drawX - 4, barY, barW, barH);
-      ctx.fillStyle = hpPct < 0.3 ? '#eab308' : '#22c55e';
-      ctx.fillRect(drawX - 4, barY, barW * hpPct, barH);
-      ctx.strokeStyle = '#555';
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(drawX - 4, barY, barW, 1);
+      // Gradient HP fill
+      if (hpPct > 0) {
+        const hpGrad = ctx.createLinearGradient(drawX - 4, barY, drawX - 4, barY + barH);
+        if (hpPct < 0.3) {
+          hpGrad.addColorStop(0, '#fbbf24');
+          hpGrad.addColorStop(0.5, '#eab308');
+          hpGrad.addColorStop(1, '#ca8a04');
+        } else {
+          hpGrad.addColorStop(0, '#4ade80');
+          hpGrad.addColorStop(0.5, '#22c55e');
+          hpGrad.addColorStop(1, '#16a34a');
+        }
+        ctx.fillStyle = hpGrad;
+        ctx.fillRect(drawX - 4, barY, barW * hpPct, barH);
+        // Specular highlight on bar
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(drawX - 4, barY, barW * hpPct, 1);
+      }
+      // Damage flash shimmer
+      if (anim.state === 'hit') {
+        ctx.fillStyle = 'rgba(255,80,80,0.4)';
+        ctx.fillRect(drawX - 4, barY, barW, barH);
+      }
+      ctx.strokeStyle = '#6a6a8a';
       ctx.lineWidth = 1;
       ctx.strokeRect(drawX - 4, barY, barW, barH);
 
-      // MP bar
-      const mpBarY = barY + barH + 1;
+      // MP bar with gradient
+      const mpBarY = barY + barH + 2;
       const mpPct = Math.max(0, char.stats.mp / char.stats.maxMp);
-      ctx.fillStyle = '#1a1a4e';
-      ctx.fillRect(drawX - 4, mpBarY, barW, 3);
-      ctx.fillStyle = '#06b6d4';
-      ctx.fillRect(drawX - 4, mpBarY, barW * mpPct, 3);
+      ctx.fillStyle = '#0a0a2e';
+      ctx.fillRect(drawX - 4, mpBarY, barW, 4);
+      if (mpPct > 0) {
+        const mpGrad = ctx.createLinearGradient(drawX - 4, mpBarY, drawX - 4, mpBarY + 4);
+        mpGrad.addColorStop(0, '#22d3ee');
+        mpGrad.addColorStop(0.5, '#06b6d4');
+        mpGrad.addColorStop(1, '#0891b2');
+        ctx.fillStyle = mpGrad;
+        ctx.fillRect(drawX - 4, mpBarY, barW * mpPct, 4);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(drawX - 4, mpBarY, barW * mpPct, 1);
+      }
 
       // Status effect dots
       const dotY = drawY + SPRITE_SIZE * 2 + 4;
@@ -924,17 +1180,39 @@ export default function SideBattlerRenderer({
         ctx.restore();
       }
 
-      // HP bar for enemy
+      // HP bar for enemy with gradient
       const barY = drawY - 12;
       const barW = enemy.isBoss ? 80 : 48;
+      const barH = 6;
       const hpPct = Math.max(0, enemy.stats.hp / enemy.stats.maxHp);
-      ctx.fillStyle = '#333';
-      ctx.fillRect(drawX - 4, barY, barW, 5);
-      ctx.fillStyle = hpPct < 0.3 ? '#eab308' : '#ef4444';
-      ctx.fillRect(drawX - 4, barY, barW * hpPct, 5);
-      ctx.strokeStyle = '#555';
+      ctx.fillStyle = '#1a1a2e';
+      ctx.fillRect(drawX - 4, barY, barW, barH);
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.fillRect(drawX - 4, barY, barW, 1);
+      if (hpPct > 0) {
+        const eHpGrad = ctx.createLinearGradient(drawX - 4, barY, drawX - 4, barY + barH);
+        if (hpPct < 0.3) {
+          eHpGrad.addColorStop(0, '#fbbf24');
+          eHpGrad.addColorStop(0.5, '#eab308');
+          eHpGrad.addColorStop(1, '#ca8a04');
+        } else {
+          eHpGrad.addColorStop(0, '#f87171');
+          eHpGrad.addColorStop(0.5, '#ef4444');
+          eHpGrad.addColorStop(1, '#dc2626');
+        }
+        ctx.fillStyle = eHpGrad;
+        ctx.fillRect(drawX - 4, barY, barW * hpPct, barH);
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(drawX - 4, barY, barW * hpPct, 1);
+      }
+      // Hit flash on bar
+      if (anim.state === 'hit') {
+        ctx.fillStyle = 'rgba(255,255,255,0.3)';
+        ctx.fillRect(drawX - 4, barY, barW, barH);
+      }
+      ctx.strokeStyle = '#6a6a8a';
       ctx.lineWidth = 1;
-      ctx.strokeRect(drawX - 4, barY, barW, 5);
+      ctx.strokeRect(drawX - 4, barY, barW, barH);
 
       // Status dots
       const dotY = drawY + sz + 4;
@@ -958,20 +1236,25 @@ export default function SideBattlerRenderer({
       ctx.textAlign = 'left';
     }
 
-    // --- Floating damage numbers ---
+    // --- Floating damage numbers with outline ---
     const nums = damageNumsRef.current;
     let nWrite = 0;
     for (let i = 0; i < nums.length; i++) {
       const dn = nums[i];
       dn.life--;
-      dn.y -= 0.8;
+      dn.y -= 0.9;
       if (dn.life <= 0) continue;
       nums[nWrite++] = dn;
       ctx.save();
-      ctx.globalAlpha = Math.min(1, dn.life / 20);
-      ctx.fillStyle = dn.color;
+      const alpha = Math.min(1, dn.life / 20);
+      ctx.globalAlpha = alpha;
       ctx.font = 'bold 18px monospace';
       ctx.textAlign = 'center';
+      // Text outline for readability
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(dn.value, dn.x + 16, dn.y);
+      ctx.fillStyle = dn.color;
       ctx.fillText(dn.value, dn.x + 16, dn.y);
       ctx.textAlign = 'left';
       ctx.restore();
@@ -996,16 +1279,41 @@ export default function SideBattlerRenderer({
     }
     parts.length = pWrite;
 
-    // --- HUD overlay ---
-    // Wave info
-    ctx.fillStyle = '#fff';
+    // --- Vignette overlay ---
+    ctx.save();
+    const vignetteOuter = ctx.createRadialGradient(
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.25,
+      CANVAS_W / 2,
+      CANVAS_H / 2,
+      CANVAS_W * 0.7,
+    );
+    vignetteOuter.addColorStop(0, 'transparent');
+    vignetteOuter.addColorStop(0.7, 'rgba(0,0,0,0.15)');
+    vignetteOuter.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vignetteOuter;
+    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.restore();
+
+    // --- HUD overlay with glass panels ---
+    // Wave info panel (top-left)
+    ctx.save();
+    ctx.fillStyle = 'rgba(10, 10, 30, 0.6)';
+    ctx.fillRect(8, 8, 140, 44);
+    ctx.strokeStyle = 'rgba(100, 100, 160, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(8, 8, 140, 44);
+    // Inner highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(9, 9, 138, 22);
+    ctx.restore();
+    ctx.fillStyle = '#e0e0ff';
     ctx.font = 'bold 14px monospace';
     ctx.textAlign = 'left';
-    ctx.fillText(`Wave ${data.currentWave}/${data.maxWaves}`, 16, 24);
-
+    ctx.fillText(`Wave ${data.currentWave}/${data.maxWaves}`, 16, 28);
     // Phase indicator
-    ctx.font = '12px monospace';
-    ctx.fillStyle = '#aaa';
+    ctx.font = '11px monospace';
     const phaseText: Record<string, string> = {
       prep: 'PREPARE',
       combat: 'COMBAT',
@@ -1013,33 +1321,75 @@ export default function SideBattlerRenderer({
       victory: 'VICTORY!',
       defeat: 'DEFEAT',
     };
-    ctx.fillText(phaseText[data.battlePhase] || data.battlePhase, 16, 42);
+    const phaseColors: Record<string, string> = {
+      prep: '#60a5fa',
+      combat: '#f87171',
+      wave_clear: '#4ade80',
+      victory: '#fbbf24',
+      defeat: '#ef4444',
+    };
+    ctx.fillStyle = phaseColors[data.battlePhase] || '#aaa';
+    ctx.fillText(phaseText[data.battlePhase] || data.battlePhase, 16, 44);
 
-    // Kill count
-    ctx.fillStyle = '#ef4444';
+    // Kill count panel (top-right)
+    ctx.save();
+    ctx.fillStyle = 'rgba(10, 10, 30, 0.6)';
+    ctx.fillRect(CANVAS_W - 128, 8, 120, 32);
+    ctx.strokeStyle = 'rgba(100, 100, 160, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(CANVAS_W - 128, 8, 120, 32);
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    ctx.fillRect(CANVAS_W - 127, 9, 118, 15);
+    ctx.restore();
+    ctx.fillStyle = '#f87171';
+    ctx.font = 'bold 13px monospace';
     ctx.textAlign = 'right';
-    ctx.fillText(`Kills: ${data.totalKills}`, CANVAS_W - 16, 24);
-
+    ctx.fillText(`Kills: ${data.totalKills}`, CANVAS_W - 16, 28);
     ctx.textAlign = 'left';
 
-    // VS text in center
+    // VS text in center with glow
     if (data.battlePhase === 'combat') {
       ctx.save();
-      ctx.font = 'bold 28px monospace';
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      const vsPulse = 0.05 + Math.sin(frame * 0.03) * 0.03;
+      ctx.globalAlpha = vsPulse;
+      ctx.font = 'bold 48px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('VS', CANVAS_W / 2, CANVAS_H / 2);
+      ctx.fillStyle = '#6366f1';
+      ctx.fillText('VS', CANVAS_W / 2, CANVAS_H / 2 - 20);
+      ctx.globalAlpha = vsPulse * 2;
+      ctx.font = 'bold 44px monospace';
+      ctx.fillStyle = '#818cf8';
+      ctx.fillText('VS', CANVAS_W / 2, CANVAS_H / 2 - 20);
       ctx.restore();
     }
 
-    // Victory / Defeat banners
+    // Victory / Defeat banners with gradient and glow
     if (data.battlePhase === 'victory' || data.battlePhase === 'defeat') {
       ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(0, CANVAS_H / 2 - 30, CANVAS_W, 60);
+      const bannerGrad = ctx.createLinearGradient(0, CANVAS_H / 2 - 40, 0, CANVAS_H / 2 + 40);
+      bannerGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      bannerGrad.addColorStop(0.3, 'rgba(0,0,0,0.7)');
+      bannerGrad.addColorStop(0.7, 'rgba(0,0,0,0.7)');
+      bannerGrad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = bannerGrad;
+      ctx.fillRect(0, CANVAS_H / 2 - 40, CANVAS_W, 80);
+      // Glowing line accent
+      const accentColor = data.battlePhase === 'victory' ? '#fbbf24' : '#ef4444';
+      ctx.fillStyle = accentColor;
+      ctx.globalAlpha = 0.6;
+      ctx.fillRect(CANVAS_W * 0.2, CANVAS_H / 2 - 22, CANVAS_W * 0.6, 1);
+      ctx.fillRect(CANVAS_W * 0.2, CANVAS_H / 2 + 20, CANVAS_W * 0.6, 1);
+      ctx.globalAlpha = 1;
+      // Text with shadow
       ctx.font = 'bold 36px monospace';
       ctx.textAlign = 'center';
-      ctx.fillStyle = data.battlePhase === 'victory' ? '#fbbf24' : '#ef4444';
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.fillText(
+        data.battlePhase === 'victory' ? 'VICTORY!' : 'DEFEAT',
+        CANVAS_W / 2 + 2,
+        CANVAS_H / 2 + 14,
+      );
+      ctx.fillStyle = accentColor;
       ctx.fillText(
         data.battlePhase === 'victory' ? 'VICTORY!' : 'DEFEAT',
         CANVAS_W / 2,
@@ -1067,19 +1417,35 @@ export default function SideBattlerRenderer({
     const current = data.turnOrder[data.currentTurnIndex];
     if (current && current.type === 'party') {
       animRef.current[`party_${current.index}`] = { state: 'attack', frame: 0, timer: 0 };
-      // Spawn particles at target
+      // Spawn slash particles at target (sword trail effect)
       const ePos = getEnemyPositions(data.enemies.length)[selectedTarget];
       if (ePos) {
-        for (let i = 0; i < 8; i++) {
+        // Slash arc particles
+        for (let i = 0; i < 14; i++) {
+          const angle = (i / 14) * Math.PI * 0.8 - Math.PI * 0.4;
+          const speed = 2 + Math.random() * 3;
+          particlesRef.current.push({
+            x: ePos.x + 16 + Math.cos(angle) * 8,
+            y: ePos.y + 16 + Math.sin(angle) * 8,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 18 + Math.random() * 10,
+            maxLife: 28,
+            color: i % 3 === 0 ? '#fff' : i % 3 === 1 ? '#fbbf24' : '#f97316',
+            size: 2 + Math.random() * 2,
+          });
+        }
+        // Impact sparks
+        for (let i = 0; i < 6; i++) {
           particlesRef.current.push({
             x: ePos.x + 16,
             y: ePos.y + 16,
-            vx: (Math.random() - 0.5) * 4,
-            vy: (Math.random() - 0.5) * 4,
-            life: 20,
-            maxLife: 20,
-            color: '#fbbf24',
-            size: 3,
+            vx: (Math.random() - 0.5) * 6,
+            vy: (Math.random() - 0.5) * 6,
+            life: 12,
+            maxLife: 12,
+            color: '#fff',
+            size: 1.5,
           });
         }
       }
@@ -1098,20 +1464,36 @@ export default function SideBattlerRenderer({
       const current = data.turnOrder[data.currentTurnIndex];
       if (current && current.type === 'party') {
         animRef.current[`party_${current.index}`] = { state: 'cast', frame: 0, timer: 0 };
-        // Spell particles
+        // Magic projectile particles (spiral outward from caster)
         const pPos = getPartyPositions(data.party.length)[current.index];
         if (pPos) {
-          const colors = ['#a855f7', '#6366f1', '#3b82f6', '#FFD700'];
-          for (let i = 0; i < 12; i++) {
+          const colors = ['#a855f7', '#6366f1', '#818cf8', '#c084fc', '#FFD700'];
+          // Spiral ring of magic
+          for (let i = 0; i < 18; i++) {
+            const angle = (i / 18) * Math.PI * 2;
+            const speed = 1.5 + Math.random() * 2;
             particlesRef.current.push({
               x: pPos.x + 16,
               y: pPos.y + 16,
-              vx: (Math.random() - 0.3) * 6,
-              vy: (Math.random() - 0.5) * 4,
-              life: 30,
-              maxLife: 30,
+              vx: Math.cos(angle) * speed + 2,
+              vy: Math.sin(angle) * speed,
+              life: 25 + Math.random() * 15,
+              maxLife: 40,
               color: colors[i % colors.length],
-              size: 2 + Math.random() * 2,
+              size: 2 + Math.random() * 2.5,
+            });
+          }
+          // Central burst
+          for (let i = 0; i < 8; i++) {
+            particlesRef.current.push({
+              x: pPos.x + 16,
+              y: pPos.y + 16,
+              vx: (Math.random() - 0.3) * 8,
+              vy: (Math.random() - 0.5) * 5,
+              life: 20,
+              maxLife: 20,
+              color: '#fff',
+              size: 1.5 + Math.random(),
             });
           }
         }
