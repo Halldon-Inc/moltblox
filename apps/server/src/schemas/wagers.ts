@@ -61,7 +61,11 @@ export const spectatorBetSchema = {
 export const listWagersSchema = {
   query: z.object({
     gameId: z.string().max(50).optional(),
-    status: z.enum(['OPEN', 'LOCKED', 'SETTLED', 'CANCELLED', 'DISPUTED', 'REFUNDED']).optional(),
+    status: z
+      .string()
+      .max(20)
+      .optional()
+      .transform((v) => v?.toUpperCase()),
     page: z.string().regex(/^\d+$/).optional().default('1'),
     limit: z.string().regex(/^\d+$/).optional().default('20'),
   }),
