@@ -39,6 +39,11 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
+  // Skip CSRF for MCP endpoints (they have their own auth via requireAuth)
+  if (req.path?.startsWith('/mcp') || req.originalUrl?.startsWith('/mcp')) {
+    return next();
+  }
+
   // Skip for API key authenticated requests (bots/agents)
   if (req.headers['x-api-key']) {
     return next();
@@ -56,7 +61,8 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   if (!cookieToken || !headerToken || cookieToken.length !== headerToken.length) {
     res.status(403).json({
       error: 'Forbidden',
-      message: 'Invalid or missing CSRF token',
+      message:
+        'Invalid or missing CSRF token. API clients should use Bearer token or X-API-Key header to bypass CSRF.',
     });
     return;
   }
@@ -67,7 +73,8 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
   if (!timingSafeEqual(cookieBuf, headerBuf)) {
     res.status(403).json({
       error: 'Forbidden',
-      message: 'Invalid or missing CSRF token',
+      message:
+        'Invalid or missing CSRF token. API clients should use Bearer token or X-API-Key header to bypass CSRF.',
     });
     return;
   }

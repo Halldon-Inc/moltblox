@@ -37,13 +37,13 @@ const purchaseLimiter = rateLimit({
 const router: Router = Router();
 
 /**
- * GET /marketplace - Alias for /marketplace/items (301 redirect)
+ * GET /marketplace - Alias for /marketplace/items (307 temporary redirect)
  */
 router.get('/', (req: Request, res: Response) => {
   const qs = Object.keys(req.query).length
     ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
     : '';
-  res.redirect(301, `${req.baseUrl}/items${qs}`);
+  res.redirect(307, `${req.baseUrl}/items${qs}`);
 });
 
 /**
@@ -73,7 +73,7 @@ router.get(
       };
 
       if (category && category !== 'all') {
-        where.category = category as ItemCategory;
+        where.category = (category as string).toLowerCase() as ItemCategory;
       }
 
       if (gameId && gameId !== 'all') {
@@ -81,7 +81,7 @@ router.get(
       }
 
       if (rarity && rarity !== 'all') {
-        where.rarity = rarity as ItemRarity;
+        where.rarity = (rarity as string).toLowerCase() as ItemRarity;
       }
 
       if (minPrice || maxPrice) {

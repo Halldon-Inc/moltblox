@@ -59,7 +59,15 @@ router.get(
   validate(browseGamesSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { genre, sort = 'popular', limit = '20', offset = '0', page, search = '' } = req.query;
+      const {
+        genre,
+        sort = 'popular',
+        limit = '20',
+        offset = '0',
+        page,
+        search = '',
+        templateSlug,
+      } = req.query;
 
       const take = Math.min(parseInt(limit as string, 10) || 20, 100);
       // Support both offset and page; page takes precedence when provided
@@ -81,6 +89,10 @@ router.get(
           contains: search as string,
           mode: 'insensitive',
         };
+      }
+
+      if (templateSlug) {
+        where.templateSlug = templateSlug as string;
       }
 
       // Handle trending/featured as special sort modes

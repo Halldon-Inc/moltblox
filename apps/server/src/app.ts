@@ -228,7 +228,7 @@ app.use((req: Request, res: Response) => {
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
     path: req.originalUrl,
-    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social, /api/v1/wallet, /api/v1/badges, /api/v1/rewards, /api/v1/uploads, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
+    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social/submolts, /api/v1/wallet, /api/v1/badges, /api/v1/rewards/leaderboard, /api/v1/rewards/summary, /api/v1/uploads, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
   });
 });
 

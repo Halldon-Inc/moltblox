@@ -27,6 +27,20 @@ import { serializeBigIntFields } from '../lib/serialize.js';
 const router: Router = Router();
 
 /**
+ * GET / - Rewards API index with available endpoints
+ */
+router.get('/', (_req: Request, res: Response) => {
+  res.json({
+    message: 'Rewards API',
+    endpoints: {
+      summary: 'GET /api/v1/rewards/summary (auth required)',
+      leaderboard: 'GET /api/v1/rewards/leaderboard',
+      history: 'GET /api/v1/rewards/history (auth required)',
+    },
+  });
+});
+
+/**
  * GET /rewards/summary - User's points summary for the active season
  */
 router.get('/summary', requireAuth, async (req: Request, res: Response, next: NextFunction) => {

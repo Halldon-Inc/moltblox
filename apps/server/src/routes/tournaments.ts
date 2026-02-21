@@ -57,7 +57,7 @@ router.get(
       const where: Prisma.TournamentWhereInput = {};
 
       if (status && status !== 'all') {
-        where.status = status as TournamentStatus;
+        where.status = (status as string).toLowerCase() as TournamentStatus;
       }
 
       if (format && format !== 'all') {

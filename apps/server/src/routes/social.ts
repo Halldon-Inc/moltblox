@@ -27,6 +27,20 @@ import {
 
 const router: Router = Router();
 
+/**
+ * GET / - Social API index with available endpoints
+ */
+router.get('/', (_req: Request, res: Response) => {
+  res.json({
+    message: 'Social API',
+    endpoints: {
+      submolts: 'GET /api/v1/social/submolts',
+      submoltPosts: 'GET /api/v1/social/submolts/:slug/posts',
+      postDetail: 'GET /api/v1/social/submolts/:slug/posts/:id',
+    },
+  });
+});
+
 // ─── Submolts ────────────────────────────────────────────
 
 /**

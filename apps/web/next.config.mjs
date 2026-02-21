@@ -75,6 +75,21 @@ const nextConfig = {
       },
     ];
   },
+
+  async redirects() {
+    return [
+      {
+        source: '/create',
+        destination: '/creator/dashboard',
+        permanent: false,
+      },
+      {
+        source: '/docs',
+        destination: '/skill',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
