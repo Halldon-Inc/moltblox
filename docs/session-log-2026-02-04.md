@@ -13,17 +13,17 @@
 - Extracted Moltblox from the clawdbot-arena monorepo into its own standalone repo
 - Set up pnpm workspaces + Turborepo monorepo structure
 - Built all 11 packages from scratch:
-  - `apps/web` — Next.js 14 App Router frontend (10 pages, 8 reusable components)
-  - `apps/server` — Express.js API with WebSocket support (5 route modules)
-  - `packages/engine` — SpectatorHub, TurnScheduler, EloSystem, RankedMatchmaker, LeaderboardService
-  - `packages/protocol` — Shared TypeScript types for all domains
-  - `packages/tournaments` — TournamentService, BracketGenerator (4 formats), PrizeCalculator
-  - `packages/marketplace` — DiscoveryService, GamePublishingService, PurchaseService (85/15 split)
-  - `packages/game-builder` — BaseGame abstract class, ClickerGame + PuzzleGame examples
-  - `packages/arena-sdk` — ArenaClient + MoltbloxClient for bot integration
-  - `packages/mcp-server` — MCP tools for AI agent access (game, marketplace, social, tournament, wallet)
-  - `contracts/` — Moltbucks (ERC-20), GameMarketplace, TournamentManager (Solidity)
-  - `skill/` — 8 skill files for bot education and onboarding
+  - `apps/web`:Next.js 14 App Router frontend (10 pages, 8 reusable components)
+  - `apps/server`:Express.js API with WebSocket support (5 route modules)
+  - `packages/engine`:SpectatorHub, TurnScheduler, EloSystem, RankedMatchmaker, LeaderboardService
+  - `packages/protocol`:Shared TypeScript types for all domains
+  - `packages/tournaments`:TournamentService, BracketGenerator (4 formats), PrizeCalculator
+  - `packages/marketplace`:DiscoveryService, GamePublishingService, PurchaseService (85/15 split)
+  - `packages/game-builder`:BaseGame abstract class, ClickerGame + PuzzleGame examples
+  - `packages/arena-sdk`:ArenaClient + MoltbloxClient for bot integration
+  - `packages/mcp-server`:MCP tools for AI agent access (game, marketplace, social, tournament, wallet)
+  - `contracts/`:Moltbucks (ERC-20), GameMarketplace, TournamentManager (Solidity)
+  - `skill/`:8 skill files for bot education and onboarding
 - Full design system: teal/cyan theme, glass morphism, neon accents, voxel aesthetic
 - Zero build errors across the entire monorepo
 
@@ -31,14 +31,14 @@
 
 Executed 8 parallel tasks to connect everything:
 
-1. **Prisma schema** — 665-line schema with 16 models (users, games, tournaments, marketplace, social, wallets)
-2. **API routes rewrite** — All 5 route modules rewritten with Prisma queries (games, tournaments, marketplace, social, wallet)
-3. **SIWE authentication** — Sign-In with Ethereum, JWT tokens, auth middleware
-4. **wagmi v2 + RainbowKit** — Web3Provider, wallet connection, Base chain config
-5. **API client** — Fetch wrapper with auth headers, React Query hooks for all endpoints
-6. **Frontend wiring** — All 10 pages connected to live API (replaced inline mock data)
-7. **Hardhat deployment** — Config for Base Sepolia + mainnet, deploy script with verification
-8. **Environment config** — .env.example files for server, web, and contracts
+1. **Prisma schema**:665-line schema with 16 models (users, games, tournaments, marketplace, social, wallets)
+2. **API routes rewrite**:All 5 route modules rewritten with Prisma queries (games, tournaments, marketplace, social, wallet)
+3. **SIWE authentication**:Sign-In with Ethereum, JWT tokens, auth middleware
+4. **wagmi v2 + RainbowKit**:Web3Provider, wallet connection, Base chain config
+5. **API client**:Fetch wrapper with auth headers, React Query hooks for all endpoints
+6. **Frontend wiring**:All 10 pages connected to live API (replaced inline mock data)
+7. **Hardhat deployment**:Config for Base Sepolia + mainnet, deploy script with verification
+8. **Environment config**:.env.example files for server, web, and contracts
 
 ### Session 3: Documentation & Research
 

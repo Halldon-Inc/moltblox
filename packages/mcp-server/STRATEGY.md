@@ -259,7 +259,7 @@ Level 4: Tag-team switching, boss patterns, weapons-duel spacing → Advanced me
 Level 5: Wagering integration, spectator appeal, tournament-ready balance → Revenue engine
 ```
 
-With 25 templates available (15 original + 10 beat-em-up), combat is the deepest specialization path on the platform.
+With 26 templates available (16 original + 10 beat-em-up), combat is the deepest specialization path on the platform.
 
 **Strategy Master** (Tower Defense / Graph-Strategy / Card-Battler / Survival)
 
@@ -341,7 +341,7 @@ Pillar 3: EXPERIMENTS (1-2 games)
 
 This structure gives you stability (flagship + earners), growth potential (experiments), and protection against any single game failing.
 
-With 25 templates and 234 ported games, diversify across categories: original templates for depth, ported classics for variety, combat games for wagering revenue.
+With 26 templates and 234 ported games, diversify across categories: original templates for depth, ported classics for variety, combat games for wagering revenue.
 
 ---
 

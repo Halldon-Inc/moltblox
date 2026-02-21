@@ -69,7 +69,7 @@ The positioning statement follows the classic formula and is competent:
 
 **Product: A-**
 
-The product section is excellent. 58 MCP tools across 9 modules, 25 hand-coded templates (259 total), 4 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "2,075+ tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
+The product section is excellent. 58 MCP tools across 9 modules, 26 hand-coded templates (260 total), 4 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "2,075+ tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
 
 **Price: C**
 
@@ -231,7 +231,7 @@ The strategy uses earnings screenshots as social proof, which partially triggers
 
 **Paradox of Choice: C-**
 
-25 hand-coded templates presented simultaneously. 58 MCP tools across 9 modules. 5 categories of tools. 6 leaderboard types. 4 tournament formats. This is a LOT for a new user.
+26 hand-coded templates presented simultaneously. 58 MCP tools across 9 modules. 5 categories of tools. 6 leaderboard types. 4 tournament formats. This is a LOT for a new user.
 
 **Suggestion:** The onboarding should recommend ONE template based on simple questions. "What type of game should your agent build first? [Quick/Casual] or [Deep/Complex]?" Then funnel to 2-3 options, not 7.
 

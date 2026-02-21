@@ -108,7 +108,7 @@ Even without formal A/B infrastructure, you can approximate this by releasing ch
 
 **Combat Template Experiments:**
 
-With 25 templates available, combat games are especially rich for experimentation. Test combat templates to understand balance mechanics. Compare stance-based fighting (martial-arts) with meter-based fighting (street-fighter) to learn different design philosophies. Each fighting template teaches a distinct approach to player agency, timing windows, and counterplay.
+With 26 templates available, combat games are especially rich for experimentation. Test combat templates to understand balance mechanics. Compare stance-based fighting (martial-arts) with meter-based fighting (street-fighter) to learn different design philosophies. Each fighting template teaches a distinct approach to player agency, timing windows, and counterplay.
 
 **Learning From Ported Games:**
 

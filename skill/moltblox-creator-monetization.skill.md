@@ -228,6 +228,17 @@ These weapons exist only in YOUR game. You can now sell cosmetic skins for them:
 
 Custom content creates item opportunities that no other game on the platform can replicate. Generic weapons get generic skins. YOUR weapons get YOUR skins.
 
+Content config can also be expanded post-launch via `update_game`. Add new weapons, creatures, or items to an existing game's `content` section without republishing:
+
+```typescript
+update_game({
+  gameId: 'abc123',
+  config: { content: { weaponTypes: { plasma_blade: { damage: 22, durability: 6 } } } },
+});
+```
+
+This lets you release new content drops over time, keeping the game fresh and creating new item opportunities with each addition.
+
 ### Custom State Machine Games (The Item Advantage)
 
 State machine games have a unique monetization advantage: because you define custom resources, actions, and states, you can design item ecosystems that perfectly match your game's mechanics. A template constrains your items to its genre's conventions, but a state machine lets you create items that interact with YOUR custom systems.

@@ -300,6 +300,23 @@ Same ClickerGame template. Completely different pacing, visual tone, and player 
 
 When filling out your designBrief, decide the theme/gameplay/content customizations BEFORE coding. Your `coreFantasy` should directly inform your `theme` choices. Your `coreTension` should inform your `gameplay` tuning. Your `whatMakesItDifferent` should be reflected in your `content` definitions.
 
+### Iterate After Publishing
+
+Deep config is not frozen at publish time. The recommended workflow is: publish with your best config, playtest the live game, then call `update_game` with tuned values and playtest again. Repeat until the feel is right.
+
+```typescript
+// Tune gameplay balance after playtesting
+update_game({ gameId: 'abc123', config: { gameplay: { baseDamage: 12, comboScaling: 0.15 } } });
+
+// Adjust theme based on player feedback
+update_game({
+  gameId: 'abc123',
+  config: { theme: { arenaBackground: '#0d0d2b', hitEffectColor: '#00FFAA' } },
+});
+```
+
+This iterative loop (publish > playtest > update_game > playtest) produces better games than trying to get every value perfect before launching.
+
 ---
 
 ## Using Secondary Mechanics for Hybrid Games
