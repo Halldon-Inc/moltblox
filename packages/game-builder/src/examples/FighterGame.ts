@@ -22,6 +22,30 @@ export interface FighterConfig {
   /** When set to 'openbor', matchmaking routes to RealTimeSessionManager
    *  instead of the turn-based FighterGame. Default is 'turn-based'. */
   engine?: 'turn-based' | 'openbor';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Arena background color or image identifier (CSS, default '#1a1a2e'). */
+    arenaBackground?: string;
+    /** Hit effect flash color (CSS, default '#FF4444'). */
+    hitEffectColor?: string;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Damage per attack type: { light, heavy, grab, special } (default: 8/18/12/25). */
+    attackDamage?: Partial<Record<'light' | 'heavy' | 'grab' | 'special', number>>;
+    /** Stamina costs: { special, dodge } (default: 30/15). */
+    staminaCosts?: { special?: number; dodge?: number };
+    /** Counter relationships override: maps attacker move to the move it beats (default: light>grab, grab>block, block>heavy, heavy>light). */
+    counterMap?: Record<string, string>;
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Beat-em-up wave templates: array of waves, each an array of { name, hp, atk }. */
+    waveTemplates?: { name: string; hp: number; atk: number }[][];
+  };
 }
 
 type AttackType = 'light' | 'heavy' | 'grab' | 'special';
@@ -68,23 +92,24 @@ interface FighterState {
 }
 
 // Counter relationships: light > grab > block > heavy > light
-const COUNTER_MAP: Record<string, string> = {
+const DEFAULT_COUNTER_MAP: Record<string, string> = {
   light: 'grab',
   grab: 'block',
   block: 'heavy',
   heavy: 'light',
 };
 
-const ATTACK_DAMAGE: Record<string, number> = {
+const DEFAULT_ATTACK_DAMAGE: Record<string, number> = {
   light: 8,
   heavy: 18,
   grab: 12,
   special: 25,
 };
 
-const SPECIAL_STAMINA_COST = 30;
+const DEFAULT_SPECIAL_STAMINA_COST = 30;
+const DEFAULT_DODGE_STAMINA_COST = 15;
 
-const WAVE_TEMPLATES = [
+const DEFAULT_WAVE_TEMPLATES = [
   [
     { name: 'Thug', hp: 30, atk: 5 },
     { name: 'Thug', hp: 30, atk: 5 },
@@ -101,6 +126,32 @@ export class FighterGame extends BaseGame {
   readonly name = 'Fighter';
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
+
+  private getAttackDamage(): Record<string, number> {
+    const cfg = this.config as FighterConfig;
+    return { ...DEFAULT_ATTACK_DAMAGE, ...(cfg.gameplay?.attackDamage as Record<string, number>) };
+  }
+
+  private getCounterMap(): Record<string, string> {
+    const cfg = this.config as FighterConfig;
+    return { ...DEFAULT_COUNTER_MAP, ...(cfg.gameplay?.counterMap as Record<string, string>) };
+  }
+
+  private getStaminaCosts(): { special: number; dodge: number } {
+    const cfg = this.config as FighterConfig;
+    return {
+      special: (cfg.gameplay?.staminaCosts?.special as number) ?? DEFAULT_SPECIAL_STAMINA_COST,
+      dodge: (cfg.gameplay?.staminaCosts?.dodge as number) ?? DEFAULT_DODGE_STAMINA_COST,
+    };
+  }
+
+  private getWaveTemplates(): { name: string; hp: number; atk: number }[][] {
+    const cfg = this.config as FighterConfig;
+    return (
+      (cfg.content?.waveTemplates as { name: string; hp: number; atk: number }[][]) ??
+      DEFAULT_WAVE_TEMPLATES
+    );
+  }
 
   protected initializeState(playerIds: string[]): FighterState {
     const cfg = this.config as FighterConfig;
@@ -246,10 +297,11 @@ export class FighterGame extends BaseGame {
       if (!data.enableSpecials) {
         return { success: false, error: 'Specials are disabled' };
       }
-      if (fighter.stamina < SPECIAL_STAMINA_COST) {
+      const staminaCosts = this.getStaminaCosts();
+      if (fighter.stamina < staminaCosts.special) {
         return { success: false, error: 'Not enough stamina' };
       }
-      fighter.stamina -= SPECIAL_STAMINA_COST;
+      fighter.stamina -= staminaCosts.special;
     }
 
     fighter.isBlocking = false;
@@ -273,7 +325,8 @@ export class FighterGame extends BaseGame {
     }
 
     const target = aliveEnemies[0];
-    let damage = ATTACK_DAMAGE[attackType] || 8;
+    const attackDamage = this.getAttackDamage();
+    let damage = attackDamage[attackType] ?? 8;
 
     // Combo multiplier
     if (data.comboSystem === 'chain' && fighter.lastMove && fighter.lastMove !== attackType) {
@@ -326,7 +379,7 @@ export class FighterGame extends BaseGame {
     // Check wave clear
     if (data.waveEnemies.every((e) => !e.alive)) {
       data.currentWave++;
-      if (data.currentWave >= WAVE_TEMPLATES.length) {
+      if (data.currentWave >= this.getWaveTemplates().length) {
         data.matchOver = true;
         this.emitEvent('victory', playerId, { waves: data.currentWave });
       } else {
@@ -357,12 +410,14 @@ export class FighterGame extends BaseGame {
     }
 
     const target = opponents[0];
-    let damage = ATTACK_DAMAGE[attackType] || 8;
+    const attackDamage = this.getAttackDamage();
+    const counterMap = this.getCounterMap();
+    let damage = attackDamage[attackType] ?? 8;
 
     // Counter system check
     if (target.isBlocking && attackType !== 'grab') {
       // Block reduces damage (except grab beats block)
-      if (COUNTER_MAP['block'] === attackType) {
+      if (counterMap['block'] === attackType) {
         // heavy is countered by block
         damage = 0;
         this.emitEvent('blocked', playerId, { attackType });
@@ -377,7 +432,7 @@ export class FighterGame extends BaseGame {
     }
 
     // Check if this attack type counters the opponent's last move
-    if (target.lastMove && COUNTER_MAP[attackType] === target.lastMove) {
+    if (target.lastMove && counterMap[attackType] === target.lastMove) {
       damage = Math.floor(damage * 1.5);
       this.emitEvent('counter', playerId, { attackType, countered: target.lastMove });
     }
@@ -424,9 +479,9 @@ export class FighterGame extends BaseGame {
         target.stamina = Math.min(target.maxStamina, target.stamina + 10);
       } else {
         target.isBlocking = false;
-        let cpuDamage = ATTACK_DAMAGE[cpuMove] || 8;
+        let cpuDamage = attackDamage[cpuMove] ?? 8;
         if (fighter.isBlocking && cpuMove !== 'grab') {
-          if (COUNTER_MAP['block'] === cpuMove) {
+          if (counterMap['block'] === cpuMove) {
             cpuDamage = 0;
           } else {
             cpuDamage = Math.floor(cpuDamage * 0.3);
@@ -502,11 +557,12 @@ export class FighterGame extends BaseGame {
       return { success: false, error: 'Round is over' };
     }
 
-    if (fighter.stamina < 15) {
-      return { success: false, error: 'Not enough stamina to dodge (need 15)' };
+    const dodgeCost = this.getStaminaCosts().dodge;
+    if (fighter.stamina < dodgeCost) {
+      return { success: false, error: `Not enough stamina to dodge (need ${dodgeCost})` };
     }
 
-    fighter.stamina -= 15;
+    fighter.stamina -= dodgeCost;
     fighter.isBlocking = false;
     fighter.lastMove = 'dodge';
     (fighter as Record<string, unknown>).dodging = true;
@@ -565,8 +621,9 @@ export class FighterGame extends BaseGame {
   }
 
   private spawnWave(data: FighterState): void {
-    const waveIndex = Math.min(data.currentWave, WAVE_TEMPLATES.length - 1);
-    const template = WAVE_TEMPLATES[waveIndex];
+    const waveTemplates = this.getWaveTemplates();
+    const waveIndex = Math.min(data.currentWave, waveTemplates.length - 1);
+    const template = waveTemplates[waveIndex];
     data.waveEnemies = template.map((e, i) => ({
       id: `enemy_w${data.currentWave}_${i}`,
       name: e.name,
@@ -588,7 +645,7 @@ export class FighterGame extends BaseGame {
     if (data.mode === 'beat-em-up') {
       // In beat-em-up, player wins if they cleared all waves
       const player = Object.values(data.fighters)[0];
-      if (player && player.alive && data.currentWave >= WAVE_TEMPLATES.length) {
+      if (player && player.alive && data.currentWave >= this.getWaveTemplates().length) {
         return player.id;
       }
       return null;

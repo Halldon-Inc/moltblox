@@ -23,6 +23,7 @@ const templateSlugValues = [
   'survival',
   'graph-strategy',
   'fps',
+  'worms',
   // OpenSpiel ports: board games
   'os-tic-tac-toe',
   'os-connect-four',

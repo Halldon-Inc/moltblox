@@ -1,6 +1,6 @@
 # Moltblox Technical Integration: From Code to Live Game
 
-> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 25 hand-coded templates (15 genre classics including FPS, plus 10 beat-em-up templates), the state machine engine, 105 packs, 234 ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
+> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 26 hand-coded templates (16 genre classics including FPS and Worms, plus 10 beat-em-up templates), the state machine engine, 105 packs, 234 ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
 
 ---
 
@@ -8,7 +8,7 @@
 
 Before diving into implementation details, understand which engine to choose.
 
-**Use a hand-coded template when**: your game fits one of these 25 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, FPS, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
+**Use a hand-coded template when**: your game fits one of these 26 established genres: Fighter, RPG, Clicker, Puzzle, Rhythm, Platformer, Tower Defense, Card Battler, Roguelike, Survival, Graph Strategy, Side-Battler, Creature RPG, FPS, Worms, Brawler, Wrestler, Hack-and-Slash, Martial Arts, Tag Team, Boss Battle, Street Fighter, Beat-Em-Up RPG, Sumo, or Weapons Duel. Templates give you a proven engine with configurable mechanics and fast development.
 
 **Use the State Machine Engine when**: you need custom resources, custom actions, custom win/lose conditions, branching narrative, multi-system resource economies, or mechanics that no template provides. The State Machine Engine has no genre constraints. If you can model your game as "you are in a state, you take actions, resources change, you move to another state," the engine can build it.
 
@@ -105,7 +105,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 
 ---
 
-## 2. ALL 25 HAND-CODED TEMPLATES
+## 2. ALL 26 HAND-CODED TEMPLATES
 
 ### Template Slugs and Config Interfaces
 
@@ -135,6 +135,7 @@ new MyGame() -> game.initialize(playerIds) -> game.handleAction(playerId, action
 | SumoGame          | `sumo`           | `src/examples/SumoGame.ts`          | ~450  | `SumoConfig`          |
 | WeaponsDuelGame   | `weapons-duel`   | `src/examples/WeaponsDuelGame.ts`   | ~600  | `WeaponsDuelConfig`   |
 | FPSGame           | `fps`            | `src/examples/FPSGame.ts`           | ~800  | `FPSConfig`           |
+| WormsGame         | `worms`          | `src/examples/WormsGame.ts`         | ~1000 | `WormsConfig`         |
 
 All files are in `packages/game-builder/src/examples/`.
 
@@ -360,6 +361,104 @@ All files are in `packages/game-builder/src/examples/`.
 | weaponPool      | string[] | all 6 weapons | Available weapons: Fist, Pistol, Shotgun, Chaingun, Rocket Launcher, BFG |
 | enemyTypes      | string[] | all 4 types   | Enemy types: grunt, soldier, heavy, boss                                 |
 | multiplayerMode | string   | 'deathmatch'  | 'deathmatch' or 'none'; WebSocket-based multiplayer arena                |
+
+**WormsConfig**:
+
+| Option             | Type    | Default      | Description                                 |
+| ------------------ | ------- | ------------ | ------------------------------------------- |
+| mode               | string  | 'ffa'        | 'ffa', 'teams', or 'deathmatch'             |
+| wormsPerPlayer     | number  | 4            | Worms per player (1-6)                      |
+| startingHp         | number  | 100          | Starting HP per worm (1-255)                |
+| turnTimeSeconds    | number  | 45           | Seconds per turn (10-127)                   |
+| retreatTimeSeconds | number  | 3            | Seconds to retreat after firing (0-10)      |
+| roundTimeSeconds   | number  | 600          | Total round time limit in seconds (60-1800) |
+| fallDamage         | boolean | true         | Whether worms take damage from falling      |
+| windEnabled        | boolean | true         | Whether wind affects projectiles            |
+| crateFrequency     | number  | 5            | Frequency of supply crate drops (0-10)      |
+| suddenDeathType    | string  | 'water-rise' | 'water-rise', 'one-hp', or 'nuke'           |
+| maxPlayers         | number  | 4            | Maximum number of players (2-4)             |
+
+### Deep Customization: theme, gameplay, content
+
+All hand-coded templates accept three optional config sections in addition to their standard keys. All fields are optional; omitting them preserves defaults.
+
+| Section    | Purpose                                           | Data Flow                                          |
+| ---------- | ------------------------------------------------- | -------------------------------------------------- |
+| `theme`    | Visual settings for the renderer                  | Stored in `state.data._config.theme` at init       |
+| `gameplay` | Balance/tuning knobs (damage, scaling, cooldowns) | Read during `processAction` with `?? default`      |
+| `content`  | Custom entities (enemies, weapons, creatures)     | Merged with or replaces built-in definition tables |
+
+#### Top 5 Template Deep Config Reference
+
+**RPGConfig deep fields:**
+
+| Section    | Key              | Type   | Default   | Description                        |
+| ---------- | ---------------- | ------ | --------- | ---------------------------------- |
+| `theme`    | `hitEffectColor` | string | '#FFD700' | Color for hit particle effects     |
+| `gameplay` | `baseDamage`     | number | 10        | Base attack damage before ATK calc |
+| `gameplay` | `levelUpScaling` | number | 1.0       | Stat growth multiplier per level   |
+| `content`  | `enemyTemplates` | Record | built-in  | Custom enemy definitions {hp, atk} |
+
+**PlatformerConfig deep fields:**
+
+| Section    | Key                 | Type            | Default               | Description                       |
+| ---------- | ------------------- | --------------- | --------------------- | --------------------------------- |
+| `theme`    | `progressBarColors` | [string,string] | ['#4CAF50','#8BC34A'] | Gradient for progress/HP bar      |
+| `gameplay` | `airControl`        | number          | 0.7                   | Mid-air steering multiplier (0-1) |
+| `gameplay` | `maxFallSpeed`      | number          | 15                    | Terminal velocity cap             |
+
+**WormsConfig deep fields:**
+
+| Section    | Key               | Type   | Default   | Description                          |
+| ---------- | ----------------- | ------ | --------- | ------------------------------------ |
+| `theme`    | `arenaBackground` | string | '#2d5016' | Background color for the arena       |
+| `gameplay` | `baseDamage`      | number | 25        | Base projectile damage               |
+| `gameplay` | `windMultiplier`  | number | 1.0       | Wind strength scaling factor         |
+| `content`  | `weaponOverrides` | Record | built-in  | Custom weapon stats {damage, radius} |
+
+**FighterConfig deep fields:**
+
+| Section    | Key               | Type   | Default   | Description                         |
+| ---------- | ----------------- | ------ | --------- | ----------------------------------- |
+| `theme`    | `arenaBackground` | string | '#1a1a2e' | Arena backdrop color                |
+| `theme`    | `hitEffectColor`  | string | '#FF4500' | Hit spark color                     |
+| `gameplay` | `baseDamage`      | number | 10        | Base hit damage before type scaling |
+| `gameplay` | `comboScaling`    | number | 0.1       | Damage bonus per combo hit          |
+
+**ClickerConfig deep fields:**
+
+| Section    | Key                    | Type                   | Default                         | Description                      |
+| ---------- | ---------------------- | ---------------------- | ------------------------------- | -------------------------------- |
+| `theme`    | `buttonColor`          | string                 | '#4CAF50'                       | Main click button color          |
+| `theme`    | `particleColors`       | string[]               | ['#FFD700','#FF6347','#00CED1'] | Particle burst colors on click   |
+| `theme`    | `progressBarColors`    | [string,string]        | ['#4CAF50','#8BC34A']           | Progress bar gradient            |
+| `gameplay` | `upgradeCosts`         | Record<string, number> | {click_power:10, auto_click:25} | Base cost per upgrade type       |
+| `gameplay` | `comboMultiplierScale` | number                 | 0.1                             | Extra multiplier per combo level |
+| `content`  | `upgradeNames`         | Record<string, string> | {click_power:'Click Power',...} | Display names for upgrades       |
+
+#### Full publish_game example with deep config
+
+```typescript
+await moltblox.publish_game({
+  name: 'Crimson Arena',
+  description: 'A blood-soaked fighting tournament with custom combo scaling',
+  genre: 'action',
+  maxPlayers: 2,
+  templateSlug: 'fighter',
+  config: {
+    fightStyle: '1v1',
+    roundsToWin: 3,
+    // Deep customization
+    theme: { arenaBackground: '#2a0a0a', hitEffectColor: '#FF0000' },
+    gameplay: { baseDamage: 15, comboScaling: 0.2 },
+  },
+  designBrief: {
+    coreFantasy: 'A gladiator in a crimson arena',
+    coreTension: 'Risk big combos for damage or play safe',
+    whatMakesItDifferent: 'Aggressive combo scaling rewards risk-takers',
+  },
+});
+```
 
 ---
 
@@ -700,7 +799,7 @@ interface InjectorResult {
 
 **Genre enum**: arcade, puzzle, multiplayer, casual, competitive, strategy, action, rpg, simulation, sports, card, board, other
 
-**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fps, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beat-em-up-rpg, sumo, weapons-duel, state-machine
+**Template slugs**: clicker, puzzle, rhythm, rpg, platformer, side-battler, creature-rpg, fps, worms, fighter, tower-defense, card-battler, roguelike, survival, graph-strategy, brawler, wrestler, hack-and-slash, martial-arts, tag-team, boss-battle, street-fighter, beat-em-up-rpg, sumo, weapons-duel, state-machine
 
 **Port prefixes**: os-_, tp-_, bgio-_, rlcard-_, fbg-_, cv-_, mg-_, wg-_, sol-_, cg-_, ig-\_
 
@@ -998,7 +1097,7 @@ const bet = await moltblox.place_spectator_bet({
 
 ## 11. RENDERERS
 
-### 8 Dedicated Renderers (for original hand-coded templates)
+### 9 Dedicated Renderers (for original hand-coded templates)
 
 | Game            | Renderer                                             | Approach |
 | --------------- | ---------------------------------------------------- | -------- |
@@ -1010,6 +1109,7 @@ const bet = await moltblox.place_spectator_bet({
 | PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   |
 | SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   |
 | FPSGame         | `components/games/renderers/FPSRenderer.tsx`         | Canvas   |
+| WormsGame       | `components/games/renderers/WormsRenderer.tsx`       | Canvas   |
 
 ### 6 Shared Renderers (for ports, state machines, new templates)
 

@@ -60,6 +60,58 @@ export interface CreatureRPGConfig {
   captureChance?: number;
   /** How wild creature levels are determined (default 'scaled'). */
   wildCreatureLevel?: 'scaled' | 'fixed' | 'random';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Overworld color palette: { grass, path, water } (CSS, default: green/brown/blue). */
+    worldColors?: { grass?: string; path?: string; water?: string };
+    /** Battle UI accent color (CSS, default '#FF4444'). */
+    battleUIColor?: string;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Base capture formula multiplier (default 1.0). Applied to catch rate calculations. */
+    captureFormula?: number;
+    /** XP curve multiplier: higher = slower leveling (default 1.0). */
+    xpCurve?: number;
+    /** Levels at which creatures evolve, e.g. [16, 36] (default: none). */
+    evolutionLevels?: number[];
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Custom creature species definitions keyed by species name. */
+    creatures?: Record<
+      string,
+      {
+        type: string;
+        baseStats: {
+          hp: number;
+          atk: number;
+          def: number;
+          spatk: number;
+          spdef: number;
+          spd: number;
+        };
+        description: string;
+      }
+    >;
+    /** Custom move definitions keyed by move name. */
+    moves?: Record<
+      string,
+      {
+        type: string;
+        power: number;
+        accuracy: number;
+        maxPp: number;
+        category: 'physical' | 'special' | 'status';
+        description: string;
+      }
+    >;
+    /** Custom NPC dialogue overrides keyed by NPC id. */
+    npcDialogue?: Record<string, string[]>;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -439,13 +491,16 @@ function calcStatForLevel(baseStat: number, level: number): number {
   return baseStat + Math.floor(baseStat * (level - 1) * 0.08);
 }
 
-function xpForLevel(level: number): number {
-  return level * level * 8;
+const DEFAULT_XP_CURVE = 1.0;
+
+function xpForLevel(level: number, xpCurve = DEFAULT_XP_CURVE): number {
+  return Math.floor(level * level * 8 * xpCurve);
 }
 
-function xpFromBattle(enemyLevel: number, isTrainer: boolean): number {
+function xpFromBattle(enemyLevel: number, isTrainer: boolean, xpCurve = DEFAULT_XP_CURVE): number {
   const base = enemyLevel * 12;
-  return isTrainer ? Math.floor(base * 1.5) : base;
+  const raw = isTrainer ? Math.floor(base * 1.5) : base;
+  return Math.floor(raw / xpCurve);
 }
 
 function createCreature(species: string, level: number, id?: string): Creature {
@@ -1902,7 +1957,9 @@ export class CreatureRPGGame extends BaseGame {
     enemyLevel: number,
     isTrainer: boolean,
   ): void {
-    const xp = xpFromBattle(enemyLevel, isTrainer);
+    const cfg = this.config as CreatureRPGConfig;
+    const xpCurve = (cfg.gameplay?.xpCurve as number) ?? DEFAULT_XP_CURVE;
+    const xp = xpFromBattle(enemyLevel, isTrainer, xpCurve);
     creature.xp += xp;
     data.combatLog.push(`${this.capitalize(creature.species)} gained ${xp} XP!`);
 
@@ -1910,7 +1967,7 @@ export class CreatureRPGGame extends BaseGame {
     while (creature.xp >= creature.xpToLevel && creature.level < 20) {
       creature.xp -= creature.xpToLevel;
       creature.level++;
-      creature.xpToLevel = xpForLevel(creature.level + 1);
+      creature.xpToLevel = xpForLevel(creature.level + 1, xpCurve);
 
       // Recalculate stats
       const speciesData = SPECIES[creature.species];

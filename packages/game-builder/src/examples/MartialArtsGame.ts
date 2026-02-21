@@ -16,6 +16,26 @@ export interface MartialArtsConfig {
   stanceSwitchCooldown?: number;
   flowBonusMultiplier?: number;
   roundsToWin?: number;
+  theme?: {
+    dojoBackground?: string;
+    beltColors?: Record<string, string>;
+    stanceEffectColor?: string;
+  };
+  gameplay?: {
+    fighterHp?: number;
+    fighterStamina?: number;
+    kiCosts?: Record<string, number>;
+    blockReduction?: number;
+    comboLimit?: number;
+    specialStaminaCost?: number;
+    knockdownChance?: number;
+    counterMultiplier?: number;
+    stanceProfiles?: Record<string, { atk: number; def: number; spd: number }>;
+  };
+  content?: {
+    styleDefinitions?: Record<string, { atk: number; def: number; spd: number }>;
+    techniqueList?: string[];
+  };
 }
 
 interface StanceProfile {
@@ -24,13 +44,20 @@ interface StanceProfile {
   spd: number;
 }
 
-const STANCE_PROFILES: Record<string, StanceProfile> = {
+const DEFAULT_STANCE_PROFILES: Record<string, StanceProfile> = {
   'kung-fu': { atk: 8, def: 8, spd: 8 },
   karate: { atk: 12, def: 6, spd: 6 },
   'muay-thai': { atk: 10, def: 4, spd: 10 },
   capoeira: { atk: 6, def: 6, spd: 12 },
   judo: { atk: 7, def: 10, spd: 7 },
 };
+
+const DEFAULT_FIGHTER_HP = 100;
+const DEFAULT_FIGHTER_STAMINA = 100;
+const DEFAULT_SPECIAL_STAMINA_COST = 30;
+const DEFAULT_KNOCKDOWN_CHANCE = 0.6;
+const DEFAULT_COUNTER_MULTIPLIER = 1.5;
+const DEFAULT_COMBO_LIMIT = 10;
 
 interface MAFighter {
   id: string;
@@ -79,6 +106,9 @@ export class MartialArtsGame extends BaseGame {
     const flowBonusMultiplier = cfg.flowBonusMultiplier ?? 1.5;
     const roundsToWin = cfg.roundsToWin ?? 2;
 
+    const fighterHp = (cfg.gameplay?.fighterHp as number) ?? DEFAULT_FIGHTER_HP;
+    const fighterStamina = (cfg.gameplay?.fighterStamina as number) ?? DEFAULT_FIGHTER_STAMINA;
+
     const fighters: Record<string, MAFighter> = {};
     const totalScore: Record<string, number> = {};
     const ids = playerIds.length === 1 ? [...playerIds, 'cpu'] : playerIds;
@@ -86,10 +116,10 @@ export class MartialArtsGame extends BaseGame {
     for (const pid of ids) {
       fighters[pid] = {
         id: pid,
-        hp: 100,
-        maxHp: 100,
-        stamina: 100,
-        maxStamina: 100,
+        hp: fighterHp,
+        maxHp: fighterHp,
+        stamina: fighterStamina,
+        maxStamina: fighterStamina,
         stance: availableStyles[0],
         stanceCooldown: 0,
         comboChain: [],
@@ -180,7 +210,10 @@ export class MartialArtsGame extends BaseGame {
   }
 
   private getStanceProfile(stance: string): StanceProfile {
-    return STANCE_PROFILES[stance] ?? { atk: 8, def: 8, spd: 8 };
+    const cfg = this.config as MartialArtsConfig;
+    const profiles =
+      cfg.gameplay?.stanceProfiles ?? cfg.content?.styleDefinitions ?? DEFAULT_STANCE_PROFILES;
+    return profiles[stance] ?? { atk: 8, def: 8, spd: 8 };
   }
 
   private calculateDamage(attacker: MAFighter, defender: MAFighter): number {
@@ -266,10 +299,11 @@ export class MartialArtsGame extends BaseGame {
 
     let damage = this.calculateDamage(fighter, opponent);
 
-    // Track stance in combo chain
+    const cfg = this.config as MartialArtsConfig;
+    const comboLimit = (cfg.gameplay?.comboLimit as number) ?? DEFAULT_COMBO_LIMIT;
     fighter.comboChain.push(fighter.stance);
-    if (fighter.comboChain.length > 10) {
-      fighter.comboChain = fighter.comboChain.slice(-10);
+    if (fighter.comboChain.length > comboLimit) {
+      fighter.comboChain = fighter.comboChain.slice(-comboLimit);
     }
 
     // Flow combo check
@@ -287,6 +321,9 @@ export class MartialArtsGame extends BaseGame {
   }
 
   private handleSweep(playerId: string, data: MartialArtsState): ActionResult {
+    const cfg = this.config as MartialArtsConfig;
+    const comboLimit = (cfg.gameplay?.comboLimit as number) ?? DEFAULT_COMBO_LIMIT;
+    const knockdownChance = (cfg.gameplay?.knockdownChance as number) ?? DEFAULT_KNOCKDOWN_CHANCE;
     const fighter = data.fighters[playerId];
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) {
@@ -294,8 +331,8 @@ export class MartialArtsGame extends BaseGame {
     }
 
     fighter.comboChain.push(fighter.stance);
-    if (fighter.comboChain.length > 10) {
-      fighter.comboChain = fighter.comboChain.slice(-10);
+    if (fighter.comboChain.length > comboLimit) {
+      fighter.comboChain = fighter.comboChain.slice(-comboLimit);
     }
 
     let damage = this.calculateDamage(fighter, opponent);
@@ -304,8 +341,7 @@ export class MartialArtsGame extends BaseGame {
       damage = Math.floor(damage * data.flowBonusMultiplier);
     }
 
-    // 60% knockdown chance
-    const knockdown = Math.random() < 0.6;
+    const knockdown = Math.random() < knockdownChance;
     if (knockdown) {
       opponent.skipNextTurn = true;
       this.emitEvent('knockdown', playerId, { target: opponent.id });
@@ -320,6 +356,9 @@ export class MartialArtsGame extends BaseGame {
   }
 
   private handleCounter(playerId: string, data: MartialArtsState): ActionResult {
+    const cfg = this.config as MartialArtsConfig;
+    const comboLimit = (cfg.gameplay?.comboLimit as number) ?? DEFAULT_COMBO_LIMIT;
+    const counterMult = (cfg.gameplay?.counterMultiplier as number) ?? DEFAULT_COUNTER_MULTIPLIER;
     const fighter = data.fighters[playerId];
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) {
@@ -327,14 +366,13 @@ export class MartialArtsGame extends BaseGame {
     }
 
     fighter.comboChain.push(fighter.stance);
-    if (fighter.comboChain.length > 10) {
-      fighter.comboChain = fighter.comboChain.slice(-10);
+    if (fighter.comboChain.length > comboLimit) {
+      fighter.comboChain = fighter.comboChain.slice(-comboLimit);
     }
 
-    // Counter only works if opponent attacked last turn
     const attackActions = ['strike', 'kick', 'sweep', 'clinch', 'throw', 'special'];
     if (opponent.lastAction && attackActions.includes(opponent.lastAction)) {
-      let damage = Math.floor(this.calculateDamage(fighter, opponent) * 1.5);
+      let damage = Math.floor(this.calculateDamage(fighter, opponent) * counterMult);
 
       if (this.checkFlowCombo(fighter)) {
         damage = Math.floor(damage * data.flowBonusMultiplier);
@@ -354,23 +392,27 @@ export class MartialArtsGame extends BaseGame {
   }
 
   private handleSpecial(playerId: string, data: MartialArtsState): ActionResult {
+    const cfg = this.config as MartialArtsConfig;
+    const specialCost =
+      (cfg.gameplay?.specialStaminaCost as number) ?? DEFAULT_SPECIAL_STAMINA_COST;
+    const comboLimit = (cfg.gameplay?.comboLimit as number) ?? DEFAULT_COMBO_LIMIT;
     const fighter = data.fighters[playerId];
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) {
       return { success: false, error: 'No opponent' };
     }
 
-    if (fighter.stamina < 30) {
+    if (fighter.stamina < specialCost) {
       return { success: false, error: 'Not enough stamina' };
     }
 
-    fighter.stamina -= 30;
+    fighter.stamina -= specialCost;
     const atkProfile = this.getStanceProfile(fighter.stance);
     let damage = atkProfile.atk * 2;
 
     fighter.comboChain.push(fighter.stance);
-    if (fighter.comboChain.length > 10) {
-      fighter.comboChain = fighter.comboChain.slice(-10);
+    if (fighter.comboChain.length > comboLimit) {
+      fighter.comboChain = fighter.comboChain.slice(-comboLimit);
     }
 
     if (this.checkFlowCombo(fighter)) {

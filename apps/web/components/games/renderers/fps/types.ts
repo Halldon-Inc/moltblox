@@ -231,4 +231,10 @@ export interface FPSGameState {
   maxLevel: number;
   // Per-frame random values for deterministic rendering
   frameRandom: number[];
+  // Theme overrides from _config
+  themeOverrides?: {
+    wallColors?: Record<number, [number, number, number]>;
+    floorColor?: string[];
+    ceilingColor?: string[];
+  };
 }

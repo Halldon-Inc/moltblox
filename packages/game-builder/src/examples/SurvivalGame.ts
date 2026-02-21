@@ -14,6 +14,24 @@ export interface SurvivalConfig {
   resourceTypes?: string[];
   prestigeThreshold?: number;
   upgradeSlots?: number;
+  theme?: {
+    resourceColors?: Record<string, string>;
+  };
+  gameplay?: {
+    baseGatherRate?: number;
+    baseStorage?: number;
+    workerBonus?: number;
+    prestigeMultiplier?: number;
+  };
+  content?: {
+    upgradeDefinitions?: {
+      name: string;
+      category: 'gatherer' | 'storage' | 'automation' | 'efficiency';
+      resource: string;
+      baseCost: number;
+      effect: number;
+    }[];
+  };
 }
 
 interface Upgrade {
@@ -43,9 +61,10 @@ interface SurvivalState {
   [key: string]: unknown;
 }
 
-const BASE_RATE = 1;
-const BASE_STORAGE = 100;
-const WORKER_RATE_BONUS = 0.5;
+const DEFAULT_BASE_RATE = 1;
+const DEFAULT_BASE_STORAGE = 100;
+const DEFAULT_WORKER_BONUS = 0.5;
+const DEFAULT_PRESTIGE_MULTIPLIER_STEP = 0.25;
 
 export class SurvivalGame extends BaseGame {
   readonly name = 'Survival';
@@ -57,6 +76,8 @@ export class SurvivalGame extends BaseGame {
     const resourceTypes = cfg.resourceTypes ?? ['food', 'wood', 'stone'];
     const prestigeThreshold = cfg.prestigeThreshold ?? 1000;
     const upgradeSlots = cfg.upgradeSlots ?? 5;
+    const baseRate = (cfg.gameplay?.baseGatherRate as number) ?? DEFAULT_BASE_RATE;
+    const baseStorage = (cfg.gameplay?.baseStorage as number) ?? DEFAULT_BASE_STORAGE;
 
     const resources: Record<string, number> = {};
     const resourceRates: Record<string, number> = {};
@@ -65,8 +86,8 @@ export class SurvivalGame extends BaseGame {
 
     for (const rt of resourceTypes) {
       resources[rt] = 0;
-      resourceRates[rt] = BASE_RATE;
-      storageCapacity[rt] = BASE_STORAGE;
+      resourceRates[rt] = baseRate;
+      storageCapacity[rt] = baseStorage;
       workers[rt] = 0;
     }
 
@@ -156,12 +177,15 @@ export class SurvivalGame extends BaseGame {
   }
 
   private tickResources(data: SurvivalState): void {
+    const cfg = this.config as SurvivalConfig;
+    const workerBonusRate = (cfg.gameplay?.workerBonus as number) ?? DEFAULT_WORKER_BONUS;
+    const baseStorage = (cfg.gameplay?.baseStorage as number) ?? DEFAULT_BASE_STORAGE;
     data.tickCount++;
 
     for (const [rt, rate] of Object.entries(data.resourceRates)) {
-      const workerBonus = (data.workers[rt] ?? 0) * WORKER_RATE_BONUS;
+      const workerBonus = (data.workers[rt] ?? 0) * workerBonusRate;
       const totalRate = (rate + workerBonus) * data.prestigeMultiplier;
-      const cap = data.storageCapacity[rt] ?? BASE_STORAGE;
+      const cap = data.storageCapacity[rt] ?? baseStorage;
       const newAmount = Math.min(cap, (data.resources[rt] ?? 0) + totalRate);
       const gained = newAmount - (data.resources[rt] ?? 0);
       data.resources[rt] = newAmount;
@@ -170,6 +194,8 @@ export class SurvivalGame extends BaseGame {
   }
 
   private handleGather(playerId: string, action: GameAction, data: SurvivalState): ActionResult {
+    const cfg = this.config as SurvivalConfig;
+    const baseStorage = (cfg.gameplay?.baseStorage as number) ?? DEFAULT_BASE_STORAGE;
     const resourceType = String(action.payload.resourceType || Object.keys(data.resources)[0]);
 
     if (!(resourceType in data.resources)) {
@@ -177,7 +203,7 @@ export class SurvivalGame extends BaseGame {
     }
 
     const manualBoost = 5 * data.prestigeMultiplier;
-    const cap = data.storageCapacity[resourceType] ?? BASE_STORAGE;
+    const cap = data.storageCapacity[resourceType] ?? baseStorage;
     const prev = data.resources[resourceType] ?? 0;
     data.resources[resourceType] = Math.min(cap, prev + manualBoost);
     data.totalResourcesGathered += data.resources[resourceType] - prev;
@@ -219,18 +245,21 @@ export class SurvivalGame extends BaseGame {
     const rt = String(upgrade.resource ?? Object.keys(data.resources)[0]);
 
     // Apply upgrade effect
+    const cfgUpgrade = this.config as SurvivalConfig;
+    const baseRateUp = (cfgUpgrade.gameplay?.baseGatherRate as number) ?? DEFAULT_BASE_RATE;
+    const baseStorageUp = (cfgUpgrade.gameplay?.baseStorage as number) ?? DEFAULT_BASE_STORAGE;
     switch (upgrade.category) {
       case 'gatherer':
-        data.resourceRates[rt] = (data.resourceRates[rt] ?? BASE_RATE) + upgrade.effect;
+        data.resourceRates[rt] = (data.resourceRates[rt] ?? baseRateUp) + upgrade.effect;
         break;
       case 'storage':
-        data.storageCapacity[rt] = (data.storageCapacity[rt] ?? BASE_STORAGE) + upgrade.effect;
+        data.storageCapacity[rt] = (data.storageCapacity[rt] ?? baseStorageUp) + upgrade.effect;
         break;
       case 'automation':
-        data.resourceRates[rt] = (data.resourceRates[rt] ?? BASE_RATE) + upgrade.effect;
+        data.resourceRates[rt] = (data.resourceRates[rt] ?? baseRateUp) + upgrade.effect;
         break;
       case 'efficiency':
-        data.resourceRates[rt] = (data.resourceRates[rt] ?? BASE_RATE) * (1 + upgrade.effect);
+        data.resourceRates[rt] = (data.resourceRates[rt] ?? baseRateUp) * (1 + upgrade.effect);
         break;
     }
 
@@ -248,14 +277,20 @@ export class SurvivalGame extends BaseGame {
       };
     }
 
+    const cfg = this.config as SurvivalConfig;
+    const prestigeStep =
+      (cfg.gameplay?.prestigeMultiplier as number) ?? DEFAULT_PRESTIGE_MULTIPLIER_STEP;
+    const baseRate = (cfg.gameplay?.baseGatherRate as number) ?? DEFAULT_BASE_RATE;
+    const baseStorage = (cfg.gameplay?.baseStorage as number) ?? DEFAULT_BASE_STORAGE;
+
     data.prestigeLevel++;
-    data.prestigeMultiplier = 1.0 + data.prestigeLevel * 0.25;
+    data.prestigeMultiplier = 1.0 + data.prestigeLevel * prestigeStep;
 
     // Reset resources but keep upgrades and multiplier
     for (const rt of Object.keys(data.resources)) {
       data.resources[rt] = 0;
-      data.resourceRates[rt] = BASE_RATE;
-      data.storageCapacity[rt] = BASE_STORAGE;
+      data.resourceRates[rt] = baseRate;
+      data.storageCapacity[rt] = baseStorage;
       data.workers[rt] = 0;
     }
     data.totalWorkers = 0;

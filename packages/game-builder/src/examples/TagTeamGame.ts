@@ -17,6 +17,27 @@ export interface TagTeamConfig {
   recoveryRate?: number;
   assistDamage?: number;
   syncMeterRate?: number;
+  theme?: {
+    arenaBackground?: string;
+    teamColors?: Record<string, string>;
+    syncEffectColor?: string;
+  };
+  gameplay?: {
+    fighterHp?: number;
+    fighterStamina?: number;
+    lightDamage?: number;
+    heavyDamage?: number;
+    heavyStaminaCost?: number;
+    comboDamage?: number;
+    syncSpecialDamage?: number;
+    blockReduction?: number;
+    staminaRegenPerTurn?: number;
+    switchPenalty?: number;
+    assistCooldownTurns?: number;
+  };
+  content?: {
+    fighterRoster?: Array<{ id: string; hp: number; stamina: number }>;
+  };
 }
 
 interface TTFighter {
@@ -53,6 +74,17 @@ interface TagTeamState {
   [key: string]: unknown;
 }
 
+const DEFAULT_FIGHTER_HP = 100;
+const DEFAULT_FIGHTER_STAMINA = 100;
+const DEFAULT_LIGHT_DAMAGE = 8;
+const DEFAULT_HEAVY_DAMAGE = 16;
+const DEFAULT_HEAVY_STAMINA_COST = 15;
+const DEFAULT_COMBO_DAMAGE = 22;
+const DEFAULT_SYNC_SPECIAL_DAMAGE = 50;
+const DEFAULT_BLOCK_REDUCTION = 0.3;
+const DEFAULT_STAMINA_REGEN = 3;
+const DEFAULT_ASSIST_COOLDOWN_TURNS = 2;
+
 export class TagTeamGame extends BaseGame {
   readonly name = 'Tag Team';
   readonly version = '1.0.0';
@@ -69,23 +101,26 @@ export class TagTeamGame extends BaseGame {
     const teams: Record<string, Team> = {};
     const totalScore: Record<string, number> = {};
 
+    const fighterHp = (cfg.gameplay?.fighterHp as number) ?? DEFAULT_FIGHTER_HP;
+    const fighterStamina = (cfg.gameplay?.fighterStamina as number) ?? DEFAULT_FIGHTER_STAMINA;
+
     for (const pid of ids) {
       teams[pid] = {
         fighters: [
           {
             id: `${pid}-A`,
-            hp: 100,
-            maxHp: 100,
-            stamina: 100,
-            maxStamina: 100,
+            hp: fighterHp,
+            maxHp: fighterHp,
+            stamina: fighterStamina,
+            maxStamina: fighterStamina,
             tagged: true,
           },
           {
             id: `${pid}-B`,
-            hp: 100,
-            maxHp: 100,
-            stamina: 100,
-            maxStamina: 100,
+            hp: fighterHp,
+            maxHp: fighterHp,
+            stamina: fighterStamina,
+            maxStamina: fighterStamina,
             tagged: false,
           },
         ],
@@ -219,15 +254,16 @@ export class TagTeamGame extends BaseGame {
     const oppTeam = data.teams[oppId];
     const target = this.getActiveFighter(oppTeam);
 
+    const cfg = this.config as TagTeamConfig;
     const attackType = (action.payload?.type as string) ?? 'light';
     let damage: number;
     let staminaCost = 0;
 
     if (attackType === 'heavy') {
-      damage = 16;
-      staminaCost = 15;
+      damage = (cfg.gameplay?.heavyDamage as number) ?? DEFAULT_HEAVY_DAMAGE;
+      staminaCost = (cfg.gameplay?.heavyStaminaCost as number) ?? DEFAULT_HEAVY_STAMINA_COST;
     } else {
-      damage = 8;
+      damage = (cfg.gameplay?.lightDamage as number) ?? DEFAULT_LIGHT_DAMAGE;
     }
 
     if (staminaCost > 0 && active.stamina < staminaCost) {
@@ -235,9 +271,9 @@ export class TagTeamGame extends BaseGame {
     }
     active.stamina -= staminaCost;
 
-    // Check block
+    const blockReduction = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
     if (data.blockActive[oppId]) {
-      damage = Math.floor(damage * 0.3);
+      damage = Math.floor(damage * blockReduction);
       data.blockActive[oppId] = false;
       this.emitEvent('blocked', oppId, { reduced: true });
     }
@@ -332,11 +368,12 @@ export class TagTeamGame extends BaseGame {
     const oppTeam = data.teams[oppId];
     const target = this.getActiveFighter(oppTeam);
 
-    // Coordinated attack: 12 (active) + 10 (assist) = 22 total, more than attack(8) + assist(10) separately
-    let damage = 22;
+    const cfg = this.config as TagTeamConfig;
+    const blockReduction = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
+    let damage = (cfg.gameplay?.comboDamage as number) ?? DEFAULT_COMBO_DAMAGE;
 
     if (data.blockActive[oppId]) {
-      damage = Math.floor(damage * 0.3);
+      damage = Math.floor(damage * blockReduction);
       data.blockActive[oppId] = false;
       this.emitEvent('blocked', oppId, { reduced: true });
     }
@@ -375,10 +412,12 @@ export class TagTeamGame extends BaseGame {
     const oppTeam = data.teams[oppId];
     const target = this.getActiveFighter(oppTeam);
 
+    const cfg = this.config as TagTeamConfig;
+    const blockReduction = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
     let damage = data.assistDamage;
 
     if (data.blockActive[oppId]) {
-      damage = Math.floor(damage * 0.3);
+      damage = Math.floor(damage * blockReduction);
       data.blockActive[oppId] = false;
     }
 
@@ -427,11 +466,12 @@ export class TagTeamGame extends BaseGame {
     const oppTeam = data.teams[oppId];
     const target = this.getActiveFighter(oppTeam);
 
-    // Both fighters attack: 25 each, 50 total
-    let damage = 50;
+    const cfg = this.config as TagTeamConfig;
+    const blockReduction = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
+    let damage = (cfg.gameplay?.syncSpecialDamage as number) ?? DEFAULT_SYNC_SPECIAL_DAMAGE;
 
     if (data.blockActive[oppId]) {
-      damage = Math.floor(damage * 0.3);
+      damage = Math.floor(damage * blockReduction);
       data.blockActive[oppId] = false;
     }
 

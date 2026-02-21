@@ -17,6 +17,28 @@ export interface WrestlerConfig {
   pinCount?: number;
   finisherThreshold?: number;
   ropeBreaks?: number;
+  theme?: {
+    ringBackground?: string;
+    wrestlerColors?: Record<string, string>;
+    crowdEffectColor?: string;
+  };
+  gameplay?: {
+    wrestlerHp?: number;
+    wrestlerStamina?: number;
+    grapplingDamage?: number;
+    aerialDamage?: number;
+    finisherDamage?: number;
+    pinThreshold?: number;
+    staminaDrain?: Record<string, number>;
+    momentumGains?: Record<string, number>;
+    strikeDamage?: Record<string, number>;
+    staminaRegen?: number;
+    tagPartnerHealRate?: number;
+  };
+  content?: {
+    moveSet?: string[];
+    specialMoves?: Record<string, { damage: number; staminaCost: number }>;
+  };
 }
 
 interface Wrestler {
@@ -56,13 +78,13 @@ interface WrestlerState {
   [key: string]: unknown;
 }
 
-const STRIKE_DAMAGE: Record<string, number> = {
+const DEFAULT_STRIKE_DAMAGE: Record<string, number> = {
   punch: 5,
   kick: 7,
   chop: 6,
 };
 
-const STAMINA_COSTS: Record<string, number> = {
+const DEFAULT_STAMINA_COSTS: Record<string, number> = {
   strike: 5,
   grapple: 15,
   irish_whip: 10,
@@ -74,12 +96,20 @@ const STAMINA_COSTS: Record<string, number> = {
   kick_out: 10,
 };
 
-const MOMENTUM_GAINS: Record<string, number> = {
+const DEFAULT_MOMENTUM_GAINS: Record<string, number> = {
   strike: 5,
   grapple: 10,
   climb_turnbuckle: 15,
   finisher: 20,
 };
+
+const DEFAULT_WRESTLER_HP = 100;
+const DEFAULT_WRESTLER_STAMINA = 100;
+const DEFAULT_GRAPPLING_DAMAGE = 12;
+const DEFAULT_AERIAL_DAMAGE = 15;
+const DEFAULT_FINISHER_DAMAGE = 30;
+const DEFAULT_STAMINA_REGEN = 5;
+const DEFAULT_TAG_HEAL_RATE = 3;
 
 export class WrestlerGame extends BaseGame {
   readonly name = 'Wrestler';
@@ -98,13 +128,16 @@ export class WrestlerGame extends BaseGame {
       allIds.push('cpu');
     }
 
+    const wrestlerHp = (cfg.gameplay?.wrestlerHp as number) ?? DEFAULT_WRESTLER_HP;
+    const wrestlerStamina = (cfg.gameplay?.wrestlerStamina as number) ?? DEFAULT_WRESTLER_STAMINA;
+
     const wrestlers: Record<string, Wrestler> = {};
     for (const pid of allIds) {
       wrestlers[pid] = {
-        hp: 100,
-        maxHp: 100,
-        stamina: 100,
-        maxStamina: 100,
+        hp: wrestlerHp,
+        maxHp: wrestlerHp,
+        stamina: wrestlerStamina,
+        maxStamina: wrestlerStamina,
         momentum: 0,
         position: 'center',
         ropeBreaksLeft: matchType === 'cage' ? 0 : ropeBreaks,
@@ -192,7 +225,7 @@ export class WrestlerGame extends BaseGame {
     }
 
     // Stamina check
-    const cost = STAMINA_COSTS[action.type] ?? 0;
+    const cost = this.getStaminaCosts()[action.type] ?? 0;
     if (wrestler.stamina < cost) {
       return { success: false, error: 'Not enough stamina' };
     }
@@ -219,6 +252,21 @@ export class WrestlerGame extends BaseGame {
       default:
         return { success: false, error: `Unknown action: ${action.type}` };
     }
+  }
+
+  private getStaminaCosts(): Record<string, number> {
+    const cfg = this.config as WrestlerConfig;
+    return cfg.gameplay?.staminaDrain ?? DEFAULT_STAMINA_COSTS;
+  }
+
+  private getStrikeDamage(): Record<string, number> {
+    const cfg = this.config as WrestlerConfig;
+    return cfg.gameplay?.strikeDamage ?? DEFAULT_STRIKE_DAMAGE;
+  }
+
+  private getMomentumGains(): Record<string, number> {
+    const cfg = this.config as WrestlerConfig;
+    return cfg.gameplay?.momentumGains ?? DEFAULT_MOMENTUM_GAINS;
   }
 
   private getOpponent(playerId: string, data: WrestlerState): Wrestler | null {
@@ -256,7 +304,7 @@ export class WrestlerGame extends BaseGame {
   private handleStrike(playerId: string, action: GameAction, data: WrestlerState): ActionResult {
     const wrestler = data.wrestlers[playerId];
     const strikeType = (action.payload.type as string) || 'punch';
-    const damage = STRIKE_DAMAGE[strikeType] ?? 5;
+    const damage = this.getStrikeDamage()[strikeType] ?? 5;
 
     const opponentId = this.getOpponentId(playerId, data);
     const opponent = opponentId ? data.wrestlers[opponentId] : null;
@@ -265,11 +313,11 @@ export class WrestlerGame extends BaseGame {
       return { success: false, error: 'No opponent available' };
     }
 
-    wrestler.stamina -= STAMINA_COSTS.strike;
+    wrestler.stamina -= this.getStaminaCosts().strike;
     opponent.hp -= damage;
 
     const momentumGain = Math.floor(
-      (MOMENTUM_GAINS.strike ?? 5) * this.getMomentumMultiplier(data),
+      (this.getMomentumGains().strike ?? 5) * this.getMomentumMultiplier(data),
     );
     wrestler.momentum = Math.min(100, wrestler.momentum + momentumGain);
 
@@ -300,15 +348,15 @@ export class WrestlerGame extends BaseGame {
     const wrestlerPower = wrestler.stamina + wrestler.momentum;
     const opponentPower = opponent.stamina + opponent.momentum;
 
-    wrestler.stamina -= STAMINA_COSTS.grapple;
+    wrestler.stamina -= this.getStaminaCosts().grapple;
 
+    const cfg = this.config as WrestlerConfig;
     if (wrestlerPower >= opponentPower) {
-      // Grapple success: slam for 12 damage
-      const damage = 12;
+      const damage = (cfg.gameplay?.grapplingDamage as number) ?? DEFAULT_GRAPPLING_DAMAGE;
       opponent.hp -= damage;
 
       const momentumGain = Math.floor(
-        (MOMENTUM_GAINS.grapple ?? 10) * this.getMomentumMultiplier(data),
+        (this.getMomentumGains().grapple ?? 10) * this.getMomentumMultiplier(data),
       );
       wrestler.momentum = Math.min(100, wrestler.momentum + momentumGain);
       data.crowdMeter = Math.min(100, data.crowdMeter + 5);
@@ -343,7 +391,7 @@ export class WrestlerGame extends BaseGame {
       return { success: false, error: 'No opponent available' };
     }
 
-    wrestler.stamina -= STAMINA_COSTS.irish_whip;
+    wrestler.stamina -= this.getStaminaCosts().irish_whip;
 
     const damage = direction === 'corner' ? 10 : 8;
     opponent.hp -= damage;
@@ -371,7 +419,7 @@ export class WrestlerGame extends BaseGame {
       return { success: false, error: 'No opponent available' };
     }
 
-    wrestler.stamina -= STAMINA_COSTS.pin;
+    wrestler.stamina -= this.getStaminaCosts().pin;
 
     data.pinAttemptActive = true;
     data.pinAttacker = playerId;
@@ -425,7 +473,7 @@ export class WrestlerGame extends BaseGame {
       data.referee.count = 0;
       data.referee.targetId = null;
 
-      cpu.stamina = Math.max(0, cpu.stamina - STAMINA_COSTS.kick_out);
+      cpu.stamina = Math.max(0, cpu.stamina - this.getStaminaCosts().kick_out);
       cpu.momentum = Math.min(100, cpu.momentum + 5);
       data.crowdMeter = Math.min(100, data.crowdMeter + 10);
 
@@ -472,7 +520,7 @@ export class WrestlerGame extends BaseGame {
       data.referee.count = 0;
       data.referee.targetId = null;
 
-      wrestler.stamina -= STAMINA_COSTS.kick_out;
+      wrestler.stamina -= this.getStaminaCosts().kick_out;
       wrestler.momentum = Math.min(100, wrestler.momentum + 5);
       data.crowdMeter = Math.min(100, data.crowdMeter + 10);
 
@@ -565,7 +613,7 @@ export class WrestlerGame extends BaseGame {
   private handleClimbTurnbuckle(playerId: string, data: WrestlerState): ActionResult {
     const wrestler = data.wrestlers[playerId];
 
-    wrestler.stamina -= STAMINA_COSTS.climb_turnbuckle;
+    wrestler.stamina -= this.getStaminaCosts().climb_turnbuckle;
     wrestler.position = 'turnbuckle';
 
     // Cage match: escape attempt if momentum >= 90
@@ -586,7 +634,7 @@ export class WrestlerGame extends BaseGame {
     }
 
     const momentumGain = Math.floor(
-      (MOMENTUM_GAINS.climb_turnbuckle ?? 15) * this.getMomentumMultiplier(data),
+      (this.getMomentumGains().climb_turnbuckle ?? 15) * this.getMomentumMultiplier(data),
     );
     wrestler.momentum = Math.min(100, wrestler.momentum + momentumGain);
     data.crowdMeter = Math.min(100, data.crowdMeter + 8);
@@ -596,7 +644,8 @@ export class WrestlerGame extends BaseGame {
     const opponent = opponentId ? data.wrestlers[opponentId] : null;
 
     if (opponent) {
-      const damage = 15;
+      const aerialCfg = this.config as WrestlerConfig;
+      const damage = (aerialCfg.gameplay?.aerialDamage as number) ?? DEFAULT_AERIAL_DAMAGE;
       opponent.hp -= damage;
       this.emitEvent('aerial_attack', playerId, { damage, target: opponentId });
       this.checkElimination(opponentId!, data);
@@ -627,11 +676,11 @@ export class WrestlerGame extends BaseGame {
       return { success: false, error: 'No opponent available' };
     }
 
-    wrestler.stamina -= STAMINA_COSTS.finisher;
-    wrestler.momentum = 0; // Finisher consumes all momentum
+    wrestler.stamina -= this.getStaminaCosts().finisher;
+    wrestler.momentum = 0;
 
-    // Finisher deals heavy damage
-    const damage = 30;
+    const finCfg = this.config as WrestlerConfig;
+    const damage = (finCfg.gameplay?.finisherDamage as number) ?? DEFAULT_FINISHER_DAMAGE;
     opponent.hp -= damage;
 
     data.crowdMeter = Math.min(100, data.crowdMeter + 20);
@@ -699,7 +748,7 @@ export class WrestlerGame extends BaseGame {
         data.referee.counting = false;
         data.referee.count = 0;
         data.referee.targetId = null;
-        cpu.stamina -= STAMINA_COSTS.kick_out;
+        cpu.stamina -= this.getStaminaCosts().kick_out;
         this.emitEvent('kick_out', 'cpu', { success: true });
       } else {
         data.referee.count = 3;
@@ -717,11 +766,14 @@ export class WrestlerGame extends BaseGame {
 
     // Simple weighted AI
     const roll = Math.random();
-    if (cpu.momentum >= (data.finisherThreshold ?? 80) && cpu.stamina >= STAMINA_COSTS.finisher) {
-      // Use finisher when momentum is high
-      const damage = 30;
+    const cpuCfg = this.config as WrestlerConfig;
+    if (
+      cpu.momentum >= (data.finisherThreshold ?? 80) &&
+      cpu.stamina >= this.getStaminaCosts().finisher
+    ) {
+      const damage = (cpuCfg.gameplay?.finisherDamage as number) ?? DEFAULT_FINISHER_DAMAGE;
       opponent.hp = Math.max(0, opponent.hp - damage);
-      cpu.stamina -= STAMINA_COSTS.finisher;
+      cpu.stamina -= this.getStaminaCosts().finisher;
       cpu.momentum = 0;
       data.crowdMeter = Math.min(100, data.crowdMeter + 20);
       this.emitEvent('finisher', 'cpu', { damage, target: opponentId });
@@ -737,7 +789,7 @@ export class WrestlerGame extends BaseGame {
         this.emitEvent('knocked_out', opponentId!, {});
         this.checkMatchEnd(data);
       }
-    } else if (opponent.hp <= 20 && cpu.stamina >= STAMINA_COSTS.pin && roll < 0.6) {
+    } else if (opponent.hp <= 20 && cpu.stamina >= this.getStaminaCosts().pin && roll < 0.6) {
       // Pin when opponent is weak
       data.pinAttemptActive = true;
       data.pinAttacker = 'cpu';
@@ -745,30 +797,30 @@ export class WrestlerGame extends BaseGame {
       data.referee.counting = true;
       data.referee.count = 0;
       data.referee.targetId = opponentId!;
-      cpu.stamina -= STAMINA_COSTS.pin;
+      cpu.stamina -= this.getStaminaCosts().pin;
       this.emitEvent('pin_attempt', 'cpu', { target: opponentId });
     } else if (roll < 0.4) {
       // Strike
       const types = ['punch', 'kick', 'chop'];
       const t = types[Math.floor(Math.random() * types.length)];
-      const damage = STRIKE_DAMAGE[t] ?? 5;
+      const damage = this.getStrikeDamage()[t] ?? 5;
       opponent.hp = Math.max(0, opponent.hp - damage);
-      cpu.stamina -= STAMINA_COSTS.strike;
+      cpu.stamina -= this.getStaminaCosts().strike;
       const momentumGain = Math.floor(
-        (MOMENTUM_GAINS.strike ?? 5) * this.getMomentumMultiplier(data),
+        (this.getMomentumGains().strike ?? 5) * this.getMomentumMultiplier(data),
       );
       cpu.momentum = Math.min(100, cpu.momentum + momentumGain);
       data.crowdMeter = Math.min(100, data.crowdMeter + 2);
       this.emitEvent('strike', 'cpu', { type: t, damage, target: opponentId });
       this.checkElimination(opponentId!, data);
-    } else if (roll < 0.7 && cpu.stamina >= STAMINA_COSTS.grapple) {
+    } else if (roll < 0.7 && cpu.stamina >= this.getStaminaCosts().grapple) {
       // Grapple
       const grappleSuccess = Math.random() < 0.6;
       if (grappleSuccess) {
-        const damage = 12;
+        const damage = (cpuCfg.gameplay?.grapplingDamage as number) ?? DEFAULT_GRAPPLING_DAMAGE;
         opponent.hp = Math.max(0, opponent.hp - damage);
         const momentumGain = Math.floor(
-          (MOMENTUM_GAINS.grapple ?? 10) * this.getMomentumMultiplier(data),
+          (this.getMomentumGains().grapple ?? 10) * this.getMomentumMultiplier(data),
         );
         cpu.momentum = Math.min(100, cpu.momentum + momentumGain);
         this.emitEvent('grapple', 'cpu', { success: true, damage, target: opponentId });
@@ -776,13 +828,13 @@ export class WrestlerGame extends BaseGame {
         cpu.stamina -= 5;
         this.emitEvent('grapple', 'cpu', { success: false });
       }
-      cpu.stamina -= STAMINA_COSTS.grapple;
+      cpu.stamina -= this.getStaminaCosts().grapple;
       this.checkElimination(opponentId!, data);
     } else {
       // Irish whip
       const damage = 8;
       opponent.hp = Math.max(0, opponent.hp - damage);
-      cpu.stamina -= STAMINA_COSTS.irish_whip;
+      cpu.stamina -= this.getStaminaCosts().irish_whip;
       data.crowdMeter = Math.min(100, data.crowdMeter + 3);
       this.emitEvent('irish_whip', 'cpu', { damage, target: opponentId });
       this.checkElimination(opponentId!, data);
@@ -798,18 +850,22 @@ export class WrestlerGame extends BaseGame {
   }
 
   private regenStamina(data: WrestlerState): void {
+    const cfg = this.config as WrestlerConfig;
+    const regenRate = (cfg.gameplay?.staminaRegen as number) ?? DEFAULT_STAMINA_REGEN;
     for (const wrestler of Object.values(data.wrestlers)) {
       if (!wrestler.eliminated) {
-        wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + 5);
+        wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + regenRate);
       }
     }
   }
 
   private regenTagPartners(data: WrestlerState): void {
     if (data.matchType !== 'tag') return;
+    const cfg = this.config as WrestlerConfig;
+    const healRate = (cfg.gameplay?.tagPartnerHealRate as number) ?? DEFAULT_TAG_HEAL_RATE;
     for (const wrestler of Object.values(data.wrestlers)) {
       if (!wrestler.eliminated && !wrestler.isActive) {
-        wrestler.hp = Math.min(wrestler.maxHp, wrestler.hp + 3);
+        wrestler.hp = Math.min(wrestler.maxHp, wrestler.hp + healRate);
       }
     }
   }

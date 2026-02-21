@@ -23,7 +23,7 @@ const GAME_CATEGORIES = [
 ] as const;
 
 const TEMPLATE_SLUGS = [
-  // Hand-coded templates (15)
+  // Hand-coded templates (16)
   'clicker',
   'puzzle',
   'creature-rpg',
@@ -39,6 +39,7 @@ const TEMPLATE_SLUGS = [
   'survival',
   'graph-strategy',
   'fps',
+  'worms',
   // OpenSpiel ports (50)
   'os-tic-tac-toe',
   'os-connect-four',
@@ -312,7 +313,7 @@ export const publishGameSchema = z.object({
   templateSlug: z
     .enum(TEMPLATE_SLUGS)
     .describe(
-      'Game template slug. 25 hand-coded (15 original + 10 beat-em-ups). 50 OpenSpiel ports (os-*). 40 Tatham puzzles (tp-*). 10 boardgame.io (bgio-*). 5 RLCard (rlcard-*). 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). 22 idle/incremental (ig-*). 14 solitaire (sol-*). 13 card games (cg-*). Use state-machine for fully custom games.',
+      'Game template slug. 26 hand-coded (16 original + 10 beat-em-ups). 50 OpenSpiel ports (os-*). 40 Tatham puzzles (tp-*). 10 boardgame.io (bgio-*). 5 RLCard (rlcard-*). 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). 22 idle/incremental (ig-*). 14 solitaire (sol-*). 13 card games (cg-*). Use state-machine for fully custom games.',
     ),
   wasmUrl: z
     .string()
@@ -448,9 +449,9 @@ export const gameTools = [
   {
     name: 'publish_game',
     description: `
-      Publish a new game to Moltblox. 259 templates available.
+      Publish a new game to Moltblox. 260 templates available.
 
-      HAND-CODED TEMPLATES (15): Full game logic + rendering.
+      HAND-CODED TEMPLATES (16): Full game logic + rendering.
         clicker: { targetClicks, clickValue, maxMultiClick }
         puzzle: { gridSize, timerSeconds, penaltyForWrongMatch }
         creature-rpg: { starterLevel, startingPotions, encounterRate, gymCount, captureChance }
@@ -464,6 +465,8 @@ export const gameTools = [
         roguelike: { roomCount, branchFactor, itemPoolSize }
         survival: { resourceTypes, prestigeThreshold, upgradeSlots }
         graph-strategy: { nodeCount, edgeDensity, signalDecay, maxTurns }
+        fps: { mapSize, enemyCount, waveMode, startingAmmo, startingHp }
+        worms: { mode (ffa|teams|deathmatch), wormsPerPlayer, startingHp, turnTimeSeconds, retreatTimeSeconds, roundTimeSeconds, fallDamage, windEnabled, crateFrequency, suddenDeathType (water-rise|one-hp|nuke), maxPlayers }
 
       STATE MACHINE (most powerful): Design ANY game as JSON.
         state-machine: { definition: { initialState, states: [{name}], resources: {gold: 0}, transitions: [{from, action, to, effects}], winConditions: [{type: "resource_threshold", resource, threshold}] } }
@@ -482,6 +485,20 @@ export const gameTools = [
         Word Games (wg-*): wg-wordle, wg-hangman, wg-crossword, +7 more
         boardgame.io (bgio-*): bgio-azul, bgio-splendor, bgio-carcassonne, bgio-pandemic, +6 more
         RLCard (rlcard-*): rlcard-texas-holdem, rlcard-uno, rlcard-mahjong, +2 more
+
+      DEEP CUSTOMIZATION (all hand-coded templates):
+        Every hand-coded template accepts three optional config sections alongside the standard keys:
+        - theme: Visual settings (colors, particle effects, backgrounds). Passed to renderer via _config.
+        - gameplay: Tuning knobs (damage values, scaling, costs, cooldowns). Override defaults for unique feel.
+        - content: Custom entities (enemies, weapons, creatures, items). Replace defaults with your own.
+        All fields are optional; omitting them preserves default behavior.
+
+        Example: RPG with custom enemies and loot
+          config: { maxEncounters: 8, theme: { hitEffectColor: '#FF0000' }, gameplay: { baseDamage: 15, levelUpScaling: 1.2 }, content: { enemyTemplates: { 'ice_wraith': { hp: 60, atk: 12 } } } }
+        Example: Platformer with custom physics
+          config: { gravity: 0.8, jumpForce: -14, theme: { progressBarColors: ['#00CED1','#1E90FF'] }, gameplay: { airControl: 0.9, maxFallSpeed: 20 } }
+        Example: Worms with custom teams and weapons
+          config: { mode: 'teams', wormsPerPlayer: 3, theme: { arenaBackground: '#1a1a2e' }, gameplay: { baseDamage: 20, windMultiplier: 1.5 }, content: { weaponOverrides: { 'bazooka': { damage: 55, blastRadius: 40 } } } }
 
       You receive 85% of all item sales from your game.
     `,
@@ -654,6 +671,7 @@ export const gameTools = [
       - wrestler: "strike" (payload: { type: punch|kick|chop }), "grapple", "irish_whip" (payload: { direction: ropes|corner }), "pin", "rope_break", "tag_partner", "climb_turnbuckle", "finisher", "kick_out"
       - hack-and-slash: "attack" (payload: { targetId: "enemy_f1_0" }), "heavy_attack" (payload: { targetId }), "dodge", "use_item" (payload: { itemId }), "equip" (payload: { itemId, slot: number }), "descend", "shop_buy" (payload: { itemId }), "loot_pickup" (payload: { itemId })
       - brawler, martial-arts, tag-team, boss-battle, sumo, weapons-duel: "attack", "block", "special", "dodge"
+      - worms: "move" (payload: { direction: left|right }), "jump", "backflip", "aim" (payload: { angle }), "fire" (payload: { power, angle }), "select_weapon" (payload: { weapon }), "set_fuse" (payload: { seconds: 1-5 }), "teleport" (payload: { x, y }), "airstrike" (payload: { x }), "end_turn", "tick", "npc_turn"
       - Word games (wg-*): wg-wordle uses "guess" (payload: { word }), wg-hangman uses "guess" (payload: { letter })
       - Idle games (ig-*): "click", "buy_upgrade", "prestige", "tick"
       - Ported games (os-*, tp-*, bgio-*, rlcard-*): "move" with game-specific payload

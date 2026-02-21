@@ -16,6 +16,35 @@ export interface BossBattleConfig {
   phaseCount?: number;
   enrageTimer?: number;
   playerRoles?: boolean;
+  theme?: {
+    bossArenaColors?: Record<string, string>;
+    healthBarColors?: Record<string, string>;
+    phaseTransitionColor?: string;
+  };
+  gameplay?: {
+    playerHp?: number;
+    tankHp?: number;
+    baseDamage?: number;
+    dpsMultiplier?: number;
+    healAmount?: number;
+    healerHealAmount?: number;
+    bossDamageScale?: number;
+    phaseAtkBonus?: number;
+    reviveCooldown?: number;
+    reviveHpPercent?: number;
+    dodgeChance?: number;
+  };
+  content?: {
+    bossDefinitions?: Record<
+      string,
+      {
+        hp: number;
+        atk: number;
+        abilities: Array<{ name: string; type: string; damage: number; cooldown: number }>;
+      }
+    >;
+    attackPatterns?: string[];
+  };
 }
 
 interface BossAbility {
@@ -119,6 +148,17 @@ const BOSS_TEMPLATES: Record<
   },
 };
 
+const DEFAULT_PLAYER_HP = 100;
+const DEFAULT_TANK_HP = 200;
+const DEFAULT_BASE_DAMAGE = 15;
+const DEFAULT_DPS_MULTIPLIER = 1.5;
+const DEFAULT_HEAL_AMOUNT = 10;
+const DEFAULT_HEALER_HEAL_AMOUNT = 20;
+const DEFAULT_PHASE_ATK_BONUS = 5;
+const DEFAULT_REVIVE_COOLDOWN = 5;
+const DEFAULT_REVIVE_HP_PERCENT = 0.3;
+const DEFAULT_DODGE_CHANCE = 0.65;
+
 export class BossBattleGame extends BaseGame {
   readonly name = 'Boss Battle';
   readonly version = '1.0.0';
@@ -154,11 +194,14 @@ export class BossBattleGame extends BaseGame {
     const totalScore: Record<string, number> = {};
     const roles = ['tank', 'dps', 'healer', 'support'];
 
+    const defaultHp = (cfg.gameplay?.playerHp as number) ?? DEFAULT_PLAYER_HP;
+    const tankHp = (cfg.gameplay?.tankHp as number) ?? DEFAULT_TANK_HP;
+
     for (let i = 0; i < playerIds.length; i++) {
       const pid = playerIds[i];
       const role = playerRoles ? roles[i % roles.length] : null;
-      let maxHp = 100;
-      if (role === 'tank') maxHp = 200;
+      let maxHp = defaultHp;
+      if (role === 'tank') maxHp = tankHp;
 
       players[pid] = {
         id: pid,
@@ -236,7 +279,9 @@ export class BossBattleGame extends BaseGame {
   }
 
   private getAtkMultiplier(player: BBPlayer): number {
-    if (player.role === 'dps') return 1.5;
+    const cfg = this.config as BossBattleConfig;
+    if (player.role === 'dps')
+      return (cfg.gameplay?.dpsMultiplier as number) ?? DEFAULT_DPS_MULTIPLIER;
     return 1;
   }
 
@@ -255,7 +300,8 @@ export class BossBattleGame extends BaseGame {
       return { success: true, newState: this.getState() };
     }
 
-    const baseDmg = 15;
+    const cfg = this.config as BossBattleConfig;
+    const baseDmg = (cfg.gameplay?.baseDamage as number) ?? DEFAULT_BASE_DAMAGE;
     const damage = Math.floor(baseDmg * this.getAtkMultiplier(player));
     data.boss.hp -= damage;
     player.damageDealt += damage;
@@ -303,7 +349,10 @@ export class BossBattleGame extends BaseGame {
       return { success: false, error: 'Invalid heal target' };
     }
 
-    const healAmount = player.role === 'healer' ? 20 : 10;
+    const cfg = this.config as BossBattleConfig;
+    const baseHeal = (cfg.gameplay?.healAmount as number) ?? DEFAULT_HEAL_AMOUNT;
+    const healerHeal = (cfg.gameplay?.healerHealAmount as number) ?? DEFAULT_HEALER_HEAL_AMOUNT;
+    const healAmount = player.role === 'healer' ? healerHeal : baseHeal;
     target.hp = Math.min(target.maxHp, target.hp + healAmount);
 
     this.emitEvent('heal', playerId, { target: targetId, amount: healAmount });
@@ -388,9 +437,12 @@ export class BossBattleGame extends BaseGame {
       return { success: false, error: 'Revive on cooldown' };
     }
 
+    const cfg = this.config as BossBattleConfig;
+    const reviveHpPct = (cfg.gameplay?.reviveHpPercent as number) ?? DEFAULT_REVIVE_HP_PERCENT;
+    const reviveCd = (cfg.gameplay?.reviveCooldown as number) ?? DEFAULT_REVIVE_COOLDOWN;
     target.alive = true;
-    target.hp = Math.floor(target.maxHp * 0.3);
-    player.cooldowns['revive'] = 5;
+    target.hp = Math.floor(target.maxHp * reviveHpPct);
+    player.cooldowns['revive'] = reviveCd;
 
     this.emitEvent('revive', playerId, { target: targetId, hp: target.hp });
     this.processBossTurn(data);
@@ -401,9 +453,11 @@ export class BossBattleGame extends BaseGame {
   private checkPhaseTransition(data: BossBattleState): void {
     const thresholds = data.phaseThresholds;
     for (let i = 0; i < thresholds.length; i++) {
+      const cfg = this.config as BossBattleConfig;
+      const phaseAtkBonus = (cfg.gameplay?.phaseAtkBonus as number) ?? DEFAULT_PHASE_ATK_BONUS;
       if (data.boss.hp <= thresholds[i] && data.boss.phase <= i + 1) {
         data.boss.phase = i + 2;
-        data.boss.atk = data.boss.baseAtk + (data.boss.phase - 1) * 5;
+        data.boss.atk = data.boss.baseAtk + (data.boss.phase - 1) * phaseAtkBonus;
         this.emitEvent('phase_transition', undefined, { phase: data.boss.phase });
       }
     }
@@ -487,7 +541,11 @@ export class BossBattleGame extends BaseGame {
     switch (ability.type) {
       case 'aoe': {
         for (const p of alivePlayers) {
-          if (p.dodging && Math.random() < 0.65) {
+          if (
+            p.dodging &&
+            Math.random() <
+              ((this.config as BossBattleConfig).gameplay?.dodgeChance ?? DEFAULT_DODGE_CHANCE)
+          ) {
             this.emitEvent('dodge_success', p.id, { ability: ability.name });
             continue;
           }
@@ -502,7 +560,11 @@ export class BossBattleGame extends BaseGame {
       }
       case 'single': {
         const target = this.getBossTarget(alivePlayers);
-        if (target.dodging && Math.random() < 0.65) {
+        if (
+          target.dodging &&
+          Math.random() <
+            ((this.config as BossBattleConfig).gameplay?.dodgeChance ?? DEFAULT_DODGE_CHANCE)
+        ) {
           this.emitEvent('dodge_success', target.id, { ability: ability.name });
           break;
         }
@@ -563,7 +625,11 @@ export class BossBattleGame extends BaseGame {
 
     const target = this.getBossTarget(alivePlayers);
 
-    if (target.dodging && Math.random() < 0.65) {
+    if (
+      target.dodging &&
+      Math.random() <
+        ((this.config as BossBattleConfig).gameplay?.dodgeChance ?? DEFAULT_DODGE_CHANCE)
+    ) {
       this.emitEvent('dodge_success', target.id, { ability: 'basic_attack' });
       return;
     }

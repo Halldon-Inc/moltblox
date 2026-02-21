@@ -42,6 +42,51 @@ export interface RPGConfig {
   bossEncounterAt?: number[];
   /** If false, no stat increases between encounters (default true). */
   levelUpBetweenEncounters?: boolean;
+
+  /** Visual theming options. */
+  theme?: {
+    /** Player character display name (default 'Hero'). */
+    heroName?: string;
+    /** World/dungeon name shown in events (default 'Dungeon'). */
+    worldName?: string;
+    /** Combat background identifier (CSS or asset key, default '#1a1a2e'). */
+    combatBackground?: string;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Starting MP (default 30). */
+    startingMp?: number;
+    /** Starting SPD stat (default 5). */
+    startingSpd?: number;
+    /** XP multiplier applied to all XP gains (default 1.0). */
+    xpMultiplier?: number;
+    /** Stat growth per level: { hp, atk, def, mp } (default: 10/2/1/5). */
+    statGrowthPerLevel?: { hp?: number; atk?: number; def?: number; mp?: number };
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Custom enemy templates array of { name, baseHp, atk, def, spd, reward }. */
+    enemyTemplates?: {
+      name: string;
+      baseHp: number;
+      atk: number;
+      def: number;
+      spd: number;
+      reward: number;
+    }[];
+    /** Custom skill definitions replacing STARTER_SKILLS. */
+    skills?: {
+      name: string;
+      mpCost: number;
+      damage: number;
+      effect?: 'heal' | 'buff_atk' | 'buff_def';
+      effectValue?: number;
+    }[];
+    /** Shop items granted between encounters: { name: string; quantity: number }[]. */
+    shopItems?: { name: string; quantity: number }[];
+  };
 }
 
 interface CharacterStats {
@@ -105,7 +150,7 @@ interface RPGState {
  * This is the classic RPG difficulty curve — it mirrors the player's growing
  * power and keeps the challenge consistent.
  */
-const ENEMY_TEMPLATES = [
+const DEFAULT_ENEMY_TEMPLATES = [
   { name: 'Slime', baseHp: 30, atk: 5, def: 2, spd: 3, reward: 20 },
   { name: 'Goblin', baseHp: 45, atk: 8, def: 4, spd: 6, reward: 35 },
   { name: 'Skeleton', baseHp: 60, atk: 12, def: 8, spd: 4, reward: 50 },
@@ -113,17 +158,29 @@ const ENEMY_TEMPLATES = [
   { name: 'Dragon', baseHp: 200, atk: 25, def: 15, spd: 7, reward: 150 },
 ];
 
-const STARTER_SKILLS: Skill[] = [
+const DEFAULT_STARTER_SKILLS: Skill[] = [
   { name: 'Power Strike', mpCost: 5, damage: 2.0 },
   { name: 'Heal', mpCost: 8, damage: 0, effect: 'heal', effectValue: 30 },
   { name: 'War Cry', mpCost: 6, damage: 0, effect: 'buff_atk', effectValue: 3 },
   { name: 'Shield Up', mpCost: 4, damage: 0, effect: 'buff_def', effectValue: 3 },
 ];
 
+const DEFAULT_STARTING_MP = 30;
+const DEFAULT_STARTING_SPD = 5;
+const DEFAULT_XP_MULTIPLIER = 1.0;
+const DEFAULT_STAT_GROWTH = { hp: 10, atk: 2, def: 1, mp: 5 };
+
 export class RPGGame extends BaseGame {
   readonly name = 'Dungeon Crawl';
   readonly version = '1.0.0';
   readonly maxPlayers = 4;
+
+  private getEnemyTemplates(): typeof DEFAULT_ENEMY_TEMPLATES {
+    const cfg = this.config as RPGConfig;
+    return (
+      (cfg.content?.enemyTemplates as typeof DEFAULT_ENEMY_TEMPLATES) ?? DEFAULT_ENEMY_TEMPLATES
+    );
+  }
 
   protected initializeState(playerIds: string[]): RPGState {
     const cfg = this.config as RPGConfig;
@@ -131,6 +188,9 @@ export class RPGGame extends BaseGame {
     const startingHp = cfg.startingHp ?? 100;
     const startingAtk = cfg.startingAtk ?? 12;
     const startingDef = cfg.startingDef ?? 8;
+    const startingMp = (cfg.gameplay?.startingMp as number) ?? DEFAULT_STARTING_MP;
+    const startingSpd = (cfg.gameplay?.startingSpd as number) ?? DEFAULT_STARTING_SPD;
+    const skills = (cfg.content?.skills as Skill[]) ?? [...DEFAULT_STARTER_SKILLS];
 
     const players: RPGState['players'] = {};
 
@@ -141,14 +201,14 @@ export class RPGGame extends BaseGame {
           maxHp: startingHp,
           atk: startingAtk,
           def: startingDef,
-          spd: 5,
-          mp: 30,
-          maxMp: 30,
+          spd: startingSpd,
+          mp: startingMp,
+          maxMp: startingMp,
         },
         level: 1,
         xp: 0,
         xpToLevel: 50,
-        skills: [...STARTER_SKILLS],
+        skills: [...skills],
         items: { Potion: 3, Ether: 2 },
         buffs: {},
         gold: 0,
@@ -190,23 +250,21 @@ export class RPGGame extends BaseGame {
         const useRandom = cfgEnc.randomEncounters ?? false;
         const bossAt = cfgEnc.bossEncounterAt ?? [10];
 
+        const enemyTemplates = this.getEnemyTemplates();
         let templateIndex: number;
         if (useRandom) {
-          templateIndex = Math.floor(Math.random() * ENEMY_TEMPLATES.length);
+          templateIndex = Math.floor(Math.random() * enemyTemplates.length);
         } else {
-          templateIndex = Math.min(
-            Math.floor((data.encounter - 1) / 2),
-            ENEMY_TEMPLATES.length - 1,
-          );
+          templateIndex = Math.min(Math.floor((data.encounter - 1) / 2), enemyTemplates.length - 1);
         }
 
         // If this encounter is a boss encounter, use the last (strongest) template
         const isBoss = bossAt.includes(data.encounter);
         if (isBoss) {
-          templateIndex = ENEMY_TEMPLATES.length - 1;
+          templateIndex = enemyTemplates.length - 1;
         }
 
-        const template = ENEMY_TEMPLATES[templateIndex];
+        const template = enemyTemplates[templateIndex];
         const scale = 1 + (data.encounter - 1) * 0.15;
         const bossMult = isBoss ? 1.5 : 1.0;
 
@@ -574,7 +632,13 @@ export class RPGGame extends BaseGame {
       const cfgAdv = this.config as RPGConfig;
       const allowLevelUp = cfgAdv.levelUpBetweenEncounters ?? true;
       const showShop = cfgAdv.shopBetweenEncounters ?? false;
-      const reward = data.currentEnemy.reward;
+      const cfgGrowth = this.config as RPGConfig;
+      const xpMult = (cfgGrowth.gameplay?.xpMultiplier as number) ?? DEFAULT_XP_MULTIPLIER;
+      const growth = {
+        ...DEFAULT_STAT_GROWTH,
+        ...(cfgGrowth.gameplay?.statGrowthPerLevel as Partial<typeof DEFAULT_STAT_GROWTH>),
+      };
+      const reward = Math.floor(data.currentEnemy.reward * xpMult);
       for (const pid of this.getPlayers()) {
         data.players[pid].xp += reward;
         // Level up check (only if enabled)
@@ -582,11 +646,11 @@ export class RPGGame extends BaseGame {
           data.players[pid].level++;
           data.players[pid].xp -= data.players[pid].xpToLevel;
           data.players[pid].xpToLevel = Math.floor(data.players[pid].xpToLevel * 1.5);
-          data.players[pid].stats.maxHp += 10;
+          data.players[pid].stats.maxHp += growth.hp;
           data.players[pid].stats.hp = data.players[pid].stats.maxHp;
-          data.players[pid].stats.atk += 2;
-          data.players[pid].stats.def += 1;
-          data.players[pid].stats.maxMp += 5;
+          data.players[pid].stats.atk += growth.atk;
+          data.players[pid].stats.def += growth.def;
+          data.players[pid].stats.maxMp += growth.mp;
           data.players[pid].stats.mp = data.players[pid].stats.maxMp;
           this.emitEvent('level_up', pid, { level: data.players[pid].level });
         }
@@ -599,12 +663,21 @@ export class RPGGame extends BaseGame {
         );
       }
       if (showShop && data.encounter < data.maxEncounters) {
-        // Add shop items: Potion +1, Ether +1 after each encounter
+        const shopItems = (cfgGrowth.content?.shopItems as {
+          name: string;
+          quantity: number;
+        }[]) ?? [
+          { name: 'Potion', quantity: 1 },
+          { name: 'Ether', quantity: 1 },
+        ];
         for (const pid of this.getPlayers()) {
-          data.players[pid].items['Potion'] = (data.players[pid].items['Potion'] ?? 0) + 1;
-          data.players[pid].items['Ether'] = (data.players[pid].items['Ether'] ?? 0) + 1;
+          for (const item of shopItems) {
+            data.players[pid].items[item.name] =
+              (data.players[pid].items[item.name] ?? 0) + item.quantity;
+          }
         }
-        data.combatLog.push('Shop: +1 Potion, +1 Ether added to inventory.');
+        const shopDesc = shopItems.map((i) => `+${i.quantity} ${i.name}`).join(', ');
+        data.combatLog.push(`Shop: ${shopDesc} added to inventory.`);
       }
       if (data.encounter < data.maxEncounters) {
         data.combatLog.push('Use start_encounter to begin the next battle.');

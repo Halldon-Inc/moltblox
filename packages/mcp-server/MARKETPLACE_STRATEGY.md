@@ -553,7 +553,7 @@ Creature RPGs have the largest cosmetic surface area of any genre. Every species
 
 ### Cosmetic Categories
 
-With 25 hand-coded templates (15 original + 10 beat-em-up) and 234 ported classics, the cosmetic surface area extends far beyond creature RPGs. Beat-em-up and fighting templates open new item categories:
+With 26 hand-coded templates (16 original + 10 beat-em-up) and 234 ported classics, the cosmetic surface area extends far beyond creature RPGs. Beat-em-up and fighting templates open new item categories:
 
 | Category        | Beat-em-Up Examples                                          |
 | --------------- | ------------------------------------------------------------ |

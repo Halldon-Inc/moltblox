@@ -14,6 +14,18 @@ export interface CardBattlerConfig {
   handSize?: number;
   manaGrowth?: number;
   startingHp?: number;
+  theme?: {
+    cardBackColor?: string;
+    manaColor?: string;
+  };
+  gameplay?: {
+    startingMana?: number;
+    maxMana?: number;
+    drawPerTurn?: number;
+  };
+  content?: {
+    cardPool?: Omit<Card, 'id'>[];
+  };
 }
 
 interface Card {
@@ -57,12 +69,17 @@ interface CBState {
   turnNumber: number;
   manaGrowth: number;
   handSize: number;
+  manaCap: number;
+  drawPerTurn: number;
   gameResult: 'playing' | 'ended';
   [key: string]: unknown;
 }
 
+const DEFAULT_STARTING_MANA = 1;
+const DEFAULT_MAX_MANA = 10;
+
 // Card templates
-const CARD_POOL: Omit<Card, 'id'>[] = [
+const DEFAULT_CARD_POOL: Omit<Card, 'id'>[] = [
   { name: 'Strike', type: 'attack', manaCost: 1, value: 5 },
   { name: 'Slash', type: 'attack', manaCost: 2, value: 8 },
   { name: 'Heavy Blow', type: 'attack', manaCost: 3, value: 13 },
@@ -88,6 +105,8 @@ export class CardBattlerGame extends BaseGame {
     const handSize = cfg.handSize ?? 5;
     const manaGrowth = cfg.manaGrowth ?? 1;
     const startingHp = cfg.startingHp ?? 30;
+    const startingMana = (cfg.gameplay?.startingMana as number) ?? DEFAULT_STARTING_MANA;
+    const maxMana = (cfg.gameplay?.maxMana as number) ?? DEFAULT_MAX_MANA;
 
     const players: Record<string, PlayerState> = {};
     for (const pid of playerIds) {
@@ -100,8 +119,8 @@ export class CardBattlerGame extends BaseGame {
       players[pid] = {
         hp: startingHp,
         maxHp: startingHp,
-        mana: 1,
-        maxMana: 1,
+        mana: startingMana,
+        maxMana: startingMana,
         armor: 0,
         hand,
         deck,
@@ -118,8 +137,8 @@ export class CardBattlerGame extends BaseGame {
       players['cpu'] = {
         hp: startingHp,
         maxHp: startingHp,
-        mana: 1,
-        maxMana: 1,
+        mana: startingMana,
+        maxMana: startingMana,
         armor: 0,
         hand: cpuHand,
         deck: cpuDeck,
@@ -137,15 +156,19 @@ export class CardBattlerGame extends BaseGame {
       turnNumber: 1,
       manaGrowth,
       handSize,
+      manaCap: maxMana,
+      drawPerTurn: (cfg.gameplay?.drawPerTurn as number) ?? handSize,
       gameResult: 'playing',
     };
   }
 
   private buildDeck(size: number): Card[] {
+    const cfg = this.config as CardBattlerConfig;
+    const pool = (cfg.content?.cardPool as Omit<Card, 'id'>[]) ?? DEFAULT_CARD_POOL;
     const deck: Card[] = [];
     let cardId = 0;
     while (deck.length < size) {
-      const template = CARD_POOL[deck.length % CARD_POOL.length];
+      const template = pool[deck.length % pool.length];
       deck.push({ ...template, id: `card_${cardId++}` } as Card);
     }
     return deck;
@@ -323,11 +346,12 @@ export class CardBattlerGame extends BaseGame {
     // Give next player mana and draw
     const nextPlayerId = data.turnOrder[data.currentPlayerIndex];
     const nextPlayer = data.players[nextPlayerId];
-    nextPlayer.maxMana = Math.min(10, nextPlayer.maxMana + data.manaGrowth);
+    nextPlayer.maxMana = Math.min(data.manaCap, nextPlayer.maxMana + data.manaGrowth);
     nextPlayer.mana = nextPlayer.maxMana;
 
     // Draw to hand size
-    while (nextPlayer.hand.length < data.handSize) {
+    const drawTarget = data.drawPerTurn;
+    while (nextPlayer.hand.length < drawTarget) {
       this.drawCard(nextPlayer);
     }
 
@@ -414,9 +438,10 @@ export class CardBattlerGame extends BaseGame {
     // Give next player (human) mana and draw
     const nextId = data.turnOrder[data.currentPlayerIndex];
     const nextPlayer = data.players[nextId];
-    nextPlayer.maxMana = Math.min(10, nextPlayer.maxMana + data.manaGrowth);
+    nextPlayer.maxMana = Math.min(data.manaCap, nextPlayer.maxMana + data.manaGrowth);
     nextPlayer.mana = nextPlayer.maxMana;
-    while (nextPlayer.hand.length < data.handSize) {
+    const drawTarget = data.drawPerTurn;
+    while (nextPlayer.hand.length < drawTarget) {
       this.drawCard(nextPlayer);
     }
 

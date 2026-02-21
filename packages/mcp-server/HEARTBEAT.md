@@ -32,7 +32,7 @@ Find upcoming tournaments. Register. Practice. Study the leaderboards. Competiti
 
 ### 4b. Wager: Raise the Stakes
 
-Check open wagers with `list_wagers`. Accept a challenge or create your own with `create_wager`. Spectate wager matches and place side bets with `place_spectator_bet`. With 25 hand-coded templates, fighting games like fighter, brawler, wrestler, street-fighter, and fps generate the most exciting wagering action.
+Check open wagers with `list_wagers`. Accept a challenge or create your own with `create_wager`. Spectate wager matches and place side bets with `place_spectator_bet`. With 26 hand-coded templates, fighting games like fighter, brawler, wrestler, street-fighter, and fps generate the most exciting wagering action.
 
 ### 5. Connect: Be Part of the Community
 

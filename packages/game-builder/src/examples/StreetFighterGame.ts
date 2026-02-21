@@ -9,12 +9,33 @@ import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 export interface StreetFighterConfig {
-  superMeterMax?: number; // default 100
-  chipDamagePercent?: number; // % of attack damage through block, default 20
-  throwTechWindow?: boolean; // allow throw techs, default true
-  roundTime?: number; // max turns per round, default 40
-  roundsToWin?: number; // default 2
-  characterPool?: string[]; // default: all characters
+  superMeterMax?: number;
+  chipDamagePercent?: number;
+  throwTechWindow?: boolean;
+  roundTime?: number;
+  roundsToWin?: number;
+  characterPool?: string[];
+  theme?: {
+    stageBackground?: string;
+    characterPalettes?: Record<string, string>;
+    meterColor?: string;
+  };
+  gameplay?: {
+    specialMoveDamage?: number;
+    superMeterGain?: Record<string, number>;
+    superDamage?: number;
+    throwDamage?: number;
+    exMeterCost?: number;
+    exDamageMultiplier?: number;
+    heavyStunFrames?: number;
+    blockMeterGain?: number;
+    dashDistance?: number;
+    meleeRange?: number;
+  };
+  content?: {
+    characterMoves?: Record<string, { name: string; damage: number; type: string }>;
+    comboRoutes?: string[];
+  };
 }
 
 interface CharacterTemplate {
@@ -74,6 +95,15 @@ const CHARACTER_POOL: Record<string, CharacterTemplate> = {
 };
 
 const ALL_CHARACTER_NAMES = Object.keys(CHARACTER_POOL);
+
+const DEFAULT_SUPER_DAMAGE = 30;
+const DEFAULT_THROW_DAMAGE = 15;
+const DEFAULT_EX_METER_COST = 50;
+const DEFAULT_EX_DAMAGE_MULTIPLIER = 1.5;
+const DEFAULT_HEAVY_STUN_FRAMES = 1;
+const DEFAULT_BLOCK_METER_GAIN = 5;
+const DEFAULT_DASH_DISTANCE = 2;
+const DEFAULT_MELEE_RANGE = 2;
 
 interface SFighter {
   id: string;
@@ -286,9 +316,10 @@ export class StreetFighterGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
+    const cfg = this.config as StreetFighterConfig;
+    const meleeRange = (cfg.gameplay?.meleeRange as number) ?? DEFAULT_MELEE_RANGE;
     const distance = this.getDistance(fighter, opponent);
-    // Must be within melee range (distance <= 2)
-    if (distance > 2) {
+    if (distance > meleeRange) {
       return { success: false, error: 'Out of range' };
     }
 
@@ -296,15 +327,13 @@ export class StreetFighterGame extends BaseGame {
     let stunApplied = 0;
 
     if (opponent.blocking) {
-      // Chip damage through block
       const chipDmg = Math.max(1, Math.floor((damage * data.chipDamagePercent) / 100));
       damage = chipDmg;
-      // Blocking opponent gains meter
-      opponent.superMeter = Math.min(data.superMeterMax, opponent.superMeter + 5);
+      const blockGain = (cfg.gameplay?.blockMeterGain as number) ?? DEFAULT_BLOCK_METER_GAIN;
+      opponent.superMeter = Math.min(data.superMeterMax, opponent.superMeter + blockGain);
     } else {
-      // Heavy causes 1 turn stun on hit
       if (attackType === 'heavy') {
-        stunApplied = 1;
+        stunApplied = (cfg.gameplay?.heavyStunFrames as number) ?? DEFAULT_HEAVY_STUN_FRAMES;
       }
     }
 
@@ -332,8 +361,10 @@ export class StreetFighterGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
-    if (isEx && fighter.superMeter < 50) {
-      return { success: false, error: 'Not enough meter for EX special (need 50)' };
+    const cfg = this.config as StreetFighterConfig;
+    const exCost = (cfg.gameplay?.exMeterCost as number) ?? DEFAULT_EX_METER_COST;
+    if (isEx && fighter.superMeter < exCost) {
+      return { success: false, error: `Not enough meter for EX special (need ${exCost})` };
     }
 
     const charTemplate = CHARACTER_POOL[fighter.character];
@@ -355,10 +386,11 @@ export class StreetFighterGame extends BaseGame {
       return { success: false, error: 'Too far for claw dive' };
     }
 
+    const exMult = (cfg.gameplay?.exDamageMultiplier as number) ?? DEFAULT_EX_DAMAGE_MULTIPLIER;
     let damage = special.damage;
     if (isEx) {
-      damage = Math.floor(damage * 1.5);
-      fighter.superMeter -= 50;
+      damage = Math.floor(damage * exMult);
+      fighter.superMeter -= exCost;
     }
 
     damage = Math.max(1, damage + fighter.atk - opponent.def);
@@ -412,7 +444,9 @@ export class StreetFighterGame extends BaseGame {
     // Super has 2 turn windup (telegraphed). For simplicity, apply immediately but
     // with the understanding that the windup is a design flavor. In actual play the
     // opponent would have 2 turns to react. We model this as instant for the template.
-    const damage = Math.max(1, 30 + fighter.atk);
+    const cfg = this.config as StreetFighterConfig;
+    const superDmg = (cfg.gameplay?.superDamage as number) ?? DEFAULT_SUPER_DAMAGE;
+    const damage = Math.max(1, superDmg + fighter.atk);
     // Super is unblockable
     opponent.hp = Math.max(0, opponent.hp - damage);
     fighter.superMeter = 0;
@@ -433,12 +467,13 @@ export class StreetFighterGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
+    const cfg = this.config as StreetFighterConfig;
     const distance = this.getDistance(fighter, opponent);
     if (distance > 1) {
       return { success: false, error: 'Must be adjacent to throw' };
     }
 
-    const damage = 15;
+    const damage = (cfg.gameplay?.throwDamage as number) ?? DEFAULT_THROW_DAMAGE;
     // Throw beats block
     opponent.blocking = false;
     opponent.hp = Math.max(0, opponent.hp - damage);
@@ -467,13 +502,15 @@ export class StreetFighterGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
+    const cfg = this.config as StreetFighterConfig;
+    const dashDist = (cfg.gameplay?.dashDistance as number) ?? DEFAULT_DASH_DISTANCE;
     const direction = (action.payload.direction as string) || 'forward';
     const towardOpponent = fighter.position < opponent.position ? 1 : -1;
 
     if (direction === 'forward') {
-      fighter.position = Math.max(0, Math.min(10, fighter.position + towardOpponent * 2));
+      fighter.position = Math.max(0, Math.min(10, fighter.position + towardOpponent * dashDist));
     } else {
-      fighter.position = Math.max(0, Math.min(10, fighter.position - towardOpponent * 2));
+      fighter.position = Math.max(0, Math.min(10, fighter.position - towardOpponent * dashDist));
     }
 
     fighter.blocking = false;

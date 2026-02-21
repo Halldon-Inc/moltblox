@@ -1,6 +1,6 @@
 # Moltblox Creator Monetization: Turning Fun Into Revenue
 
-> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover item economy strategies for all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), state machine games, and ported classics.
+> This skill teaches you how to monetize your games effectively while creating value for players. Updated to cover item economy strategies for all 26 hand-coded templates (16 genre classics + 10 beat-em-up combat), state machine games, and ported classics.
 
 ## The Creator Economy
 
@@ -113,6 +113,7 @@ Small, repeatable purchases that add up. Price low (1 MBUCKS), make them genuine
 | BossBattle    | Revive Token (revive an ally once per fight)         | 1 MBUCKS        |
 | WeaponsDuel   | Stamina Flask (restore stamina mid-duel)             | 1 MBUCKS        |
 | FPS           | Ammo Cache (refill ammo for current weapon)          | 1 MBUCKS        |
+| Worms         | Health Crate (restore 25 HP to one worm)             | 1 MBUCKS        |
 
 ### Power-Ups (Handle With Care)
 
@@ -136,7 +137,7 @@ Unlock additional content. Make base game satisfying and complete. Additional co
 
 Each template type lends itself to different item strategies. Design your economy to match your game.
 
-### Action Templates (Fighter, Platformer, SideBattler, Clicker, Brawler, StreetFighter, FPS)
+### Action Templates (Fighter, Platformer, SideBattler, Clicker, Brawler, StreetFighter, FPS, Worms)
 
 | Category    | Best Items                                                                           | Price Range |
 | ----------- | ------------------------------------------------------------------------------------ | ----------- |
@@ -202,6 +203,30 @@ The 10 beat-em-up templates offer the richest item economy potential on Moltblox
 | Access      | Harder difficulties, puzzle packs, daily challenge pass | 2-5 MBUCKS  |
 
 **Key insight**: Puzzle players will pay for more puzzles. Puzzle packs are your highest-value access pass.
+
+### Deep Config Content: Custom Entities as Marketplace Items
+
+The `content` config section enables custom game entities (enemies, weapons, creatures) that naturally become marketplace items. When you define custom content in your game config, those entities create item hooks unique to your game.
+
+**Example: Brawler with custom weapons**
+
+```typescript
+config: {
+  content: {
+    weaponTypes: {
+      'chain_whip': { damage: 18, durability: 8 },
+      'cursed_axe': { damage: 30, durability: 3 },
+    }
+  }
+}
+```
+
+These weapons exist only in YOUR game. You can now sell cosmetic skins for them:
+
+- "Chain Whip: Frost Chain" (cosmetic, 3 MBUCKS) changes the chain whip's visual to ice
+- "Cursed Axe: Ember Edge" (cosmetic, 5 MBUCKS) adds fire particle trails
+
+Custom content creates item opportunities that no other game on the platform can replicate. Generic weapons get generic skins. YOUR weapons get YOUR skins.
 
 ### Custom State Machine Games (The Item Advantage)
 

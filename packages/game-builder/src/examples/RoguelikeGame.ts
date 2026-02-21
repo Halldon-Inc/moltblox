@@ -15,6 +15,18 @@ export interface RoguelikeConfig {
   branchFactor?: number;
   itemPoolSize?: number;
   difficultyRamp?: number;
+  theme?: {
+    dungeonColors?: Record<string, string>;
+  };
+  gameplay?: {
+    trapDamageRange?: [number, number];
+    xpPerLevel?: number;
+  };
+  content?: {
+    monsterTemplates?: { name: string; hp: number; atk: number; def: number; goldReward: number }[];
+    itemTemplates?: Omit<Item, 'id'>[];
+    bossTemplates?: { name: string; hp: number; atk: number; def: number; goldReward: number }[];
+  };
 }
 
 type RoomType = 'empty' | 'monster' | 'treasure' | 'shop' | 'boss' | 'trap';
@@ -76,7 +88,7 @@ interface RLState {
   [key: string]: unknown;
 }
 
-const MONSTER_TEMPLATES = [
+const DEFAULT_MONSTER_TEMPLATES = [
   { name: 'Rat', hp: 10, atk: 3, def: 0, goldReward: 5 },
   { name: 'Skeleton', hp: 20, atk: 6, def: 2, goldReward: 10 },
   { name: 'Orc', hp: 35, atk: 8, def: 4, goldReward: 15 },
@@ -84,9 +96,11 @@ const MONSTER_TEMPLATES = [
   { name: 'Golem', hp: 50, atk: 7, def: 8, goldReward: 25 },
 ];
 
-const BOSS_TEMPLATE = { name: 'Dragon Lord', hp: 100, atk: 15, def: 8, goldReward: 100 };
+const DEFAULT_BOSS_TEMPLATE = { name: 'Dragon Lord', hp: 100, atk: 15, def: 8, goldReward: 100 };
+const DEFAULT_TRAP_DAMAGE_BASE = 5;
+const DEFAULT_TRAP_DAMAGE_SCALE = 2;
 
-const ITEM_TEMPLATES: Omit<Item, 'id'>[] = [
+const DEFAULT_ITEM_TEMPLATES: Omit<Item, 'id'>[] = [
   { name: 'Rusty Sword', type: 'weapon', value: 3 },
   { name: 'Iron Sword', type: 'weapon', value: 5 },
   { name: 'Flame Blade', type: 'weapon', value: 8 },
@@ -134,6 +148,17 @@ export class RoguelikeGame extends BaseGame {
   }
 
   private generateDungeon(roomCount: number, branchFactor: number, ramp: number): Room[] {
+    const cfg = this.config as RoguelikeConfig;
+    const monsterPool =
+      (cfg.content?.monsterTemplates as typeof DEFAULT_MONSTER_TEMPLATES) ??
+      DEFAULT_MONSTER_TEMPLATES;
+    const itemPool = (cfg.content?.itemTemplates as Omit<Item, 'id'>[]) ?? DEFAULT_ITEM_TEMPLATES;
+    const bossPool = cfg.content?.bossTemplates as typeof DEFAULT_MONSTER_TEMPLATES | undefined;
+    const bossTemplate = bossPool?.[0] ?? DEFAULT_BOSS_TEMPLATE;
+    const trapRange = cfg.gameplay?.trapDamageRange as [number, number] | undefined;
+    const trapBase = trapRange?.[0] ?? DEFAULT_TRAP_DAMAGE_BASE;
+    const trapScale = trapRange?.[1] ?? DEFAULT_TRAP_DAMAGE_SCALE;
+
     const rooms: Room[] = [];
     let itemCounter = 0;
 
@@ -174,7 +199,7 @@ export class RoguelikeGame extends BaseGame {
       const depthScale = 1 + (i / roomCount) * ramp;
 
       if (roomType === 'monster') {
-        const tmpl = MONSTER_TEMPLATES[Math.floor(Math.random() * MONSTER_TEMPLATES.length)];
+        const tmpl = monsterPool[Math.floor(Math.random() * monsterPool.length)];
         monster = {
           ...tmpl,
           hp: Math.floor(tmpl.hp * depthScale),
@@ -186,24 +211,24 @@ export class RoguelikeGame extends BaseGame {
         };
       } else if (roomType === 'boss') {
         monster = {
-          ...BOSS_TEMPLATE,
-          hp: Math.floor(BOSS_TEMPLATE.hp * depthScale),
-          maxHp: Math.floor(BOSS_TEMPLATE.hp * depthScale),
-          atk: Math.floor(BOSS_TEMPLATE.atk * depthScale),
-          def: Math.floor(BOSS_TEMPLATE.def * depthScale),
-          goldReward: BOSS_TEMPLATE.goldReward,
+          ...bossTemplate,
+          hp: Math.floor(bossTemplate.hp * depthScale),
+          maxHp: Math.floor(bossTemplate.hp * depthScale),
+          atk: Math.floor(bossTemplate.atk * depthScale),
+          def: Math.floor(bossTemplate.def * depthScale),
+          goldReward: bossTemplate.goldReward,
           isBoss: true,
         };
       } else if (roomType === 'treasure') {
-        const tmpl = ITEM_TEMPLATES[Math.floor(Math.random() * ITEM_TEMPLATES.length)];
+        const tmpl = itemPool[Math.floor(Math.random() * itemPool.length)];
         items.push({ ...tmpl, id: `item_${itemCounter++}` } as Item);
       } else if (roomType === 'shop') {
         for (let s = 0; s < 3; s++) {
-          const tmpl = ITEM_TEMPLATES[Math.floor(Math.random() * ITEM_TEMPLATES.length)];
+          const tmpl = itemPool[Math.floor(Math.random() * itemPool.length)];
           shopItems.push({ ...tmpl, id: `item_${itemCounter++}` } as Item);
         }
       } else if (roomType === 'trap') {
-        trapDamage = Math.floor(5 + i * 2 * ramp);
+        trapDamage = Math.floor(trapBase + i * trapScale * ramp);
       }
 
       rooms.push({

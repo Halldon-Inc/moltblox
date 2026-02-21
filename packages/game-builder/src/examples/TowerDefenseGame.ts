@@ -14,6 +14,18 @@ export interface TowerDefenseConfig {
   waveCount?: number;
   startingGold?: number;
   creepSpeed?: number;
+  theme?: {
+    towerColors?: Record<string, string>;
+    pathColor?: string;
+  };
+  gameplay?: {
+    startingLives?: number;
+    upgradeScaling?: number;
+  };
+  content?: {
+    towerDefinitions?: Record<string, { cost: number; damage: number; range: number }>;
+    creepWaves?: { creepCount?: number; baseHp?: number; goldReward?: number }[];
+  };
 }
 
 interface Tower {
@@ -54,14 +66,15 @@ interface TDState {
   [key: string]: unknown;
 }
 
-const TOWER_STATS: Record<string, { cost: number; damage: number; range: number }> = {
+const DEFAULT_TOWER_STATS: Record<string, { cost: number; damage: number; range: number }> = {
   basic: { cost: 50, damage: 10, range: 2 },
   sniper: { cost: 100, damage: 30, range: 4 },
   splash: { cost: 80, damage: 8, range: 2 },
   slow: { cost: 60, damage: 5, range: 3 },
 };
 
-const UPGRADE_COST_MULTIPLIER = 1.5;
+const DEFAULT_UPGRADE_SCALING = 1.5;
+const DEFAULT_STARTING_LIVES = 20;
 
 export class TowerDefenseGame extends BaseGame {
   readonly name = 'Tower Defense';
@@ -73,6 +86,7 @@ export class TowerDefenseGame extends BaseGame {
     const gridSize = cfg.gridSize ?? 8;
     const waveCount = cfg.waveCount ?? 10;
     const startingGold = cfg.startingGold ?? 200;
+    const startingLives = (cfg.gameplay?.startingLives as number) ?? DEFAULT_STARTING_LIVES;
 
     // Generate a simple path from left to right across the grid
     const path = this.generatePath(gridSize);
@@ -84,7 +98,7 @@ export class TowerDefenseGame extends BaseGame {
       towers: [],
       creeps: [],
       gold: startingGold,
-      lives: 20,
+      lives: startingLives,
       currentWave: 0,
       waveInProgress: false,
       score: 0,
@@ -132,16 +146,23 @@ export class TowerDefenseGame extends BaseGame {
     }
   }
 
+  private getTowerStats(): Record<string, { cost: number; damage: number; range: number }> {
+    const cfg = this.config as TowerDefenseConfig;
+    const customDefs = cfg.content?.towerDefinitions;
+    return customDefs ? { ...DEFAULT_TOWER_STATS, ...customDefs } : DEFAULT_TOWER_STATS;
+  }
+
   private handlePlaceTower(_playerId: string, action: GameAction, data: TDState): ActionResult {
     const x = Number(action.payload.x);
     const y = Number(action.payload.y);
     const towerType = String(action.payload.towerType || 'basic');
+    const towerStats = this.getTowerStats();
 
     if (isNaN(x) || isNaN(y) || x < 0 || x >= data.gridSize || y < 0 || y >= data.gridSize) {
       return { success: false, error: 'Invalid grid position' };
     }
 
-    if (!TOWER_STATS[towerType]) {
+    if (!towerStats[towerType]) {
       return { success: false, error: 'Invalid tower type' };
     }
 
@@ -153,7 +174,7 @@ export class TowerDefenseGame extends BaseGame {
       return { success: false, error: 'Cell already occupied' };
     }
 
-    const stats = TOWER_STATS[towerType];
+    const stats = towerStats[towerType];
     if (data.gold < stats.cost) {
       return { success: false, error: 'Not enough gold' };
     }
@@ -175,14 +196,17 @@ export class TowerDefenseGame extends BaseGame {
   }
 
   private handleUpgradeTower(_playerId: string, action: GameAction, data: TDState): ActionResult {
+    const cfg = this.config as TowerDefenseConfig;
+    const upgradeScaling = (cfg.gameplay?.upgradeScaling as number) ?? DEFAULT_UPGRADE_SCALING;
+    const towerStats = this.getTowerStats();
     const towerId = String(action.payload.towerId);
     const tower = data.towers.find((t) => t.id === towerId);
     if (!tower) {
       return { success: false, error: 'Tower not found' };
     }
 
-    const baseCost = TOWER_STATS[tower.type]?.cost ?? 50;
-    const upgradeCost = Math.floor(baseCost * UPGRADE_COST_MULTIPLIER * tower.level);
+    const baseCost = towerStats[tower.type]?.cost ?? 50;
+    const upgradeCost = Math.floor(baseCost * upgradeScaling * tower.level);
     if (data.gold < upgradeCost) {
       return { success: false, error: 'Not enough gold' };
     }
@@ -198,6 +222,7 @@ export class TowerDefenseGame extends BaseGame {
   }
 
   private handleSellTower(_playerId: string, action: GameAction, data: TDState): ActionResult {
+    const towerStats = this.getTowerStats();
     const towerId = String(action.payload.towerId);
     const towerIndex = data.towers.findIndex((t) => t.id === towerId);
     if (towerIndex === -1) {
@@ -205,7 +230,7 @@ export class TowerDefenseGame extends BaseGame {
     }
 
     const tower = data.towers[towerIndex];
-    const baseCost = TOWER_STATS[tower.type]?.cost ?? 50;
+    const baseCost = towerStats[tower.type]?.cost ?? 50;
     const refund = Math.floor(baseCost * 0.6 * tower.level);
     data.gold += refund;
     data.towers.splice(towerIndex, 1);
@@ -227,10 +252,12 @@ export class TowerDefenseGame extends BaseGame {
     data.waveInProgress = true;
 
     // Spawn creeps for this wave
-    const creepCount = 3 + data.currentWave;
-    const baseHp = 20 + data.currentWave * 15;
     const cfg = this.config as TowerDefenseConfig;
+    const waveOverride = cfg.content?.creepWaves?.[data.currentWave - 1];
+    const creepCount = (waveOverride?.creepCount as number) ?? 3 + data.currentWave;
+    const baseHp = (waveOverride?.baseHp as number) ?? 20 + data.currentWave * 15;
     const speed = cfg.creepSpeed ?? 1;
+    const goldReward = (waveOverride?.goldReward as number) ?? 5 + data.currentWave * 2;
 
     data.creeps = [];
     for (let i = 0; i < creepCount; i++) {
@@ -242,7 +269,7 @@ export class TowerDefenseGame extends BaseGame {
         pathIndex: 0,
         alive: true,
         slowTimer: 0,
-        goldReward: 5 + data.currentWave * 2,
+        goldReward,
       });
     }
 

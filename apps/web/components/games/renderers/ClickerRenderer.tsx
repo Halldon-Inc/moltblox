@@ -24,11 +24,18 @@ interface ClickParticle {
   size: number;
 }
 
-const PARTICLE_COLORS = ['#e87927', '#00e5ff', '#ff6b6b', '#ffd700', '#81c784', '#ff80ab'];
+const DEFAULT_PARTICLE_COLORS = ['#e87927', '#00e5ff', '#ff6b6b', '#ffd700', '#81c784', '#ff80ab'];
+const DEFAULT_BUTTON_COLOR = '#e87927';
+const DEFAULT_PROGRESS_BAR_COLORS = ['#e87927', '#00e5ff'];
 
 let particleIdCounter = 0;
 
-function spawnClickParticles(x: number, y: number, count: number): ClickParticle[] {
+function spawnClickParticles(
+  x: number,
+  y: number,
+  count: number,
+  particleColors: string[],
+): ClickParticle[] {
   const particles: ClickParticle[] = [];
   for (let i = 0; i < count; i++) {
     const angle = Math.random() * Math.PI * 2;
@@ -41,7 +48,7 @@ function spawnClickParticles(x: number, y: number, count: number): ClickParticle
       vy: Math.sin(angle) * speed - 2,
       life: 600 + Math.random() * 400,
       maxLife: 800,
-      color: PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)],
+      color: particleColors[Math.floor(Math.random() * particleColors.length)],
       size: 3 + Math.random() * 4,
     });
   }
@@ -74,6 +81,14 @@ export default function ClickerRenderer({
     targetClicks: 100,
     lastAction: null,
   };
+
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+  const buttonColor = (theme.buttonColor as string) ?? DEFAULT_BUTTON_COLOR;
+  const particleColors = (theme.particleColors as string[]) ?? DEFAULT_PARTICLE_COLORS;
+  const progressBarColors = (theme.progressBarColors as string[]) ?? DEFAULT_PROGRESS_BAR_COLORS;
+
   const myClicks = data.clicks[playerId] ?? 0;
   const target = data.targetClicks;
   const progress = Math.min((myClicks / target) * 100, 100);
@@ -117,7 +132,7 @@ export default function ClickerRenderer({
       if (newEvents.some((e) => e.type === 'milestone')) {
         setMilestone(true);
         // Spawn burst of particles for milestone
-        const burst = spawnClickParticles(0, 0, 16);
+        const burst = spawnClickParticles(0, 0, 16, particleColors);
         particlesRef.current = [...particlesRef.current, ...burst];
         setParticles([...particlesRef.current]);
         const timer = setTimeout(() => setMilestone(false), 800);
@@ -135,6 +150,7 @@ export default function ClickerRenderer({
       (Math.random() - 0.5) * 20,
       (Math.random() - 0.5) * 20,
       6,
+      particleColors,
     );
     particlesRef.current = [...particlesRef.current, ...newParticles];
     setParticles([...particlesRef.current]);
@@ -149,6 +165,7 @@ export default function ClickerRenderer({
       (Math.random() - 0.5) * 30,
       (Math.random() - 0.5) * 30,
       12,
+      particleColors,
     );
     particlesRef.current = [...particlesRef.current, ...newParticles];
     setParticles([...particlesRef.current]);
@@ -242,8 +259,8 @@ export default function ClickerRenderer({
                   top: '50%',
                   transform: `rotate(${i * 45}deg) translateX(40px)`,
                   animationDelay: `${i * 0.05}s`,
-                  backgroundColor: PARTICLE_COLORS[i % PARTICLE_COLORS.length],
-                  boxShadow: `0 0 6px ${PARTICLE_COLORS[i % PARTICLE_COLORS.length]}`,
+                  backgroundColor: particleColors[i % particleColors.length],
+                  boxShadow: `0 0 6px ${particleColors[i % particleColors.length]}`,
                 }}
               />
             ))}
@@ -284,7 +301,7 @@ export default function ClickerRenderer({
               className="h-full rounded-full transition-all duration-150 ease-out"
               style={{
                 width: `${progress}%`,
-                background: 'linear-gradient(90deg, #e87927, #00e5ff)',
+                background: `linear-gradient(90deg, ${progressBarColors[0] ?? '#e87927'}, ${progressBarColors[1] ?? '#00e5ff'})`,
                 boxShadow:
                   progress > 5
                     ? '0 0 8px rgba(0,229,255,0.4), inset 0 1px 0 rgba(255,255,255,0.2)'
@@ -345,11 +362,10 @@ export default function ClickerRenderer({
               ripple ? 'clicker-btn-ripple' : '',
             ].join(' ')}
             style={{
-              background:
-                'radial-gradient(circle at 40% 35%, #f5993d 0%, #e87927 40%, #c4601a 100%)',
+              background: `radial-gradient(circle at 40% 35%, ${buttonColor}cc 0%, ${buttonColor} 40%, ${buttonColor}aa 100%)`,
               boxShadow: ripple
-                ? '0 0 30px 10px rgba(232,121,39,0.4), inset 0 2px 0 rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.3)'
-                : '0 0 15px 3px rgba(232,121,39,0.3), inset 0 2px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.3)',
+                ? `0 0 30px 10px ${buttonColor}66, inset 0 2px 0 rgba(255,255,255,0.2), 0 4px 15px rgba(0,0,0,0.3)`
+                : `0 0 15px 3px ${buttonColor}4d, inset 0 2px 0 rgba(255,255,255,0.15), 0 4px 12px rgba(0,0,0,0.3)`,
             }}
           >
             <MousePointerClick className="w-8 h-8 drop-shadow-lg" />

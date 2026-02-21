@@ -16,6 +16,15 @@ export interface GraphStrategyConfig {
   edgeDensity?: number;
   signalDecay?: number;
   maxTurns?: number;
+  theme?: {
+    nodeColors?: Record<string, string>;
+    edgeColor?: string;
+  };
+  gameplay?: {
+    controlThreshold?: number;
+    signalStrength?: number;
+    actionsPerTurn?: number;
+  };
 }
 
 interface GraphNode {
@@ -48,9 +57,9 @@ interface GSState {
   [key: string]: unknown;
 }
 
-const CONTROL_THRESHOLD = 3.0;
-const ACTIONS_PER_TURN = 2;
-const SIGNAL_STRENGTH = 2.0;
+const DEFAULT_CONTROL_THRESHOLD = 3.0;
+const DEFAULT_ACTIONS_PER_TURN = 2;
+const DEFAULT_SIGNAL_STRENGTH = 2.0;
 
 export class GraphStrategyGame extends BaseGame {
   readonly name = 'Graph Strategy';
@@ -63,6 +72,9 @@ export class GraphStrategyGame extends BaseGame {
     const edgeDensity = cfg.edgeDensity ?? 0.3;
     const signalDecay = cfg.signalDecay ?? 0.1;
     const maxTurns = cfg.maxTurns ?? 50;
+    const controlThreshold =
+      (cfg.gameplay?.controlThreshold as number) ?? DEFAULT_CONTROL_THRESHOLD;
+    const actionsPerTurn = (cfg.gameplay?.actionsPerTurn as number) ?? DEFAULT_ACTIONS_PER_TURN;
 
     // Generate nodes
     const nodes: GraphNode[] = [];
@@ -83,7 +95,7 @@ export class GraphStrategyGame extends BaseGame {
     // Give each player a starting node
     for (let p = 0; p < playerIds.length; p++) {
       const startNode = p === 0 ? 0 : nodeCount - 1;
-      nodes[startNode].signals[playerIds[p]] = CONTROL_THRESHOLD + 1;
+      nodes[startNode].signals[playerIds[p]] = controlThreshold + 1;
       nodes[startNode].controller = playerIds[p];
     }
 
@@ -98,9 +110,9 @@ export class GraphStrategyGame extends BaseGame {
       currentTurn: 1,
       turnOrder: [...playerIds],
       currentPlayerIndex: 0,
-      actionsPerTurn: ACTIONS_PER_TURN,
+      actionsPerTurn,
       actionsThisTurn: 0,
-      controlThreshold: CONTROL_THRESHOLD,
+      controlThreshold,
       gameResult: 'playing',
       nodeCount,
     };
@@ -168,7 +180,9 @@ export class GraphStrategyGame extends BaseGame {
       return { success: false, error: 'Node is controlled by opponent' };
     }
 
-    node.signals[playerId] = (node.signals[playerId] ?? 0) + SIGNAL_STRENGTH;
+    const cfg = this.config as GraphStrategyConfig;
+    const signalStrength = (cfg.gameplay?.signalStrength as number) ?? DEFAULT_SIGNAL_STRENGTH;
+    node.signals[playerId] = (node.signals[playerId] ?? 0) + signalStrength;
     this.updateNodeControl(node, data);
     data.actionsThisTurn++;
 

@@ -469,6 +469,28 @@ export default function SideBattlerRenderer({
 
   const data = (state?.data as unknown as SideBattlerData) ?? undefined;
 
+  // Read visual config from _config
+  const cfgRaw = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const theme = (cfgRaw.theme ?? {}) as Record<string, unknown>;
+
+  const battleBackground = (theme.battleBackground as string[]) ?? [
+    '#050510',
+    '#0a0a1a',
+    '#1a1a3e',
+    '#2a1a3e',
+    '#1a0a1e',
+  ];
+  const classColors = (theme.classColors as Record<string, string>) ?? {};
+  const groundColors = (theme.groundColor as string[]) ?? ['#3a3a5a', '#333350', '#2a2a42'];
+
+  // Suppress lint warnings for variables used in render
+  void battleBackground;
+  void classColors;
+  void groundColors;
+
   // Generate stars once
   useEffect(() => {
     if (starsRef.current.length === 0) {

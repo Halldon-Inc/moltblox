@@ -16,6 +16,32 @@ export interface SumoConfig {
   weightClass?: 'light' | 'medium' | 'heavy';
   tachiaiBonusWindow?: number;
   balanceSensitivity?: number;
+  theme?: {
+    dohyoColors?: Record<string, string>;
+    mawashiColors?: Record<string, string>;
+    arenaBackground?: string;
+  };
+  gameplay?: {
+    pushForce?: number;
+    pushStaminaCost?: number;
+    pullStaminaCost?: number;
+    gripStaminaCost?: number;
+    throwStaminaCost?: number;
+    slapStaminaCost?: number;
+    chargeStaminaCost?: number;
+    balanceThreshold?: number;
+    pushBalanceDamage?: number;
+    slapBalanceDamage?: number;
+    chargeBalanceDamage?: number;
+    throwBalanceDamage?: number;
+    staminaRegenRate?: number;
+    balanceRegenRate?: number;
+    maxBalance?: number;
+    weightClasses?: Record<string, { str: number; balance: number; speed: number }>;
+  };
+  content?: {
+    techniqueList?: string[];
+  };
 }
 
 interface WeightProfile {
@@ -24,11 +50,23 @@ interface WeightProfile {
   speed: number;
 }
 
-const WEIGHT_PROFILES: Record<string, WeightProfile> = {
+const DEFAULT_WEIGHT_PROFILES: Record<string, WeightProfile> = {
   light: { str: 6, balance: 10, speed: 10 },
   medium: { str: 8, balance: 8, speed: 8 },
   heavy: { str: 12, balance: 6, speed: 5 },
 };
+
+const DEFAULT_PUSH_STAMINA_COST = 5;
+const DEFAULT_PUSH_BALANCE_DAMAGE = 6;
+const DEFAULT_SLAP_STAMINA_COST = 3;
+const DEFAULT_SLAP_BALANCE_DAMAGE = 6;
+const DEFAULT_CHARGE_STAMINA_COST = 5;
+const DEFAULT_CHARGE_BALANCE_DAMAGE = 12;
+const DEFAULT_THROW_BALANCE_DAMAGE = 18;
+const DEFAULT_STAMINA_REGEN = 12;
+const DEFAULT_BALANCE_REGEN = 8;
+const DEFAULT_MAX_BALANCE = 150;
+const DEFAULT_BALANCE_THRESHOLD = 30;
 
 interface Wrestler {
   id: string;
@@ -68,7 +106,8 @@ export class SumoGame extends BaseGame {
     const tachiaiBonusWindow = cfg.tachiaiBonusWindow ?? 1;
     const balanceSensitivity = cfg.balanceSensitivity ?? 5;
 
-    const stats = WEIGHT_PROFILES[weightClass] ?? WEIGHT_PROFILES.medium;
+    const weightProfiles = cfg.gameplay?.weightClasses ?? DEFAULT_WEIGHT_PROFILES;
+    const stats = weightProfiles[weightClass] ?? DEFAULT_WEIGHT_PROFILES.medium;
 
     const ids = playerIds.length === 1 ? [...playerIds, 'cpu'] : playerIds;
     const wrestlers: Record<string, Wrestler> = {};
@@ -79,10 +118,11 @@ export class SumoGame extends BaseGame {
 
     for (let i = 0; i < ids.length; i++) {
       const pid = ids[i];
+      const maxBalance = (cfg.gameplay?.maxBalance as number) ?? DEFAULT_MAX_BALANCE;
       wrestlers[pid] = {
         id: pid,
         position: i === 0 ? -startOffset : startOffset,
-        balance: 150,
+        balance: maxBalance,
         stamina: 120,
         maxStamina: 120,
         grip: null,
@@ -173,11 +213,16 @@ export class SumoGame extends BaseGame {
   }
 
   private regenStamina(wrestler: Wrestler): void {
-    wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + 12);
+    const cfg = this.config as SumoConfig;
+    const regen = (cfg.gameplay?.staminaRegenRate as number) ?? DEFAULT_STAMINA_REGEN;
+    wrestler.stamina = Math.min(wrestler.maxStamina, wrestler.stamina + regen);
   }
 
   private regenBalance(wrestler: Wrestler): void {
-    wrestler.balance = Math.min(150, wrestler.balance + 8);
+    const cfg = this.config as SumoConfig;
+    const regen = (cfg.gameplay?.balanceRegenRate as number) ?? DEFAULT_BALANCE_REGEN;
+    const maxBal = (cfg.gameplay?.maxBalance as number) ?? DEFAULT_MAX_BALANCE;
+    wrestler.balance = Math.min(maxBal, wrestler.balance + regen);
   }
 
   private checkRingOut(data: SumoState): void {
@@ -199,7 +244,9 @@ export class SumoGame extends BaseGame {
   }
 
   private isVulnerable(wrestler: Wrestler): boolean {
-    return wrestler.balance < 30;
+    const cfg = this.config as SumoConfig;
+    const threshold = (cfg.gameplay?.balanceThreshold as number) ?? DEFAULT_BALANCE_THRESHOLD;
+    return wrestler.balance < threshold;
   }
 
   private finalizeTurn(data: SumoState): void {
@@ -235,10 +282,18 @@ export class SumoGame extends BaseGame {
       pushDist += 1;
     }
 
+    const cfg = this.config as SumoConfig;
     opponent.position += dir * pushDist;
-    opponent.balance = Math.max(0, opponent.balance - 6);
+    opponent.balance = Math.max(
+      0,
+      opponent.balance -
+        ((cfg.gameplay?.pushBalanceDamage as number) ?? DEFAULT_PUSH_BALANCE_DAMAGE),
+    );
     wrestler.lastAction = 'push';
-    this.consumeStamina(wrestler, 5);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.pushStaminaCost as number) ?? DEFAULT_PUSH_STAMINA_COST,
+    );
 
     this.emitEvent('push', playerId, { distance: pushDist, targetPos: opponent.position });
     this.finalizeTurn(data);
@@ -257,10 +312,13 @@ export class SumoGame extends BaseGame {
       pullDist = 2;
     }
 
-    // Pull opponent toward self (opposite of push direction)
+    const cfg = this.config as SumoConfig;
     opponent.position -= dir * pullDist;
     wrestler.lastAction = 'pull';
-    this.consumeStamina(wrestler, 5);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.pullStaminaCost as number) ?? DEFAULT_PUSH_STAMINA_COST,
+    );
 
     this.emitEvent('pull', playerId, { distance: pullDist, targetPos: opponent.position });
     this.finalizeTurn(data);
@@ -275,9 +333,13 @@ export class SumoGame extends BaseGame {
       return { success: false, error: 'Invalid grip type' };
     }
 
+    const cfg = this.config as SumoConfig;
     wrestler.grip = gripType;
     wrestler.lastAction = 'grip';
-    this.consumeStamina(wrestler, 5);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.gripStaminaCost as number) ?? DEFAULT_PUSH_STAMINA_COST,
+    );
 
     this.emitEvent('grip', playerId, { type: gripType });
     this.finalizeTurn(data);
@@ -293,9 +355,11 @@ export class SumoGame extends BaseGame {
       return { success: false, error: 'Need a grip to throw' };
     }
 
-    this.consumeStamina(wrestler, 5);
-
-    // Success chance: 70% + (str - opp.balance)*2%
+    const cfg = this.config as SumoConfig;
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.throwStaminaCost as number) ?? DEFAULT_PUSH_STAMINA_COST,
+    );
     const chance = Math.min(
       95,
       Math.max(10, 70 + (wrestler.stats.str - opponent.balance * 0.1) * 2),
@@ -309,7 +373,11 @@ export class SumoGame extends BaseGame {
         throwDist += 1;
       }
       opponent.position += dir * throwDist;
-      opponent.balance = Math.max(0, opponent.balance - 18);
+      opponent.balance = Math.max(
+        0,
+        opponent.balance -
+          ((cfg.gameplay?.throwBalanceDamage as number) ?? DEFAULT_THROW_BALANCE_DAMAGE),
+      );
       this.emitEvent('throw_success', playerId, {
         distance: throwDist,
         targetPos: opponent.position,
@@ -324,11 +392,15 @@ export class SumoGame extends BaseGame {
   }
 
   private handleSidestep(playerId: string, data: SumoState): ActionResult {
+    const cfg = this.config as SumoConfig;
     const wrestler = data.wrestlers[playerId];
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
-    this.consumeStamina(wrestler, 5);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.pushStaminaCost as number) ?? DEFAULT_PUSH_STAMINA_COST,
+    );
 
     // Dodge chance: 80% + speed*2%
     const dodgeChance = Math.min(95, 80 + wrestler.stats.speed * 2);
@@ -355,14 +427,19 @@ export class SumoGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
-    // Break opponent grip
+    const cfg = this.config as SumoConfig;
     opponent.grip = null;
-    // Balance damage
-    opponent.balance = Math.max(0, opponent.balance - 6);
+    opponent.balance = Math.max(
+      0,
+      opponent.balance -
+        ((cfg.gameplay?.slapBalanceDamage as number) ?? DEFAULT_SLAP_BALANCE_DAMAGE),
+    );
 
     wrestler.lastAction = 'slap';
-    // Slap costs minimal stamina
-    this.consumeStamina(wrestler, 3);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.slapStaminaCost as number) ?? DEFAULT_SLAP_STAMINA_COST,
+    );
 
     this.emitEvent('slap', playerId, { balance: opponent.balance });
     this.finalizeTurn(data);
@@ -378,8 +455,12 @@ export class SumoGame extends BaseGame {
       return { success: false, error: 'Charge only available on first turn (tachiai)' };
     }
 
+    const cfg = this.config as SumoConfig;
     wrestler.tachiai = false;
-    this.consumeStamina(wrestler, 5);
+    this.consumeStamina(
+      wrestler,
+      (cfg.gameplay?.chargeStaminaCost as number) ?? DEFAULT_CHARGE_STAMINA_COST,
+    );
 
     const dir = this.getDirection(wrestler, opponent);
     let pushDist = 2;
@@ -394,7 +475,11 @@ export class SumoGame extends BaseGame {
     }
 
     opponent.position += dir * pushDist;
-    opponent.balance = Math.max(0, opponent.balance - 12);
+    opponent.balance = Math.max(
+      0,
+      opponent.balance -
+        ((cfg.gameplay?.chargeBalanceDamage as number) ?? DEFAULT_CHARGE_BALANCE_DAMAGE),
+    );
     wrestler.pendingCharge = true;
     wrestler.lastAction = 'charge';
 

@@ -1,6 +1,6 @@
 # Moltblox Creator Marketing: Getting Players to Your Game
 
-> This skill teaches you how to market your game effectively within Moltblox and beyond. Updated to reference the 259 game catalog, 10 beat-em-up templates, FPS (DOOM Arena) template, and the wagering system.
+> This skill teaches you how to market your game effectively within Moltblox and beyond. Updated to reference the 260 game catalog, 10 beat-em-up templates, FPS (DOOM Arena) template, and the wagering system.
 
 ## Why Marketing Matters
 
@@ -46,9 +46,9 @@ Before you market anything, make sure your game is worth marketing.
 
 ---
 
-## Marketing Angles for a 259 Game Platform
+## Marketing Angles for a 260 Game Platform
 
-With 25 hand-coded templates, 105 state machine packs, and 234 ported classics, your marketing needs to emphasize what makes YOUR game stand out from the entire catalog.
+With 26 hand-coded templates, 105 state machine packs, and 234 ported classics, your marketing needs to emphasize what makes YOUR game stand out from the entire catalog.
 
 ### Marketing by Game Origin
 

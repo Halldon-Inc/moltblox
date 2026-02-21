@@ -36,6 +36,21 @@ export interface FPSConfig {
   startLevel?: number;
   secretLevelUnlocked?: boolean;
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+  theme?: {
+    wallColors?: Record<number, string>;
+    floorColor?: string;
+    ceilingColor?: string;
+  };
+  gameplay?: {
+    moveSpeed?: number;
+    turnSpeed?: number;
+    damageMultiplier?: number;
+  };
+  content?: {
+    weapons?: WeaponDef[];
+    enemies?: Record<string, EnemyStatsDef>;
+    levels?: LevelData[];
+  };
 }
 
 export interface LevelData {
@@ -357,16 +372,22 @@ export class FPSGame extends BaseGame {
   readonly version = '1.0.0';
   readonly maxPlayers = 1;
 
+  private getLevels(): LevelData[] {
+    const cfg = this.config as FPSConfig;
+    return (cfg.content?.levels as LevelData[]) ?? LEVELS;
+  }
+
   protected initializeState(playerIds: string[]): FPSGameData {
     const cfg = this.config as FPSConfig;
     const difficulty = cfg.difficulty ?? 'normal';
     const startLevel = cfg.startLevel ?? 1;
     const secretLevelUnlocked = cfg.secretLevelUnlocked ?? false;
+    const levels = this.getLevels();
 
     // Clamp start level to valid range
-    const maxLevel = secretLevelUnlocked ? LEVELS.length : LEVELS.length - 1;
+    const maxLevel = secretLevelUnlocked ? levels.length : levels.length - 1;
     const levelIndex = Math.max(0, Math.min(startLevel - 1, maxLevel - 1));
-    const levelData = LEVELS[levelIndex];
+    const levelData = levels[levelIndex];
 
     this.emitEvent('game_started', playerIds[0], {
       level: levelIndex + 1,
@@ -383,7 +404,7 @@ export class FPSGame extends BaseGame {
       secretsFound: 0,
       totalSecrets: levelData.secrets.length,
       levelsCompleted: 0,
-      totalLevels: secretLevelUnlocked ? LEVELS.length : LEVELS.length - 1,
+      totalLevels: secretLevelUnlocked ? levels.length : levels.length - 1,
       playerHealth: 100,
       playerArmor: 0,
       playerWeapons: ['Fist', 'Pistol'],
@@ -406,8 +427,9 @@ export class FPSGame extends BaseGame {
        * between levels or when the player restarts.
        */
       case 'start_level': {
+        const levels = this.getLevels();
         const requestedLevel = Number(action.payload.level) || 1;
-        const maxLevel = data.secretLevelUnlocked ? LEVELS.length : LEVELS.length - 1;
+        const maxLevel = data.secretLevelUnlocked ? levels.length : levels.length - 1;
 
         if (requestedLevel < 1 || requestedLevel > maxLevel) {
           return {
@@ -417,11 +439,11 @@ export class FPSGame extends BaseGame {
         }
 
         // Secret level check
-        if (requestedLevel === 4 && !data.secretLevelUnlocked) {
+        if (requestedLevel === levels.length && !data.secretLevelUnlocked) {
           return { success: false, error: 'Secret level is locked. Purchase access to unlock it.' };
         }
 
-        const levelData = LEVELS[requestedLevel - 1];
+        const levelData = levels[requestedLevel - 1];
         data.level = requestedLevel;
         data.levelData = levelData;
         data.totalEnemies = levelData.enemies.length;
@@ -502,11 +524,12 @@ export class FPSGame extends BaseGame {
         });
 
         // Check if there is a next main level
-        const mainLevels = LEVELS.length - 1; // Exclude secret level from main progression
+        const levels = this.getLevels();
+        const mainLevels = levels.length - 1; // Exclude secret level from main progression
         if (data.level < mainLevels) {
           // Auto-advance to next level
           const nextLevel = data.level + 1;
-          const nextLevelData = LEVELS[nextLevel - 1];
+          const nextLevelData = levels[nextLevel - 1];
           data.level = nextLevel;
           data.levelData = nextLevelData;
           data.totalEnemies = nextLevelData.enemies.length;
@@ -552,7 +575,8 @@ export class FPSGame extends BaseGame {
       case 'restart': {
         const cfg = this.config as FPSConfig;
         const difficulty = cfg.difficulty ?? 'normal';
-        const levelData = LEVELS[0];
+        const levels = this.getLevels();
+        const levelData = levels[0];
 
         const freshState: FPSGameData = {
           level: 1,
@@ -563,7 +587,7 @@ export class FPSGame extends BaseGame {
           secretsFound: 0,
           totalSecrets: levelData.secrets.length,
           levelsCompleted: 0,
-          totalLevels: data.secretLevelUnlocked ? LEVELS.length : LEVELS.length - 1,
+          totalLevels: data.secretLevelUnlocked ? levels.length : levels.length - 1,
           playerHealth: 100,
           playerArmor: 0,
           playerWeapons: ['Fist', 'Pistol'],
@@ -586,8 +610,9 @@ export class FPSGame extends BaseGame {
     const data = this.getData<FPSGameData>();
     if (data.gameOver) return true;
 
-    // Game ends when all main levels are completed (3 levels)
-    const mainLevels = LEVELS.length - 1;
+    // Game ends when all main levels are completed
+    const levels = this.getLevels();
+    const mainLevels = levels.length - 1;
     return data.levelsCompleted >= mainLevels;
   }
 

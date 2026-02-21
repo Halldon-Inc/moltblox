@@ -53,6 +53,15 @@ export default function FPSRenderer({ gameConfig: config }: FPSRendererProps) {
   const [started, setStarted] = useState(false);
   const [showControls, setShowControls] = useState(true);
 
+  // Read visual theme config from _config (passed via gameConfig)
+  const themeCfg = ((config as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const fpsTheme = (themeCfg.theme ?? {}) as Record<string, unknown>;
+  const themeOverrides = {
+    wallColors: fpsTheme.wallColors as Record<number, [number, number, number]> | undefined,
+    floorColor: fpsTheme.floorColor as string[] | undefined,
+    ceilingColor: fpsTheme.ceilingColor as string[] | undefined,
+  };
+
   // Initialize game
   const initGame = useCallback(
     (levelIndex = 0, carryOver?: FPSGameState) => {
@@ -80,6 +89,13 @@ export default function FPSRenderer({ gameConfig: config }: FPSRendererProps) {
       };
 
       stateRef.current = buildLevelState(levelIndex, carry, glove, configOptions);
+      // Attach theme overrides for the renderer
+      if (
+        stateRef.current &&
+        (themeOverrides.wallColors ?? themeOverrides.floorColor ?? themeOverrides.ceilingColor)
+      ) {
+        stateRef.current.themeOverrides = themeOverrides;
+      }
       lastTimeRef.current = 0;
 
       // Apply marketplace weapon ownership: only allow owned weapons beyond pistol/fist

@@ -19,6 +19,31 @@ export interface BrawlerConfig {
   enemyDensity?: number;
   weaponSpawnRate?: number;
   coopPlayers?: number;
+  theme?: {
+    arenaBackground?: string;
+    fighterColors?: Record<string, string>;
+    hitEffectColor?: string;
+  };
+  gameplay?: {
+    baseDamage?: number;
+    jumpAttackDamage?: number;
+    grabDamage?: number;
+    throwDamage?: number;
+    specialDamage?: number;
+    specialHpCost?: number;
+    dodgeStaminaCost?: number;
+    blockReduction?: number;
+    comboScaling?: number;
+    playerHp?: number;
+    playerStamina?: number;
+    playerLives?: number;
+    wavesPerStage?: number;
+    killScore?: number;
+  };
+  content?: {
+    enemyTemplates?: Record<string, { hp: number; atk: number }>;
+    weaponTypes?: Record<string, { damage: number; durability: number }>;
+  };
 }
 
 interface BrawlerPlayer {
@@ -69,25 +94,33 @@ interface BrawlerState {
   [key: string]: unknown;
 }
 
-const ENEMY_TEMPLATES: Record<string, { hp: number; atk: number }> = {
+const DEFAULT_ENEMY_TEMPLATES: Record<string, { hp: number; atk: number }> = {
   Thug: { hp: 20, atk: 4 },
   Bruiser: { hp: 40, atk: 7 },
   Knife: { hp: 25, atk: 10 },
   Boss: { hp: 80, atk: 12 },
 };
 
-const WEAPON_TYPES: Record<string, { damage: number; durability: number }> = {
+const DEFAULT_WEAPON_TYPES: Record<string, { damage: number; durability: number }> = {
   pipe: { damage: 12, durability: 5 },
   bat: { damage: 15, durability: 4 },
   chain: { damage: 10, durability: 8 },
 };
 
-const BASE_ATTACK_DAMAGE = 8;
-const JUMP_ATTACK_DAMAGE = 12;
-const GRAB_DAMAGE = 6;
-const THROW_DAMAGE = 15;
-const SPECIAL_DAMAGE = 20;
-const SPECIAL_HP_COST = 20;
+const DEFAULT_BASE_ATTACK_DAMAGE = 8;
+const DEFAULT_JUMP_ATTACK_DAMAGE = 12;
+const DEFAULT_GRAB_DAMAGE = 6;
+const DEFAULT_THROW_DAMAGE = 15;
+const DEFAULT_SPECIAL_DAMAGE = 20;
+const DEFAULT_SPECIAL_HP_COST = 20;
+const DEFAULT_DODGE_STAMINA_COST = 20;
+const DEFAULT_BLOCK_REDUCTION = 0.4;
+const DEFAULT_COMBO_SCALING = 0.15;
+const DEFAULT_PLAYER_HP = 100;
+const DEFAULT_PLAYER_STAMINA = 100;
+const DEFAULT_PLAYER_LIVES = 3;
+const DEFAULT_WAVES_PER_STAGE = 3;
+const DEFAULT_KILL_SCORE = 50;
 
 export class BrawlerGame extends BaseGame {
   readonly name = 'Brawler';
@@ -99,19 +132,23 @@ export class BrawlerGame extends BaseGame {
     const totalStages = cfg.stageCount ?? 3;
     const enemyDensity = cfg.enemyDensity ?? 3;
     const weaponSpawnRate = cfg.weaponSpawnRate ?? 0.3;
+    const playerHp = (cfg.gameplay?.playerHp as number) ?? DEFAULT_PLAYER_HP;
+    const playerStamina = (cfg.gameplay?.playerStamina as number) ?? DEFAULT_PLAYER_STAMINA;
+    const playerLives = (cfg.gameplay?.playerLives as number) ?? DEFAULT_PLAYER_LIVES;
+    const wavesPerStage = (cfg.gameplay?.wavesPerStage as number) ?? DEFAULT_WAVES_PER_STAGE;
 
     const players: Record<string, BrawlerPlayer> = {};
     for (const pid of playerIds) {
       players[pid] = {
-        hp: 100,
-        maxHp: 100,
-        stamina: 100,
-        maxStamina: 100,
+        hp: playerHp,
+        maxHp: playerHp,
+        stamina: playerStamina,
+        maxStamina: playerStamina,
         x: 0,
         score: 0,
         weapon: null,
         comboCount: 0,
-        lives: 3,
+        lives: playerLives,
         lastAction: null,
         blocking: false,
       };
@@ -123,7 +160,7 @@ export class BrawlerGame extends BaseGame {
       totalStages,
       enemies: [],
       currentWave: 1,
-      wavesPerStage: 3,
+      wavesPerStage,
       weapons: [],
       gameOver: false,
       stageCleared: false,
@@ -210,6 +247,7 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleAttack(playerId: string, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
     const player = data.players[playerId];
     const aliveEnemies = data.enemies.filter((e) => e.alive);
 
@@ -218,7 +256,7 @@ export class BrawlerGame extends BaseGame {
     }
 
     const target = aliveEnemies[0];
-    let damage = BASE_ATTACK_DAMAGE;
+    let damage = (cfg.gameplay?.baseDamage as number) ?? DEFAULT_BASE_ATTACK_DAMAGE;
 
     damage = this.applyCombo(player, 'attack', damage);
 
@@ -234,7 +272,8 @@ export class BrawlerGame extends BaseGame {
     if (target.hp <= 0) {
       target.hp = 0;
       target.alive = false;
-      player.score += 50;
+      const killScore = (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
+      player.score += killScore;
       this.emitEvent('enemy_defeated', playerId, { enemy: target.id, name: target.name });
     }
 
@@ -246,6 +285,7 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleJumpAttack(playerId: string, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
     const player = data.players[playerId];
     const aliveEnemies = data.enemies.filter((e) => e.alive);
 
@@ -254,7 +294,7 @@ export class BrawlerGame extends BaseGame {
     }
 
     const target = aliveEnemies[0];
-    let damage = JUMP_ATTACK_DAMAGE;
+    let damage = (cfg.gameplay?.jumpAttackDamage as number) ?? DEFAULT_JUMP_ATTACK_DAMAGE;
 
     damage = this.applyCombo(player, 'jump_attack', damage);
 
@@ -270,7 +310,8 @@ export class BrawlerGame extends BaseGame {
     if (target.hp <= 0) {
       target.hp = 0;
       target.alive = false;
-      player.score += 50;
+      const killScore = (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
+      player.score += killScore;
       this.emitEvent('enemy_defeated', playerId, { enemy: target.id });
     }
 
@@ -282,6 +323,7 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleGrab(playerId: string, action: GameAction, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
     const player = data.players[playerId];
     const targetId = action.payload.targetId as string;
     const target = data.enemies.find((e) => e.id === targetId && e.alive);
@@ -290,7 +332,7 @@ export class BrawlerGame extends BaseGame {
       return { success: false, error: 'Target not found or already defeated' };
     }
 
-    let damage = GRAB_DAMAGE;
+    let damage = (cfg.gameplay?.grabDamage as number) ?? DEFAULT_GRAB_DAMAGE;
     damage = this.applyCombo(player, 'grab', damage);
 
     target.hp -= damage;
@@ -301,7 +343,7 @@ export class BrawlerGame extends BaseGame {
     if (target.hp <= 0) {
       target.hp = 0;
       target.alive = false;
-      player.score += 50;
+      player.score += (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
       this.emitEvent('enemy_defeated', playerId, { enemy: target.id });
     }
 
@@ -313,6 +355,7 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleThrow(playerId: string, action: GameAction, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
     const player = data.players[playerId];
     const targetId = action.payload.targetId as string;
     const target = data.enemies.find((e) => e.id === targetId && e.alive);
@@ -321,7 +364,7 @@ export class BrawlerGame extends BaseGame {
       return { success: false, error: 'Target not found or already defeated' };
     }
 
-    let damage = THROW_DAMAGE;
+    let damage = (cfg.gameplay?.throwDamage as number) ?? DEFAULT_THROW_DAMAGE;
     damage = this.applyCombo(player, 'throw', damage);
 
     target.hp -= damage;
@@ -332,7 +375,7 @@ export class BrawlerGame extends BaseGame {
     if (target.hp <= 0) {
       target.hp = 0;
       target.alive = false;
-      player.score += 50;
+      player.score += (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
       this.emitEvent('enemy_defeated', playerId, { enemy: target.id });
     }
 
@@ -344,6 +387,8 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleUseWeapon(playerId: string, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
+    const weaponDefs = cfg.content?.weaponTypes ?? DEFAULT_WEAPON_TYPES;
     const player = data.players[playerId];
 
     if (!player.weapon) {
@@ -355,7 +400,7 @@ export class BrawlerGame extends BaseGame {
       return { success: false, error: 'No enemies to attack' };
     }
 
-    const weaponInfo = WEAPON_TYPES[player.weapon];
+    const weaponInfo = weaponDefs[player.weapon];
     if (!weaponInfo) {
       return { success: false, error: 'Invalid weapon type' };
     }
@@ -389,7 +434,7 @@ export class BrawlerGame extends BaseGame {
     if (target.hp <= 0) {
       target.hp = 0;
       target.alive = false;
-      player.score += 50;
+      player.score += (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
       this.emitEvent('enemy_defeated', playerId, { enemy: target.id });
     }
 
@@ -401,22 +446,26 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleSpecial(playerId: string, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
+    const specialDamage = (cfg.gameplay?.specialDamage as number) ?? DEFAULT_SPECIAL_DAMAGE;
+    const specialHpCost = (cfg.gameplay?.specialHpCost as number) ?? DEFAULT_SPECIAL_HP_COST;
+    const killScore = (cfg.gameplay?.killScore as number) ?? DEFAULT_KILL_SCORE;
     const player = data.players[playerId];
 
-    if (player.hp <= SPECIAL_HP_COST) {
+    if (player.hp <= specialHpCost) {
       return { success: false, error: 'Not enough HP for special attack' };
     }
 
-    player.hp -= SPECIAL_HP_COST;
+    player.hp -= specialHpCost;
 
     const aliveEnemies = data.enemies.filter((e) => e.alive);
     for (const enemy of aliveEnemies) {
-      enemy.hp -= SPECIAL_DAMAGE;
-      player.score += SPECIAL_DAMAGE;
+      enemy.hp -= specialDamage;
+      player.score += specialDamage;
       if (enemy.hp <= 0) {
         enemy.hp = 0;
         enemy.alive = false;
-        player.score += 50;
+        player.score += killScore;
         this.emitEvent('enemy_defeated', playerId, { enemy: enemy.id });
       }
     }
@@ -424,7 +473,7 @@ export class BrawlerGame extends BaseGame {
     player.comboCount = 0;
     player.lastAction = 'special';
 
-    this.emitEvent('special', playerId, { damage: SPECIAL_DAMAGE, hpCost: SPECIAL_HP_COST });
+    this.emitEvent('special', playerId, { damage: specialDamage, hpCost: specialHpCost });
 
     this.checkWaveClear(data);
 
@@ -449,19 +498,21 @@ export class BrawlerGame extends BaseGame {
   }
 
   private handleDodge(playerId: string, data: BrawlerState): ActionResult {
+    const cfg = this.config as BrawlerConfig;
     const player = data.players[playerId];
-    const DODGE_STAMINA_COST = 20;
+    const dodgeStaminaCost =
+      (cfg.gameplay?.dodgeStaminaCost as number) ?? DEFAULT_DODGE_STAMINA_COST;
 
-    if (player.stamina < DODGE_STAMINA_COST) {
+    if (player.stamina < dodgeStaminaCost) {
       return { success: false, error: 'Not enough stamina to dodge' };
     }
 
-    player.stamina -= DODGE_STAMINA_COST;
+    player.stamina -= dodgeStaminaCost;
     player.comboCount = 0;
     player.lastAction = 'dodge';
 
     this.emitEvent('dodge', playerId, {
-      staminaCost: DODGE_STAMINA_COST,
+      staminaCost: dodgeStaminaCost,
       staminaRemaining: player.stamina,
     });
 
@@ -490,9 +541,11 @@ export class BrawlerGame extends BaseGame {
   }
 
   private applyCombo(player: BrawlerPlayer, actionType: string, baseDamage: number): number {
+    const cfg = this.config as BrawlerConfig;
+    const comboScaling = (cfg.gameplay?.comboScaling as number) ?? DEFAULT_COMBO_SCALING;
     if (player.lastAction && player.lastAction !== actionType && player.lastAction !== 'move') {
       player.comboCount++;
-      const multiplier = 1 + player.comboCount * 0.15;
+      const multiplier = 1 + player.comboCount * comboScaling;
       player.lastAction = actionType;
       return Math.floor(baseDamage * multiplier);
     }
@@ -502,14 +555,15 @@ export class BrawlerGame extends BaseGame {
   }
 
   private enemyCounterattack(data: BrawlerState, playerId: string): void {
+    const cfg = this.config as BrawlerConfig;
+    const blockReduction = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
     const player = data.players[playerId];
     const aliveEnemies = data.enemies.filter((e) => e.alive);
 
     for (const enemy of aliveEnemies) {
       let incomingDamage = enemy.atk;
-      // Blocking reduces incoming damage by 60%
       if (player.blocking) {
-        incomingDamage = Math.floor(incomingDamage * 0.4);
+        incomingDamage = Math.floor(incomingDamage * blockReduction);
       }
       player.hp -= incomingDamage;
       if (player.hp <= 0) {
@@ -572,6 +626,8 @@ export class BrawlerGame extends BaseGame {
   }
 
   private spawnWave(data: BrawlerState, enemyDensity: number, stage: number): void {
+    const cfg = this.config as BrawlerConfig;
+    const enemyTemplates = cfg.content?.enemyTemplates ?? DEFAULT_ENEMY_TEMPLATES;
     const enemies: BrawlerEnemy[] = [];
     const types =
       stage >= data.totalStages && data.currentWave >= data.wavesPerStage
@@ -580,7 +636,7 @@ export class BrawlerGame extends BaseGame {
 
     for (let i = 0; i < types.length; i++) {
       const typeName = types[i];
-      const template = ENEMY_TEMPLATES[typeName];
+      const template = enemyTemplates[typeName];
       enemies.push({
         id: `enemy_s${stage}_w${data.currentWave}_${i}`,
         name: typeName,
@@ -612,10 +668,12 @@ export class BrawlerGame extends BaseGame {
   }
 
   private maybeSpawnWeapon(data: BrawlerState, rate: number): void {
+    const cfg = this.config as BrawlerConfig;
+    const weaponDefs = cfg.content?.weaponTypes ?? DEFAULT_WEAPON_TYPES;
     if (Math.random() < rate) {
-      const weaponTypes = Object.keys(WEAPON_TYPES);
+      const weaponTypes = Object.keys(weaponDefs);
       const chosen = weaponTypes[Math.floor(Math.random() * weaponTypes.length)];
-      const info = WEAPON_TYPES[chosen];
+      const info = weaponDefs[chosen];
       data.weapons.push({
         id: `weapon_s${data.currentStage}_w${data.currentWave}`,
         type: chosen,

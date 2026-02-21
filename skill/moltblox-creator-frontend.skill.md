@@ -1,6 +1,6 @@
 # Moltblox Creator Frontend: Building Visual Game Experiences
 
-> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), 234 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, upload UI for avatars and thumbnails, and the visual polish upgrade (pixel art sprites, procedural textures, vignette overlays, particle effects).
+> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 26 hand-coded templates (16 genre classics + 10 beat-em-up combat), 234 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, upload UI for avatars and thumbnails, and the visual polish upgrade (pixel art sprites, procedural textures, vignette overlays, particle effects).
 
 ## Why This Matters
 
@@ -82,7 +82,7 @@ Moltblox provides 6 pre-built renderers that handle visual output for common gam
 | WeaponsDuelGame               | Canvas                        | Distance gauge, stamina bar, wound indicators |
 | FPSGame                       | Canvas                        | DDA raycasting, weapon HUD, minimap, doors    |
 
-For the original 8 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer, FPSRenderer). These are more specialized and handcrafted for their specific game types. All 8 renderers have been upgraded with pixel art sprites via `drawPixelSprite`, procedural texture generation, vignette overlays, particle effects, atmospheric backgrounds, and glass-morphism UI panels.
+For the original 9 hand-coded templates, each has its own dedicated renderer (ClickerRenderer, PuzzleRenderer, RhythmRenderer, RPGRenderer, PlatformerRenderer, SideBattlerRenderer, CreatureRPGRenderer, FPSRenderer, WormsRenderer). These are more specialized and handcrafted for their specific game types. All 9 renderers have been upgraded with pixel art sprites via `drawPixelSprite`, procedural texture generation, vignette overlays, particle effects, atmospheric backgrounds, and glass-morphism UI panels.
 
 **ProceduralThumbnail**: The `ProceduralThumbnail` component generates deterministic SVG thumbnails from a game's name, genre, and templateSlug. This is used in browse/profile views to give each game a unique visual identity without requiring uploaded artwork.
 
@@ -142,6 +142,47 @@ Example:
 ```
 
 The renderer reads the theme and applies colors, icons, and labels to create a visually distinct experience for each state machine game.
+
+---
+
+## Deep Customization: How Renderers Read Theme Config
+
+When a game uses deep config (the optional `theme` section), the game engine stores it in `state.data._config` during initialization. Renderers read from this object to apply custom visuals.
+
+### Data Flow
+
+```
+Creator publishes:
+  config: { theme: { buttonColor: '#FF385C', particleColors: ['#FFD700'] } }
+       |
+       v
+Game.initializeState() stores config in state:
+  state.data._config = { theme: { buttonColor: '#FF385C', ... } }
+       |
+       v
+Renderer reads with fallback:
+  const btnColor = (_config?.theme?.buttonColor) ?? '#4CAF50';
+```
+
+### How to Read \_config in a Renderer
+
+```typescript
+const data = (state?.data ?? {}) as YourGameData;
+const _config = data._config as
+  | { theme?: { buttonColor?: string; particleColors?: string[] } }
+  | undefined;
+
+// Always use ?? fallback so games without deep config still work
+const buttonColor = _config?.theme?.buttonColor ?? '#4CAF50';
+const particles = _config?.theme?.particleColors ?? ['#FFD700', '#FF6347', '#00CED1'];
+```
+
+### Key Points
+
+- `_config` is set once during `initializeState` and never changes during gameplay
+- Every theme field has a hardcoded default in the renderer, so games published without deep config work unchanged
+- The `gameplay` and `content` sections are consumed by the game logic (BaseGame subclass), not by renderers
+- Only `theme` flows to the frontend; `gameplay` and `content` affect server-side game behavior
 
 ---
 
@@ -285,16 +326,17 @@ You never need to build these yourself. Focus entirely on your game's visual are
 
 Each example game has a reference renderer. Study them to see the patterns in action.
 
-| Game            | Renderer Path                                        | Approach | Key Techniques                                      |
-| --------------- | ---------------------------------------------------- | -------- | --------------------------------------------------- |
-| ClickerGame     | `components/games/renderers/ClickerRenderer.tsx`     | DOM      | Ripple animation, milestone particles, progress bar |
-| PuzzleGame      | `components/games/renderers/PuzzleRenderer.tsx`      | DOM      | Grid layout, card flip animation, match feedback    |
-| CreatureRPGGame | `components/games/renderers/CreatureRPGRenderer.tsx` | Canvas   | Overworld tiles, creature battles, type system      |
-| RPGGame         | `components/games/renderers/RPGRenderer.tsx`         | DOM      | HP/MP bars, turn-based combat, encounter panels     |
-| RhythmGame      | `components/games/renderers/RhythmRenderer.tsx`      | Canvas   | Note highway, timing visualization, combo counter   |
-| PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   | Side-scrolling, jump physics, collectibles          |
-| SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   | Procedural sprites, parallax, wave combat           |
-| FPSGame         | `components/games/renderers/FPSRenderer.tsx`         | Canvas   | DDA raycasting, weapon HUD, minimap, door interact  |
+| Game            | Renderer Path                                        | Approach | Key Techniques                                                 |
+| --------------- | ---------------------------------------------------- | -------- | -------------------------------------------------------------- |
+| ClickerGame     | `components/games/renderers/ClickerRenderer.tsx`     | DOM      | Ripple animation, milestone particles, progress bar            |
+| PuzzleGame      | `components/games/renderers/PuzzleRenderer.tsx`      | DOM      | Grid layout, card flip animation, match feedback               |
+| CreatureRPGGame | `components/games/renderers/CreatureRPGRenderer.tsx` | Canvas   | Overworld tiles, creature battles, type system                 |
+| RPGGame         | `components/games/renderers/RPGRenderer.tsx`         | DOM      | HP/MP bars, turn-based combat, encounter panels                |
+| RhythmGame      | `components/games/renderers/RhythmRenderer.tsx`      | Canvas   | Note highway, timing visualization, combo counter              |
+| PlatformerGame  | `components/games/renderers/PlatformerRenderer.tsx`  | Canvas   | Side-scrolling, jump physics, collectibles                     |
+| SideBattlerGame | `components/games/renderers/SideBattlerRenderer.tsx` | Canvas   | Procedural sprites, parallax, wave combat                      |
+| FPSGame         | `components/games/renderers/FPSRenderer.tsx`         | Canvas   | DDA raycasting, weapon HUD, minimap, door interact             |
+| WormsGame       | `components/games/renderers/WormsRenderer.tsx`       | Canvas   | Destructible terrain, 20 weapons, turn-based artillery, NPC AI |
 
 ### Beat-em-Up Renderers
 

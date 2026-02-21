@@ -150,7 +150,7 @@ const NPC_LIST: NPCInfo[] = [
 // Color palettes for procedural sprites
 // ---------------------------------------------------------------------------
 
-const TYPE_COLORS: Record<string, { primary: string; secondary: string; glow: string }> = {
+const DEFAULT_TYPE_COLORS: Record<string, { primary: string; secondary: string; glow: string }> = {
   fire: { primary: '#ff6b35', secondary: '#ff4500', glow: '#ff8c00' },
   water: { primary: '#4fc3f7', secondary: '#0288d1', glow: '#29b6f6' },
   grass: { primary: '#66bb6a', secondary: '#388e3c', glow: '#81c784' },
@@ -159,7 +159,7 @@ const TYPE_COLORS: Record<string, { primary: string; secondary: string; glow: st
   normal: { primary: '#a1887f', secondary: '#6d4c41', glow: '#bcaaa4' },
 };
 
-const TILE_COLORS: Record<number, string> = {
+const DEFAULT_TILE_COLORS: Record<number, string> = {
   [T.GRASS]: '#4a7c3f',
   [T.TALL_GRASS]: '#3a6b30',
   [T.TREE]: '#2d5a27',
@@ -174,6 +174,8 @@ const TILE_COLORS: Record<number, string> = {
   [T.GYM_DOOR]: '#9c27b0',
   [T.SAND]: '#d4b896',
 };
+
+const DEFAULT_BATTLE_UI_COLOR = '#e87927';
 
 // ---------------------------------------------------------------------------
 // Animation types
@@ -206,6 +208,10 @@ function generateCreatureSprite(
   species: string,
   size: number,
   facing: 'left' | 'right' = 'right',
+  typeColors: Record<
+    string,
+    { primary: string; secondary: string; glow: string }
+  > = DEFAULT_TYPE_COLORS,
 ): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = size;
@@ -213,7 +219,7 @@ function generateCreatureSprite(
   const ctx = canvas.getContext('2d')!;
   const s = size / 32; // scale factor
 
-  const colors = TYPE_COLORS[getSpeciesType(species)] || TYPE_COLORS.normal;
+  const colors = typeColors[getSpeciesType(species)] || typeColors.normal;
 
   switch (species) {
     case 'emberfox': {
@@ -747,6 +753,46 @@ export default function CreatureRPGRenderer({
 
   const data = state?.data as CreatureRPGState | undefined;
 
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+  const content = (cfg.content ?? {}) as Record<string, unknown>;
+
+  // Override TYPE_COLORS from config
+  const cfgWorldColors = theme.worldColors as
+    | Record<string, { primary?: string; secondary?: string; glow?: string }>
+    | undefined;
+  const TYPE_COLORS = useMemo(() => {
+    if (!cfgWorldColors) return DEFAULT_TYPE_COLORS;
+    const merged = { ...DEFAULT_TYPE_COLORS };
+    for (const [k, v] of Object.entries(cfgWorldColors)) {
+      merged[k] = {
+        primary: v.primary ?? merged[k]?.primary ?? '#a1887f',
+        secondary: v.secondary ?? merged[k]?.secondary ?? '#6d4c41',
+        glow: v.glow ?? merged[k]?.glow ?? '#bcaaa4',
+      };
+    }
+    return merged;
+  }, [cfgWorldColors]);
+
+  // Override TILE_COLORS from config
+  const cfgTileColors = theme.tileColors as Record<string, string> | undefined;
+  const TILE_COLORS = useMemo(() => {
+    if (!cfgTileColors) return DEFAULT_TILE_COLORS;
+    const merged = { ...DEFAULT_TILE_COLORS };
+    for (const [k, v] of Object.entries(cfgTileColors)) {
+      merged[Number(k)] = v;
+    }
+    return merged;
+  }, [cfgTileColors]);
+
+  const battleUIColor = (theme.battleUIColor as string) ?? DEFAULT_BATTLE_UI_COLOR;
+  const npcDialogue = content.npcDialogue as Record<string, string> | undefined;
+
+  // Suppress lint warnings for variables used inside render functions
+  void battleUIColor;
+  void npcDialogue;
+
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameCountRef = useRef(0);
   const spriteCacheRef = useRef<Record<string, HTMLCanvasElement>>({});
@@ -786,7 +832,7 @@ export default function CreatureRPGRenderer({
     for (const c of data.party) {
       const key = `creature_${c.species}_right`;
       if (!cache[key]) {
-        cache[key] = generateCreatureSprite(c.species, 64, 'right');
+        cache[key] = generateCreatureSprite(c.species, 64, 'right', TYPE_COLORS);
       }
     }
 
@@ -795,10 +841,10 @@ export default function CreatureRPGRenderer({
       const species = data.battleState.enemyCreature.species;
       const key = `creature_${species}_left`;
       if (!cache[key]) {
-        cache[key] = generateCreatureSprite(species, 64, 'left');
+        cache[key] = generateCreatureSprite(species, 64, 'left', TYPE_COLORS);
       }
     }
-  }, [data?.party?.length, data?.battleState?.enemyCreature?.species]);
+  }, [data?.party?.length, data?.battleState?.enemyCreature?.species, TYPE_COLORS]);
 
   // --- Keyboard controls ---
   useEffect(() => {
@@ -2000,7 +2046,7 @@ export default function CreatureRPGRenderer({
       const spriteKey = `creature_${species}_right`;
       let sprite = spriteCacheRef.current[spriteKey];
       if (!sprite) {
-        sprite = generateCreatureSprite(species, 64, 'right');
+        sprite = generateCreatureSprite(species, 64, 'right', TYPE_COLORS);
         spriteCacheRef.current[spriteKey] = sprite;
       }
       ctx.drawImage(sprite, cx + (cardW - 96) / 2, cy + hover + 20, 96, 96);

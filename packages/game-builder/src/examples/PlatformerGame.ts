@@ -42,6 +42,36 @@ export interface PlatformerConfig {
   /** Controls hazard/obstacle count: low = 50%, high = 150% of default (default 'medium'). */
   hazardDensity?: 'low' | 'medium' | 'high';
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Player sprite color (CSS, default '#4488FF'). */
+    playerColor?: string;
+    /** Platform color (CSS, default '#8B4513'). */
+    platformColor?: string;
+    /** Sky/background color (CSS, default '#87CEEB'). */
+    skyColor?: string;
+    /** Collectible item color (CSS, default '#FFD700'). */
+    collectibleColor?: string;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Horizontal friction multiplier applied each tick (0-1, default 0.85). */
+    friction?: number;
+    /** Frames of grace period after leaving a platform where jump is still allowed (default 6). */
+    coyoteTime?: number;
+    /** Frames to buffer a jump input before landing (default 4). */
+    jumpBufferTime?: number;
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Custom level layout descriptor (reserved for future structured level data). */
+    levelLayout?: string;
+    /** Hazard types to include (default: all). */
+    hazardTypes?: ('spikes' | 'moving_enemy' | 'falling_platform')[];
+  };
 }
 
 interface Vector2 {
@@ -141,6 +171,7 @@ const PHYSICS = {
   MAX_FALL_SPEED: 15,
   COYOTE_TIME: 6, // Frames of grace after leaving a platform
   JUMP_BUFFER: 4, // Frames to buffer a jump input before landing
+  FRICTION: 0.85, // Horizontal friction per tick
   PLAYER_WIDTH: 1,
   PLAYER_HEIGHT: 2,
 };
@@ -255,17 +286,19 @@ export class PlatformerGame extends BaseGame {
         const phys = player.physics;
         const cfgJump = this.config as PlatformerConfig;
         const jumpForce = cfgJump.jumpForce ?? PHYSICS.JUMP_FORCE;
+        const coyoteTime = (cfgJump.gameplay?.coyoteTime as number) ?? PHYSICS.COYOTE_TIME;
+        const jumpBufferTime = (cfgJump.gameplay?.jumpBufferTime as number) ?? PHYSICS.JUMP_BUFFER;
 
-        const canJump = phys.onGround || phys.coyoteTimer < PHYSICS.COYOTE_TIME;
+        const canJump = phys.onGround || phys.coyoteTimer < coyoteTime;
 
         if (canJump) {
           phys.velocity.y = jumpForce;
           phys.onGround = false;
-          phys.coyoteTimer = PHYSICS.COYOTE_TIME; // Consume coyote time
+          phys.coyoteTimer = coyoteTime; // Consume coyote time
           this.emitEvent('jump', playerId, { position: phys.position });
         } else {
           // Buffer the jump for when we land
-          phys.jumpBufferTimer = PHYSICS.JUMP_BUFFER;
+          phys.jumpBufferTimer = jumpBufferTime;
         }
 
         this.setData(data);
@@ -425,9 +458,11 @@ export class PlatformerGame extends BaseGame {
         }
 
         // Apply horizontal friction (deceleration when not actively moving)
+        const cfgFriction = this.config as PlatformerConfig;
+        const friction = (cfgFriction.gameplay?.friction as number) ?? PHYSICS.FRICTION;
         for (const pid of this.getPlayers()) {
           const phys = data.players[pid].physics;
-          phys.velocity.x *= 0.85; // Friction
+          phys.velocity.x *= friction;
           if (Math.abs(phys.velocity.x) < 0.1) phys.velocity.x = 0;
         }
 

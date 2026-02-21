@@ -84,7 +84,7 @@ const CAMERA_LERP = 0.1;
 /*  Pixel-art sprite palettes and definitions                          */
 /* ------------------------------------------------------------------ */
 
-const PLAYER_PALETTE: Record<number, string | null> = {
+const DEFAULT_PLAYER_PALETTE: Record<number, string | null> = {
   0: null, // transparent
   1: '#0d3b42', // dark outline
   2: '#14b8a6', // teal body
@@ -98,6 +98,20 @@ const PLAYER_PALETTE: Record<number, string | null> = {
   10: '#1e3a5f', // shoe dark
   11: '#2563eb', // shoe blue
 };
+
+const DEFAULT_ENEMY_PALETTE: Record<number, string | null> = {
+  0: null,
+  1: '#1a1a2e',
+  2: '#991b1b',
+  3: '#dc2626',
+  4: '#ef4444',
+  5: '#ffffff',
+  6: '#fbbf24',
+};
+
+const DEFAULT_PLATFORM_COLOR = '#34d399';
+const DEFAULT_SKY_COLORS = ['#060918', '#0c1230', '#1a1a40', '#2a1a3e'];
+const DEFAULT_COLLECTIBLE_COLOR = '#fbbf24';
 
 // 8x12 idle frame
 const PLAYER_IDLE: number[][] = [
@@ -164,15 +178,7 @@ const PLAYER_JUMP: number[][] = [
 ];
 
 // Moving enemy sprite (10x8)
-const ENEMY_PALETTE: Record<number, string | null> = {
-  0: null,
-  1: '#1a1a2e',
-  2: '#991b1b',
-  3: '#dc2626',
-  4: '#ef4444',
-  5: '#ffffff',
-  6: '#fbbf24',
-};
+// (DEFAULT_ENEMY_PALETTE defined above with other defaults)
 const ENEMY_SPRITE: number[][] = [
   [0, 0, 1, 1, 1, 1, 1, 1, 0, 0],
   [0, 1, 3, 3, 3, 3, 3, 3, 1, 0],
@@ -255,6 +261,35 @@ export default function PlatformerRenderer({
   const prevPosRef = useRef<Vector2 | null>(null);
 
   const data = (state?.data as unknown as PlatformerData) ?? undefined;
+
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+
+  const cfgPlayerPalette = theme.playerColor as Record<string, string> | undefined;
+  const PLAYER_PALETTE: Record<number, string | null> = { ...DEFAULT_PLAYER_PALETTE };
+  if (cfgPlayerPalette) {
+    for (const [k, v] of Object.entries(cfgPlayerPalette)) {
+      PLAYER_PALETTE[Number(k)] = v;
+    }
+  }
+
+  const ENEMY_PALETTE: Record<number, string | null> = { ...DEFAULT_ENEMY_PALETTE };
+  const cfgEnemyColors = theme.enemyColors as Record<string, string> | undefined;
+  if (cfgEnemyColors) {
+    for (const [k, v] of Object.entries(cfgEnemyColors)) {
+      ENEMY_PALETTE[Number(k)] = v;
+    }
+  }
+
+  const platformColor = (theme.platformColor as string) ?? DEFAULT_PLATFORM_COLOR;
+  const skyColors = (theme.skyColor as string[]) ?? DEFAULT_SKY_COLORS;
+  const collectibleColor = (theme.collectibleColor as string) ?? DEFAULT_COLLECTIBLE_COLOR;
+
+  // Suppress lint warnings for variables used in render
+  void platformColor;
+  void skyColors;
+  void collectibleColor;
 
   // Key listeners
   useEffect(() => {

@@ -56,4 +56,8 @@ export const TEMPLATE_REGISTRY: Record<string, TemplateEntry> = {
     name: 'DOOM Arena',
     component: dynamic(() => import('@/components/games/renderers/FPSRenderer'), { ssr: false }),
   },
+  worms: {
+    name: 'Worms Arena',
+    component: dynamic(() => import('@/components/games/renderers/WormsRenderer'), { ssr: false }),
+  },
 };

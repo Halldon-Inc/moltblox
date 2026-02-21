@@ -39,6 +39,26 @@ export interface RhythmConfig {
   /** Max misses before forced game over (0 = unlimited, default 0). */
   missLimit?: number;
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Color per lane, e.g. ['#FF0000','#00FF00','#0000FF','#FFFF00'] (default: auto-generated). */
+    laneColors?: string[];
+    /** Flash color when a note is hit (CSS, default '#FFFFFF'). */
+    hitFlashColor?: string;
+    /** Colors for each hit rating: { perfect, good, ok } (CSS, default: gold/green/gray). */
+    ratingColors?: { perfect?: string; good?: string; ok?: string };
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Timing window thresholds in beats: { perfect, good, ok } (default: 0.5/1.0/2.0). */
+    timingWindows?: { perfect?: number; good?: number; ok?: number };
+    /** Score values per hit rating: { perfect, good, ok, miss } (default: 300/200/100/0). */
+    scoreValues?: { perfect?: number; good?: number; ok?: number; miss?: number };
+    /** Combo multiplier cap (default 4). */
+    comboMultiplier?: number;
+  };
 }
 
 /**
@@ -93,18 +113,20 @@ interface RhythmState {
  * like a real achievement, Good feels fair, and OK is the "at least you tried"
  * safety net that prevents frustration.
  */
-const TIMING_WINDOWS = {
+const DEFAULT_TIMING_WINDOWS = {
   perfect: 0.5,
   good: 1.0,
   ok: 2.0,
 };
 
-const SCORE_VALUES: Record<HitRating, number> = {
+const DEFAULT_SCORE_VALUES: Record<HitRating, number> = {
   perfect: 300,
   good: 200,
   ok: 100,
   miss: 0,
 };
+
+const DEFAULT_COMBO_MULTIPLIER_CAP = 4;
 
 /**
  * WHY difficulty tiers retain players: Easy mode lets new players experience
@@ -188,8 +210,32 @@ export class RhythmGame extends BaseGame {
     };
   }
 
+  private getTimingWindows(): { perfect: number; good: number; ok: number } {
+    const cfg = this.config as RhythmConfig;
+    return {
+      perfect: (cfg.gameplay?.timingWindows?.perfect as number) ?? DEFAULT_TIMING_WINDOWS.perfect,
+      good: (cfg.gameplay?.timingWindows?.good as number) ?? DEFAULT_TIMING_WINDOWS.good,
+      ok: (cfg.gameplay?.timingWindows?.ok as number) ?? DEFAULT_TIMING_WINDOWS.ok,
+    };
+  }
+
+  private getScoreValues(): Record<HitRating, number> {
+    const cfg = this.config as RhythmConfig;
+    return {
+      perfect: (cfg.gameplay?.scoreValues?.perfect as number) ?? DEFAULT_SCORE_VALUES.perfect,
+      good: (cfg.gameplay?.scoreValues?.good as number) ?? DEFAULT_SCORE_VALUES.good,
+      ok: (cfg.gameplay?.scoreValues?.ok as number) ?? DEFAULT_SCORE_VALUES.ok,
+      miss: (cfg.gameplay?.scoreValues?.miss as number) ?? DEFAULT_SCORE_VALUES.miss,
+    };
+  }
+
   protected processAction(playerId: string, action: GameAction): ActionResult {
     const data = this.getData<RhythmState>();
+    const timingWindows = this.getTimingWindows();
+    const scoreValues = this.getScoreValues();
+    const cfg = this.config as RhythmConfig;
+    const comboMultiplierCap =
+      (cfg.gameplay?.comboMultiplier as number) ?? DEFAULT_COMBO_MULTIPLIER_CAP;
 
     switch (action.type) {
       /**
@@ -202,7 +248,7 @@ export class RhythmGame extends BaseGame {
       case 'beat':
       case 'advance_beat': {
         data.currentBeat++;
-        const okWindow = TIMING_WINDOWS.ok / data.noteSpeedMultiplier;
+        const okWindow = timingWindows.ok / data.noteSpeedMultiplier;
 
         // Check for missed notes (past the OK window)
         for (const note of data.notes) {
@@ -250,7 +296,7 @@ export class RhythmGame extends BaseGame {
       case 'hit_note': {
         // Auto-advance beat so testers don't need separate advance_beat calls
         data.currentBeat++;
-        const hitOkWindow = TIMING_WINDOWS.ok / data.noteSpeedMultiplier;
+        const hitOkWindow = timingWindows.ok / data.noteSpeedMultiplier;
 
         // Check for missed notes (past the OK window) on beat advance
         for (const note of data.notes) {
@@ -348,10 +394,13 @@ export class RhythmGame extends BaseGame {
            */
           data.combos[playerId]++;
           data.maxCombos[playerId] = Math.max(data.maxCombos[playerId], data.combos[playerId]);
-          data.multipliers[playerId] = Math.min(4, 1 + Math.floor(data.combos[playerId] / 10));
+          data.multipliers[playerId] = Math.min(
+            comboMultiplierCap,
+            1 + Math.floor(data.combos[playerId] / 10),
+          );
 
           // Calculate score
-          const noteScore = SCORE_VALUES[rating] * data.multipliers[playerId];
+          const noteScore = scoreValues[rating] * data.multipliers[playerId];
           data.scores[playerId] += noteScore;
           data.hitCounts[playerId][rating]++;
 
@@ -442,9 +491,10 @@ export class RhythmGame extends BaseGame {
    * Rate a hit based on timing distance from the target beat.
    */
   private rateHit(distance: number, speedMultiplier = 1): HitRating {
-    if (distance <= TIMING_WINDOWS.perfect / speedMultiplier) return 'perfect';
-    if (distance <= TIMING_WINDOWS.good / speedMultiplier) return 'good';
-    if (distance <= TIMING_WINDOWS.ok / speedMultiplier) return 'ok';
+    const tw = this.getTimingWindows();
+    if (distance <= tw.perfect / speedMultiplier) return 'perfect';
+    if (distance <= tw.good / speedMultiplier) return 'good';
+    if (distance <= tw.ok / speedMultiplier) return 'ok';
     return 'miss';
   }
 

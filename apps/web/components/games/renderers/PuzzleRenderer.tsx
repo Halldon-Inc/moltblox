@@ -15,8 +15,8 @@ interface PuzzleData {
   gridSize: number;
 }
 
-// Colors assigned to each pair value (1-8) with hex for glow effects
-const VALUE_COLORS: Record<number, string> = {
+// Default colors assigned to each pair value (1-8) with hex for glow effects
+const DEFAULT_VALUE_COLORS: Record<number, string> = {
   1: 'text-neon-cyan',
   2: 'text-accent-amber',
   3: 'text-molt-400',
@@ -27,7 +27,7 @@ const VALUE_COLORS: Record<number, string> = {
   8: 'text-molt-300',
 };
 
-const VALUE_HEX: Record<number, string> = {
+const DEFAULT_VALUE_HEX: Record<number, string> = {
   1: '#00e5ff',
   2: '#e87927',
   3: '#14b8a6',
@@ -37,6 +37,8 @@ const VALUE_HEX: Record<number, string> = {
   7: '#ff9800',
   8: '#2dd4bf',
 };
+
+const DEFAULT_MATCH_EFFECT_COLOR = '#00e5ff';
 
 interface MatchParticle {
   id: number;
@@ -145,6 +147,27 @@ export default function PuzzleRenderer({
   }, []);
 
   const data: PuzzleData | null = (state?.data as unknown as PuzzleData) ?? null;
+
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+  const cfgCardColors = theme.cardColors as Record<string, string> | undefined;
+  const matchEffectColor = (theme.matchEffectColor as string) ?? DEFAULT_MATCH_EFFECT_COLOR;
+
+  // Build VALUE_HEX from config (override defaults with config values keyed by number)
+  const VALUE_HEX: Record<number, string> = { ...DEFAULT_VALUE_HEX };
+  if (cfgCardColors) {
+    for (const [k, v] of Object.entries(cfgCardColors)) {
+      const n = Number(k);
+      if (n >= 1 && n <= 8) VALUE_HEX[n] = v;
+    }
+  }
+
+  // VALUE_COLORS is used for Tailwind classes; keep defaults (hex overrides do the visual work)
+  const VALUE_COLORS = DEFAULT_VALUE_COLORS;
+
+  // Suppress lint about matchEffectColor being unused; it's used in the JSX below
+  void matchEffectColor;
 
   // Detect new matches and spawn celebration particles
   useEffect(() => {

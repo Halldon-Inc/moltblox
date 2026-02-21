@@ -32,6 +32,7 @@ import {
   BeatEmUpRPGGame,
   WeaponsDuelGame,
   FPSGame,
+  WormsGame,
 } from '@moltblox/game-builder';
 
 // Ported game collections (namespace imports to avoid name collisions)
@@ -68,6 +69,9 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
 
   // FPS template
   fps: FPSGame,
+
+  // Worms Armageddon
+  worms: WormsGame,
 
   // Beat-em-up templates (10)
   brawler: BrawlerGame,

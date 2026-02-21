@@ -26,6 +26,30 @@ export interface ClickerConfig {
   /** Maximum clicks allowed per multi_click action (default 10). */
   maxMultiClick?: number;
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Main click button color (CSS, default '#4CAF50'). */
+    buttonColor?: string;
+    /** Particle burst colors on click (CSS array, default ['#FFD700','#FF6347','#00CED1']). */
+    particleColors?: string[];
+    /** Progress bar gradient colors [start, end] (CSS, default ['#4CAF50','#8BC34A']). */
+    progressBarColors?: [string, string];
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Base cost for each upgrade type, keyed by upgrade name (default: click_power=10, auto_click=25, multi_click_size=15). */
+    upgradeCosts?: Partial<Record<'click_power' | 'auto_click' | 'multi_click_size', number>>;
+    /** Combo multiplier scale: each combo level adds this fraction (default 0.1). */
+    comboMultiplierScale?: number;
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Display names for upgrade types (default: click_power='Click Power', auto_click='Auto Click', multi_click_size='Multi Click'). */
+    upgradeNames?: Partial<Record<'click_power' | 'auto_click' | 'multi_click_size', string>>;
+  };
 }
 
 interface UpgradeLevels {
@@ -34,11 +58,13 @@ interface UpgradeLevels {
   multi_click_size: number; // Each level adds +5 to max multi_click
 }
 
-const UPGRADE_BASE_COSTS: Record<keyof UpgradeLevels, number> = {
+const DEFAULT_UPGRADE_BASE_COSTS: Record<keyof UpgradeLevels, number> = {
   click_power: 10,
   auto_click: 25,
   multi_click_size: 15,
 };
+
+const DEFAULT_COMBO_MULTIPLIER_SCALE = 0.1;
 
 interface ClickerState {
   [key: string]: unknown;
@@ -127,8 +153,10 @@ export class ClickerGame extends BaseGame {
         // Increment click count by configured value + upgrade bonus, scaled by combo multiplier
         const playerUpgrades = data.upgrades[playerId];
         const baseClick = (cfg.clickValue ?? 1) + (playerUpgrades?.click_power ?? 0);
+        const comboScale =
+          (cfg.gameplay?.comboMultiplierScale as number) ?? DEFAULT_COMBO_MULTIPLIER_SCALE;
         const comboMultiplier =
-          comboWindow > 0 && data.combos[playerId] > 1 ? 1 + data.combos[playerId] * 0.1 : 1;
+          comboWindow > 0 && data.combos[playerId] > 1 ? 1 + data.combos[playerId] * comboScale : 1;
         const autoClickBonus = playerUpgrades?.auto_click ?? 0;
         const clickAmount = Math.floor(baseClick * comboMultiplier) + autoClickBonus;
         data.clicks[playerId] += clickAmount;
@@ -185,20 +213,25 @@ export class ClickerGame extends BaseGame {
           | keyof UpgradeLevels
           | undefined;
 
-        if (!upgradeType || !(upgradeType in UPGRADE_BASE_COSTS)) {
+        if (!upgradeType || !(upgradeType in DEFAULT_UPGRADE_BASE_COSTS)) {
           return {
             success: false,
             error: `Invalid upgrade type: "${upgradeType}". Valid types: click_power, auto_click, multi_click_size`,
           };
         }
 
+        const upgCfg = this.config as ClickerConfig;
+        const baseCosts = {
+          ...DEFAULT_UPGRADE_BASE_COSTS,
+          ...(upgCfg.gameplay?.upgradeCosts as Partial<Record<keyof UpgradeLevels, number>>),
+        };
         const playerUpg = data.upgrades[playerId] ?? {
           click_power: 0,
           auto_click: 0,
           multi_click_size: 0,
         };
         const currentLevel = playerUpg[upgradeType];
-        const cost = UPGRADE_BASE_COSTS[upgradeType] * Math.pow(2, currentLevel);
+        const cost = baseCosts[upgradeType] * Math.pow(2, currentLevel);
 
         if (data.clicks[playerId] < cost) {
           return {

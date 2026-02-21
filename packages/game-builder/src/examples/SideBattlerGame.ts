@@ -60,6 +60,61 @@ export interface SideBattlerConfig {
   enemyScaling?: 'linear' | 'exponential' | 'plateau';
   /** If true, adds a swap_formation action to swap front/back row (default false). */
   allowFormationSwap?: boolean;
+
+  /** Visual theming options. */
+  theme?: {
+    /** Battle background color or asset key (CSS, default '#1a1a2e'). */
+    battleBackground?: string;
+    /** Color per class type: { warrior, mage, archer, healer } (CSS). */
+    classColors?: Partial<Record<'warrior' | 'mage' | 'archer' | 'healer', string>>;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Back-row physical damage multiplier received (default 0.7). */
+    rowDamageModifier?: number;
+    /** Damage reduction when defending (0-1, default 0.5). */
+    defendReduction?: number;
+    /** Poison/status tick damage override. */
+    statusEffectDamage?: number;
+  };
+
+  /** Content customization options. */
+  content?: {
+    /** Custom class stat definitions keyed by class name. */
+    classDefinitions?: Partial<
+      Record<
+        'warrior' | 'mage' | 'archer' | 'healer',
+        {
+          hp: number;
+          maxHp: number;
+          mp: number;
+          maxMp: number;
+          atk: number;
+          def: number;
+          spd: number;
+          matk: number;
+          mdef: number;
+        }
+      >
+    >;
+    /** Custom skill definitions per class. */
+    skillDefinitions?: Partial<
+      Record<
+        'warrior' | 'mage' | 'archer' | 'healer',
+        {
+          name: string;
+          mpCost: number;
+          multiplier: number;
+          damageType: 'physical' | 'magical' | 'heal' | 'buff';
+          target: 'single_enemy' | 'all_enemies' | 'single_ally' | 'self';
+          description: string;
+        }[]
+      >
+    >;
+    /** Custom wave templates array. */
+    waveTemplates?: WaveTemplate[];
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -452,13 +507,13 @@ const DIFFICULTY_MULTIPLIERS: Record<string, number> = {
 // ---------------------------------------------------------------------------
 
 /** Damage multiplier for back-row characters receiving physical attacks */
-const BACK_ROW_DAMAGE_TAKEN = 0.7;
+const DEFAULT_BACK_ROW_DAMAGE_TAKEN = 0.7;
 /** Damage multiplier for back-row characters dealing melee (physical) attacks */
-const BACK_ROW_MELEE_PENALTY = 0.85;
+const DEFAULT_BACK_ROW_MELEE_PENALTY = 0.85;
 /** Damage reduction when defending */
-const DEFEND_DAMAGE_REDUCTION = 0.5;
+const DEFAULT_DEFEND_DAMAGE_REDUCTION = 0.5;
 /** MP restored when defending */
-const DEFEND_MP_RESTORE = 3;
+const DEFAULT_DEFEND_MP_RESTORE = 3;
 
 // ---------------------------------------------------------------------------
 // SideBattlerGame
@@ -468,6 +523,20 @@ export class SideBattlerGame extends BaseGame {
   readonly name = 'Molt Arena';
   readonly version = '1.0.0';
   readonly maxPlayers = 2;
+
+  // -----------------------------------------------------------------------
+  // Config helpers
+  // -----------------------------------------------------------------------
+
+  private getRowDamageModifier(): number {
+    const cfg = this.config as SideBattlerConfig;
+    return (cfg.gameplay?.rowDamageModifier as number) ?? DEFAULT_BACK_ROW_DAMAGE_TAKEN;
+  }
+
+  private getDefendReduction(): number {
+    const cfg = this.config as SideBattlerConfig;
+    return (cfg.gameplay?.defendReduction as number) ?? DEFAULT_DEFEND_DAMAGE_REDUCTION;
+  }
 
   // -----------------------------------------------------------------------
   // Initialization
@@ -783,7 +852,7 @@ export class SideBattlerGame extends BaseGame {
     const target = aliveEnemies[Math.min(targetIndex, aliveEnemies.length - 1)];
 
     // Physical damage: max(1, ATK * 1.0 - DEF/2) with formation modifiers
-    const rowMultiplier = char.row === 'back' ? BACK_ROW_MELEE_PENALTY : 1.0;
+    const rowMultiplier = char.row === 'back' ? DEFAULT_BACK_ROW_MELEE_PENALTY : 1.0;
     const damage = Math.max(
       1,
       Math.floor(char.stats.atk * 1.0 * rowMultiplier - target.stats.def / 2),
@@ -830,8 +899,8 @@ export class SideBattlerGame extends BaseGame {
     }
 
     char.isDefending = true;
-    char.stats.mp = Math.min(char.stats.maxMp, char.stats.mp + DEFEND_MP_RESTORE);
-    data.combatLog.push(`${char.name} defends and recovers ${DEFEND_MP_RESTORE} MP`);
+    char.stats.mp = Math.min(char.stats.maxMp, char.stats.mp + DEFAULT_DEFEND_MP_RESTORE);
+    data.combatLog.push(`${char.name} defends and recovers ${DEFAULT_DEFEND_MP_RESTORE} MP`);
     this.emitEvent('defend', playerId, { character: char.id });
 
     data.totalTurns++;
@@ -996,7 +1065,7 @@ export class SideBattlerGame extends BaseGame {
       if (skill.damageType === 'magical') {
         damage = Math.max(1, Math.floor(char.stats.matk * skill.multiplier - enemy.stats.mdef / 3));
       } else {
-        const rowMultiplier = char.row === 'back' ? BACK_ROW_MELEE_PENALTY : 1.0;
+        const rowMultiplier = char.row === 'back' ? DEFAULT_BACK_ROW_MELEE_PENALTY : 1.0;
         damage = Math.max(
           1,
           Math.floor(char.stats.atk * skill.multiplier * rowMultiplier - enemy.stats.def / 2),
@@ -1037,14 +1106,14 @@ export class SideBattlerGame extends BaseGame {
 
     if (skill.name === 'Snipe') {
       // Snipe ignores DEF entirely — this is its defining trait
-      const rowMultiplier = char.row === 'back' ? BACK_ROW_MELEE_PENALTY : 1.0;
+      const rowMultiplier = char.row === 'back' ? DEFAULT_BACK_ROW_MELEE_PENALTY : 1.0;
       damage = Math.max(1, Math.floor(char.stats.atk * skill.multiplier * rowMultiplier));
     } else if (skill.damageType === 'magical') {
       // Magical damage: MATK * multiplier - MDEF/3, not affected by formation
       damage = Math.max(1, Math.floor(char.stats.matk * skill.multiplier - target.stats.mdef / 3));
     } else {
       // Physical damage: ATK * multiplier - DEF/2, formation modifiers apply
-      const rowMultiplier = char.row === 'back' ? BACK_ROW_MELEE_PENALTY : 1.0;
+      const rowMultiplier = char.row === 'back' ? DEFAULT_BACK_ROW_MELEE_PENALTY : 1.0;
       damage = Math.max(
         1,
         Math.floor(char.stats.atk * skill.multiplier * rowMultiplier - target.stats.def / 2),
@@ -1279,12 +1348,12 @@ export class SideBattlerGame extends BaseGame {
 
     // Formation: back row takes reduced physical damage
     if (target.row === 'back') {
-      damage = Math.floor(damage * BACK_ROW_DAMAGE_TAKEN);
+      damage = Math.floor(damage * this.getRowDamageModifier());
     }
 
-    // Defending: 50% damage reduction
+    // Defending: damage reduction
     if (target.isDefending) {
-      damage = Math.floor(damage * DEFEND_DAMAGE_REDUCTION);
+      damage = Math.floor(damage * this.getDefendReduction());
     }
 
     // Mana Shield: convert 50% of damage to MP drain
@@ -1342,13 +1411,13 @@ export class SideBattlerGame extends BaseGame {
       const magDmg = Math.max(1, Math.floor(boss.stats.matk * 0.6 - target.stats.mdef / 3));
 
       if (target.row === 'back') {
-        physDmg = Math.floor(physDmg * BACK_ROW_DAMAGE_TAKEN);
+        physDmg = Math.floor(physDmg * this.getRowDamageModifier());
       }
 
       let totalDmg = physDmg + magDmg;
 
       if (target.isDefending) {
-        totalDmg = Math.floor(totalDmg * DEFEND_DAMAGE_REDUCTION);
+        totalDmg = Math.floor(totalDmg * this.getDefendReduction());
       }
 
       // Mana Shield

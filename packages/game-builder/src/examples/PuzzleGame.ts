@@ -19,7 +19,28 @@ export interface PuzzleConfig {
   /** If true, a wrong match costs an extra move and reduces score (default false). */
   penaltyForWrongMatch?: boolean;
   secondaryMechanic?: 'rhythm' | 'puzzle' | 'timing' | 'resource';
+
+  /** Visual theming options. */
+  theme?: {
+    /** Card face colors per pair index, e.g. ['#FF0000','#00FF00',...] (default: auto-generated). */
+    cardColors?: string[];
+    /** Flash color when a match is found (CSS, default '#FFD700'). */
+    matchEffectColor?: string;
+  };
+
+  /** Gameplay tuning options. */
+  gameplay?: {
+    /** Points earned per successful match (default 100). */
+    baseScore?: number;
+    /** Points deducted per failed match attempt (default 50). */
+    penaltyPerMiss?: number;
+    /** Max moves before game over, 0 = unlimited (default 0). Overrides timerSeconds if both set. */
+    moveLimit?: number;
+  };
 }
+
+const DEFAULT_BASE_SCORE = 1000;
+const DEFAULT_PENALTY_PER_MISS = 50;
 
 interface PuzzleState {
   [key: string]: unknown;
@@ -58,7 +79,7 @@ export class PuzzleGame extends BaseGame {
     // Shuffle
     const grid = this.shuffle(pairs);
 
-    const moveLimit = cfg.timerSeconds ?? 0;
+    const moveLimit = (cfg.gameplay?.moveLimit as number) ?? cfg.timerSeconds ?? 0;
 
     return {
       grid,
@@ -173,12 +194,16 @@ export class PuzzleGame extends BaseGame {
 
   protected calculateScores(): Record<string, number> {
     const data = this.getData<PuzzleState>();
+    const cfg = this.config as PuzzleConfig;
     const playerId = this.getPlayers()[0];
+
+    const baseScore = (cfg.gameplay?.baseScore as number) ?? DEFAULT_BASE_SCORE;
+    const penaltyPerMiss = (cfg.gameplay?.penaltyPerMiss as number) ?? DEFAULT_PENALTY_PER_MISS;
 
     // Score based on efficiency (fewer moves = higher score)
     // Perfect game = numPairs moves (one for each pair)
     const numPairs = (data.gridSize * data.gridSize) / 2;
-    const score = Math.max(0, 1000 - (data.moves - numPairs) * 50);
+    const score = Math.max(0, baseScore - (data.moves - numPairs) * penaltyPerMiss);
 
     return { [playerId]: score };
   }

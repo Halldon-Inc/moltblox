@@ -40,14 +40,21 @@ interface HitParticle {
   size: number;
 }
 
-const LANE_COLORS = ['#ff6b6b', '#ffb74d', '#4fc3f7', '#81c784'] as const;
-const LANE_GLOW_COLORS = [
+const DEFAULT_LANE_COLORS = ['#ff6b6b', '#ffb74d', '#4fc3f7', '#81c784'] as const;
+const DEFAULT_LANE_GLOW_COLORS = [
   'rgba(255,107,107,',
   'rgba(255,183,77,',
   'rgba(79,195,247,',
   'rgba(129,199,132,',
 ] as const;
-const LANE_KEYS = ['D', 'F', 'J', 'K'] as const;
+const DEFAULT_KEY_LABELS = ['D', 'F', 'J', 'K'] as const;
+const DEFAULT_RATING_COLORS: Record<string, string> = {
+  perfect: '#fbbf24',
+  good: '#22c55e',
+  ok: '#60a5fa',
+  miss: '#ef4444',
+};
+const LANE_KEYS = DEFAULT_KEY_LABELS;
 const KEY_TO_LANE: Record<string, number> = { d: 0, f: 1, j: 2, k: 3 };
 
 const CANVAS_WIDTH = 400;
@@ -126,6 +133,21 @@ export default function RhythmRenderer({
   const beatPulseRef = useRef(0);
 
   const data = (state?.data as unknown as RhythmData) ?? DEFAULT_DATA;
+
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+  const LANE_COLORS: readonly string[] = (theme.laneColors as string[]) ?? DEFAULT_LANE_COLORS;
+  const LANE_GLOW_COLORS: readonly string[] =
+    (theme.laneGlowColors as string[]) ?? DEFAULT_LANE_GLOW_COLORS;
+  const ratingColors: Record<string, string> =
+    (theme.ratingColors as Record<string, string>) ?? DEFAULT_RATING_COLORS;
+  const keyLabels: readonly string[] = (theme.keyLabels as string[]) ?? DEFAULT_KEY_LABELS;
+
+  // Suppress lint warnings
+  void ratingColors;
+  void keyLabels;
+
   const myScore = data.scores[playerId] ?? 0;
   const myCombo = data.combos[playerId] ?? 0;
   const myMultiplier = data.multipliers[playerId] ?? 1;

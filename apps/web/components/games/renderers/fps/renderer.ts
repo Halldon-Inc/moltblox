@@ -52,11 +52,17 @@ export function renderFrame(
   ctx.fillRect(-5, -5, SCREEN_W + 10, SCREEN_H + 10);
 
   // --- Ceiling (dark atmospheric) ---
+  const ceilColors = gs.themeOverrides?.ceilingColor ?? [
+    '#020208',
+    '#060612',
+    '#0c0c18',
+    '#151520',
+  ];
   const ceilGrad = ctx.createLinearGradient(0, 0, 0, SCREEN_H / 2);
-  ceilGrad.addColorStop(0, '#020208');
-  ceilGrad.addColorStop(0.4, '#060612');
-  ceilGrad.addColorStop(0.8, '#0c0c18');
-  ceilGrad.addColorStop(1, '#151520');
+  ceilGrad.addColorStop(0, ceilColors[0] ?? '#020208');
+  ceilGrad.addColorStop(0.4, ceilColors[1] ?? '#060612');
+  ceilGrad.addColorStop(0.8, ceilColors[2] ?? '#0c0c18');
+  ceilGrad.addColorStop(1, ceilColors[3] ?? '#151520');
   ctx.fillStyle = ceilGrad;
   ctx.fillRect(0, 0, SCREEN_W, SCREEN_H / 2);
 
@@ -69,11 +75,12 @@ export function renderFrame(
   }
 
   // --- Floor (depth illusion: lighter near horizon, dark at bottom) ---
+  const floorColors = gs.themeOverrides?.floorColor ?? ['#3a3530', '#2a2520', '#1a1612', '#0a0908'];
   const floorGrad = ctx.createLinearGradient(0, SCREEN_H / 2, 0, SCREEN_H);
-  floorGrad.addColorStop(0, '#3a3530');
-  floorGrad.addColorStop(0.2, '#2a2520');
-  floorGrad.addColorStop(0.5, '#1a1612');
-  floorGrad.addColorStop(1, '#0a0908');
+  floorGrad.addColorStop(0, floorColors[0] ?? '#3a3530');
+  floorGrad.addColorStop(0.2, floorColors[1] ?? '#2a2520');
+  floorGrad.addColorStop(0.5, floorColors[2] ?? '#1a1612');
+  floorGrad.addColorStop(1, floorColors[3] ?? '#0a0908');
   ctx.fillStyle = floorGrad;
   ctx.fillRect(0, SCREEN_H / 2, SCREEN_W, SCREEN_H / 2);
 
@@ -337,7 +344,8 @@ function castWalls(
 
     // For distant walls (small strips), draw base color only
     if (stripHeight < 12 || perpDist > 10) {
-      const baseColor = WALL_COLORS[wallType] || [100, 95, 90];
+      const baseColor = gs.themeOverrides?.wallColors?.[wallType] ??
+        WALL_COLORS[wallType] ?? [100, 95, 90];
       const br = Math.floor(baseColor[0] * combinedFactor);
       const bg = Math.floor(baseColor[1] * combinedFactor);
       const bb = Math.floor(baseColor[2] * combinedFactor);

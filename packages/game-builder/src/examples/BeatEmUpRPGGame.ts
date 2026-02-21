@@ -12,11 +12,34 @@ import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 export interface BeatEmUpRPGConfig {
-  maxLevel?: number; // default 10
-  skillTreeDepth?: number; // skills per tree, default 3
-  shopFrequency?: number; // shop every N stages, default 2
-  statGrowthCurve?: 'linear' | 'exponential' | 'plateau'; // default 'linear'
-  totalStages?: number; // default 5
+  maxLevel?: number;
+  skillTreeDepth?: number;
+  shopFrequency?: number;
+  statGrowthCurve?: 'linear' | 'exponential' | 'plateau';
+  totalStages?: number;
+  theme?: {
+    worldColors?: Record<string, string>;
+    classColors?: Record<string, string>;
+    uiTheme?: string;
+  };
+  gameplay?: {
+    playerHp?: number;
+    playerStr?: number;
+    playerDef?: number;
+    playerSpd?: number;
+    playerLck?: number;
+    xpPerEnemy?: number;
+    goldPerEnemy?: number;
+    levelUpBonuses?: { hp?: number; str?: number; def?: number; spd?: number; lck?: number };
+    skillCosts?: Record<string, number>;
+    grabDamageMultiplier?: number;
+    stunChanceBase?: number;
+  };
+  content?: {
+    classDefinitions?: Record<string, { hp: number; str: number; def: number; spd: number }>;
+    enemyWaves?: Array<{ name: string; hp: number; atk: number; def: number }>;
+    equipmentTable?: Array<{ id: string; name: string; slot: string; price: number }>;
+  };
 }
 
 interface SkillDef {
@@ -178,6 +201,14 @@ interface BeatEmUpRPGState {
 
 const XP_THRESHOLDS = [0, 100, 250, 450, 700, 1000, 1400, 1900, 2500, 3200, 4000];
 
+const DEFAULT_PLAYER_HP = 100;
+const DEFAULT_PLAYER_STR = 10;
+const DEFAULT_PLAYER_DEF = 5;
+const DEFAULT_PLAYER_SPD = 5;
+const DEFAULT_PLAYER_LCK = 5;
+const DEFAULT_GRAB_DAMAGE_MULTIPLIER = 0.75;
+const DEFAULT_STUN_CHANCE_BASE = 40;
+
 function generateEnemies(stage: number): RPGEnemy[] {
   const count = 2 + Math.min(2, Math.floor(stage / 2));
   const enemies: RPGEnemy[] = [];
@@ -223,13 +254,19 @@ export class BeatEmUpRPGGame extends BaseGame {
       path: s.path,
     }));
 
+    const pHp = (cfg.gameplay?.playerHp as number) ?? DEFAULT_PLAYER_HP;
+    const pStr = (cfg.gameplay?.playerStr as number) ?? DEFAULT_PLAYER_STR;
+    const pDef = (cfg.gameplay?.playerDef as number) ?? DEFAULT_PLAYER_DEF;
+    const pSpd = (cfg.gameplay?.playerSpd as number) ?? DEFAULT_PLAYER_SPD;
+    const pLck = (cfg.gameplay?.playerLck as number) ?? DEFAULT_PLAYER_LCK;
+
     const player: RPGPlayer = {
-      hp: 100,
-      maxHp: 100,
-      str: 10,
-      def: 5,
-      spd: 5,
-      lck: 5,
+      hp: pHp,
+      maxHp: pHp,
+      str: pStr,
+      def: pDef,
+      spd: pSpd,
+      lck: pLck,
       xp: 0,
       level: 1,
       skillPoints: 0,
@@ -573,8 +610,10 @@ export class BeatEmUpRPGGame extends BaseGame {
     const target = aliveEnemies[0];
     const stats = this.getEffectiveStats(data.player);
 
-    // Grab deals moderate damage (75% of normal attack)
-    let damage = Math.max(1, Math.floor((stats.atk - target.def) * 0.75));
+    const cfg = this.config as BeatEmUpRPGConfig;
+    const grabMult =
+      (cfg.gameplay?.grabDamageMultiplier as number) ?? DEFAULT_GRAB_DAMAGE_MULTIPLIER;
+    let damage = Math.max(1, Math.floor((stats.atk - target.def) * grabMult));
 
     // Crit check
     const critRoll = Math.random() * 100;
@@ -586,8 +625,8 @@ export class BeatEmUpRPGGame extends BaseGame {
     target.hp = Math.max(0, target.hp - damage);
     data.totalDamageDealt += damage;
 
-    // Stun chance: 40% base + 1% per luck point
-    const stunChance = 40 + stats.lck;
+    const stunBase = (cfg.gameplay?.stunChanceBase as number) ?? DEFAULT_STUN_CHANCE_BASE;
+    const stunChance = stunBase + stats.lck;
     const stunRoll = Math.random() * 100;
     const stunned = stunRoll < stunChance;
 

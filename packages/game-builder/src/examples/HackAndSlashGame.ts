@@ -17,6 +17,46 @@ export interface HackAndSlashConfig {
   equipmentSlots?: number;
   bossEveryNFloors?: number;
   lootRarity?: 'common' | 'balanced' | 'generous';
+  theme?: {
+    dungeonColors?: Record<string, string>;
+    weaponGlowColors?: Record<string, string>;
+    uiAccentColor?: string;
+  };
+  gameplay?: {
+    playerHp?: number;
+    playerStr?: number;
+    playerDef?: number;
+    playerSpd?: number;
+    attackSpeed?: number;
+    heavyAttackMultiplier?: number;
+    critMultiplier?: number;
+    blockReduction?: number;
+    dodgeBaseChance?: number;
+    xpPerLevel?: number;
+    levelUpHp?: number;
+    levelUpStr?: number;
+    levelUpDef?: number;
+    levelUpSpd?: number;
+    shopSize?: number;
+  };
+  content?: {
+    enemyTemplates?: Array<{
+      name: string;
+      hp: number;
+      atk: number;
+      def: number;
+      lootTable: string;
+    }>;
+    bossTemplates?: Array<{
+      name: string;
+      hp: number;
+      atk: number;
+      def: number;
+      lootTable: string;
+    }>;
+    weaponTypes?: string[];
+    enemyTypes?: string[];
+  };
 }
 
 interface LootItem {
@@ -164,7 +204,19 @@ const LOOT_TABLES: Record<string, LootItem[]> = {
   ],
 };
 
-const XP_PER_LEVEL = 100;
+const DEFAULT_XP_PER_LEVEL = 100;
+const DEFAULT_PLAYER_HP = 50;
+const DEFAULT_PLAYER_STR = 5;
+const DEFAULT_PLAYER_DEF = 3;
+const DEFAULT_PLAYER_SPD = 3;
+const DEFAULT_HEAVY_ATTACK_MULTIPLIER = 1.8;
+const DEFAULT_BLOCK_REDUCTION = 0.5;
+const DEFAULT_DODGE_BASE_CHANCE = 70;
+const DEFAULT_LEVEL_UP_HP = 5;
+const DEFAULT_LEVEL_UP_STR = 2;
+const DEFAULT_LEVEL_UP_DEF = 1;
+const DEFAULT_LEVEL_UP_SPD = 1;
+const DEFAULT_SHOP_SIZE = 3;
 
 let itemIdCounter = 0;
 
@@ -193,6 +245,11 @@ export class HackAndSlashGame extends BaseGame {
     const bossEveryNFloors = cfg.bossEveryNFloors ?? 5;
     const lootRarity = cfg.lootRarity ?? 'balanced';
 
+    const playerHp = (cfg.gameplay?.playerHp as number) ?? DEFAULT_PLAYER_HP;
+    const playerStr = (cfg.gameplay?.playerStr as number) ?? DEFAULT_PLAYER_STR;
+    const playerDef = (cfg.gameplay?.playerDef as number) ?? DEFAULT_PLAYER_DEF;
+    const playerSpd = (cfg.gameplay?.playerSpd as number) ?? DEFAULT_PLAYER_SPD;
+
     const players: Record<string, HASPlayer> = {};
     for (const pid of playerIds) {
       const slots: EquipmentSlot[] = [];
@@ -202,11 +259,11 @@ export class HackAndSlashGame extends BaseGame {
       }
 
       players[pid] = {
-        hp: 50,
-        maxHp: 50,
-        str: 5,
-        def: 3,
-        spd: 3,
+        hp: playerHp,
+        maxHp: playerHp,
+        str: playerStr,
+        def: playerDef,
+        spd: playerSpd,
         equipment: slots,
         inventory: [],
         xp: 0,
@@ -360,9 +417,12 @@ export class HackAndSlashGame extends BaseGame {
       return { success: false, error: 'Target not found or already dead' };
     }
 
+    const cfg = this.config as HackAndSlashConfig;
     const stats = this.getEffectiveStats(player);
     const baseDamage = this.calculateDamage(stats.atk, stats.spd, target.def);
-    const damage = Math.floor(baseDamage * 1.8);
+    const heavyMult =
+      (cfg.gameplay?.heavyAttackMultiplier as number) ?? DEFAULT_HEAVY_ATTACK_MULTIPLIER;
+    const damage = Math.floor(baseDamage * heavyMult);
 
     target.hp -= damage;
     player.skipNextTurn = true;
@@ -391,9 +451,10 @@ export class HackAndSlashGame extends BaseGame {
     const player = data.players[playerId];
     player.dodging = true;
 
-    // Dodge chance: 70% + spd*2%
+    const cfg = this.config as HackAndSlashConfig;
+    const dodgeBase = (cfg.gameplay?.dodgeBaseChance as number) ?? DEFAULT_DODGE_BASE_CHANCE;
     const stats = this.getEffectiveStats(player);
-    const dodgeChance = Math.min(95, 70 + stats.spd * 2);
+    const dodgeChance = Math.min(95, dodgeBase + stats.spd * 2);
 
     this.emitEvent('dodge', playerId, { chance: dodgeChance });
 
@@ -599,14 +660,20 @@ export class HackAndSlashGame extends BaseGame {
     });
 
     // Level up check
-    while (player.xp >= XP_PER_LEVEL) {
-      player.xp -= XP_PER_LEVEL;
+    const cfg = this.config as HackAndSlashConfig;
+    const xpPerLevel = (cfg.gameplay?.xpPerLevel as number) ?? DEFAULT_XP_PER_LEVEL;
+    const lvHp = (cfg.gameplay?.levelUpHp as number) ?? DEFAULT_LEVEL_UP_HP;
+    const lvStr = (cfg.gameplay?.levelUpStr as number) ?? DEFAULT_LEVEL_UP_STR;
+    const lvDef = (cfg.gameplay?.levelUpDef as number) ?? DEFAULT_LEVEL_UP_DEF;
+    const lvSpd = (cfg.gameplay?.levelUpSpd as number) ?? DEFAULT_LEVEL_UP_SPD;
+    while (player.xp >= xpPerLevel) {
+      player.xp -= xpPerLevel;
       player.level++;
-      player.maxHp += 5;
-      player.hp = Math.min(player.hp + 5, player.maxHp);
-      player.str += 2;
-      player.def += 1;
-      player.spd += 1;
+      player.maxHp += lvHp;
+      player.hp = Math.min(player.hp + lvHp, player.maxHp);
+      player.str += lvStr;
+      player.def += lvDef;
+      player.spd += lvSpd;
       this.emitEvent('level_up', playerId, { level: player.level });
     }
 
@@ -643,16 +710,16 @@ export class HackAndSlashGame extends BaseGame {
   }
 
   private enemyCounterattack(data: HASState, playerId: string): void {
+    const cfg = this.config as HackAndSlashConfig;
+    const dodgeBase = (cfg.gameplay?.dodgeBaseChance as number) ?? DEFAULT_DODGE_BASE_CHANCE;
+    const blockReduce = (cfg.gameplay?.blockReduction as number) ?? DEFAULT_BLOCK_REDUCTION;
     const player = data.players[playerId];
     const aliveEnemies = data.enemies.filter((e) => e.alive);
 
     for (const enemy of aliveEnemies) {
-      // Check dodge
       if (player.dodging) {
         const stats = this.getEffectiveStats(player);
-        const dodgeChance = Math.min(95, 70 + stats.spd * 2);
-        // For deterministic testing: dodge succeeds if dodgeChance > 75
-        // (base 70 + some spd always > 75 for any spd >= 3)
+        const dodgeChance = Math.min(95, dodgeBase + stats.spd * 2);
         if (dodgeChance >= 75) {
           this.emitEvent('dodge_success', playerId, { enemy: enemy.id });
           continue;
@@ -661,9 +728,8 @@ export class HackAndSlashGame extends BaseGame {
 
       const playerDef = this.getEffectiveStats(player).def;
       let damage = Math.max(1, enemy.atk - playerDef);
-      // Blocking reduces incoming damage by 50%
       if (player.blocking) {
-        damage = Math.floor(damage * 0.5);
+        damage = Math.floor(damage * blockReduce);
         this.emitEvent('block_absorbed', playerId, { reduced: damage, enemy: enemy.id });
       }
       player.hp -= damage;
@@ -743,7 +809,8 @@ export class HackAndSlashGame extends BaseGame {
   }
 
   private generateShop(data: HASState): void {
-    const shopSize = 3;
+    const cfg = this.config as HackAndSlashConfig;
+    const shopSize = (cfg.gameplay?.shopSize as number) ?? DEFAULT_SHOP_SIZE;
     const shop: LootItem[] = [];
 
     // Higher floors have better shop items

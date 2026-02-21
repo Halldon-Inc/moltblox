@@ -53,7 +53,7 @@ interface RPGData {
 /*  Pixel-art sprite palettes and definitions                          */
 /* ------------------------------------------------------------------ */
 
-const HERO_PALETTE: Record<number, string | null> = {
+const DEFAULT_HERO_PALETTE: Record<number, string | null> = {
   0: null, // transparent
   1: '#1a1a2e', // dark outline
   2: '#3a3a5e', // mid shadow
@@ -68,6 +68,12 @@ const HERO_PALETTE: Record<number, string | null> = {
   11: '#1e3a5f', // eye pupil
   12: '#e5e7eb', // steel weapon
   13: '#9ca3af', // weapon shadow
+};
+
+const DEFAULT_DAMAGE_COLORS = {
+  playerDamage: '#ef4444',
+  playerHeal: '#22c55e',
+  enemyDamage: '#fbbf24',
 };
 
 // 12x16 hero sprite (idle pose with sword)
@@ -282,6 +288,7 @@ function BattleCanvas({
   playerHp,
   playerMaxHp,
   combatLogLen,
+  heroPalette,
 }: {
   enemy: Enemy;
   enemyHp: number;
@@ -289,7 +296,9 @@ function BattleCanvas({
   playerHp: number;
   playerMaxHp: number;
   combatLogLen: number;
+  heroPalette?: Record<number, string | null>;
 }) {
+  const HERO_PALETTE = heroPalette ?? DEFAULT_HERO_PALETTE;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<BattleParticle[]>([]);
   const starsRef = useRef<{ x: number; y: number; brightness: number; speed: number }[]>([]);
@@ -599,7 +608,16 @@ function drawBattleHPBar(
 /*  Idle scene canvas (dungeon atmosphere when out of combat)           */
 /* ------------------------------------------------------------------ */
 
-function IdleCanvas({ encounter, maxEncounters }: { encounter: number; maxEncounters: number }) {
+function IdleCanvas({
+  encounter,
+  maxEncounters,
+  heroPalette,
+}: {
+  encounter: number;
+  maxEncounters: number;
+  heroPalette?: Record<number, string | null>;
+}) {
+  const HERO_PALETTE = heroPalette ?? DEFAULT_HERO_PALETTE;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef(0);
 
@@ -856,6 +874,31 @@ export default function RPGRenderer({
   const [lastReward, setLastReward] = useState<{ enemy: string; xp: number } | null>(null);
 
   const data = (state?.data as unknown as RPGData) ?? EMPTY_DATA;
+
+  // Read visual config from _config
+  const cfg = ((state?.data as Record<string, unknown>)?._config ?? {}) as Record<string, unknown>;
+  const theme = (cfg.theme ?? {}) as Record<string, unknown>;
+
+  // Override hero sprite palette from config
+  const cfgHeroPalette = theme.heroPalette as Record<string, string> | undefined;
+  const HERO_PALETTE: Record<number, string | null> = { ...DEFAULT_HERO_PALETTE };
+  if (cfgHeroPalette) {
+    for (const [k, v] of Object.entries(cfgHeroPalette)) {
+      HERO_PALETTE[Number(k)] = v;
+    }
+  }
+
+  // Damage number color overrides
+  const cfgDamageColors = theme.damageColors as Record<string, string> | undefined;
+  const damageColors = {
+    playerDamage: cfgDamageColors?.playerDamage ?? DEFAULT_DAMAGE_COLORS.playerDamage,
+    playerHeal: cfgDamageColors?.playerHeal ?? DEFAULT_DAMAGE_COLORS.playerHeal,
+    enemyDamage: cfgDamageColors?.enemyDamage ?? DEFAULT_DAMAGE_COLORS.enemyDamage,
+  };
+
+  // Suppress lint warning
+  void damageColors;
+
   const player = data.players[playerId] as unknown as PlayerData | undefined;
   const enemy = data.currentEnemy;
   const inCombat = enemy !== null;
@@ -1010,6 +1053,7 @@ export default function RPGRenderer({
               playerHp={player.stats.hp}
               playerMaxHp={player.stats.maxHp}
               combatLogLen={data.combatLog.length}
+              heroPalette={HERO_PALETTE}
             />
             {/* Enemy info bar below canvas */}
             <div className="glass-panel rounded-lg p-3 border border-accent-coral/20">
@@ -1026,7 +1070,11 @@ export default function RPGRenderer({
           </div>
         ) : lastReward ? (
           <div className="flex flex-col gap-3">
-            <IdleCanvas encounter={data.encounter} maxEncounters={data.maxEncounters} />
+            <IdleCanvas
+              encounter={data.encounter}
+              maxEncounters={data.maxEncounters}
+              heroPalette={HERO_PALETTE}
+            />
             <div className="rpg-reward glass-panel rounded-lg p-4 border border-accent-amber/30 text-center">
               <span className="text-accent-amber font-display font-bold drop-shadow-sm">
                 {lastReward.enemy} defeated!
@@ -1038,7 +1086,11 @@ export default function RPGRenderer({
           </div>
         ) : !allEncountersDone ? (
           <div className="flex flex-col gap-3">
-            <IdleCanvas encounter={data.encounter} maxEncounters={data.maxEncounters} />
+            <IdleCanvas
+              encounter={data.encounter}
+              maxEncounters={data.maxEncounters}
+              heroPalette={HERO_PALETTE}
+            />
             <div className="glass-panel rounded-lg p-6 flex flex-col items-center justify-center">
               <p className="text-white/50 text-sm mb-4 drop-shadow-sm">
                 {data.encounter === 0
@@ -1062,7 +1114,11 @@ export default function RPGRenderer({
             </div>
           </div>
         ) : (
-          <IdleCanvas encounter={data.encounter} maxEncounters={data.maxEncounters} />
+          <IdleCanvas
+            encounter={data.encounter}
+            maxEncounters={data.maxEncounters}
+            heroPalette={HERO_PALETTE}
+          />
         )}
 
         {/* Player stats panel */}

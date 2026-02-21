@@ -11,11 +11,35 @@ import { BaseGame } from '../BaseGame.js';
 import type { GameAction, ActionResult } from '@moltblox/protocol';
 
 export interface WeaponsDuelConfig {
-  weaponPool?: string[]; // default: ['sword', 'spear', 'dagger', 'axe', 'rapier']
-  woundSeverity?: number; // 1-3, default 2
-  staminaRegenRate?: number; // per turn, default 8
-  distanceSteps?: number; // total positions, default 7
-  roundsToWin?: number; // default 2
+  weaponPool?: string[];
+  woundSeverity?: number;
+  staminaRegenRate?: number;
+  distanceSteps?: number;
+  roundsToWin?: number;
+  theme?: {
+    arenaBackground?: string;
+    weaponGlowColors?: Record<string, string>;
+    bloodEffectColor?: string;
+  };
+  gameplay?: {
+    playerHp?: number;
+    playerStamina?: number;
+    weaponDamage?: Record<string, number>;
+    parryWindow?: number;
+    parryRiposteMultiplier?: number;
+    lungeMultiplier?: number;
+    thrustMultiplier?: number;
+    guardReduction?: number;
+    staminaCosts?: Record<string, number>;
+    durability?: number;
+  };
+  content?: {
+    weaponDefinitions?: Record<
+      string,
+      { reach: number; damage: number; speed: number; parryBonus: number }
+    >;
+    fightingStyles?: string[];
+  };
 }
 
 interface WeaponDef {
@@ -26,7 +50,7 @@ interface WeaponDef {
   parryBonus: number; // percentage bonus to parry success
 }
 
-const WEAPONS: Record<string, WeaponDef> = {
+const DEFAULT_WEAPONS: Record<string, WeaponDef> = {
   dagger: { name: 'dagger', reach: 1, damage: 8, speed: 12, parryBonus: 15 },
   rapier: { name: 'rapier', reach: 2, damage: 10, speed: 10, parryBonus: 10 },
   sword: { name: 'sword', reach: 2, damage: 14, speed: 8, parryBonus: 5 },
@@ -34,7 +58,14 @@ const WEAPONS: Record<string, WeaponDef> = {
   spear: { name: 'spear', reach: 3, damage: 12, speed: 7, parryBonus: -5 },
 };
 
-const ALL_WEAPONS = Object.keys(WEAPONS);
+const ALL_WEAPONS = Object.keys(DEFAULT_WEAPONS);
+
+const DEFAULT_PLAYER_HP = 100;
+const DEFAULT_PLAYER_STAMINA = 50;
+const DEFAULT_PARRY_RIPOSTE_MULTIPLIER = 0.5;
+const DEFAULT_LUNGE_MULTIPLIER = 1.3;
+const DEFAULT_THRUST_MULTIPLIER = 0.8;
+const DEFAULT_GUARD_REDUCTION = 0.5;
 
 interface Wound {
   severity: number;
@@ -74,7 +105,7 @@ interface WeaponsDuelState {
 }
 
 // Stamina costs
-const STAMINA_COSTS: Record<string, number> = {
+const DEFAULT_STAMINA_COSTS: Record<string, number> = {
   thrust: 8,
   slash: 10,
   lunge: 15,
@@ -107,12 +138,14 @@ export class WeaponsDuelGame extends BaseGame {
     for (let i = 0; i < allIds.length; i++) {
       const pid = allIds[i];
       const weaponName = weaponPool[i % weaponPool.length];
+      const hp = (cfg.gameplay?.playerHp as number) ?? DEFAULT_PLAYER_HP;
+      const stamina = (cfg.gameplay?.playerStamina as number) ?? DEFAULT_PLAYER_STAMINA;
       duelists[pid] = {
         id: pid,
-        hp: 100,
-        maxHp: 100,
-        stamina: 50,
-        maxStamina: 50,
+        hp,
+        maxHp: hp,
+        stamina,
+        maxStamina: stamina,
         weapon: weaponName,
         position: i === 0 ? 1 : distanceSteps - 1,
         wounds: [],
@@ -125,9 +158,11 @@ export class WeaponsDuelGame extends BaseGame {
     }
 
     // Turn order by weapon speed (higher first)
+    const weapons =
+      (cfg.content?.weaponDefinitions as Record<string, WeaponDef>) ?? DEFAULT_WEAPONS;
     const turnOrder = allIds.sort((a, b) => {
-      const weapA = WEAPONS[duelists[b].weapon] ?? WEAPONS['sword'];
-      const weapB = WEAPONS[duelists[a].weapon] ?? WEAPONS['sword'];
+      const weapA = weapons[duelists[b].weapon] ?? weapons['sword'];
+      const weapB = weapons[duelists[a].weapon] ?? weapons['sword'];
       return weapA.speed - weapB.speed;
     });
 
@@ -244,17 +279,29 @@ export class WeaponsDuelGame extends BaseGame {
     return oppId ? data.duelists[oppId] : null;
   }
 
+  private getWeapons(): Record<string, WeaponDef> {
+    const cfg = this.config as WeaponsDuelConfig;
+    return (cfg.content?.weaponDefinitions as Record<string, WeaponDef>) ?? DEFAULT_WEAPONS;
+  }
+
+  private getStaminaCosts(): Record<string, number> {
+    const cfg = this.config as WeaponsDuelConfig;
+    return (cfg.gameplay?.staminaCosts as Record<string, number>) ?? DEFAULT_STAMINA_COSTS;
+  }
+
   private getDistance(a: Duelist, b: Duelist): number {
     return Math.abs(a.position - b.position);
   }
 
   private hasStamina(duelist: Duelist, actionType: string): boolean {
-    const cost = STAMINA_COSTS[actionType] ?? 0;
+    const costs = this.getStaminaCosts();
+    const cost = costs[actionType] ?? 0;
     return duelist.stamina >= cost;
   }
 
   private spendStamina(duelist: Duelist, actionType: string): void {
-    const cost = STAMINA_COSTS[actionType] ?? 0;
+    const costs = this.getStaminaCosts();
+    const cost = costs[actionType] ?? 0;
     duelist.stamina = Math.max(0, duelist.stamina - cost);
   }
 
@@ -317,7 +364,9 @@ export class WeaponsDuelGame extends BaseGame {
     const opponent = this.getOpponent(playerId, data);
     if (!opponent) return { success: false, error: 'No opponent' };
 
-    const weapon = WEAPONS[duelist.weapon] ?? WEAPONS['sword'];
+    const cfg = this.config as WeaponsDuelConfig;
+    const weapons = this.getWeapons();
+    const weapon = weapons[duelist.weapon] ?? weapons['sword'];
     const distance = this.getDistance(duelist, opponent);
 
     if (distance > weapon.reach) {
@@ -327,12 +376,14 @@ export class WeaponsDuelGame extends BaseGame {
     const targetZone = (action.payload.target as string) || 'mid';
     data.lastAttackZone[playerId] = targetZone;
 
-    const damageMultiplier = strikeType === 'thrust' ? 0.8 : 1.0;
+    const thrustMult = (cfg.gameplay?.thrustMultiplier as number) ?? DEFAULT_THRUST_MULTIPLIER;
+    const damageMultiplier = strikeType === 'thrust' ? thrustMult : 1.0;
     let damage = Math.floor(weapon.damage * damageMultiplier);
 
     // Guard check
+    const guardReduction = (cfg.gameplay?.guardReduction as number) ?? DEFAULT_GUARD_REDUCTION;
     if (opponent.guard === targetZone) {
-      damage = Math.floor(damage * 0.5);
+      damage = Math.floor(damage * guardReduction);
     }
 
     opponent.hp = Math.max(0, opponent.hp - damage);
@@ -367,7 +418,9 @@ export class WeaponsDuelGame extends BaseGame {
       duelist.position = newPos;
     }
 
-    const weapon = WEAPONS[duelist.weapon] ?? WEAPONS['sword'];
+    const cfg = this.config as WeaponsDuelConfig;
+    const weapons = this.getWeapons();
+    const weapon = weapons[duelist.weapon] ?? weapons['sword'];
     const distance = this.getDistance(duelist, opponent);
 
     if (distance > weapon.reach) {
@@ -379,11 +432,13 @@ export class WeaponsDuelGame extends BaseGame {
     const targetZone = (action.payload.target as string) || 'mid';
     data.lastAttackZone[playerId] = targetZone;
 
-    let damage = Math.floor(weapon.damage * 1.3);
+    const lungeMult = (cfg.gameplay?.lungeMultiplier as number) ?? DEFAULT_LUNGE_MULTIPLIER;
+    let damage = Math.floor(weapon.damage * lungeMult);
 
     // Guard check
+    const guardReduction = (cfg.gameplay?.guardReduction as number) ?? DEFAULT_GUARD_REDUCTION;
     if (opponent.guard === targetZone) {
-      damage = Math.floor(damage * 0.5);
+      damage = Math.floor(damage * guardReduction);
     }
 
     opponent.hp = Math.max(0, opponent.hp - damage);
@@ -417,9 +472,13 @@ export class WeaponsDuelGame extends BaseGame {
     this.spendStamina(duelist, 'parry');
 
     if (opponentLastZone && parryZone === opponentLastZone) {
-      // Successful parry: riposte for 50% damage
-      const weapon = WEAPONS[duelist.weapon] ?? WEAPONS['sword'];
-      const riposteDamage = Math.floor(weapon.damage * 0.5);
+      // Successful parry: riposte damage
+      const cfg = this.config as WeaponsDuelConfig;
+      const weapons = this.getWeapons();
+      const weapon = weapons[duelist.weapon] ?? weapons['sword'];
+      const riposteMult =
+        (cfg.gameplay?.parryRiposteMultiplier as number) ?? DEFAULT_PARRY_RIPOSTE_MULTIPLIER;
+      const riposteDamage = Math.floor(weapon.damage * riposteMult);
       opponent.hp = Math.max(0, opponent.hp - riposteDamage);
       duelist.parriesLanded++;
 
@@ -548,8 +607,11 @@ export class WeaponsDuelGame extends BaseGame {
     const player = this.getOpponent('cpu', data);
     if (!player) return;
 
+    const cfg = this.config as WeaponsDuelConfig;
+    const weapons = this.getWeapons();
+    const staminaCosts = this.getStaminaCosts();
     const distance = this.getDistance(cpu, player);
-    const weapon = WEAPONS[cpu.weapon] ?? WEAPONS['sword'];
+    const weapon = weapons[cpu.weapon] ?? weapons['sword'];
 
     // Simple AI
     if (cpu.stamina < 8) {
@@ -565,26 +627,28 @@ export class WeaponsDuelGame extends BaseGame {
       if (newPos !== player.position && newPos >= 0 && newPos < data.distanceSteps) {
         cpu.position = newPos;
       }
-      cpu.stamina = Math.max(0, cpu.stamina - STAMINA_COSTS['advance']);
+      cpu.stamina = Math.max(0, cpu.stamina - (staminaCosts['advance'] ?? 0));
     } else {
       const roll = Math.random();
       const zones: Array<'high' | 'mid' | 'low'> = ['high', 'mid', 'low'];
       const zone = zones[Math.floor(Math.random() * zones.length)];
+      const guardReduction = (cfg.gameplay?.guardReduction as number) ?? DEFAULT_GUARD_REDUCTION;
 
       if (roll < 0.4) {
         // Slash
         let damage = Math.floor(weapon.damage * 1.0);
-        if (player.guard === zone) damage = Math.floor(damage * 0.5);
+        if (player.guard === zone) damage = Math.floor(damage * guardReduction);
         player.hp = Math.max(0, player.hp - damage);
-        cpu.stamina = Math.max(0, cpu.stamina - STAMINA_COSTS['slash']);
+        cpu.stamina = Math.max(0, cpu.stamina - (staminaCosts['slash'] ?? 0));
         data.lastAttackZone['cpu'] = zone;
         this.tryInflictWound(cpu, player, data);
       } else if (roll < 0.7) {
         // Thrust
-        let damage = Math.floor(weapon.damage * 0.8);
-        if (player.guard === zone) damage = Math.floor(damage * 0.5);
+        const thrustMult = (cfg.gameplay?.thrustMultiplier as number) ?? DEFAULT_THRUST_MULTIPLIER;
+        let damage = Math.floor(weapon.damage * thrustMult);
+        if (player.guard === zone) damage = Math.floor(damage * guardReduction);
         player.hp = Math.max(0, player.hp - damage);
-        cpu.stamina = Math.max(0, cpu.stamina - STAMINA_COSTS['thrust']);
+        cpu.stamina = Math.max(0, cpu.stamina - (staminaCosts['thrust'] ?? 0));
         data.lastAttackZone['cpu'] = zone;
       } else {
         // Guard

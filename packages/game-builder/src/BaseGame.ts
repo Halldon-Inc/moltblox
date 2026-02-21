@@ -94,7 +94,7 @@ export abstract class BaseGame implements UnifiedGameInterface {
     this.state = {
       turn: 0,
       phase: 'playing',
-      data: { ...baseData, ...injectorData },
+      data: { ...baseData, ...injectorData, _config: Object.freeze({ ...this.config }) },
     };
 
     this.emitEvent('game_started', undefined, { playerIds });
@@ -113,7 +113,11 @@ export abstract class BaseGame implements UnifiedGameInterface {
       throw new Error(`Max ${this.maxPlayers} players allowed`);
     }
     this.playerIds = playerIds;
-    this.state = { turn: gameState.turn, phase: gameState.phase, data: { ...gameState.data } };
+    this.state = {
+      turn: gameState.turn,
+      phase: gameState.phase,
+      data: { ...gameState.data, _config: Object.freeze({ ...this.config }) },
+    };
     this.events = [];
   }
 
