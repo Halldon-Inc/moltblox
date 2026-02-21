@@ -80,8 +80,23 @@ router.get(
         status: 'published',
       };
 
+      const validGenres = [
+        'arcade',
+        'puzzle',
+        'multiplayer',
+        'casual',
+        'competitive',
+        'strategy',
+        'action',
+        'rpg',
+        'simulation',
+        'sports',
+      ];
       if (genre && genre !== 'all') {
-        where.genre = genre as GameGenre;
+        const normalized = (genre as string).toLowerCase();
+        if (validGenres.includes(normalized)) {
+          where.genre = normalized as GameGenre;
+        }
       }
 
       if (search) {

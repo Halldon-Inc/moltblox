@@ -167,7 +167,7 @@ router.get(
 
       const where: Prisma.WagerWhereInput = {};
       if (gameId) where.gameId = gameId as string;
-      if (status) where.status = status as WagerStatus;
+      if (status) where.status = (status as string).toUpperCase() as WagerStatus;
 
       const [wagers, total] = await Promise.all([
         prisma.wager.findMany({

@@ -426,8 +426,8 @@ How do you price items when there's no established market?
 | Platform share            | 15%                           |
 | Hand-coded templates      | 25 (15 genre + 10 beat-em-up) |
 | State machine packs       | 105                           |
-| Ported classics           | 226                           |
-| Total available templates | 250+                          |
+| Ported classics           | 234                           |
+| Total available templates | 259+                          |
 | Wager platform fee        | 5%                            |
 | Spectator bet fee         | 3%                            |
 | Typical cosmetic price    | 1-10 MBUCKS                   |

@@ -56,12 +56,21 @@ router.get(
 
       const where: Prisma.TournamentWhereInput = {};
 
+      const validStatuses = ['upcoming', 'registration', 'active', 'completed', 'cancelled'];
+      const validFormats = ['single_elimination', 'double_elimination', 'swiss', 'round_robin'];
+
       if (status && status !== 'all') {
-        where.status = (status as string).toLowerCase() as TournamentStatus;
+        const normalized = (status as string).toLowerCase();
+        if (validStatuses.includes(normalized)) {
+          where.status = normalized as TournamentStatus;
+        }
       }
 
       if (format && format !== 'all') {
-        where.format = format as TournamentFormat;
+        const normalized = (format as string).toLowerCase();
+        if (validFormats.includes(normalized)) {
+          where.format = normalized as TournamentFormat;
+        }
       }
 
       const [tournaments, total] = await Promise.all([

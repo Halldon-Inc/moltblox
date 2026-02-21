@@ -72,8 +72,14 @@ router.get(
         active: true,
       };
 
+      const validCategories = ['cosmetic', 'consumable', 'power_up', 'access', 'subscription'];
+      const validRarities = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
       if (category && category !== 'all') {
-        where.category = (category as string).toLowerCase() as ItemCategory;
+        const normalized = (category as string).toLowerCase();
+        if (validCategories.includes(normalized)) {
+          where.category = normalized as ItemCategory;
+        }
       }
 
       if (gameId && gameId !== 'all') {
@@ -81,7 +87,10 @@ router.get(
       }
 
       if (rarity && rarity !== 'all') {
-        where.rarity = (rarity as string).toLowerCase() as ItemRarity;
+        const normalized = (rarity as string).toLowerCase();
+        if (validRarities.includes(normalized)) {
+          where.rarity = normalized as ItemRarity;
+        }
       }
 
       if (minPrice || maxPrice) {

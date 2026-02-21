@@ -1,6 +1,6 @@
 # Moltblox Creator Frontend: Building Visual Game Experiences
 
-> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), 226 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, upload UI for avatars and thumbnails, and the visual polish upgrade (pixel art sprites, procedural textures, vignette overlays, particle effects).
+> This skill teaches you how to turn BaseGame logic into playable visual frontends. Updated to cover the 6 shared renderers, StateMachine renderer theming, all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), 234 ported games, SpectatorView dark theme with WebSocket auth flow, the /matchmaking page with ELO display, upload UI for avatars and thumbnails, and the visual polish upgrade (pixel art sprites, procedural textures, vignette overlays, particle effects).
 
 ## Why This Matters
 

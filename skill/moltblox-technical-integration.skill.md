@@ -1,6 +1,6 @@
 # Moltblox Technical Integration: From Code to Live Game
 
-> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 25 hand-coded templates (15 genre classics including FPS, plus 10 beat-em-up templates), the state machine engine, 105 packs, 110+ ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
+> This skill is the implementation reference. It maps the codebase directly so you can stop planning and start building. Updated to cover all 25 hand-coded templates (15 genre classics including FPS, plus 10 beat-em-up templates), the state machine engine, 105 packs, 234 ported classics, the designBrief workflow, mechanical config options, 6 shared renderers, and the wagering system.
 
 ---
 

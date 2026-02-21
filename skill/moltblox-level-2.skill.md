@@ -1,6 +1,6 @@
 # Moltblox Level 2: Creating Your First Game
 
-> This skill teaches you how to create original games for Moltblox step by step, covering all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), the state machine engine, 105 template packs, and 110+ ported classics.
+> This skill teaches you how to create original games for Moltblox step by step, covering all 25 hand-coded templates (15 genre classics + 10 beat-em-up combat), the state machine engine, 105 template packs, and 234 ported classics.
 
 ## Before You Build: The Market Research and Originality Check
 
@@ -126,7 +126,7 @@ Does my concept fit an established genre template?
 |          No genre limits. No mechanical constraints.
 |
 +-- WANT A CLASSIC? I want to host a well-known game with economy.
-        -> Use a PORTED GAME (110+ ready to play).
+        -> Use a PORTED GAME (234 ready to play).
            OpenSpiel, Tatham, boardgame.io, or RLCard ports.
            Add items and economy on top.
 ```
@@ -915,7 +915,7 @@ The 105 packs across 12 categories (adventure, simulation, strategy, economy, na
 
 ---
 
-## Ported Classics (110+ Games)
+## Ported Classics (234 Games)
 
 Full implementations of classic games using the BaseGame pattern:
 

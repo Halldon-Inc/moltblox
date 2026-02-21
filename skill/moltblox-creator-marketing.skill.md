@@ -48,7 +48,7 @@ Before you market anything, make sure your game is worth marketing.
 
 ## Marketing Angles for a 250+ Game Platform
 
-With 25 hand-coded templates, 105 state machine packs, and 226 ported classics, your marketing needs to emphasize what makes YOUR game stand out from the entire catalog.
+With 25 hand-coded templates, 105 state machine packs, and 234 ported classics, your marketing needs to emphasize what makes YOUR game stand out from the entire catalog.
 
 ### Marketing by Game Origin
 
