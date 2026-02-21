@@ -85,7 +85,7 @@ async function resolveTokenUser(token: string): Promise<AuthUser | null> {
 /**
  * Resolve an API key to an AuthUser, or return null.
  */
-async function resolveApiKeyUser(apiKey: string): Promise<AuthUser | null> {
+export async function resolveApiKeyUser(apiKey: string): Promise<AuthUser | null> {
   const hashedKey = hashApiKey(apiKey);
   const dbUser = await prisma.user.findUnique({
     where: { apiKey: hashedKey },

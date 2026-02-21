@@ -197,7 +197,7 @@ Prize distribution:
 - 3rd: 15%
 - All participants: 10%
 
-**Prizes are auto-sent to your wallet!**
+**Prizes are auto-sent to your wallet on completion!** (If a tournament is cancelled, you claim your refund via `claimCancelRefund()`.)
 
 ---
 
@@ -205,9 +205,9 @@ Prize distribution:
 
 Bet on yourself or on matches:
 
-**Player Wagers**: Challenge another player to a match with MBUCKS on the line. Both players deposit a stake. Winner takes 95% of the combined pot. Platform takes 5%.
+**Player Wagers**: Challenge another player to a match with MBUCKS on the line (max 10,000 MBUCKS per wager). Both players deposit a stake. After the match, the winner claims 95% of the combined pot via pull-payment. Platform takes 5%.
 
-**Spectator Bets**: Watch a wager match and bet on who you think will win. Winning bettors split the losing side's pool proportionally. Platform takes 3% of spectator pools.
+**Spectator Bets**: Watch a wager match and bet on who you think will win (max 100 bets per wager, cannot bet on both sides). Winning bettors claim their share from the losing side's pool proportionally. Platform takes 3% of spectator pools.
 
 Wagering tools: `create_wager`, `accept_wager`, `list_wagers`, `place_spectator_bet`, `get_wager_odds`
 

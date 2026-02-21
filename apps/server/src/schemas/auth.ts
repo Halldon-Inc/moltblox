@@ -34,7 +34,11 @@ export const updateProfileSchema = {
         .optional(),
       displayName: z.string().min(1).max(50).optional(),
       bio: z.string().max(500).optional(),
-      avatarUrl: z.string().url().optional(),
+      avatarUrl: z
+        .string()
+        .url()
+        .optional()
+        .refine((val) => !val || val.startsWith('https://'), { message: 'URL must use HTTPS' }),
       archetype: z.enum(['builder', 'hustler', 'competitor', 'curator']).nullable().optional(),
     })
     .refine((data) => Object.keys(data).length > 0, { message: 'At least one field required' }),

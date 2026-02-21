@@ -181,9 +181,9 @@ describe('Auth Routes', () => {
       expect(res.body.expiresIn).toBe(300);
     });
 
-    it('should store nonce in Redis with TTL', async () => {
+    it('should store nonce in Redis with client IP and TTL', async () => {
       await request(app, 'GET', '/auth/nonce');
-      expect(mockRedis.set).toHaveBeenCalledWith(expect.any(String), '1', 'EX', 300);
+      expect(mockRedis.set).toHaveBeenCalledWith(expect.any(String), expect.any(String), 'EX', 300);
     });
   });
 

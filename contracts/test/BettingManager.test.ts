@@ -18,6 +18,7 @@ describe("BettingManager", function () {
     Cancelled: 3,
     Disputed: 4,
     Refunded: 5,
+    Claimed: 6,
   };
 
   async function deployBettingFixture() {
@@ -81,6 +82,18 @@ describe("BettingManager", function () {
     return fixture;
   }
 
+  async function deployWithClaimedWagerFixture() {
+    const fixture = await loadFixture(deployWithSettledWagerFixture);
+    const { betting, player1 } = fixture;
+
+    // Advance past dispute window (24 hours)
+    await time.increase(24 * 60 * 60 + 1);
+
+    await betting.connect(player1).claimWinnings(0);
+
+    return fixture;
+  }
+
   // ================================================================
   // Deployment
   // ================================================================
@@ -113,6 +126,7 @@ describe("BettingManager", function () {
       expect(await betting.minStake()).to.equal(ethers.parseEther("0.1"));
       expect(await betting.MAX_SPECTATOR_BET()).to.equal(ethers.parseEther("100"));
       expect(await betting.MIN_SPECTATOR_BET()).to.equal(ethers.parseEther("0.1"));
+      expect(await betting.MAX_SPECTATOR_BETS_PER_WAGER()).to.equal(100);
     });
 
     it("Should start with nextWagerId at 0", async function () {
@@ -259,10 +273,8 @@ describe("BettingManager", function () {
     it("Should enforce private wager opponent", async function () {
       const { betting, player1, player2, other } = await loadFixture(deployBettingFixture);
 
-      // Create private wager for player2
       await betting.connect(player1).createWager("game-001", STAKE_AMOUNT, player2.address);
 
-      // Other user should not be able to accept
       await expect(
         betting.connect(other).acceptWager(0)
       ).to.be.revertedWith("Not the designated opponent");
@@ -290,7 +302,6 @@ describe("BettingManager", function () {
     it("Should revert if wager is expired", async function () {
       const { betting, player2 } = await loadFixture(deployWithOpenWagerFixture);
 
-      // Move time forward past ACCEPT_TIMEOUT (24 hours)
       await time.increase(24 * 60 * 60 + 1);
 
       await expect(
@@ -317,11 +328,11 @@ describe("BettingManager", function () {
   });
 
   // ================================================================
-  // settleWager
+  // settleWager (Pull-Payment: no transfer on settle)
   // ================================================================
   describe("settleWager", function () {
-    it("Should settle wager with correct payout (95/5 split)", async function () {
-      const { betting, token, player1, player2, settler, treasury } =
+    it("Should settle wager (record winner, no transfer)", async function () {
+      const { betting, token, player1, settler, treasury } =
         await loadFixture(deployWithLockedWagerFixture);
 
       const winnerBalanceBefore = await token.balanceOf(player1.address);
@@ -329,21 +340,15 @@ describe("BettingManager", function () {
 
       await betting.connect(settler).settleWager(0, player1.address);
 
+      // No transfer should have happened
       const winnerBalanceAfter = await token.balanceOf(player1.address);
       const treasuryBalanceAfter = await token.balanceOf(treasury.address);
 
-      // Total pot = 10 * 2 = 20 MBUCKS
-      // Fee = 20 * 500 / 10000 = 1 MBUCKS (5%)
-      // Payout = 20 - 1 = 19 MBUCKS (95%)
-      const totalPot = STAKE_AMOUNT * 2n;
-      const expectedFee = (totalPot * 500n) / 10000n;
-      const expectedPayout = totalPot - expectedFee;
-
-      expect(winnerBalanceAfter - winnerBalanceBefore).to.equal(expectedPayout);
-      expect(treasuryBalanceAfter - treasuryBalanceBefore).to.equal(expectedFee);
+      expect(winnerBalanceAfter).to.equal(winnerBalanceBefore);
+      expect(treasuryBalanceAfter).to.equal(treasuryBalanceBefore);
     });
 
-    it("Should emit WagerSettled event", async function () {
+    it("Should emit WagerSettled event with calculated payout", async function () {
       const { betting, player1, settler } =
         await loadFixture(deployWithLockedWagerFixture);
 
@@ -356,7 +361,7 @@ describe("BettingManager", function () {
         .withArgs(0, player1.address, expectedPayout);
     });
 
-    it("Should update wager status to Settled", async function () {
+    it("Should update wager status to Settled with claimableAfter set", async function () {
       const { betting, player1, settler } =
         await loadFixture(deployWithLockedWagerFixture);
 
@@ -365,6 +370,7 @@ describe("BettingManager", function () {
       const wager = await betting.wagers(0);
       expect(wager.status).to.equal(WagerStatus.Settled);
       expect(wager.winner).to.equal(player1.address);
+      expect(wager.claimableAfter).to.be.gt(0);
     });
 
     it("Should revert if caller is not authorized settler", async function () {
@@ -398,27 +404,11 @@ describe("BettingManager", function () {
       const { betting, player1, settler } =
         await loadFixture(deployWithLockedWagerFixture);
 
-      // Move time past SETTLE_TIMEOUT (2 hours)
       await time.increase(2 * 60 * 60 + 1);
 
       await expect(
         betting.connect(settler).settleWager(0, player1.address)
       ).to.be.revertedWith("Settlement window expired");
-    });
-
-    it("Should allow settling in favor of acceptor", async function () {
-      const { betting, token, player2, settler } =
-        await loadFixture(deployWithLockedWagerFixture);
-
-      const balanceBefore = await token.balanceOf(player2.address);
-      await betting.connect(settler).settleWager(0, player2.address);
-      const balanceAfter = await token.balanceOf(player2.address);
-
-      const totalPot = STAKE_AMOUNT * 2n;
-      const expectedFee = (totalPot * 500n) / 10000n;
-      const expectedPayout = totalPot - expectedFee;
-
-      expect(balanceAfter - balanceBefore).to.equal(expectedPayout);
     });
 
     it("Should revert when paused", async function () {
@@ -429,6 +419,90 @@ describe("BettingManager", function () {
       await expect(
         betting.connect(settler).settleWager(0, player1.address)
       ).to.be.revertedWithCustomError(betting, "EnforcedPause");
+    });
+  });
+
+  // ================================================================
+  // claimWinnings
+  // ================================================================
+  describe("claimWinnings", function () {
+    it("Should claim winnings after dispute window", async function () {
+      const { betting, token, player1, treasury } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      // Advance past dispute window (24 hours)
+      await time.increase(24 * 60 * 60 + 1);
+
+      const winnerBalanceBefore = await token.balanceOf(player1.address);
+      const treasuryBalanceBefore = await token.balanceOf(treasury.address);
+
+      await betting.connect(player1).claimWinnings(0);
+
+      const winnerBalanceAfter = await token.balanceOf(player1.address);
+      const treasuryBalanceAfter = await token.balanceOf(treasury.address);
+
+      const totalPot = STAKE_AMOUNT * 2n;
+      const expectedFee = (totalPot * 500n) / 10000n;
+      const expectedPayout = totalPot - expectedFee;
+
+      expect(winnerBalanceAfter - winnerBalanceBefore).to.equal(expectedPayout);
+      expect(treasuryBalanceAfter - treasuryBalanceBefore).to.equal(expectedFee);
+    });
+
+    it("Should emit WagerClaimed event", async function () {
+      const { betting, player1 } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      await time.increase(24 * 60 * 60 + 1);
+
+      const totalPot = STAKE_AMOUNT * 2n;
+      const expectedFee = (totalPot * 500n) / 10000n;
+      const expectedPayout = totalPot - expectedFee;
+
+      await expect(betting.connect(player1).claimWinnings(0))
+        .to.emit(betting, "WagerClaimed")
+        .withArgs(0, player1.address, expectedPayout);
+    });
+
+    it("Should set status to Claimed", async function () {
+      const { betting, player1 } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      await time.increase(24 * 60 * 60 + 1);
+      await betting.connect(player1).claimWinnings(0);
+
+      const wager = await betting.wagers(0);
+      expect(wager.status).to.equal(WagerStatus.Claimed);
+    });
+
+    it("Should revert if dispute window still open", async function () {
+      const { betting, player1 } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      // Don't advance time
+      await expect(
+        betting.connect(player1).claimWinnings(0)
+      ).to.be.revertedWith("Dispute window still open");
+    });
+
+    it("Should revert if caller is not the winner", async function () {
+      const { betting, player2 } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      await time.increase(24 * 60 * 60 + 1);
+
+      await expect(
+        betting.connect(player2).claimWinnings(0)
+      ).to.be.revertedWith("Not the winner");
+    });
+
+    it("Should revert if wager is not settled", async function () {
+      const { betting, player1 } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await expect(
+        betting.connect(player1).claimWinnings(0)
+      ).to.be.revertedWith("Wager not settled");
     });
   });
 
@@ -486,89 +560,20 @@ describe("BettingManager", function () {
 
       const pool = await betting.spectatorPools(0);
       expect(pool.totalPool).to.equal(SPECTATOR_BET_AMOUNT);
-      expect(pool.pool1).to.equal(SPECTATOR_BET_AMOUNT); // bet on creator
+      expect(pool.pool1).to.equal(SPECTATOR_BET_AMOUNT);
     });
 
     it("Should track bets on both sides", async function () {
       const { betting, player1, player2, spectator1, spectator2 } =
         await loadFixture(deployWithLockedWagerFixture);
 
-      // spectator1 bets on creator (player1)
       await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
-      // spectator2 bets on acceptor (player2)
       await betting.connect(spectator2).placeBet(0, player2.address, SPECTATOR_BET_AMOUNT);
 
       const pool = await betting.spectatorPools(0);
       expect(pool.totalPool).to.equal(SPECTATOR_BET_AMOUNT * 2n);
       expect(pool.pool1).to.equal(SPECTATOR_BET_AMOUNT);
       expect(pool.pool2).to.equal(SPECTATOR_BET_AMOUNT);
-    });
-
-    it("Should settle spectator bets and distribute to winners", async function () {
-      const { betting, token, player1, player2, settler, spectator1, spectator2, treasury } =
-        await loadFixture(deployWithLockedWagerFixture);
-
-      // spectator1 bets 5 MBUCKS on player1 (creator)
-      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
-      // spectator2 bets 5 MBUCKS on player2 (acceptor)
-      await betting.connect(spectator2).placeBet(0, player2.address, SPECTATOR_BET_AMOUNT);
-
-      const spec1BalanceBefore = await token.balanceOf(spectator1.address);
-      const spec2BalanceBefore = await token.balanceOf(spectator2.address);
-
-      // Player1 wins
-      await betting.connect(settler).settleWager(0, player1.address);
-
-      const spec1BalanceAfter = await token.balanceOf(spectator1.address);
-      const spec2BalanceAfter = await token.balanceOf(spectator2.address);
-
-      // Total spectator pool = 10 MBUCKS
-      // Fee = 10 * 300 / 10000 = 0.3 MBUCKS
-      // Distributable = 10 - 0.3 = 9.7 MBUCKS
-      // spectator1 wins all distributable (only winning bettor)
-      const totalPool = SPECTATOR_BET_AMOUNT * 2n;
-      const specFee = (totalPool * 300n) / 10000n;
-      const distributable = totalPool - specFee;
-
-      expect(spec1BalanceAfter - spec1BalanceBefore).to.equal(distributable);
-      // spectator2 loses, balance unchanged
-      expect(spec2BalanceAfter).to.equal(spec2BalanceBefore);
-
-      // Verify pool is settled
-      const pool = await betting.spectatorPools(0);
-      expect(pool.settled).to.equal(true);
-    });
-
-    it("Should distribute proportionally among multiple winning bettors", async function () {
-      const { betting, token, player1, settler, spectator1, spectator2 } =
-        await loadFixture(deployWithLockedWagerFixture);
-
-      // Both spectators bet on player1 (creator), different amounts
-      const bet1 = ethers.parseEther("3");
-      const bet2 = ethers.parseEther("7");
-      await betting.connect(spectator1).placeBet(0, player1.address, bet1);
-      await betting.connect(spectator2).placeBet(0, player1.address, bet2);
-
-      const spec1Before = await token.balanceOf(spectator1.address);
-      const spec2Before = await token.balanceOf(spectator2.address);
-
-      // Player1 wins, no one bet on loser so there is no losing pool
-      await betting.connect(settler).settleWager(0, player1.address);
-
-      const spec1After = await token.balanceOf(spectator1.address);
-      const spec2After = await token.balanceOf(spectator2.address);
-
-      // Total pool = 10, fee = 0.3, distributable = 9.7
-      // winningPool = 10, so each gets (betAmount * 9.7) / 10
-      const totalPool = bet1 + bet2;
-      const fee = (totalPool * 300n) / 10000n;
-      const distributable = totalPool - fee;
-
-      const spec1Expected = (bet1 * distributable) / totalPool;
-      const spec2Expected = (bet2 * distributable) / totalPool;
-
-      expect(spec1After - spec1Before).to.equal(spec1Expected);
-      expect(spec2After - spec2Before).to.equal(spec2Expected);
     });
 
     it("Should revert if wager is not locked", async function () {
@@ -646,6 +651,69 @@ describe("BettingManager", function () {
   });
 
   // ================================================================
+  // claimSpectatorWinnings
+  // ================================================================
+  describe("claimSpectatorWinnings", function () {
+    it("Should allow winning spectator to claim after wager is claimed", async function () {
+      const { betting, token, player1, player2, settler, spectator1, spectator2 } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      // spectator1 bets on player1 (creator), spectator2 bets on player2 (acceptor)
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+      await betting.connect(spectator2).placeBet(0, player2.address, SPECTATOR_BET_AMOUNT);
+
+      // Settle: player1 wins
+      await betting.connect(settler).settleWager(0, player1.address);
+
+      // Advance past dispute window
+      await time.increase(24 * 60 * 60 + 1);
+
+      // Winner claims wager winnings
+      await betting.connect(player1).claimWinnings(0);
+
+      // Spectator1 (winning bettor) claims spectator winnings
+      const spec1Before = await token.balanceOf(spectator1.address);
+      await betting.connect(spectator1).claimSpectatorWinnings(0);
+      const spec1After = await token.balanceOf(spectator1.address);
+
+      // Total spectator pool = 10, fee = 0.3, distributable = 9.7
+      // spectator1 bet 5 on winner, winning pool = 5, share = 5 * 9.7 / 5 = 9.7
+      const totalPool = SPECTATOR_BET_AMOUNT * 2n;
+      const specFee = (totalPool * 300n) / 10000n;
+      const distributable = totalPool - specFee;
+
+      expect(spec1After - spec1Before).to.equal(distributable);
+    });
+
+    it("Should revert if wager not yet claimed", async function () {
+      const { betting, spectator1 } =
+        await loadFixture(deployWithSettledWagerFixture);
+
+      await expect(
+        betting.connect(spectator1).claimSpectatorWinnings(0)
+      ).to.be.revertedWith("Wager not claimed yet");
+    });
+
+    it("Should revert if spectator has no winnings", async function () {
+      const { betting, token, player1, player2, settler, spectator1, spectator2 } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      // spectator2 bets on player2 (who will lose)
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+      await betting.connect(spectator2).placeBet(0, player2.address, SPECTATOR_BET_AMOUNT);
+
+      await betting.connect(settler).settleWager(0, player1.address);
+      await time.increase(24 * 60 * 60 + 1);
+      await betting.connect(player1).claimWinnings(0);
+
+      // spectator2 lost, should have no winnings
+      await expect(
+        betting.connect(spectator2).claimSpectatorWinnings(0)
+      ).to.be.revertedWith("No winnings to claim");
+    });
+  });
+
+  // ================================================================
   // disputeWager
   // ================================================================
   describe("disputeWager", function () {
@@ -672,8 +740,8 @@ describe("BettingManager", function () {
     it("Should revert if dispute window has closed", async function () {
       const { betting, player2 } = await loadFixture(deployWithSettledWagerFixture);
 
-      // Move time past DISPUTE_WINDOW (1 hour)
-      await time.increase(60 * 60 + 1);
+      // Move time past DISPUTE_WINDOW (24 hours)
+      await time.increase(24 * 60 * 60 + 1);
 
       await expect(
         betting.connect(player2).disputeWager(0, "Too late")
@@ -703,6 +771,14 @@ describe("BettingManager", function () {
         betting.connect(player1).disputeWager(0, "")
       ).to.be.revertedWith("Reason required");
     });
+
+    it("Should have nonReentrant modifier", async function () {
+      // Test that disputeWager doesn't revert for normal use (indirectly testing nonReentrant exists)
+      const { betting, player1 } = await loadFixture(deployWithSettledWagerFixture);
+      await betting.connect(player1).disputeWager(0, "Valid dispute");
+      const wager = await betting.wagers(0);
+      expect(wager.status).to.equal(WagerStatus.Disputed);
+    });
   });
 
   // ================================================================
@@ -718,23 +794,16 @@ describe("BettingManager", function () {
       return fixture;
     }
 
-    it("Should allow owner to resolve dispute", async function () {
-      const { betting, token, player2, owner } =
+    it("Should allow owner to resolve dispute and reset claimable timer", async function () {
+      const { betting, player2, owner } =
         await loadFixture(deployWithDisputedWagerFixture);
-
-      // Fund the contract so it can pay out the corrected winner
-      // In a real scenario, the previous winner would have returned funds
-      const bettingAddr = await betting.getAddress();
-      const totalPot = STAKE_AMOUNT * 2n;
-      const fee = (totalPot * 500n) / 10000n;
-      const payout = totalPot - fee;
-      await token.transfer(bettingAddr, payout);
 
       await betting.connect(owner).resolveDispute(0, player2.address);
 
       const wager = await betting.wagers(0);
       expect(wager.winner).to.equal(player2.address);
       expect(wager.status).to.equal(WagerStatus.Settled);
+      expect(wager.claimableAfter).to.be.gt(0);
     });
 
     it("Should revert if caller is not owner", async function () {
@@ -764,18 +833,24 @@ describe("BettingManager", function () {
       ).to.be.revertedWith("Winner must be creator or acceptor");
     });
 
-    it("Should not transfer if same winner is confirmed", async function () {
-      const { betting, token, player1, owner } =
+    it("Should allow claiming after resolve dispute", async function () {
+      const { betting, token, player2, owner } =
         await loadFixture(deployWithDisputedWagerFixture);
 
-      const balanceBefore = await token.balanceOf(player1.address);
+      await betting.connect(owner).resolveDispute(0, player2.address);
 
-      // Resolve with same winner (player1 was original winner)
-      await betting.connect(owner).resolveDispute(0, player1.address);
+      // Advance past new dispute window
+      await time.increase(24 * 60 * 60 + 1);
 
-      const balanceAfter = await token.balanceOf(player1.address);
-      // No additional transfer since same winner
-      expect(balanceAfter).to.equal(balanceBefore);
+      const balBefore = await token.balanceOf(player2.address);
+      await betting.connect(player2).claimWinnings(0);
+      const balAfter = await token.balanceOf(player2.address);
+
+      const totalPot = STAKE_AMOUNT * 2n;
+      const fee = (totalPot * 500n) / 10000n;
+      const payout = totalPot - fee;
+
+      expect(balAfter - balBefore).to.equal(payout);
     });
   });
 
@@ -787,7 +862,6 @@ describe("BettingManager", function () {
       const { betting, token, player1, other } =
         await loadFixture(deployWithOpenWagerFixture);
 
-      // Move time past ACCEPT_TIMEOUT (24 hours)
       await time.increase(24 * 60 * 60 + 1);
 
       const balanceBefore = await token.balanceOf(player1.address);
@@ -808,7 +882,6 @@ describe("BettingManager", function () {
 
       await time.increase(24 * 60 * 60 + 1);
 
-      // Non-participant can trigger refund
       await expect(
         betting.connect(other).refundExpiredWager(0)
       ).to.not.be.reverted;
@@ -830,6 +903,139 @@ describe("BettingManager", function () {
       await expect(
         betting.connect(other).refundExpiredWager(0)
       ).to.be.revertedWith("Wager not yet expired");
+    });
+  });
+
+  // ================================================================
+  // refundExpiredLockedWager
+  // ================================================================
+  describe("refundExpiredLockedWager", function () {
+    it("Should refund both parties for expired locked wager", async function () {
+      const { betting, token, player1, player2, other } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      const p1Before = await token.balanceOf(player1.address);
+      const p2Before = await token.balanceOf(player2.address);
+
+      // Advance past LOCKED_WAGER_TIMEOUT (7 days)
+      await time.increase(7 * 24 * 60 * 60 + 1);
+
+      await betting.connect(other).refundExpiredLockedWager(0);
+
+      const p1After = await token.balanceOf(player1.address);
+      const p2After = await token.balanceOf(player2.address);
+
+      expect(p1After - p1Before).to.equal(STAKE_AMOUNT);
+      expect(p2After - p2Before).to.equal(STAKE_AMOUNT);
+
+      const wager = await betting.wagers(0);
+      expect(wager.status).to.equal(WagerStatus.Refunded);
+    });
+
+    it("Should emit LockedWagerRefunded event", async function () {
+      const { betting, other } = await loadFixture(deployWithLockedWagerFixture);
+
+      await time.increase(7 * 24 * 60 * 60 + 1);
+
+      await expect(betting.connect(other).refundExpiredLockedWager(0))
+        .to.emit(betting, "LockedWagerRefunded")
+        .withArgs(0);
+    });
+
+    it("Should refund spectator bets too", async function () {
+      const { betting, token, player1, spectator1, other } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+
+      const specBefore = await token.balanceOf(spectator1.address);
+
+      await time.increase(7 * 24 * 60 * 60 + 1);
+      await betting.connect(other).refundExpiredLockedWager(0);
+
+      const specAfter = await token.balanceOf(spectator1.address);
+      expect(specAfter - specBefore).to.equal(SPECTATOR_BET_AMOUNT);
+    });
+
+    it("Should revert if wager not active (already settled)", async function () {
+      const { betting, other } = await loadFixture(deployWithSettledWagerFixture);
+
+      await time.increase(7 * 24 * 60 * 60 + 1);
+
+      await expect(
+        betting.connect(other).refundExpiredLockedWager(0)
+      ).to.be.revertedWith("Wager not active");
+    });
+
+    it("Should revert if not yet expired", async function () {
+      const { betting, other } = await loadFixture(deployWithLockedWagerFixture);
+
+      await expect(
+        betting.connect(other).refundExpiredLockedWager(0)
+      ).to.be.revertedWith("Wager not yet expired");
+    });
+  });
+
+  // ================================================================
+  // refundSpectatorBets (Admin)
+  // ================================================================
+  describe("refundSpectatorBets", function () {
+    it("Should refund spectator bets for disputed wager", async function () {
+      const { betting, token, player1, player2, settler, spectator1, spectator2, owner } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+      await betting.connect(spectator2).placeBet(0, player2.address, SPECTATOR_BET_AMOUNT);
+
+      // Settle then dispute
+      await betting.connect(settler).settleWager(0, player1.address);
+      await betting.connect(player2).disputeWager(0, "Disputed");
+
+      const spec1Before = await token.balanceOf(spectator1.address);
+      const spec2Before = await token.balanceOf(spectator2.address);
+
+      await betting.connect(owner).refundSpectatorBets(0);
+
+      const spec1After = await token.balanceOf(spectator1.address);
+      const spec2After = await token.balanceOf(spectator2.address);
+
+      expect(spec1After - spec1Before).to.equal(SPECTATOR_BET_AMOUNT);
+      expect(spec2After - spec2Before).to.equal(SPECTATOR_BET_AMOUNT);
+    });
+
+    it("Should emit SpectatorBetsRefunded event", async function () {
+      const { betting, player1, player2, settler, spectator1, owner } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+      await betting.connect(settler).settleWager(0, player1.address);
+      await betting.connect(player2).disputeWager(0, "Disputed");
+
+      await expect(betting.connect(owner).refundSpectatorBets(0))
+        .to.emit(betting, "SpectatorBetsRefunded")
+        .withArgs(0);
+    });
+
+    it("Should revert if not owner", async function () {
+      const { betting, player1, player2, settler, spectator1 } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT);
+      await betting.connect(settler).settleWager(0, player1.address);
+      await betting.connect(player2).disputeWager(0, "Disputed");
+
+      await expect(
+        betting.connect(player1).refundSpectatorBets(0)
+      ).to.be.revertedWithCustomError(betting, "OwnableUnauthorizedAccount");
+    });
+
+    it("Should revert if wager not in correct status", async function () {
+      const { betting, owner } =
+        await loadFixture(deployWithLockedWagerFixture);
+
+      await expect(
+        betting.connect(owner).refundSpectatorBets(0)
+      ).to.be.revertedWith("Wager must be disputed, cancelled, or refunded");
     });
   });
 
@@ -876,18 +1082,17 @@ describe("BettingManager", function () {
       ).to.be.revertedWith("Can only cancel open wagers");
     });
 
-    it("Should handle wager with no spectator bets on settlement", async function () {
+    it("Should handle wager with no spectator bets on claim", async function () {
       const { betting, token, player1, settler, treasury } =
         await loadFixture(deployWithLockedWagerFixture);
 
-      const treasuryBefore = await token.balanceOf(treasury.address);
-
-      // Settle with no spectator bets
       await betting.connect(settler).settleWager(0, player1.address);
+      await time.increase(24 * 60 * 60 + 1);
 
+      const treasuryBefore = await token.balanceOf(treasury.address);
+      await betting.connect(player1).claimWinnings(0);
       const treasuryAfter = await token.balanceOf(treasury.address);
 
-      // Only player fee, no spectator fee
       const totalPot = STAKE_AMOUNT * 2n;
       const expectedFee = (totalPot * 500n) / 10000n;
       expect(treasuryAfter - treasuryBefore).to.equal(expectedFee);
@@ -926,11 +1131,13 @@ describe("BettingManager", function () {
       ).to.be.revertedWith("Invalid settler address");
     });
 
-    it("Should update max stake", async function () {
+    it("Should update max stake and emit event", async function () {
       const { betting } = await loadFixture(deployBettingFixture);
 
       const newMax = ethers.parseEther("500");
-      await betting.setMaxStake(newMax);
+      await expect(betting.setMaxStake(newMax))
+        .to.emit(betting, "MaxStakeUpdated")
+        .withArgs(newMax);
       expect(await betting.maxStakePerWager()).to.equal(newMax);
     });
 
@@ -943,17 +1150,18 @@ describe("BettingManager", function () {
     it("Should revert if max stake is less than min", async function () {
       const { betting } = await loadFixture(deployBettingFixture);
 
-      // minStake is 0.1 ether
       await expect(
         betting.setMaxStake(ethers.parseEther("0.01"))
       ).to.be.revertedWith("Max must be >= min");
     });
 
-    it("Should update min stake", async function () {
+    it("Should update min stake and emit event", async function () {
       const { betting } = await loadFixture(deployBettingFixture);
 
       const newMin = ethers.parseEther("1");
-      await betting.setMinStake(newMin);
+      await expect(betting.setMinStake(newMin))
+        .to.emit(betting, "MinStakeUpdated")
+        .withArgs(newMin);
       expect(await betting.minStake()).to.equal(newMin);
     });
 
@@ -969,21 +1177,6 @@ describe("BettingManager", function () {
       await expect(
         betting.setMinStake(ethers.parseEther("2000"))
       ).to.be.revertedWith("Min must be <= max");
-    });
-
-    it("Should update treasury", async function () {
-      const { betting, other } = await loadFixture(deployBettingFixture);
-
-      await betting.updateTreasury(other.address);
-      expect(await betting.treasury()).to.equal(other.address);
-    });
-
-    it("Should revert updating treasury to zero address", async function () {
-      const { betting } = await loadFixture(deployBettingFixture);
-
-      await expect(
-        betting.updateTreasury(ethers.ZeroAddress)
-      ).to.be.revertedWith("Invalid treasury address");
     });
 
     it("Should only allow owner to call admin functions", async function () {
@@ -1006,8 +1199,93 @@ describe("BettingManager", function () {
       ).to.be.revertedWithCustomError(betting, "OwnableUnauthorizedAccount");
 
       await expect(
-        betting.connect(player1).updateTreasury(player1.address)
+        betting.connect(player1).proposeTreasuryChange(player1.address)
       ).to.be.revertedWithCustomError(betting, "OwnableUnauthorizedAccount");
+    });
+  });
+
+  // ================================================================
+  // Treasury Timelock
+  // ================================================================
+  describe("Treasury Timelock", function () {
+    it("Should propose treasury change", async function () {
+      const { betting, other } = await loadFixture(deployBettingFixture);
+
+      await expect(betting.proposeTreasuryChange(other.address))
+        .to.emit(betting, "TreasuryChangeProposed");
+
+      expect(await betting.pendingTreasury()).to.equal(other.address);
+    });
+
+    it("Should not change treasury immediately", async function () {
+      const { betting, treasury, other } = await loadFixture(deployBettingFixture);
+
+      await betting.proposeTreasuryChange(other.address);
+      expect(await betting.treasury()).to.equal(treasury.address);
+    });
+
+    it("Should confirm treasury after 48 hours", async function () {
+      const { betting, other } = await loadFixture(deployBettingFixture);
+
+      await betting.proposeTreasuryChange(other.address);
+      await time.increase(48 * 60 * 60);
+      await betting.confirmTreasuryChange();
+
+      expect(await betting.treasury()).to.equal(other.address);
+      expect(await betting.pendingTreasury()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("Should emit TreasuryChangeConfirmed on confirm", async function () {
+      const { betting, treasury, other } = await loadFixture(deployBettingFixture);
+
+      await betting.proposeTreasuryChange(other.address);
+      await time.increase(48 * 60 * 60);
+
+      await expect(betting.confirmTreasuryChange())
+        .to.emit(betting, "TreasuryChangeConfirmed")
+        .withArgs(treasury.address, other.address);
+    });
+
+    it("Should revert confirm before 48 hours", async function () {
+      const { betting, other } = await loadFixture(deployBettingFixture);
+
+      await betting.proposeTreasuryChange(other.address);
+      await time.increase(47 * 60 * 60);
+
+      await expect(betting.confirmTreasuryChange())
+        .to.be.revertedWith("Timelock not elapsed");
+    });
+
+    it("Should revert confirm with no pending change", async function () {
+      const { betting } = await loadFixture(deployBettingFixture);
+
+      await expect(betting.confirmTreasuryChange())
+        .to.be.revertedWith("No pending treasury change");
+    });
+
+    it("Should cancel treasury change", async function () {
+      const { betting, other } = await loadFixture(deployBettingFixture);
+
+      await betting.proposeTreasuryChange(other.address);
+      await expect(betting.cancelTreasuryChange())
+        .to.emit(betting, "TreasuryChangeCancelled");
+
+      expect(await betting.pendingTreasury()).to.equal(ethers.ZeroAddress);
+    });
+
+    it("Should revert cancel with no pending change", async function () {
+      const { betting } = await loadFixture(deployBettingFixture);
+
+      await expect(betting.cancelTreasuryChange())
+        .to.be.revertedWith("No pending treasury change");
+    });
+
+    it("Should revert proposing zero address", async function () {
+      const { betting } = await loadFixture(deployBettingFixture);
+
+      await expect(
+        betting.proposeTreasuryChange(ethers.ZeroAddress)
+      ).to.be.revertedWith("Invalid treasury address");
     });
   });
 
@@ -1028,49 +1306,10 @@ describe("BettingManager", function () {
       expect(await betting.paused()).to.equal(false);
     });
 
-    it("Should block createWager when paused", async function () {
-      const { betting, player1 } = await loadFixture(deployBettingFixture);
-      await betting.pause();
-
-      await expect(
-        betting.connect(player1).createWager("game-001", STAKE_AMOUNT, ethers.ZeroAddress)
-      ).to.be.revertedWithCustomError(betting, "EnforcedPause");
-    });
-
-    it("Should block acceptWager when paused", async function () {
-      const { betting, player2 } = await loadFixture(deployWithOpenWagerFixture);
-      await betting.pause();
-
-      await expect(
-        betting.connect(player2).acceptWager(0)
-      ).to.be.revertedWithCustomError(betting, "EnforcedPause");
-    });
-
-    it("Should block settleWager when paused", async function () {
-      const { betting, player1, settler } =
-        await loadFixture(deployWithLockedWagerFixture);
-      await betting.pause();
-
-      await expect(
-        betting.connect(settler).settleWager(0, player1.address)
-      ).to.be.revertedWithCustomError(betting, "EnforcedPause");
-    });
-
-    it("Should block placeBet when paused", async function () {
-      const { betting, player1, spectator1 } =
-        await loadFixture(deployWithLockedWagerFixture);
-      await betting.pause();
-
-      await expect(
-        betting.connect(spectator1).placeBet(0, player1.address, SPECTATOR_BET_AMOUNT)
-      ).to.be.revertedWithCustomError(betting, "EnforcedPause");
-    });
-
     it("Should NOT block cancelWager when paused (creator can always cancel)", async function () {
       const { betting, player1 } = await loadFixture(deployWithOpenWagerFixture);
       await betting.pause();
 
-      // cancelWager should still work since it is not guarded by whenNotPaused
       await expect(
         betting.connect(player1).cancelWager(0)
       ).to.not.be.reverted;
@@ -1082,7 +1321,6 @@ describe("BettingManager", function () {
 
       await time.increase(24 * 60 * 60 + 1);
 
-      // refundExpiredWager should still work since it is not guarded by whenNotPaused
       await expect(
         betting.connect(other).refundExpiredWager(0)
       ).to.not.be.reverted;

@@ -1,4 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
+
+// Mock auth and jwt modules used by csrf middleware
+vi.mock('../middleware/auth.js', () => ({
+  resolveApiKeyUser: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../lib/jwt.js', () => ({
+  verifyToken: vi.fn().mockReturnValue(null),
+}));
+
+import { resolveApiKeyUser } from '../middleware/auth.js';
+import { verifyToken } from '../lib/jwt.js';
 import { csrfTokenSetter, csrfProtection } from '../middleware/csrf.js';
 
 function mockReq(overrides: Partial<any> = {}) {
@@ -41,35 +53,35 @@ describe('CSRF Protection', () => {
   });
 
   describe('csrfProtection', () => {
-    it('should allow GET requests without token', () => {
+    it('should allow GET requests without token', async () => {
       const req = mockReq({ method: 'GET' });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(next).toHaveBeenCalled();
     });
 
-    it('should allow HEAD requests without token', () => {
+    it('should allow HEAD requests without token', async () => {
       const req = mockReq({ method: 'HEAD' });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(next).toHaveBeenCalled();
     });
 
-    it('should block POST without CSRF token', () => {
+    it('should block POST without CSRF token', async () => {
       const req = mockReq({ method: 'POST' });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
       expect(next).not.toHaveBeenCalled();
     });
 
-    it('should allow POST with matching CSRF tokens', () => {
+    it('should allow POST with matching CSRF tokens', async () => {
       const token = 'valid-csrf-token';
       const req = mockReq({
         method: 'POST',
@@ -79,11 +91,11 @@ describe('CSRF Protection', () => {
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(next).toHaveBeenCalled();
     });
 
-    it('should block POST with mismatched CSRF tokens', () => {
+    it('should block POST with mismatched CSRF tokens', async () => {
       const req = mockReq({
         method: 'POST',
         cookies: { moltblox_csrf: 'token-a' },
@@ -92,37 +104,52 @@ describe('CSRF Protection', () => {
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
     });
 
-    it('should skip CSRF for API key requests', () => {
+    it('should skip CSRF for valid API key requests', async () => {
+      // Mock resolveApiKeyUser to return a valid user for this test
+      vi.mocked(resolveApiKeyUser).mockResolvedValueOnce({ id: 'user-1', role: 'human' } as any);
       const req = mockReq({
         method: 'POST',
-        headers: { 'x-api-key': 'some-api-key' },
+        headers: { 'x-api-key': 'valid-api-key' },
       });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(next).toHaveBeenCalled();
     });
 
-    it('should block DELETE without CSRF token', () => {
+    it('should NOT skip CSRF for invalid API key requests', async () => {
+      vi.mocked(resolveApiKeyUser).mockResolvedValueOnce(null);
+      const req = mockReq({
+        method: 'POST',
+        headers: { 'x-api-key': 'invalid-api-key' },
+      });
+      const res = mockRes();
+      const next = vi.fn();
+
+      await csrfProtection(req, res, next);
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('should block DELETE without CSRF token', async () => {
       const req = mockReq({ method: 'DELETE' });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
     });
 
-    it('should block PUT without CSRF token', () => {
+    it('should block PUT without CSRF token', async () => {
       const req = mockReq({ method: 'PUT' });
       const res = mockRes();
       const next = vi.fn();
 
-      csrfProtection(req, res, next);
+      await csrfProtection(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
     });
   });

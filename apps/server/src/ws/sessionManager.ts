@@ -49,6 +49,7 @@ export interface ConnectedClient {
   spectating?: string;
   watchingWagerId?: string;
   fpsMatchId?: string;
+  remoteIp?: string;
   lastPing: number;
 }
 
@@ -287,37 +288,40 @@ function applyActionToSession(
     },
   };
 
-  // If the action carries a state update from the authoritative client,
-  // merge only permitted fields (clients send state diffs in action.payload.stateUpdate).
-  // Protected fields must never be overwritten by client state mutations.
-  const PROTECTED_STATE_FIELDS = new Set([
-    'winner',
-    'scores',
-    'players',
-    'currentTurnIndex',
-    'status',
-    'createdAt',
-    'gameId',
-  ]);
+  // C4: Only template-based games (with a templateSlug) may merge client state
+  // updates. WASM games run their own authoritative logic client-side and submit
+  // results via game_action; allowing stateUpdate merges for WASM would let a
+  // malicious client overwrite arbitrary session state fields.
+  if (session.templateSlug) {
+    // Merge only permitted fields (clients send state diffs in action.payload.stateUpdate).
+    // Protected fields must never be overwritten by client state mutations.
+    const PROTECTED_STATE_FIELDS = new Set([
+      'winner',
+      'scores',
+      'players',
+      'currentTurnIndex',
+      'status',
+      'createdAt',
+      'gameId',
+    ]);
 
-  if (
-    action.payload.stateUpdate &&
-    typeof action.payload.stateUpdate === 'object' &&
-    action.payload.stateUpdate !== null
-  ) {
-    const update = action.payload.stateUpdate as Record<string, unknown>;
-    for (const key of Object.keys(update)) {
-      if (!PROTECTED_STATE_FIELDS.has(key)) {
-        newData[key] = update[key];
+    if (
+      action.payload.stateUpdate &&
+      typeof action.payload.stateUpdate === 'object' &&
+      action.payload.stateUpdate !== null
+    ) {
+      const update = action.payload.stateUpdate as Record<string, unknown>;
+      for (const key of Object.keys(update)) {
+        if (!PROTECTED_STATE_FIELDS.has(key)) {
+          newData[key] = update[key];
+        }
       }
     }
   }
 
-  // Detect game-over signal from client
-  const phase =
-    action.type === 'game_over' || action.payload.gameOver === true
-      ? 'ended'
-      : session.gameState.phase;
+  // C5: Game-over is determined server-side only (via game engine or endSession).
+  // Client-sent game_over action types or gameOver payload flags are ignored.
+  const phase = session.gameState.phase;
 
   // Advance turn and update state
   session.currentTurn += 1;

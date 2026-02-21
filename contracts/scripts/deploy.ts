@@ -27,7 +27,7 @@ async function main() {
   const moltbucksAddress = await moltbucks.getAddress();
   console.log("   Moltbucks deployed to:", moltbucksAddress);
 
-  // 2. Treasury address — deployer for testnet, multisig for mainnet
+  // 2. Treasury address: deployer for testnet, multisig for mainnet
   const treasuryAddress = process.env.TREASURY_ADDRESS || deployer.address;
   console.log("\n2. Treasury address:", treasuryAddress);
 
@@ -47,8 +47,22 @@ async function main() {
   const tournamentManagerAddress = await tournamentManager.getAddress();
   console.log("   TournamentManager deployed to:", tournamentManagerAddress);
 
-  // 5. TournamentManager only does safeTransfer (no minting needed)
-  console.log("\n5. TournamentManager uses safeTransfer, no minter role needed.");
+  // 5. Deploy BettingManager
+  console.log("\n5. Deploying BettingManager...");
+  const BettingManager = await ethers.getContractFactory("BettingManager");
+  const bettingManager = await BettingManager.deploy(moltbucksAddress, treasuryAddress);
+  await bettingManager.waitForDeployment();
+  const bettingManagerAddress = await bettingManager.getAddress();
+  console.log("   BettingManager deployed to:", bettingManagerAddress);
+
+  // 6. Authorize the deployer as a settler for BettingManager
+  console.log("\n6. Authorizing deployer as settler for BettingManager...");
+  const settlerAddress = process.env.SETTLER_ADDRESS || deployer.address;
+  await bettingManager.authorizeSettler(settlerAddress);
+  console.log("   Settler authorized:", settlerAddress);
+
+  // 7. TournamentManager only does safeTransfer (no minting needed)
+  console.log("\n7. TournamentManager uses safeTransfer, no minter role needed.");
 
   // Summary
   console.log("\n" + "=".repeat(55));
@@ -58,6 +72,7 @@ async function main() {
   console.log("    Moltbucks:         ", moltbucksAddress);
   console.log("    GameMarketplace:   ", gameMarketplaceAddress);
   console.log("    TournamentManager: ", tournamentManagerAddress);
+  console.log("    BettingManager:    ", bettingManagerAddress);
   console.log("    Treasury:          ", treasuryAddress);
   console.log("\n  Revenue Split:  85% Creator / 15% Platform");
   console.log("  Prize Default:  50% 1st / 25% 2nd / 15% 3rd / 10% Participation");
@@ -85,6 +100,11 @@ async function main() {
         address: tournamentManagerAddress,
         defaultDistribution: { first: 50, second: 25, third: 15, participation: 10 },
       },
+      BettingManager: {
+        address: bettingManagerAddress,
+        playerFeeBps: 500,
+        spectatorFeeBps: 300,
+      },
     },
   };
 
@@ -108,6 +128,7 @@ async function main() {
   console.log(`    NEXT_PUBLIC_MOLTBUCKS_ADDRESS=${moltbucksAddress}`);
   console.log(`    NEXT_PUBLIC_GAME_MARKETPLACE_ADDRESS=${gameMarketplaceAddress}`);
   console.log(`    NEXT_PUBLIC_TOURNAMENT_MANAGER_ADDRESS=${tournamentManagerAddress}`);
+  console.log(`    NEXT_PUBLIC_BETTING_MANAGER_ADDRESS=${bettingManagerAddress}`);
 
   // Verify on block explorer (skip for localhost/hardhat)
   if (networkName !== "hardhat" && networkName !== "localhost") {
@@ -141,6 +162,16 @@ async function main() {
       console.log("    TournamentManager verified");
     } catch (e: any) {
       console.log("    TournamentManager verification:", e.message?.includes("Already") ? "already verified" : "failed");
+    }
+
+    try {
+      await run("verify:verify", {
+        address: bettingManagerAddress,
+        constructorArguments: [moltbucksAddress, treasuryAddress],
+      });
+      console.log("    BettingManager verified");
+    } catch (e: any) {
+      console.log("    BettingManager verification:", e.message?.includes("Already") ? "already verified" : "failed");
     }
   }
 }

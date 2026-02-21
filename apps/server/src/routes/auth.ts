@@ -10,6 +10,7 @@ import prisma from '../lib/prisma.js';
 import redis from '../lib/redis.js';
 import jwt from 'jsonwebtoken';
 import { signToken, extractBlocklistKey, requireAuth } from '../middleware/auth.js';
+import { verifyToken } from '../lib/jwt.js';
 import { validate } from '../middleware/validate.js';
 import {
   verifySchema,
@@ -50,6 +51,7 @@ const TOKEN_COOKIE_OPTIONS = {
 async function verifySiweMessage(
   message: string,
   signature: string,
+  req: Request,
   res: Response,
 ): Promise<string | null> {
   let siweMessage: InstanceType<typeof SiweMessage>;
@@ -63,17 +65,32 @@ async function verifySiweMessage(
     return null;
   }
 
-  // Validate nonce
+  // Validate nonce (stored with IP binding under nonce:{value} key)
   const siweNonce = siweMessage.nonce;
-  if (!siweNonce || !(await redis.exists(siweNonce))) {
+  const nonceKey = `nonce:${siweNonce}`;
+  const storedIp = siweNonce ? await redis.get(nonceKey) : null;
+  if (!siweNonce || !storedIp) {
     res.status(401).json({
       error: 'Unauthorized',
       message: 'Invalid or expired nonce. Request a new one via GET /auth/nonce.',
     });
     return null;
   }
+
+  // L-A2: Verify the requesting IP matches the IP that generated the nonce
+  const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+  if (storedIp !== clientIp) {
+    // Consume the nonce to prevent further attempts
+    await redis.del(nonceKey);
+    res.status(403).json({
+      error: 'Forbidden',
+      message: 'Nonce was issued to a different client. Request a new nonce.',
+    });
+    return null;
+  }
+
   // Consume nonce (one-time use)
-  await redis.del(siweNonce);
+  await redis.del(nonceKey);
 
   // Verify the signature (siwe v2 returns { success, data, error })
   let verifyResult: {
@@ -130,7 +147,9 @@ router.get('/nonce', async (req: Request, res: Response, next: NextFunction) => 
   try {
     // EIP-4361 requires alphanumeric nonces (no hyphens)
     const nonce = randomBytes(16).toString('hex');
-    await redis.set(nonce, '1', 'EX', 300); // 5 minute TTL
+    // L-A2: Store requesting IP alongside nonce for IP binding
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+    await redis.set(`nonce:${nonce}`, clientIp, 'EX', 300); // 5 minute TTL
 
     res.json({
       nonce,
@@ -152,7 +171,7 @@ router.post(
     try {
       const { message, signature } = req.body;
 
-      const address = await verifySiweMessage(message, signature, res);
+      const address = await verifySiweMessage(message, signature, req, res);
       if (!address) return;
 
       // Find or create user
@@ -189,7 +208,7 @@ router.post(
           avatarUrl: user.avatarUrl,
         },
         token,
-        expiresIn: '7d',
+        expiresIn: '24h',
       });
     } catch (error) {
       next(error);
@@ -211,7 +230,7 @@ router.post(
     try {
       const { message, signature, botName, botDescription } = req.body;
 
-      const address = await verifySiweMessage(message, signature, res);
+      const address = await verifySiweMessage(message, signature, req, res);
       if (!address) return;
 
       // Sanitize bot name for username
@@ -272,7 +291,7 @@ router.post(
           botVerified: true,
         },
         token,
-        expiresIn: '7d',
+        expiresIn: '24h',
       });
     } catch (error) {
       next(error);
@@ -292,7 +311,17 @@ router.post('/refresh', requireAuth, async (req: Request, res: Response, next: N
     const oldToken = req.headers.authorization?.startsWith('Bearer ')
       ? req.headers.authorization.slice(7).trim()
       : req.cookies?.moltblox_token;
+
+    // H2: Verify the old token belongs to the requesting user before blocklisting
     if (oldToken) {
+      const oldPayload = verifyToken(oldToken);
+      if (!oldPayload || oldPayload.userId !== user.id) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Token does not belong to the authenticated user.',
+        });
+        return;
+      }
       await blockToken(extractBlocklistKey(oldToken));
     }
 
@@ -301,7 +330,7 @@ router.post('/refresh', requireAuth, async (req: Request, res: Response, next: N
     res.cookie('moltblox_token', token, TOKEN_COOKIE_OPTIONS);
 
     res.json({
-      expiresIn: '7d',
+      expiresIn: '24h',
     });
   } catch (error) {
     next(error);
@@ -521,6 +550,28 @@ router.post(
         },
       });
 
+      // H1: Cross-check identity to prevent confusion attacks
+      if (user) {
+        if (user.moltbookAgentId === agentData.id && user.walletAddress !== address) {
+          res.status(403).json({
+            error: 'Forbidden',
+            message: 'Moltbook agent ID is already linked to a different wallet address.',
+          });
+          return;
+        }
+        if (
+          user.walletAddress === address &&
+          user.moltbookAgentId &&
+          user.moltbookAgentId !== agentData.id
+        ) {
+          res.status(403).json({
+            error: 'Forbidden',
+            message: 'Wallet address is already linked to a different Moltbook agent.',
+          });
+          return;
+        }
+      }
+
       // C3: Block role escalation from human to bot
       if (user && user.role === 'human') {
         res.status(403).json({
@@ -577,7 +628,7 @@ router.post(
           moltbookKarma: agentData.karma,
           botVerified: true,
         },
-        expiresIn: '7d',
+        expiresIn: '24h',
       });
     } catch (error: unknown) {
       if (error instanceof TypeError && (error as Error).message?.includes('fetch')) {

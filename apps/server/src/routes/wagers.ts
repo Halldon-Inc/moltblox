@@ -6,7 +6,7 @@
 
 import { Router, Request, Response, NextFunction } from 'express';
 import prisma from '../lib/prisma.js';
-import { requireAuth, requireBot } from '../middleware/auth.js';
+import { requireAuth, optionalAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import {
   createWagerSchema,
@@ -22,6 +22,10 @@ import type { Prisma, WagerStatus } from '../generated/prisma/client.js';
 import { mbucksToWei } from '../lib/parseBigInt.js';
 import { serializeBigIntFields } from '../lib/serialize.js';
 import { AppError } from '../middleware/errorHandler.js';
+
+/** Maximum wager amount in MBUCKS */
+const MAX_WAGER_MBUCKS = 10_000;
+const MAX_WAGER_WEI = BigInt(MAX_WAGER_MBUCKS) * 10n ** 18n;
 
 const router: Router = Router();
 
@@ -113,6 +117,13 @@ router.post(
         return;
       }
 
+      if (weiAmount > MAX_WAGER_WEI) {
+        res
+          .status(400)
+          .json({ error: 'BadRequest', message: 'Wager amount exceeds maximum allowed' });
+        return;
+      }
+
       let wager;
       try {
         wager = await prisma.wager.create({
@@ -156,6 +167,7 @@ router.post(
  */
 router.get(
   '/',
+  optionalAuth,
   validate(listWagersSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -190,8 +202,21 @@ router.get(
         prisma.wager.count({ where }),
       ]);
 
+      // M9: Redact walletAddress for unauthenticated requests
+      const isAuthenticated = !!req.user;
+      const serialized = wagers.map((w) => {
+        const s = serializeWager(w) as Record<string, unknown>;
+        if (!isAuthenticated) {
+          const creator = s.creator as Record<string, unknown> | null;
+          const opponent = s.opponent as Record<string, unknown> | null;
+          if (creator) creator.walletAddress = undefined;
+          if (opponent) opponent.walletAddress = undefined;
+        }
+        return s;
+      });
+
       res.json({
-        wagers: wagers.map(serializeWager),
+        wagers: serialized,
         pagination: {
           total,
           page: pageNum,
@@ -386,12 +411,25 @@ router.post(
 router.post(
   '/:id/settle',
   requireAuth,
-  requireBot,
   validate(settleWagerSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const { winnerId } = req.body;
+      const { winnerId, gameSessionId } = req.body;
+
+      // H11: Verify winner against game session result if provided
+      if (gameSessionId) {
+        const gameSession = await prisma.gameSession.findUnique({
+          where: { id: gameSessionId },
+          select: { winnerId: true },
+        });
+        if (!gameSession) {
+          throw new AppError('Game session not found', 404);
+        }
+        if (gameSession.winnerId !== winnerId) {
+          throw new AppError('Winner does not match game session result', 400);
+        }
+      }
 
       const result = await prisma.$transaction(async (tx) => {
         const wager = await tx.wager.findUnique({
@@ -407,6 +445,12 @@ router.post(
 
         if (!wager) {
           throw new AppError('Wager not found', 404);
+        }
+
+        // H12: Only the wager creator or a bot can settle
+        const settlingUser = req.user!;
+        if (wager.creatorId !== settlingUser.id && settlingUser.role !== 'bot') {
+          throw new AppError('Not authorized to settle this wager', 403);
         }
 
         if (wager.status !== 'LOCKED') {
@@ -586,6 +630,18 @@ router.post(
         // Predicted winner must be one of the participants
         if (predictedWinnerId !== wager.creatorId && predictedWinnerId !== wager.opponentId) {
           throw new AppError('Predicted winner must be a wager participant', 400);
+        }
+
+        // Prevent betting on both sides of the same wager
+        const existingOppositeBet = await tx.spectatorBet.findFirst({
+          where: {
+            wagerId: id,
+            bettorId: user.id,
+            predictedWinner: { not: predictedWinnerId },
+          },
+        });
+        if (existingOppositeBet) {
+          throw new AppError('Cannot bet on both sides of the same wager', 409);
         }
 
         const weiAmount = mbucksToWei(amount);

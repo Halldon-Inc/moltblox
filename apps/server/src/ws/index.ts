@@ -49,6 +49,18 @@ interface RateLimitState {
 
 const rateLimitMap = new Map<string, RateLimitState>();
 
+// L-WS1: Track failed authentication attempts by IP for brute-force protection
+interface AuthFailureState {
+  count: number;
+  lastAttempt: number;
+}
+const authFailureMap = new Map<string, AuthFailureState>();
+const AUTH_FAILURE_WINDOW = 60_000; // 60 seconds
+const AUTH_FAILURE_MAX = 5; // max failures before rejection
+const AUTH_BACKOFF_THRESHOLD = 3; // start backoff after this many failures
+const AUTH_BACKOFF_MAX_MS = 30_000; // cap backoff at 30 seconds
+const AUTH_FAILURE_CLEANUP_INTERVAL = 300_000; // clean stale entries every 5 minutes
+
 /**
  * Check if a client has exceeded the message rate limit.
  * H2: Rate-limits by playerId (if authenticated) to prevent reconnect bypass.
@@ -125,6 +137,38 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
     requiredFields: ['token'],
     requiresAuth: false,
     async handler({ client, payload }) {
+      const ip = client.remoteIp || 'unknown';
+
+      // L-WS1: Check failed auth attempts for this IP
+      const failState = authFailureMap.get(ip);
+      if (failState) {
+        const elapsed = Date.now() - failState.lastAttempt;
+        // Reset if outside the failure window
+        if (elapsed > AUTH_FAILURE_WINDOW) {
+          authFailureMap.delete(ip);
+        } else if (failState.count >= AUTH_FAILURE_MAX) {
+          sendTo(client.ws, {
+            type: 'error',
+            payload: { message: 'Too many failed authentication attempts. Try again later.' },
+          });
+          client.ws.close(4029, 'Auth rate limit exceeded');
+          return;
+        } else if (failState.count >= AUTH_BACKOFF_THRESHOLD) {
+          // Apply exponential backoff delay check
+          const backoffMs = Math.min(
+            Math.pow(2, failState.count - AUTH_BACKOFF_THRESHOLD) * 1000,
+            AUTH_BACKOFF_MAX_MS,
+          );
+          if (elapsed < backoffMs) {
+            sendTo(client.ws, {
+              type: 'error',
+              payload: { message: 'Authentication rate limited. Please wait before retrying.' },
+            });
+            return;
+          }
+        }
+      }
+
       const token = payload.token as string;
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as {
@@ -136,12 +180,21 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
         // Check if token has been blocklisted (logged out)
         const blocklistKey = decoded.jti || token;
         if (await isTokenBlocked(blocklistKey)) {
+          // L-WS1: Count revoked token as a failed attempt
+          const state = authFailureMap.get(ip) || { count: 0, lastAttempt: 0 };
+          state.count += 1;
+          state.lastAttempt = Date.now();
+          authFailureMap.set(ip, state);
+
           sendTo(client.ws, {
             type: 'error',
             payload: { message: 'Token has been revoked' },
           });
           return;
         }
+
+        // Successful auth: clear failure tracking for this IP
+        authFailureMap.delete(ip);
 
         client.playerId = decoded.userId;
         sendTo(client.ws, {
@@ -152,6 +205,12 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
           },
         });
       } catch {
+        // L-WS1: Track the failed attempt
+        const state = authFailureMap.get(ip) || { count: 0, lastAttempt: 0 };
+        state.count += 1;
+        state.lastAttempt = Date.now();
+        authFailureMap.set(ip, state);
+
         sendTo(client.ws, {
           type: 'error',
           payload: { message: 'Invalid or expired token' },
@@ -504,7 +563,7 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
   },
 
   fps_hit: {
-    requiredFields: ['targetId', 'damage'],
+    requiredFields: ['targetId'],
     requiresAuth: true,
     async handler({ client, payload }) {
       if (!client.playerId) return;
@@ -594,8 +653,11 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
       }
 
       // M5: Enforce per-IP connection limit
-      const ip = info.req.headers['x-forwarded-for']
-        ? String(info.req.headers['x-forwarded-for']).split(',')[0].trim()
+      // Use socket remoteAddress as primary; only use x-forwarded-for behind a trusted proxy
+      const ip = process.env.TRUST_PROXY
+        ? info.req.headers['x-forwarded-for']
+          ? String(info.req.headers['x-forwarded-for']).split(',')[0].trim()
+          : info.req.socket.remoteAddress || 'unknown'
         : info.req.socket.remoteAddress || 'unknown';
       const current = connectionsPerIp.get(ip) || 0;
       if (current >= MAX_CONNECTIONS_PER_IP) {
@@ -642,6 +704,16 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     }
   }, RATE_LIMIT_CLEANUP_INTERVAL);
 
+  // L-WS1: Periodic cleanup of stale auth failure entries (every 5 minutes)
+  const authFailureCleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const [ip, state] of authFailureMap) {
+      if (now - state.lastAttempt > AUTH_FAILURE_WINDOW) {
+        authFailureMap.delete(ip);
+      }
+    }
+  }, AUTH_FAILURE_CLEANUP_INTERVAL);
+
   // M5: Helper to decrement IP connection counter on disconnect
   function decrementIpCount(ip: string): void {
     const count = connectionsPerIp.get(ip) || 0;
@@ -653,9 +725,11 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
   }
 
   wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-    // M5: Track per-IP connection count
-    const clientIp = req.headers['x-forwarded-for']
-      ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
+    // M5: Track per-IP connection count (use socket address unless behind trusted proxy)
+    const clientIp = process.env.TRUST_PROXY
+      ? req.headers['x-forwarded-for']
+        ? String(req.headers['x-forwarded-for']).split(',')[0].trim()
+        : req.socket.remoteAddress || 'unknown'
       : req.socket.remoteAddress || 'unknown';
     connectionsPerIp.set(clientIp, (connectionsPerIp.get(clientIp) || 0) + 1);
 
@@ -663,6 +737,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
     const client: ConnectedClient = {
       id: clientId,
       ws,
+      remoteIp: clientIp,
       lastPing: Date.now(),
     };
     clients.set(clientId, client);
@@ -746,6 +821,7 @@ export function createWebSocketServer(server: HTTPServer): WebSocketServer {
   wss.on('close', () => {
     clearInterval(heartbeatTimer);
     clearInterval(rateLimitCleanupTimer);
+    clearInterval(authFailureCleanupTimer);
     console.log('[WS] WebSocket server closed');
   });
 

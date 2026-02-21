@@ -85,6 +85,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     mapping(string => address[]) private contributorList;
     mapping(string => mapping(address => bool)) private isContributor;
 
+    // Pull-payment refund tracking for cancelled tournaments
+    mapping(string => mapping(address => uint256)) public cancelRefunds;
+    mapping(string => mapping(address => uint256)) public donationRefunds;
+
     // Treasury timelock (2-step change)
     address public pendingTreasury;
     uint256 public treasuryChangeTime;
@@ -118,6 +122,12 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         uint256 entryFee
     );
 
+    event ParticipantDeregistered(
+        string indexed tournamentId,
+        address indexed participant,
+        uint256 refundAmount
+    );
+
     event TournamentStarted(string indexed tournamentId, uint256 participantCount);
 
     event TournamentCompleted(
@@ -142,6 +152,8 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     event TournamentCancelled(string indexed tournamentId, string reason);
     event RefundIssued(string indexed tournamentId, address indexed participant, uint256 amount);
+    event CancelRefundClaimed(string indexed tournamentId, address indexed participant, uint256 amount);
+    event DonationRefundClaimed(string indexed tournamentId, address indexed donor, uint256 amount);
     event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
     // Donation tracking events
@@ -151,6 +163,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     // Treasury timelock events
     event TreasuryChangeProposed(address indexed newTreasury, uint256 effectiveTime);
     event TreasuryChangeConfirmed(address indexed oldTreasury, address indexed newTreasury);
+    event TreasuryChangeCancelled();
 
     // Emergency recovery events
     event RecoveryProposed(uint256 amount, uint256 effectiveTime);
@@ -169,17 +182,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Tournament Creation ============
 
-    /**
-     * @notice Create a platform-sponsored tournament (admin only)
-     * @param tournamentId Unique identifier
-     * @param gameId The game being played
-     * @param prizePool Total prize pool in MBUCKS
-     * @param entryFee Entry fee (0 for free)
-     * @param maxParticipants Maximum participants
-     * @param registrationStart When registration opens
-     * @param registrationEnd When registration closes
-     * @param startTime When tournament starts
-     */
     function createPlatformTournament(
         string calldata tournamentId,
         string calldata gameId,
@@ -203,21 +205,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             startTime
         );
 
-        // Transfer prize pool from treasury
         moltbucks.safeTransferFrom(treasury, address(this), prizePool);
     }
 
-    /**
-     * @notice Create a creator-sponsored tournament
-     * @param tournamentId Unique identifier
-     * @param gameId The game being played (must be creator's game)
-     * @param prizePool Total prize pool in MBUCKS (funded by creator)
-     * @param entryFee Entry fee (0 for free)
-     * @param maxParticipants Maximum participants
-     * @param registrationStart When registration opens
-     * @param registrationEnd When registration closes
-     * @param startTime When tournament starts
-     */
     function createCreatorTournament(
         string calldata tournamentId,
         string calldata gameId,
@@ -241,21 +231,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             startTime
         );
 
-        // Transfer prize pool from creator
         moltbucks.safeTransferFrom(msg.sender, address(this), prizePool);
     }
 
-    /**
-     * @notice Create a community-sponsored tournament
-     * @param tournamentId Unique identifier
-     * @param gameId The game being played
-     * @param prizePool Initial prize pool (can be added to by community)
-     * @param entryFee Entry fee (added to prize pool)
-     * @param maxParticipants Maximum participants
-     * @param registrationStart When registration opens
-     * @param registrationEnd When registration closes
-     * @param startTime When tournament starts
-     */
     function createCommunityTournament(
         string calldata tournamentId,
         string calldata gameId,
@@ -279,7 +257,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             startTime
         );
 
-        // Transfer initial prize pool from creator
         if (prizePool > 0) {
             moltbucks.safeTransferFrom(msg.sender, address(this), prizePool);
         }
@@ -304,7 +281,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(registrationStart < registrationEnd, "Invalid registration period");
         require(registrationEnd <= startTime, "Registration must end before start");
 
-        // Default prize distribution: 50% / 25% / 15% / 10%
         PrizeDistribution memory distribution = PrizeDistribution({
             first: 50,
             second: 25,
@@ -328,7 +304,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         t.startTime = startTime;
         t.prizesDistributed = false;
 
-        // SC1: Track original sponsor deposit separately for accurate cancel refunds
         originalPrizePool[tournamentId] = prizePool;
 
         emit TournamentCreated(
@@ -344,14 +319,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Custom Prize Distribution ============
 
-    /**
-     * @notice Set custom prize distribution (sponsor only)
-     * @param tournamentId The tournament to update
-     * @param first Percentage for 1st place
-     * @param second Percentage for 2nd place
-     * @param third Percentage for 3rd place
-     * @param participation Percentage for all participants
-     */
     function setDistribution(
         string calldata tournamentId,
         uint256 first,
@@ -365,6 +332,7 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(first + second + third + participation == 100, "Must total 100%");
         require(first > 0, "First must be > 0");
         require(second > 0, "Second must be > 0");
+        require(third > 0, "Third must be > 0");
 
         t.distribution = PrizeDistribution({
             first: first,
@@ -376,10 +344,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Registration ============
 
-    /**
-     * @notice Register for a tournament
-     * @param tournamentId The tournament to join
-     */
     function register(string calldata tournamentId) external nonReentrant whenNotPaused {
         Tournament storage t = tournaments[tournamentId];
 
@@ -389,12 +353,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         require(t.currentParticipants < t.maxParticipants, "Tournament full");
         require(!isParticipant[tournamentId][msg.sender], "Already registered");
 
-        // Collect entry fee if applicable
         if (t.entryFee > 0) {
             moltbucks.safeTransferFrom(msg.sender, address(this), t.entryFee);
             participantEntryFees[tournamentId] += t.entryFee;
 
-            // For community tournaments, entry fees add to prize pool
             if (t.tournamentType == TournamentType.CommunitySponsored) {
                 t.prizePool += t.entryFee;
             }
@@ -407,12 +369,45 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         emit ParticipantRegistered(tournamentId, msg.sender, t.entryFee);
     }
 
+    /**
+     * @notice Deregister from a tournament before registrationEnd with entry fee refund
+     */
+    function deregister(string calldata tournamentId) external nonReentrant {
+        Tournament storage t = tournaments[tournamentId];
+
+        require(t.status == TournamentStatus.Registration, "Not in registration");
+        require(block.timestamp <= t.registrationEnd, "Registration closed");
+        require(isParticipant[tournamentId][msg.sender], "Not registered");
+
+        isParticipant[tournamentId][msg.sender] = false;
+        t.currentParticipants--;
+
+        // Remove participant from array (swap and pop)
+        for (uint256 i = 0; i < t.participants.length; i++) {
+            if (t.participants[i] == msg.sender) {
+                t.participants[i] = t.participants[t.participants.length - 1];
+                t.participants.pop();
+                break;
+            }
+        }
+
+        uint256 refundAmount = 0;
+        if (t.entryFee > 0) {
+            participantEntryFees[tournamentId] -= t.entryFee;
+            refundAmount = t.entryFee;
+
+            if (t.tournamentType == TournamentType.CommunitySponsored) {
+                t.prizePool -= t.entryFee;
+            }
+
+            moltbucks.safeTransfer(msg.sender, t.entryFee);
+        }
+
+        emit ParticipantDeregistered(tournamentId, msg.sender, refundAmount);
+    }
+
     // ============ Tournament Lifecycle ============
 
-    /**
-     * @notice Start a tournament (auto-called or admin)
-     * @param tournamentId The tournament to start
-     */
     function startTournament(string calldata tournamentId) external whenNotPaused {
         Tournament storage t = tournaments[tournamentId];
         require(
@@ -428,17 +423,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         emit TournamentStarted(tournamentId, t.currentParticipants);
     }
 
-    /**
-     * @notice Complete tournament and distribute prizes
-     * @dev Auto-sends prizes to winner wallets. Supports 2, 3, or 4+ player tournaments.
-     *      For 2 players: pass winners as [first, second, address(0)]
-     *      For 3 players: pass winners as [first, second, third]
-     *      For 4+ players: pass winners as [first, second, third] with participation rewards
-     * @param tournamentId The tournament to complete
-     * @param first Address of 1st place winner
-     * @param second Address of 2nd place winner
-     * @param third Address of 3rd place winner (address(0) for 2-player tournaments)
-     */
     function completeTournament(
         string calldata tournamentId,
         address first,
@@ -449,9 +433,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Cancel a tournament and refund entry fees
-     * @param tournamentId The tournament to cancel
-     * @param reason Reason for cancellation
+     * @notice Cancel a tournament. Sets status and refunds sponsor directly.
+     *         Participants claim refunds via claimCancelRefund().
+     *         Donors claim refunds via claimDonationRefund().
      */
     function cancelTournament(string calldata tournamentId, string calldata reason) external nonReentrant {
         Tournament storage t = tournaments[tournamentId];
@@ -466,34 +450,60 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
         t.status = TournamentStatus.Cancelled;
 
-        // Refund entry fees to all participants
+        // Record refund amounts for pull-payment (participants)
         if (t.entryFee > 0) {
             for (uint256 i = 0; i < t.participants.length; i++) {
                 address participant = t.participants[i];
-                moltbucks.safeTransfer(participant, t.entryFee);
+                cancelRefunds[tournamentId][participant] = t.entryFee;
                 emit RefundIssued(tournamentId, participant, t.entryFee);
             }
         }
 
-        // SC1: Return original sponsor deposit (tracked separately to prevent double-counting)
+        // Refund sponsor directly (single trusted address)
         uint256 sponsorRefund = originalPrizePool[tournamentId];
         if (sponsorRefund > 0) {
             moltbucks.safeTransfer(t.sponsor, sponsorRefund);
         }
 
-        // Refund third-party donations
+        // Record donation refund amounts for pull-payment
         address[] storage donors = contributorList[tournamentId];
         for (uint256 i = 0; i < donors.length; i++) {
             address donor = donors[i];
             uint256 donorAmount = contributions[tournamentId][donor];
             if (donorAmount > 0) {
+                donationRefunds[tournamentId][donor] = donorAmount;
                 contributions[tournamentId][donor] = 0;
-                moltbucks.safeTransfer(donor, donorAmount);
                 emit DonationRefunded(tournamentId, donor, donorAmount);
             }
         }
 
         emit TournamentCancelled(tournamentId, reason);
+    }
+
+    /**
+     * @notice Claim entry fee refund for a cancelled tournament (pull-payment)
+     */
+    function claimCancelRefund(string calldata tournamentId) external nonReentrant {
+        uint256 refundAmount = cancelRefunds[tournamentId][msg.sender];
+        require(refundAmount > 0, "No refund available");
+
+        cancelRefunds[tournamentId][msg.sender] = 0;
+        moltbucks.safeTransfer(msg.sender, refundAmount);
+
+        emit CancelRefundClaimed(tournamentId, msg.sender, refundAmount);
+    }
+
+    /**
+     * @notice Claim donation refund for a cancelled tournament (pull-payment)
+     */
+    function claimDonationRefund(string calldata tournamentId) external nonReentrant {
+        uint256 refundAmount = donationRefunds[tournamentId][msg.sender];
+        require(refundAmount > 0, "No donation refund available");
+
+        donationRefunds[tournamentId][msg.sender] = 0;
+        moltbucks.safeTransfer(msg.sender, refundAmount);
+
+        emit DonationRefundClaimed(tournamentId, msg.sender, refundAmount);
     }
 
     // ============ View Functions ============
@@ -564,6 +574,13 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         emit TreasuryChangeConfirmed(oldTreasury, treasury);
     }
 
+    function cancelTreasuryChange() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        pendingTreasury = address(0);
+        treasuryChangeTime = 0;
+        emit TreasuryChangeCancelled();
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
@@ -573,19 +590,17 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Add to prize pool (for community sponsorship)
-     * @param tournamentId The tournament to sponsor
-     * @param amount Amount of MBUCKS to add
+     * @notice Add to prize pool (for community-sponsored tournaments only)
      */
     function addToPrizePool(string calldata tournamentId, uint256 amount) external whenNotPaused {
         Tournament storage t = tournaments[tournamentId];
         require(t.status == TournamentStatus.Registration, "Cannot add to pool");
         require(amount > 0, "Amount must be positive");
+        require(t.tournamentType == TournamentType.CommunitySponsored, "Only community-sponsored tournaments");
 
         moltbucks.safeTransferFrom(msg.sender, address(this), amount);
         t.prizePool += amount;
 
-        // Track contribution for refund on cancel
         contributions[tournamentId][msg.sender] += amount;
         if (!isContributor[tournamentId][msg.sender]) {
             require(contributorList[tournamentId].length < MAX_CONTRIBUTORS_CAP, "Max contributors reached");
@@ -598,9 +613,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice SC3: Recover accidentally sent ERC20 tokens (not MBUCKS)
-     * @param token The ERC20 token to recover
-     * @param to Recipient address
-     * @param amount Amount to recover
      */
     function recoverTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
         require(address(token) != address(moltbucks), "Cannot recover MBUCKS");
@@ -674,7 +686,6 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         commit.resultHash = bytes32(0);
         commit.commitBlock = 0;
 
-        // Proceed with existing prize distribution logic
         _distributePrizes(tournamentId, first, second, third);
     }
 
@@ -691,6 +702,10 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
         );
         require(t.status == TournamentStatus.Active, "Not active");
         require(!t.prizesDistributed, "Already distributed");
+
+        // H3-TM: If commit hash exists, require the reveal path
+        ResultCommit storage commit = resultCommits[tournamentId];
+        require(commit.commitBlock == 0, "Must use reveal path");
 
         // Verify winners are participants
         require(isParticipant[tournamentId][first], "1st not participant");
@@ -714,7 +729,12 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             t.winners[1] = second;
             t.status = TournamentStatus.Completed;
 
-            uint256 firstPrize = (totalPool * 70) / 100;
+            // L3: Use configured distribution instead of hardcoded 70/30
+            uint256 firstPct = t.distribution.first;
+            uint256 secondPct = t.distribution.second;
+            // Rescale to total 100% (exclude third and participation)
+            uint256 totalPct = firstPct + secondPct;
+            uint256 firstPrize = (totalPool * firstPct) / totalPct;
             uint256 secondPrize = totalPool - firstPrize;
 
             moltbucks.safeTransfer(first, firstPrize);
@@ -734,8 +754,9 @@ contract TournamentManager is Ownable, ReentrancyGuard, Pausable {
             t.winners[2] = third;
             t.status = TournamentStatus.Completed;
 
-            uint256 firstPrize = (totalPool * t.distribution.first) / (100 - t.distribution.participation);
-            uint256 secondPrize = (totalPool * t.distribution.second) / (100 - t.distribution.participation);
+            // H4: Fix 3-participant math: use /100 not /(100 - participation)
+            uint256 firstPrize = (totalPool * t.distribution.first) / 100;
+            uint256 secondPrize = (totalPool * t.distribution.second) / 100;
             uint256 thirdPrize = totalPool - firstPrize - secondPrize;
 
             moltbucks.safeTransfer(first, firstPrize);

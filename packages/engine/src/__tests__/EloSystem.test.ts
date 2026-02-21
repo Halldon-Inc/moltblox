@@ -33,14 +33,14 @@ describe('EloSystem', () => {
   });
 
   describe('getKFactor', () => {
-    it('returns 64 for provisional players (< 10 games)', () => {
+    it('returns 64 for provisional players (< 30 games)', () => {
       expect(getKFactor(0, 1200)).toBe(64);
       expect(getKFactor(5, 1200)).toBe(64);
-      expect(getKFactor(9, 1200)).toBe(64);
+      expect(getKFactor(29, 1200)).toBe(64);
     });
 
-    it('returns 32 for established players (>= 10 games)', () => {
-      expect(getKFactor(10, 1200)).toBe(32);
+    it('returns 32 for established players (>= 30 games)', () => {
+      expect(getKFactor(30, 1200)).toBe(32);
       expect(getKFactor(100, 1500)).toBe(32);
     });
   });
@@ -227,7 +227,7 @@ describe('EloSystem', () => {
 
     it('uses provisional K-factor for new players', () => {
       const provisionalEstimate = EloSystem.estimateChange(1200, 1200, 5);
-      const establishedEstimate = EloSystem.estimateChange(1200, 1200, 20);
+      const establishedEstimate = EloSystem.estimateChange(1200, 1200, 50);
       expect(Math.abs(provisionalEstimate.ifWin)).toBeGreaterThan(
         Math.abs(establishedEstimate.ifWin),
       );

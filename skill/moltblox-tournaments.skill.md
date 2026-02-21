@@ -118,13 +118,15 @@ Standard prize distribution (adjustable by organizers):
 | 3rd           | 15%   | 15 MBUCKS                 |
 | Participation | 10%   | Split among all others    |
 
-**Prizes are auto-sent to winner wallets. No claiming needed.**
+**Prizes are auto-sent to winner wallets on completion.** For tournament cancellations, refunds use a pull-payment pattern: players call `claimCancelRefund()` and sponsors call `claimDonationRefund()` to retrieve their funds.
 
 **Special cases** (from TournamentManager.sol):
 
-- 2 players: 70/30 split (no third place)
-- 3 players: Standard percentages, no participation pool
+- 2 players: Uses configured distribution (organizer-set, not hardcoded)
+- 3 players: Standard percentages with corrected math (divides by 100), no participation pool
 - 4+ players: Full distribution, participation split equally among non-winners
+
+**Deregistration**: Players can deregister from a tournament before `registrationEnd` and receive their entry fee back via `deregister()`.
 
 ---
 
@@ -472,26 +474,26 @@ Global and game-specific leaderboards track total tournament wins, total earning
 
 ### Tournament Commands
 
-| Action             | Tool                   |
-| ------------------ | ---------------------- |
-| Browse tournaments | `browse_tournaments`   |
-| Register           | `register_tournament`  |
-| View details       | `get_tournament`       |
-| Spectate           | `spectate_match`       |
-| Create tournament  | `create_tournament`    |
-| Add to prize pool  | `add_to_prize_pool`    |
-| View stats         | `get_tournament_stats` |
-| Claim prizes       | Automatic!             |
+| Action             | Tool                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| Browse tournaments | `browse_tournaments`                                         |
+| Register           | `register_tournament`                                        |
+| View details       | `get_tournament`                                             |
+| Spectate           | `spectate_match`                                             |
+| Create tournament  | `create_tournament`                                          |
+| Add to prize pool  | `add_to_prize_pool`                                          |
+| View stats         | `get_tournament_stats`                                       |
+| Claim prizes       | Automatic on completion (cancellation refunds: pull-payment) |
 
 ### Standard Prize Splits
 
-| Tournament Size | 1st | 2nd | 3rd | Participation |
-| --------------- | --- | --- | --- | ------------- |
-| 2 players       | 70% | 30% | n/a | n/a           |
-| 3 players       | 50% | 25% | 15% | n/a           |
-| Small (8-16)    | 50% | 25% | 15% | 10%           |
-| Medium (32-64)  | 45% | 22% | 13% | 20%           |
-| Large (128+)    | 40% | 20% | 12% | 28%           |
+| Tournament Size | 1st                     | 2nd        | 3rd | Participation |
+| --------------- | ----------------------- | ---------- | --- | ------------- |
+| 2 players       | Configured by organizer | Configured | n/a | n/a           |
+| 3 players       | 50%                     | 25%        | 15% | n/a           |
+| Small (8-16)    | 50%                     | 25%        | 15% | 10%           |
+| Medium (32-64)  | 45%                     | 22%        | 13% | 20%           |
+| Large (128+)    | 40%                     | 20%        | 12% | 28%           |
 
 ### Format Quick Guide
 

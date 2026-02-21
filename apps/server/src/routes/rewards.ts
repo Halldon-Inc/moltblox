@@ -4,7 +4,8 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
-import { requireAuth, optionalAuth } from '../middleware/auth.js';
+import { JsonRpcProvider, Contract } from 'ethers';
+import { requireAuth, requireBot, optionalAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import {
   getUserRewardsSummary,
@@ -23,6 +24,34 @@ import {
   claimHolderSchema,
 } from '../schemas/rewards.js';
 import { serializeBigIntFields } from '../lib/serialize.js';
+import prisma from '../lib/prisma.js';
+import { AppError } from '../middleware/errorHandler.js';
+
+// Minimal ERC20 ABI for balanceOf (read-only, no gas)
+const ERC20_BALANCE_ABI = ['function balanceOf(address) view returns (uint256)'];
+
+/**
+ * Query on-chain MBUCKS balance for a wallet address.
+ * Returns balance in whole MBUCKS (18 decimals divided out).
+ * Returns 0 if RPC or contract is unavailable (fail-closed).
+ */
+async function getOnChainBalance(walletAddress: string): Promise<number> {
+  const rpcUrl = process.env.BASE_RPC_URL;
+  const tokenAddress = process.env.MOLTBUCKS_ADDRESS;
+  if (!rpcUrl || !tokenAddress) return 0;
+
+  try {
+    const provider = new JsonRpcProvider(rpcUrl);
+    const token = new Contract(tokenAddress, ERC20_BALANCE_ABI, provider);
+    const balanceWei: bigint = await token.balanceOf(walletAddress);
+    return Number(balanceWei / 10n ** 18n);
+  } catch {
+    return 0;
+  }
+}
+
+/** Maximum claimable holder reward per claim: 1000 MBUCKS */
+const MAX_HOLDER_CLAIM = 1000;
 
 const router: Router = Router();
 
@@ -181,7 +210,7 @@ router.get('/season/:id', async (req: Request, res: Response, next: NextFunction
 
 /**
  * POST /rewards/claim-holder - Claim daily holder points
- * User reports their on-chain MBUCKS balance; server awards holder points.
+ * Server verifies on-chain MBUCKS balance; awards holder points accordingly.
  */
 router.post(
   '/claim-holder',
@@ -190,9 +219,31 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user!.id;
-      const { balanceMbucks } = req.body as { balanceMbucks: number };
+      const walletAddress = req.user!.address;
 
-      const event = await awardHolderPoints(userId, balanceMbucks);
+      // Rate limit: one holder claim per 24 hours
+      const recentClaim = await prisma.rewardEvent.findFirst({
+        where: {
+          userId,
+          category: 'holder',
+          createdAt: { gte: new Date(Date.now() - 86_400_000) },
+        },
+      });
+      if (recentClaim) {
+        throw new AppError('Holder rewards can only be claimed once per 24 hours', 429);
+      }
+
+      // Verify balance on-chain (ignores client-reported value)
+      const onChainBalance = await getOnChainBalance(walletAddress);
+      if (onChainBalance <= 0) {
+        res.json({ message: 'No MBUCKS balance found on-chain', points: 0 });
+        return;
+      }
+
+      // Cap the claimable balance
+      const cappedBalance = Math.min(onChainBalance, MAX_HOLDER_CLAIM);
+
+      const event = await awardHolderPoints(userId, cappedBalance);
       if (!event) {
         res.json({ message: 'No active season or zero balance', points: 0 });
         return;
@@ -202,6 +253,7 @@ router.post(
         message: `Earned ${event.points} holder points`,
         points: event.points,
         eventId: event.id,
+        verifiedBalance: onChainBalance,
       });
     } catch (error) {
       next(error);
@@ -216,6 +268,7 @@ router.post(
 router.post(
   '/record',
   requireAuth,
+  requireBot,
   validate(recordPointsSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {

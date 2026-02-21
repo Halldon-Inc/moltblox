@@ -45,9 +45,9 @@ describe("GameMarketplace", function () {
     const fixture = await loadFixture(deployMarketplaceFixture);
     const { marketplace, creator } = fixture;
 
-    // Authorize creator and publish a game
+    // Authorize creator and publish a game (now requires creator parameter)
     await marketplace.authorizePublisher(creator.address);
-    await marketplace.connect(creator).publishGame("game-001");
+    await marketplace.connect(creator).publishGame("game-001", creator.address);
 
     return fixture;
   }
@@ -130,7 +130,7 @@ describe("GameMarketplace", function () {
           await loadFixture(deployMarketplaceFixture);
 
         await marketplace.authorizePublisher(creator.address);
-        await marketplace.connect(creator).publishGame("game-001");
+        await marketplace.connect(creator).publishGame("game-001", creator.address);
         const game = await marketplace.getGame("game-001");
 
         expect(game.gameId).to.equal("game-001");
@@ -145,7 +145,7 @@ describe("GameMarketplace", function () {
           await loadFixture(deployMarketplaceFixture);
 
         await marketplace.authorizePublisher(creator.address);
-        await expect(marketplace.connect(creator).publishGame("game-001"))
+        await expect(marketplace.connect(creator).publishGame("game-001", creator.address))
           .to.emit(marketplace, "GamePublished")
           .withArgs("game-001", creator.address, anyValue);
       });
@@ -155,7 +155,7 @@ describe("GameMarketplace", function () {
           await loadFixture(deployMarketplaceFixture);
 
         await expect(
-          marketplace.connect(other).publishGame("game-001")
+          marketplace.connect(other).publishGame("game-001", other.address)
         ).to.be.revertedWith("Not an authorized publisher");
       });
 
@@ -163,7 +163,7 @@ describe("GameMarketplace", function () {
         const { marketplace, owner } =
           await loadFixture(deployMarketplaceFixture);
 
-        await marketplace.publishGame("game-owner");
+        await marketplace.publishGame("game-owner", owner.address);
         const game = await marketplace.getGame("game-owner");
         expect(game.creator).to.equal(owner.address);
       });
@@ -173,7 +173,7 @@ describe("GameMarketplace", function () {
           await loadFixture(deployMarketplaceFixture);
         await marketplace.authorizePublisher(creator.address);
         await expect(
-          marketplace.connect(creator).publishGame("")
+          marketplace.connect(creator).publishGame("", creator.address)
         ).to.be.revertedWith("Invalid game ID");
       });
 
@@ -182,10 +182,19 @@ describe("GameMarketplace", function () {
           await loadFixture(deployMarketplaceFixture);
 
         await marketplace.authorizePublisher(creator.address);
-        await marketplace.connect(creator).publishGame("game-001");
+        await marketplace.connect(creator).publishGame("game-001", creator.address);
         await expect(
-          marketplace.connect(creator).publishGame("game-001")
+          marketplace.connect(creator).publishGame("game-001", creator.address)
         ).to.be.revertedWith("Game already exists");
+      });
+
+      it("Should revert when publishing with zero creator address", async function () {
+        const { marketplace, creator } =
+          await loadFixture(deployMarketplaceFixture);
+        await marketplace.authorizePublisher(creator.address);
+        await expect(
+          marketplace.connect(creator).publishGame("game-001", ethers.ZeroAddress)
+        ).to.be.revertedWith("Invalid creator address");
       });
 
       it("Should allow different authorized creators to publish different games", async function () {
@@ -194,8 +203,8 @@ describe("GameMarketplace", function () {
 
         await marketplace.authorizePublisher(creator.address);
         await marketplace.authorizePublisher(buyer.address);
-        await marketplace.connect(creator).publishGame("game-001");
-        await marketplace.connect(buyer).publishGame("game-002");
+        await marketplace.connect(creator).publishGame("game-001", creator.address);
+        await marketplace.connect(buyer).publishGame("game-002", buyer.address);
 
         const game1 = await marketplace.getGame("game-001");
         const game2 = await marketplace.getGame("game-002");
@@ -957,6 +966,47 @@ describe("GameMarketplace", function () {
       ).to.be.revertedWithCustomError(marketplace, "OwnableUnauthorizedAccount");
     });
 
+    describe("cancelTreasuryChange", function () {
+      it("Should cancel a pending treasury change", async function () {
+        const { marketplace, other } =
+          await loadFixture(deployMarketplaceFixture);
+
+        await marketplace.proposeTreasury(other.address);
+        await marketplace.cancelTreasuryChange();
+
+        expect(await marketplace.pendingTreasury()).to.equal(ethers.ZeroAddress);
+        expect(await marketplace.treasuryChangeTime()).to.equal(0);
+      });
+
+      it("Should emit TreasuryChangeCancelled event", async function () {
+        const { marketplace, other } =
+          await loadFixture(deployMarketplaceFixture);
+
+        await marketplace.proposeTreasury(other.address);
+
+        await expect(marketplace.cancelTreasuryChange())
+          .to.emit(marketplace, "TreasuryChangeCancelled");
+      });
+
+      it("Should revert when no pending change exists", async function () {
+        const { marketplace } = await loadFixture(deployMarketplaceFixture);
+
+        await expect(marketplace.cancelTreasuryChange())
+          .to.be.revertedWith("No pending treasury change");
+      });
+
+      it("Should revert when non-owner cancels", async function () {
+        const { marketplace, other } =
+          await loadFixture(deployMarketplaceFixture);
+
+        await marketplace.proposeTreasury(other.address);
+
+        await expect(
+          marketplace.connect(other).cancelTreasuryChange()
+        ).to.be.revertedWithCustomError(marketplace, "OwnableUnauthorizedAccount");
+      });
+    });
+
     describe("Publisher Management", function () {
       it("Should authorize a publisher", async function () {
         const { marketplace, creator } =
@@ -1019,7 +1069,7 @@ describe("GameMarketplace", function () {
         await marketplace.revokePublisher(creator.address);
 
         await expect(
-          marketplace.connect(creator).publishGame("game-001")
+          marketplace.connect(creator).publishGame("game-001", creator.address)
         ).to.be.revertedWith("Not an authorized publisher");
       });
     });

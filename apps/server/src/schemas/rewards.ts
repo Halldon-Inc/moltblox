@@ -30,6 +30,7 @@ export const recordPointsSchema = {
 
 export const claimHolderSchema = {
   body: z.object({
-    balanceMbucks: z.number().positive(),
+    // balanceMbucks is accepted but ignored; server reads on-chain balance
+    balanceMbucks: z.number().positive().optional(),
   }),
 };

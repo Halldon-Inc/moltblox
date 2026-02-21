@@ -16,7 +16,7 @@ import {
 import { sanitizeObject } from '../lib/sanitize.js';
 import prisma from '../lib/prisma.js';
 import { mbucksToWei } from '../lib/parseBigInt.js';
-import type { Prisma } from '../generated/prisma/client.js';
+import { Prisma } from '../generated/prisma/client.js';
 import type { ItemCategory, ItemRarity } from '../generated/prisma/enums.js';
 import { z } from 'zod';
 import { AppError } from '../middleware/errorHandler.js';
@@ -520,136 +520,139 @@ router.post(
       const user = req.user!;
       const quantity = parseInt(req.body.quantity, 10) || 1;
 
-      const result = await prisma.$transaction(async (tx) => {
-        // Fetch item and verify it exists and is active
-        const item = await tx.item.findUnique({
-          where: { id },
-          include: {
-            creator: {
-              select: {
-                id: true,
-                walletAddress: true,
-                displayName: true,
+      const result = await prisma.$transaction(
+        async (tx) => {
+          // Fetch item and verify it exists and is active (Serializable prevents double-purchase race)
+          const item = await tx.item.findUnique({
+            where: { id },
+            include: {
+              creator: {
+                select: {
+                  id: true,
+                  walletAddress: true,
+                  displayName: true,
+                },
               },
             },
-          },
-        });
+          });
 
-        if (!item) {
-          throw new AppError(`Item with id "${id}" not found`, 404);
-        }
+          if (!item) {
+            throw new AppError(`Item with id "${id}" not found`, 404);
+          }
 
-        if (!item.active) {
-          throw new AppError('This item is no longer available for purchase', 400);
-        }
+          if (!item.active) {
+            throw new AppError('This item is no longer available for purchase', 400);
+          }
 
-        // Prevent self-purchase
-        if (item.creatorId === user.id) {
-          throw new AppError('Cannot purchase your own item', 400);
-        }
+          // Prevent self-purchase
+          if (item.creatorId === user.id) {
+            throw new AppError('Cannot purchase your own item', 400);
+          }
 
-        // Check supply if limited
-        if (item.maxSupply !== null && item.currentSupply < quantity) {
-          throw new AppError(
-            `Insufficient supply. Requested: ${quantity}, available: ${item.currentSupply}`,
-            400,
-          );
-        }
+          // Check supply if limited
+          if (item.maxSupply !== null && item.currentSupply < quantity) {
+            throw new AppError(
+              `Insufficient supply. Requested: ${quantity}, available: ${item.currentSupply}`,
+              400,
+            );
+          }
 
-        // Calculate 85/15 split
-        const price = BigInt(item.price) * BigInt(quantity);
-        const creatorAmount = (price * 85n) / 100n;
-        const platformAmount = price - creatorAmount;
+          // Calculate 85/15 split
+          const price = BigInt(item.price) * BigInt(quantity);
+          const creatorAmount = (price * 85n) / 100n;
+          const platformAmount = price - creatorAmount;
 
-        // Create purchase record
-        const purchase = await tx.purchase.create({
-          data: {
-            itemId: item.id,
-            gameId: item.gameId,
-            buyerId: user.id,
-            sellerId: item.creatorId,
-            price,
-            creatorAmount,
-            platformAmount,
-            quantity,
-          },
-        });
+          // Create purchase record
+          const purchase = await tx.purchase.create({
+            data: {
+              itemId: item.id,
+              gameId: item.gameId,
+              buyerId: user.id,
+              sellerId: item.creatorId,
+              price,
+              creatorAmount,
+              platformAmount,
+              quantity,
+            },
+          });
 
-        // Upsert inventory item (increment quantity if already owned)
-        await tx.inventoryItem.upsert({
-          where: {
-            userId_itemId: {
+          // Upsert inventory item (increment quantity if already owned)
+          await tx.inventoryItem.upsert({
+            where: {
+              userId_itemId: {
+                userId: user.id,
+                itemId: item.id,
+              },
+            },
+            create: {
               userId: user.id,
               itemId: item.id,
+              quantity,
             },
-          },
-          create: {
-            userId: user.id,
-            itemId: item.id,
-            quantity,
-          },
-          update: {
-            quantity: {
-              increment: quantity,
+            update: {
+              quantity: {
+                increment: quantity,
+              },
             },
-          },
-        });
+          });
 
-        // Increment sold count and decrement supply if limited
-        const itemUpdate: Prisma.ItemUpdateInput = {
-          soldCount: { increment: quantity },
-        };
-        if (item.maxSupply !== null) {
-          itemUpdate.currentSupply = { decrement: quantity };
-        }
-        await tx.item.update({
-          where: { id: item.id },
-          data: itemUpdate,
-        });
+          // Increment sold count and decrement supply if limited
+          const itemUpdate: Prisma.ItemUpdateInput = {
+            soldCount: { increment: quantity },
+          };
+          if (item.maxSupply !== null) {
+            itemUpdate.currentSupply = { decrement: quantity };
+          }
+          await tx.item.update({
+            where: { id: item.id },
+            data: itemUpdate,
+          });
 
-        // Record transaction for buyer (purchase)
-        await tx.transaction.create({
-          data: {
-            userId: user.id,
-            type: 'purchase',
-            amount: price,
-            itemId: item.id,
-            counterparty: item.creator.walletAddress,
-            description: `Purchased: ${item.name}${quantity > 1 ? ` x${quantity}` : ''}`,
-          },
-        });
+          // Record transaction for buyer (purchase)
+          await tx.transaction.create({
+            data: {
+              userId: user.id,
+              type: 'purchase',
+              amount: price,
+              itemId: item.id,
+              counterparty: item.creator.walletAddress,
+              description: `Purchased: ${item.name}${quantity > 1 ? ` x${quantity}` : ''}`,
+            },
+          });
 
-        // Record transaction for seller (sale)
-        await tx.transaction.create({
-          data: {
-            userId: item.creatorId,
-            type: 'sale',
-            amount: creatorAmount,
-            itemId: item.id,
-            counterparty: user.address,
-            description: `Item sale: ${item.name}${quantity > 1 ? ` x${quantity}` : ''}`,
-          },
-        });
+          // Record transaction for seller (sale)
+          await tx.transaction.create({
+            data: {
+              userId: item.creatorId,
+              type: 'sale',
+              amount: creatorAmount,
+              itemId: item.id,
+              counterparty: user.address,
+              description: `Item sale: ${item.name}${quantity > 1 ? ` x${quantity}` : ''}`,
+            },
+          });
 
-        return {
-          purchase: {
-            id: purchase.id,
-            itemId: purchase.itemId,
-            gameId: purchase.gameId,
-            buyerId: purchase.buyerId,
-            buyerAddress: user.address,
-            sellerId: purchase.sellerId,
-            sellerAddress: item.creator.walletAddress,
-            price: price.toString(),
-            creatorAmount: creatorAmount.toString(),
-            platformAmount: platformAmount.toString(),
-            quantity: purchase.quantity,
-            txHash: purchase.txHash,
-            blockNumber: purchase.blockNumber,
-            createdAt: purchase.createdAt,
-          },
-        };
-      });
+          return {
+            purchase: {
+              id: purchase.id,
+              itemId: purchase.itemId,
+              gameId: purchase.gameId,
+              buyerId: purchase.buyerId,
+              buyerAddress: user.address,
+              sellerId: purchase.sellerId,
+              sellerAddress: item.creator.walletAddress,
+              price: price.toString(),
+              creatorAmount: creatorAmount.toString(),
+              platformAmount: platformAmount.toString(),
+              quantity: purchase.quantity,
+              txHash: purchase.txHash,
+              blockNumber: purchase.blockNumber,
+              createdAt: purchase.createdAt,
+            },
+          };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
 
       res.json({
         ...result,

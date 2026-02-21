@@ -52,7 +52,7 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        styleSrc: ["'self'"],
         scriptSrc: ["'self'"],
         imgSrc: ["'self'", 'data:', 'https:'],
         connectSrc: ["'self'", 'wss:', 'https:'],
@@ -95,6 +95,15 @@ const writeLimiter = rateLimit({
   legacyHeaders: false,
   store: createRedisStore('write'),
   message: { error: 'TooManyRequests', message: 'Write rate limit exceeded. Try again later.' },
+});
+
+const readExpensiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: createRedisStore('read-expensive'),
+  message: { error: 'TooManyRequests', message: 'Too many requests. Try again later.' },
 });
 
 app.use(globalLimiter);
@@ -187,13 +196,13 @@ app.use('/api/v1/tournaments', writeOnly(writeLimiter), tournamentsRouter);
 app.use('/api/v1/marketplace', writeOnly(writeLimiter), marketplaceRouter);
 app.use('/api/v1/social', writeOnly(writeLimiter), socialRouter);
 app.use('/api/v1/wallet', writeOnly(writeLimiter), walletRouter);
-app.use('/api/v1/stats', statsRouter);
-app.use('/api/v1/users', usersRouter);
-app.use('/api/v1/creator/analytics', analyticsRouter);
-app.use('/api/v1/creator/dashboard', analyticsRouter);
-app.use('/api/v1/badges', badgesRouter);
-app.use('/api/v1/leaderboards', leaderboardsRouter);
-app.use('/api/v1/notifications', notificationsRouter);
+app.use('/api/v1/stats', readExpensiveLimiter, statsRouter);
+app.use('/api/v1/users', readExpensiveLimiter, usersRouter);
+app.use('/api/v1/creator/analytics', readExpensiveLimiter, analyticsRouter);
+app.use('/api/v1/creator/dashboard', readExpensiveLimiter, analyticsRouter);
+app.use('/api/v1/badges', readExpensiveLimiter, badgesRouter);
+app.use('/api/v1/leaderboards', readExpensiveLimiter, leaderboardsRouter);
+app.use('/api/v1/notifications', readExpensiveLimiter, notificationsRouter);
 app.use('/api/v1/wagers', writeOnly(writeLimiter), wagersRouter);
 app.use('/api/v1/items', writeOnly(writeLimiter), itemsRouter);
 app.use('/api/v1/rewards', writeOnly(writeLimiter), rewardsRouter);
@@ -224,12 +233,16 @@ console.log('[BOOT] All API routes mounted');
 // ---------------------
 
 app.use((req: Request, res: Response) => {
-  res.status(404).json({
+  const body: Record<string, string> = {
     error: 'NotFound',
     message: 'The requested endpoint does not exist',
     path: req.originalUrl,
-    hint: 'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social/submolts, /api/v1/wallet, /api/v1/badges, /api/v1/rewards/leaderboard, /api/v1/rewards/summary, /api/v1/uploads, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info',
-  });
+  };
+  if (process.env.NODE_ENV !== 'production') {
+    body.hint =
+      'Available prefixes: /api/v1/auth, /api/v1/games, /api/v1/tournaments, /api/v1/marketplace, /api/v1/items, /api/v1/social/submolts, /api/v1/wallet, /api/v1/badges, /api/v1/rewards/leaderboard, /api/v1/rewards/summary, /api/v1/uploads, /api/v1/users, /api/v1/stats, /api/v1/wagers, /api/skill, /mcp. Play API: GET /api/v1/games/play-info';
+  }
+  res.status(404).json(body);
 });
 
 // ---------------------

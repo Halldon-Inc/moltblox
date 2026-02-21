@@ -8,7 +8,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import multer, { FileFilterCallback } from 'multer';
 import { randomUUID, createHash } from 'crypto';
-import { existsSync, mkdirSync, statSync } from 'fs';
+import { existsSync, mkdirSync, statSync, openSync, readSync, closeSync, unlinkSync } from 'fs';
 import { join, extname, resolve } from 'path';
 import { requireAuth } from '../middleware/auth.js';
 
@@ -40,6 +40,45 @@ const EXT_TO_CONTENT_TYPE: Record<string, string> = {
   '.png': 'image/png',
   '.webp': 'image/webp',
 };
+
+// ---------------------
+// CORS allowed origins
+// ---------------------
+
+const ALLOWED_ORIGINS = [
+  process.env.WEB_URL || 'http://localhost:3000',
+  process.env.SERVER_URL || 'http://localhost:3001',
+];
+
+// ---------------------
+// Magic bytes validation
+// ---------------------
+
+function validateMagicBytes(filePath: string): boolean {
+  const buf = Buffer.alloc(12);
+  let fd: number | undefined;
+  try {
+    fd = openSync(filePath, 'r');
+    readSync(fd, buf, 0, 12, 0);
+  } finally {
+    if (fd !== undefined) closeSync(fd);
+  }
+  // PNG: 89 50 4E 47
+  const png = buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47;
+  // JPEG: FF D8 FF
+  const jpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff;
+  // WebP: 52 49 46 46 ... 57 45 42 50
+  const webp =
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x57 &&
+    buf[9] === 0x45 &&
+    buf[10] === 0x42 &&
+    buf[11] === 0x50;
+  return png || jpeg || webp;
+}
 
 /**
  * File filter: only accept image files (jpg, png, webp).
@@ -137,6 +176,16 @@ router.post(
         return;
       }
 
+      // Validate magic bytes match claimed file type
+      if (!validateMagicBytes(req.file.path)) {
+        unlinkSync(req.file.path);
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'File content does not match an allowed image type',
+        });
+        return;
+      }
+
       res.status(201).json({
         filename: req.file.filename,
         url: `/api/v1/uploads/${req.file.filename}`,
@@ -165,6 +214,16 @@ router.post(
         res.status(400).json({
           error: 'BadRequest',
           message: 'No file uploaded. Send a file in the "thumbnail" field.',
+        });
+        return;
+      }
+
+      // Validate magic bytes match claimed file type
+      if (!validateMagicBytes(req.file.path)) {
+        unlinkSync(req.file.path);
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'File content does not match an allowed image type',
         });
         return;
       }
@@ -205,6 +264,13 @@ router.get('/:filename', (req: Request, res: Response, next: NextFunction) => {
     }
 
     const filePath = resolve(join(UPLOAD_DIR, filename));
+    const resolvedUploadDir = resolve(UPLOAD_DIR);
+
+    // H8: Prevent path traversal
+    if (!filePath.startsWith(resolvedUploadDir)) {
+      res.status(403).json({ error: 'Forbidden', message: 'Invalid file path' });
+      return;
+    }
 
     // Check file exists before sending (sendFile handles 404 but we want a JSON error)
     if (!existsSync(filePath)) {
@@ -242,7 +308,10 @@ router.get('/:filename', (req: Request, res: Response, next: NextFunction) => {
     res.set('ETag', etag);
 
     // ── CORS for CDN / external embeds ─────────────────────
-    res.set('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    }
 
     res.sendFile(filePath);
   } catch (error) {

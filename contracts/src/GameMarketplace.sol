@@ -111,6 +111,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     // Treasury timelock events
     event TreasuryChangeProposed(address indexed newTreasury, uint256 effectiveTime);
     event TreasuryChangeConfirmed(address indexed oldTreasury, address indexed newTreasury);
+    event TreasuryChangeCancelled();
 
     // Emergency recovery events
     event RecoveryProposed(uint256 amount, uint256 effectiveTime);
@@ -129,31 +130,29 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
     /**
      * @notice Publish a new game (authorized publishers only)
      * @param gameId Unique identifier for the game
+     * @param creator The address of the game creator
      */
-    function publishGame(string calldata gameId) external {
+    function publishGame(string calldata gameId, address creator) external {
         require(
             authorizedPublishers[msg.sender] || owner() == msg.sender,
             "Not an authorized publisher"
         );
         require(bytes(gameId).length > 0, "Invalid game ID");
         require(games[gameId].creator == address(0), "Game already exists");
+        require(creator != address(0), "Invalid creator address");
 
         games[gameId] = Game({
             gameId: gameId,
-            creator: msg.sender,
+            creator: creator,
             active: true,
             totalRevenue: 0,
             creatorEarnings: 0,
             createdAt: block.timestamp
         });
 
-        emit GamePublished(gameId, msg.sender, block.timestamp);
+        emit GamePublished(gameId, creator, block.timestamp);
     }
 
-    /**
-     * @notice Deactivate a game (creator only)
-     * @param gameId The game to deactivate
-     */
     function deactivateGame(string calldata gameId) external {
         require(games[gameId].creator == msg.sender, "Not game creator");
         games[gameId].active = false;
@@ -162,14 +161,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Item Management ============
 
-    /**
-     * @notice Create a new item for a game
-     * @param itemId Unique identifier for the item
-     * @param gameId The game this item belongs to
-     * @param price Price in MBUCKS (wei)
-     * @param maxSupply Maximum supply (0 = unlimited)
-     * @param category Item category
-     */
     function createItem(
         string calldata itemId,
         string calldata gameId,
@@ -200,11 +191,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         emit ItemCreated(itemId, gameId, msg.sender, price, category);
     }
 
-    /**
-     * @notice Update item price (creator only)
-     * @param itemId The item to update
-     * @param newPrice New price in MBUCKS (wei)
-     */
     function updateItemPrice(string calldata itemId, uint256 newPrice) external {
         require(items[itemId].creator == msg.sender, "Not item creator");
         require(newPrice > 0, "Price must be positive");
@@ -212,10 +198,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         emit ItemUpdated(itemId, newPrice);
     }
 
-    /**
-     * @notice Deactivate an item (creator only)
-     * @param itemId The item to deactivate
-     */
     function deactivateItem(string calldata itemId) external {
         require(items[itemId].creator == msg.sender, "Not item creator");
         items[itemId].active = false;
@@ -224,11 +206,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Purchases ============
 
-    /**
-     * @notice Purchase an item
-     * @dev 85% goes to creator, 15% goes to platform treasury
-     * @param itemId The item to purchase
-     */
     function purchaseItem(string calldata itemId) external nonReentrant whenNotPaused {
         Item storage item = items[itemId];
         require(item.active, "Item not active");
@@ -238,34 +215,27 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         require(game.active, "Game not active");
         require(msg.sender != item.creator, "Cannot purchase own item");
 
-        // For non-consumables, check if already owned
         if (item.category != ItemCategory.Consumable) {
             require(!playerOwnsItem[msg.sender][itemId], "Already owned");
         }
 
         uint256 price = item.price;
 
-        // Calculate split: 85% creator, 15% platform
         uint256 creatorAmount = (price * CREATOR_SHARE) / SHARE_DENOMINATOR;
         uint256 platformAmount = price - creatorAmount;
 
-        // Transfer from buyer
         moltbucks.safeTransferFrom(msg.sender, address(this), price);
 
-        // Pay creator instantly (85%)
         moltbucks.safeTransfer(item.creator, creatorAmount);
 
-        // Send to treasury (15%)
         moltbucks.safeTransfer(treasury, platformAmount);
 
-        // Update ownership
         if (item.category == ItemCategory.Consumable) {
             playerItemQuantity[msg.sender][itemId]++;
         } else {
             playerOwnsItem[msg.sender][itemId] = true;
         }
 
-        // Update stats
         item.currentSupply++;
         game.totalRevenue += price;
         game.creatorEarnings += creatorAmount;
@@ -275,10 +245,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         emit TreasuryFunded(platformAmount, "item_sale");
     }
 
-    /**
-     * @notice Purchase multiple items at once
-     * @param itemIds Array of item IDs to purchase
-     */
     function purchaseItems(string[] calldata itemIds) external nonReentrant whenNotPaused {
         require(itemIds.length <= 20, "Batch too large");
         for (uint256 i = 0; i < itemIds.length; i++) {
@@ -324,12 +290,7 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Consumable Usage ============
 
-    /**
-     * @notice Use a consumable item (game calls this)
-     * @param player The player using the item
-     * @param itemId The consumable to use
-     */
-    function useConsumable(address player, string calldata itemId) external whenNotPaused {
+    function useConsumable(address player, string calldata itemId) external nonReentrant whenNotPaused {
         Item storage item = items[itemId];
         require(item.category == ItemCategory.Consumable, "Not a consumable");
         require(games[item.gameId].creator == msg.sender, "Not game creator");
@@ -385,20 +346,19 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
         emit TreasuryChangeConfirmed(oldTreasury, treasury);
     }
 
-    /**
-     * @notice Authorize an address to publish games
-     * @param publisher Address to authorize
-     */
+    function cancelTreasuryChange() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        pendingTreasury = address(0);
+        treasuryChangeTime = 0;
+        emit TreasuryChangeCancelled();
+    }
+
     function authorizePublisher(address publisher) external onlyOwner {
         require(publisher != address(0), "Invalid address");
         authorizedPublishers[publisher] = true;
         emit PublisherAuthorized(publisher);
     }
 
-    /**
-     * @notice Revoke publisher authorization
-     * @param publisher Address to revoke
-     */
     function revokePublisher(address publisher) external onlyOwner {
         authorizedPublishers[publisher] = false;
         emit PublisherRevoked(publisher);
@@ -414,9 +374,6 @@ contract GameMarketplace is Ownable, ReentrancyGuard, Pausable {
 
     /**
      * @notice SC3: Recover accidentally sent ERC20 tokens (not MBUCKS)
-     * @param token The ERC20 token to recover
-     * @param to Recipient address
-     * @param amount Amount to recover
      */
     function recoverTokens(IERC20 token, address to, uint256 amount) external onlyOwner {
         require(address(token) != address(moltbucks), "Cannot recover MBUCKS");

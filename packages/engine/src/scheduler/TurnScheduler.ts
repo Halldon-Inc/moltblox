@@ -160,7 +160,6 @@ export class TurnScheduler {
     }
 
     const now = Date.now();
-    const clientTs = clientTimestamp || now;
 
     // Check if within deadline (with latency compensation)
     const deadline = this.getDeadline(playerId);
@@ -168,17 +167,13 @@ export class TurnScheduler {
       return false;
     }
 
-    // Calculate adjusted timestamp for fairness
-    const profile = this.latencyProfiles.get(playerId);
-    const latency = profile?.averageLatency || 0;
-    const adjustedTimestamp = this.config.networkCompensation ? clientTs + latency : now;
-
+    // L-I4: Use only server timestamp for ordering; client timestamps are untrusted
     const pending: PendingAction = {
       playerId,
       action,
-      clientTimestamp: clientTs,
+      clientTimestamp: now,
       serverTimestamp: now,
-      adjustedTimestamp,
+      adjustedTimestamp: now,
     };
 
     this.pendingActions.set(playerId, pending);

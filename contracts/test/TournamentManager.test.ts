@@ -500,6 +500,15 @@ describe("TournamentManager", function () {
       ).to.be.revertedWith("Second must be > 0");
     });
 
+    it("Should revert when third is zero (L-C1)", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await expect(
+        manager.connect(sponsor).setDistribution("tourney-001", 50, 40, 0, 10)
+      ).to.be.revertedWith("Third must be > 0");
+    });
+
     it("Should revert when unauthorized user sets distribution", async function () {
       const { manager, other } =
         await loadFixture(deployWithCreatorTournamentFixture);
@@ -618,7 +627,7 @@ describe("TournamentManager", function () {
       const { manager, player1 } =
         await loadFixture(deployWithCreatorTournamentFixture);
 
-      // Do NOT advance time -- registration hasn't started
+      // Do NOT advance time
       await expect(
         manager.connect(player1).register("tourney-001")
       ).to.be.revertedWith("Registration not open");
@@ -684,6 +693,140 @@ describe("TournamentManager", function () {
       expect(participants.length).to.equal(2);
       expect(participants).to.include(player1.address);
       expect(participants).to.include(player2.address);
+    });
+  });
+
+  // ================================================================
+  // Deregistration (L2)
+  // ================================================================
+  describe("Deregistration", function () {
+    it("Should allow deregistration before registration closes", async function () {
+      const { manager, player1, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+      await manager.connect(player1).register("tourney-001");
+
+      await manager.connect(player1).deregister("tourney-001");
+
+      expect(
+        await manager.isParticipant("tourney-001", player1.address)
+      ).to.equal(false);
+
+      const t = await manager.getTournament("tourney-001");
+      expect(t.currentParticipants).to.equal(0);
+    });
+
+    it("Should refund entry fee on deregistration", async function () {
+      const { token, manager, player1, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+
+      const balBefore = await token.balanceOf(player1.address);
+      await manager.connect(player1).register("tourney-001");
+      await manager.connect(player1).deregister("tourney-001");
+
+      expect(await token.balanceOf(player1.address)).to.equal(balBefore);
+    });
+
+    it("Should emit ParticipantDeregistered event", async function () {
+      const { manager, player1, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+      await manager.connect(player1).register("tourney-001");
+
+      await expect(manager.connect(player1).deregister("tourney-001"))
+        .to.emit(manager, "ParticipantDeregistered")
+        .withArgs("tourney-001", player1.address, ENTRY_FEE);
+    });
+
+    it("Should decrease participantEntryFees on deregistration", async function () {
+      const { manager, player1, player2, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+      await manager.connect(player1).register("tourney-001");
+      await manager.connect(player2).register("tourney-001");
+      await manager.connect(player1).deregister("tourney-001");
+
+      expect(await manager.participantEntryFees("tourney-001")).to.equal(ENTRY_FEE);
+    });
+
+    it("Should decrease community prize pool on deregistration", async function () {
+      const { manager, sponsor, player1, timestamps } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      const initialPool = ethers.parseEther("500");
+
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-dereg",
+        "game-001",
+        initialPool,
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("community-dereg");
+      await manager.connect(player1).deregister("community-dereg");
+
+      const t = await manager.getTournament("community-dereg");
+      expect(t.prizePool).to.equal(initialPool);
+    });
+
+    it("Should revert deregistration when not registered", async function () {
+      const { manager, player1, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+
+      await expect(
+        manager.connect(player1).deregister("tourney-001")
+      ).to.be.revertedWith("Not registered");
+    });
+
+    it("Should revert deregistration after registration closes", async function () {
+      const { manager, player1, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+      await manager.connect(player1).register("tourney-001");
+
+      await time.increaseTo(timestamps.registrationEnd + 1);
+
+      await expect(
+        manager.connect(player1).deregister("tourney-001")
+      ).to.be.revertedWith("Registration closed");
+    });
+
+    it("Should revert deregistration when tournament is not in Registration status", async function () {
+      const { manager, player1 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      await expect(
+        manager.connect(player1).deregister("tourney-001")
+      ).to.be.revertedWith("Not in registration");
+    });
+
+    it("Should remove participant from array", async function () {
+      const { manager, player1, player2, timestamps } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await time.increaseTo(timestamps.registrationStart);
+      await manager.connect(player1).register("tourney-001");
+      await manager.connect(player2).register("tourney-001");
+      await manager.connect(player1).deregister("tourney-001");
+
+      const participants = await manager.getParticipants("tourney-001");
+      expect(participants.length).to.equal(1);
+      expect(participants).to.include(player2.address);
+      expect(participants).not.to.include(player1.address);
     });
   });
 
@@ -1067,7 +1210,7 @@ describe("TournamentManager", function () {
       });
     });
 
-    describe("cancelTournament", function () {
+    describe("cancelTournament (pull-payment)", function () {
       it("Should cancel a tournament in Registration status", async function () {
         const { manager, sponsor } =
           await loadFixture(deployWithCreatorTournamentFixture);
@@ -1092,23 +1235,22 @@ describe("TournamentManager", function () {
         expect(t.status).to.equal(TournamentStatus.Cancelled);
       });
 
-      it("Should refund entry fees to all participants", async function () {
-        const { token, manager, sponsor, player1, player2, player3, player4, timestamps } =
+      it("Should record refund amounts for pull-payment (not transfer directly)", async function () {
+        const { token, manager, sponsor, player1, player2, timestamps } =
           await loadFixture(deployWithRegisteredPlayersFixture);
 
         const p1BalBefore = await token.balanceOf(player1.address);
-        const p2BalBefore = await token.balanceOf(player2.address);
 
         await manager
           .connect(sponsor)
           .cancelTournament("tourney-001", "Cancelled");
 
-        expect(await token.balanceOf(player1.address)).to.equal(
-          p1BalBefore + ENTRY_FEE
-        );
-        expect(await token.balanceOf(player2.address)).to.equal(
-          p2BalBefore + ENTRY_FEE
-        );
+        // Balances should NOT change yet (pull-payment)
+        expect(await token.balanceOf(player1.address)).to.equal(p1BalBefore);
+
+        // But refund should be recorded
+        expect(await manager.cancelRefunds("tourney-001", player1.address)).to.equal(ENTRY_FEE);
+        expect(await manager.cancelRefunds("tourney-001", player2.address)).to.equal(ENTRY_FEE);
       });
 
       it("Should emit RefundIssued events", async function () {
@@ -1137,7 +1279,7 @@ describe("TournamentManager", function () {
           .withArgs("tourney-001", "Not enough interest");
       });
 
-      it("Should return prize pool to sponsor for non-community tournaments", async function () {
+      it("Should return prize pool to sponsor directly (trusted address)", async function () {
         const { token, manager, sponsor } =
           await loadFixture(deployWithCreatorTournamentFixture);
 
@@ -1179,47 +1321,213 @@ describe("TournamentManager", function () {
         ).to.be.revertedWith("Cannot cancel");
       });
     });
+
+    describe("claimCancelRefund", function () {
+      it("Should allow participant to claim refund after cancellation", async function () {
+        const { token, manager, sponsor, player1, timestamps } =
+          await loadFixture(deployWithRegisteredPlayersFixture);
+
+        await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+        const balBefore = await token.balanceOf(player1.address);
+        await manager.connect(player1).claimCancelRefund("tourney-001");
+
+        expect(await token.balanceOf(player1.address)).to.equal(balBefore + ENTRY_FEE);
+        expect(await manager.cancelRefunds("tourney-001", player1.address)).to.equal(0);
+      });
+
+      it("Should emit CancelRefundClaimed event", async function () {
+        const { manager, sponsor, player1, timestamps } =
+          await loadFixture(deployWithRegisteredPlayersFixture);
+
+        await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+        await expect(manager.connect(player1).claimCancelRefund("tourney-001"))
+          .to.emit(manager, "CancelRefundClaimed")
+          .withArgs("tourney-001", player1.address, ENTRY_FEE);
+      });
+
+      it("Should revert when no refund available", async function () {
+        const { manager, sponsor, other, timestamps } =
+          await loadFixture(deployWithRegisteredPlayersFixture);
+
+        await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+        await expect(
+          manager.connect(other).claimCancelRefund("tourney-001")
+        ).to.be.revertedWith("No refund available");
+      });
+
+      it("Should revert when claiming twice", async function () {
+        const { manager, sponsor, player1, timestamps } =
+          await loadFixture(deployWithRegisteredPlayersFixture);
+
+        await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+        await manager.connect(player1).claimCancelRefund("tourney-001");
+
+        await expect(
+          manager.connect(player1).claimCancelRefund("tourney-001")
+        ).to.be.revertedWith("No refund available");
+      });
+    });
+
+    describe("claimDonationRefund", function () {
+      it("Should allow donor to claim refund after cancellation", async function () {
+        const { token, manager, sponsor, other } =
+          await loadFixture(deployTournamentFixture);
+
+        const ts = await getTimestamps();
+        await manager.connect(sponsor).createCommunityTournament(
+          "community-refund",
+          "game-001",
+          ethers.parseEther("500"),
+          ENTRY_FEE,
+          10,
+          ts.registrationStart,
+          ts.registrationEnd,
+          ts.startTime
+        );
+
+        const donationAmount = ethers.parseEther("200");
+        await token.transfer(other.address, ethers.parseEther("1000"));
+        await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+        await manager.connect(other).addToPrizePool("community-refund", donationAmount);
+
+        await manager.connect(sponsor).cancelTournament("community-refund", "Cancelled");
+
+        const balBefore = await token.balanceOf(other.address);
+        await manager.connect(other).claimDonationRefund("community-refund");
+
+        expect(await token.balanceOf(other.address)).to.equal(balBefore + donationAmount);
+      });
+
+      it("Should emit DonationRefundClaimed event", async function () {
+        const { token, manager, sponsor, other } =
+          await loadFixture(deployTournamentFixture);
+
+        const ts = await getTimestamps();
+        await manager.connect(sponsor).createCommunityTournament(
+          "community-refund",
+          "game-001",
+          ethers.parseEther("500"),
+          ENTRY_FEE,
+          10,
+          ts.registrationStart,
+          ts.registrationEnd,
+          ts.startTime
+        );
+
+        const donationAmount = ethers.parseEther("200");
+        await token.transfer(other.address, ethers.parseEther("1000"));
+        await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
+        await manager.connect(other).addToPrizePool("community-refund", donationAmount);
+
+        await manager.connect(sponsor).cancelTournament("community-refund", "Cancelled");
+
+        await expect(manager.connect(other).claimDonationRefund("community-refund"))
+          .to.emit(manager, "DonationRefundClaimed")
+          .withArgs("community-refund", other.address, donationAmount);
+      });
+
+      it("Should revert when no donation refund available", async function () {
+        const { manager, sponsor, other } =
+          await loadFixture(deployWithCreatorTournamentFixture);
+
+        await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+
+        await expect(
+          manager.connect(other).claimDonationRefund("tourney-001")
+        ).to.be.revertedWith("No donation refund available");
+      });
+    });
   });
 
   // ================================================================
-  // Add to Prize Pool
+  // Add to Prize Pool (L-C2: Community-only restriction)
   // ================================================================
   describe("addToPrizePool", function () {
-    it("Should allow anyone to add to prize pool during registration", async function () {
+    it("Should allow adding to community tournament prize pool", async function () {
       const { token, manager, other, sponsor } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
 
-      // Give other some tokens
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-pool",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
       await token.transfer(other.address, ethers.parseEther("1000"));
-      await token
-        .connect(other)
-        .approve(await manager.getAddress(), ethers.parseEther("1000"));
+      await token.connect(other).approve(await manager.getAddress(), ethers.parseEther("1000"));
 
       const addAmount = ethers.parseEther("500");
+      await manager.connect(other).addToPrizePool("community-pool", addAmount);
 
-      await manager.connect(other).addToPrizePool("tourney-001", addAmount);
+      const t = await manager.getTournament("community-pool");
+      expect(t.prizePool).to.equal(ethers.parseEther("500") + addAmount);
+    });
 
-      const t = await manager.getTournament("tourney-001");
-      expect(t.prizePool).to.equal(PRIZE_POOL + addAmount);
+    it("Should revert when adding to creator-sponsored tournament (L-C2)", async function () {
+      const { manager, sponsor } =
+        await loadFixture(deployWithCreatorTournamentFixture);
+
+      await expect(
+        manager.connect(sponsor).addToPrizePool("tourney-001", ethers.parseEther("100"))
+      ).to.be.revertedWith("Only community-sponsored tournaments");
     });
 
     it("Should revert when adding to non-registration tournament", async function () {
-      const { manager, sponsor } =
-        await loadFixture(deployWithActiveTournamentFixture);
+      const { token, manager, sponsor, player1, player2 } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-active",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
+      await time.increaseTo(ts.registrationStart);
+      await manager.connect(player1).register("community-active");
+      await manager.connect(player2).register("community-active");
+      await time.increaseTo(ts.startTime);
+      await manager.connect(sponsor).startTournament("community-active");
 
       await expect(
         manager
           .connect(sponsor)
-          .addToPrizePool("tourney-001", ethers.parseEther("100"))
+          .addToPrizePool("community-active", ethers.parseEther("100"))
       ).to.be.revertedWith("Cannot add to pool");
     });
 
     it("Should revert when adding zero amount", async function () {
       const { manager, sponsor } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-zero",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       await expect(
-        manager.connect(sponsor).addToPrizePool("tourney-001", 0)
+        manager.connect(sponsor).addToPrizePool("community-zero", 0)
       ).to.be.revertedWith("Amount must be positive");
     });
   });
@@ -1285,14 +1593,26 @@ describe("TournamentManager", function () {
 
     it("Should revert addToPrizePool when paused", async function () {
       const { manager, sponsor } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-paused",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       await manager.pause();
 
       await expect(
         manager
           .connect(sponsor)
-          .addToPrizePool("tourney-001", ethers.parseEther("100"))
+          .addToPrizePool("community-paused", ethers.parseEther("100"))
       ).to.be.revertedWithCustomError(manager, "EnforcedPause");
     });
 
@@ -1394,6 +1714,44 @@ describe("TournamentManager", function () {
         manager.connect(other).setTreasury(other.address)
       ).to.be.revertedWithCustomError(manager, "OwnableUnauthorizedAccount");
     });
+
+    describe("cancelTreasuryChange", function () {
+      it("Should cancel a pending treasury change", async function () {
+        const { manager, other } = await loadFixture(deployTournamentFixture);
+
+        await manager.proposeTreasury(other.address);
+        await manager.cancelTreasuryChange();
+
+        expect(await manager.pendingTreasury()).to.equal(ethers.ZeroAddress);
+        expect(await manager.treasuryChangeTime()).to.equal(0);
+      });
+
+      it("Should emit TreasuryChangeCancelled event", async function () {
+        const { manager, other } = await loadFixture(deployTournamentFixture);
+
+        await manager.proposeTreasury(other.address);
+
+        await expect(manager.cancelTreasuryChange())
+          .to.emit(manager, "TreasuryChangeCancelled");
+      });
+
+      it("Should revert when no pending change exists", async function () {
+        const { manager } = await loadFixture(deployTournamentFixture);
+
+        await expect(manager.cancelTreasuryChange())
+          .to.be.revertedWith("No pending treasury change");
+      });
+
+      it("Should revert when non-owner cancels", async function () {
+        const { manager, other } = await loadFixture(deployTournamentFixture);
+
+        await manager.proposeTreasury(other.address);
+
+        await expect(
+          manager.connect(other).cancelTreasuryChange()
+        ).to.be.revertedWithCustomError(manager, "OwnableUnauthorizedAccount");
+      });
+    });
   });
 
   // ================================================================
@@ -1456,7 +1814,7 @@ describe("TournamentManager", function () {
   });
 
   // ================================================================
-  // 2-Player Tournament Completion
+  // 2-Player Tournament Completion (L3: configured distribution)
   // ================================================================
   describe("2-Player Tournament Completion", function () {
     async function deployWith2PlayerTournamentFixture() {
@@ -1486,7 +1844,7 @@ describe("TournamentManager", function () {
       return { ...fixture, timestamps: ts };
     }
 
-    it("Should complete a 2-player tournament with 70/30 split", async function () {
+    it("Should complete a 2-player tournament with configured distribution (L3)", async function () {
       const { token, manager, sponsor, player1, player2 } =
         await loadFixture(deployWith2PlayerTournamentFixture);
 
@@ -1504,7 +1862,13 @@ describe("TournamentManager", function () {
 
       // Total pool = PRIZE_POOL + 2 entry fees for non-community
       const totalPool = PRIZE_POOL + ENTRY_FEE * 2n;
-      const firstPrize = (totalPool * 70n) / 100n;
+      // Default: first=50, second=25, totalPct=75
+      // firstPrize = totalPool * 50 / 75
+      // secondPrize = totalPool - firstPrize
+      const firstPct = 50n;
+      const secondPct = 25n;
+      const totalPct = firstPct + secondPct;
+      const firstPrize = (totalPool * firstPct) / totalPct;
       const secondPrize = totalPool - firstPrize;
 
       expect(await token.balanceOf(player1.address)).to.equal(
@@ -1588,7 +1952,10 @@ describe("TournamentManager", function () {
         await loadFixture(deployWith2PlayerTournamentFixture);
 
       const totalPool = PRIZE_POOL + ENTRY_FEE * 2n;
-      const firstPrize = (totalPool * 70n) / 100n;
+      const firstPct = 50n;
+      const secondPct = 25n;
+      const totalPct = firstPct + secondPct;
+      const firstPrize = (totalPool * firstPct) / totalPct;
       const secondPrize = totalPool - firstPrize;
 
       const tx = manager
@@ -1611,7 +1978,7 @@ describe("TournamentManager", function () {
   });
 
   // ================================================================
-  // 3-Player Tournament Completion
+  // 3-Player Tournament Completion (H4: fixed math /100)
   // ================================================================
   describe("3-Player Tournament Completion", function () {
     async function deployWith3PlayerTournamentFixture() {
@@ -1642,7 +2009,7 @@ describe("TournamentManager", function () {
       return { ...fixture, timestamps: ts };
     }
 
-    it("Should complete a 3-player tournament with adjusted distribution", async function () {
+    it("Should complete a 3-player tournament with /100 distribution (H4)", async function () {
       const { token, manager, sponsor, player1, player2, player3 } =
         await loadFixture(deployWith3PlayerTournamentFixture);
 
@@ -1661,10 +2028,10 @@ describe("TournamentManager", function () {
 
       // Total pool includes entry fees for non-community
       const totalPool = PRIZE_POOL + ENTRY_FEE * 3n;
-      // Default distribution: 50/25/15/10 → for 3 players: no participation pool
-      // first = totalPool * 50 / 90, second = totalPool * 25 / 90, third = remainder
-      const firstPrize = (totalPool * 50n) / 90n;
-      const secondPrize = (totalPool * 25n) / 90n;
+      // H4 fix: 3-player uses /100 (not /(100-participation))
+      // Default distribution: 50/25/15/10
+      const firstPrize = (totalPool * 50n) / 100n;
+      const secondPrize = (totalPool * 25n) / 100n;
       const thirdPrize = totalPool - firstPrize - secondPrize;
 
       expect(await token.balanceOf(player1.address)).to.equal(
@@ -1815,9 +2182,6 @@ describe("TournamentManager", function () {
       await time.increaseTo(ts.startTime);
       await manager.connect(sponsor).startTournament("community-fees");
 
-      const managerAddr = await manager.getAddress();
-      const contractBalance = await token.balanceOf(managerAddr);
-
       const p1BalBefore = await token.balanceOf(player1.address);
       const p2BalBefore = await token.balanceOf(player2.address);
       const p3BalBefore = await token.balanceOf(player3.address);
@@ -1899,65 +2263,111 @@ describe("TournamentManager", function () {
   });
 
   // ================================================================
-  // Donation Refund on Cancel
+  // Donation Refund on Cancel (pull-payment)
   // ================================================================
   describe("Donation Refund on Cancel", function () {
-    it("Should refund third-party donations when tournament is cancelled", async function () {
+    it("Should record donation refunds for pull-payment when tournament is cancelled", async function () {
       const { token, manager, sponsor, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
 
-      // Give other some tokens and approve
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-cancel",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
+
       const donationAmount = ethers.parseEther("500");
       await token.transfer(other.address, ethers.parseEther("1000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
 
-      // Donate to prize pool
-      await manager.connect(other).addToPrizePool("tourney-001", donationAmount);
+      await manager.connect(other).addToPrizePool("community-cancel", donationAmount);
 
       const otherBalBefore = await token.balanceOf(other.address);
 
-      // Cancel tournament
-      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+      await manager.connect(sponsor).cancelTournament("community-cancel", "Cancelled");
 
-      // Donor should get their donation back
-      expect(await token.balanceOf(other.address)).to.equal(
-        otherBalBefore + donationAmount
-      );
+      // Balance should NOT change yet (pull-payment)
+      expect(await token.balanceOf(other.address)).to.equal(otherBalBefore);
+
+      // But donation refund should be recorded
+      expect(await manager.donationRefunds("community-cancel", other.address)).to.equal(donationAmount);
     });
 
     it("Should emit PrizePoolContribution on addToPrizePool", async function () {
-      const { token, manager, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+      const { token, manager, sponsor, other } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-contrib",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       const donationAmount = ethers.parseEther("200");
       await token.transfer(other.address, ethers.parseEther("1000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
 
-      await expect(manager.connect(other).addToPrizePool("tourney-001", donationAmount))
+      await expect(manager.connect(other).addToPrizePool("community-contrib", donationAmount))
         .to.emit(manager, "PrizePoolContribution")
-        .withArgs("tourney-001", other.address, donationAmount);
+        .withArgs("community-contrib", other.address, donationAmount);
     });
 
     it("Should emit DonationRefunded on cancel", async function () {
       const { token, manager, sponsor, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-refund-emit",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       const donationAmount = ethers.parseEther("300");
       await token.transfer(other.address, ethers.parseEther("1000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
 
-      await manager.connect(other).addToPrizePool("tourney-001", donationAmount);
+      await manager.connect(other).addToPrizePool("community-refund-emit", donationAmount);
 
       await expect(
-        manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled")
+        manager.connect(sponsor).cancelTournament("community-refund-emit", "Cancelled")
       )
         .to.emit(manager, "DonationRefunded")
-        .withArgs("tourney-001", other.address, donationAmount);
+        .withArgs("community-refund-emit", other.address, donationAmount);
     });
 
     it("Should track multiple donations from same donor", async function () {
       const { token, manager, sponsor, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-multi",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       await token.transfer(other.address, ethers.parseEther("2000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
@@ -1965,24 +2375,29 @@ describe("TournamentManager", function () {
       const donation1 = ethers.parseEther("200");
       const donation2 = ethers.parseEther("300");
 
-      await manager.connect(other).addToPrizePool("tourney-001", donation1);
-      await manager.connect(other).addToPrizePool("tourney-001", donation2);
+      await manager.connect(other).addToPrizePool("community-multi", donation1);
+      await manager.connect(other).addToPrizePool("community-multi", donation2);
 
-      expect(await manager.contributions("tourney-001", other.address)).to.equal(
+      expect(await manager.contributions("community-multi", other.address)).to.equal(
         donation1 + donation2
-      );
-
-      const otherBalBefore = await token.balanceOf(other.address);
-      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
-
-      expect(await token.balanceOf(other.address)).to.equal(
-        otherBalBefore + donation1 + donation2
       );
     });
 
-    it("Should refund multiple donors on cancel", async function () {
+    it("Should record refunds for multiple donors on cancel", async function () {
       const { token, manager, sponsor, player1, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-multi-donors",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       await token.transfer(other.address, ethers.parseEther("1000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
@@ -1990,14 +2405,21 @@ describe("TournamentManager", function () {
       const d1 = ethers.parseEther("100");
       const d2 = ethers.parseEther("200");
 
-      // Player1 already has tokens and approval from fixture
-      await manager.connect(player1).addToPrizePool("tourney-001", d1);
-      await manager.connect(other).addToPrizePool("tourney-001", d2);
+      await manager.connect(player1).addToPrizePool("community-multi-donors", d1);
+      await manager.connect(other).addToPrizePool("community-multi-donors", d2);
 
+      await manager.connect(sponsor).cancelTournament("community-multi-donors", "Cancelled");
+
+      // Check recorded refunds
+      expect(await manager.donationRefunds("community-multi-donors", player1.address)).to.equal(d1);
+      expect(await manager.donationRefunds("community-multi-donors", other.address)).to.equal(d2);
+
+      // Claim refunds
       const p1BalBefore = await token.balanceOf(player1.address);
       const otherBalBefore = await token.balanceOf(other.address);
 
-      await manager.connect(sponsor).cancelTournament("tourney-001", "Cancelled");
+      await manager.connect(player1).claimDonationRefund("community-multi-donors");
+      await manager.connect(other).claimDonationRefund("community-multi-donors");
 
       expect(await token.balanceOf(player1.address)).to.equal(p1BalBefore + d1);
       expect(await token.balanceOf(other.address)).to.equal(otherBalBefore + d2);
@@ -2095,7 +2517,7 @@ describe("TournamentManager", function () {
   });
 
   // ================================================================
-  // Commit-Reveal for Tournament Completion
+  // Commit-Reveal for Tournament Completion (H3-TM)
   // ================================================================
   describe("Commit-Reveal", function () {
     it("Should commit results hash", async function () {
@@ -2254,6 +2676,33 @@ describe("TournamentManager", function () {
         manager.connect(sponsor).commitResults("tourney-001", ethers.id("hash"))
       ).to.be.revertedWithCustomError(manager, "EnforcedPause");
     });
+
+    it("Should revert completeTournament when commit hash exists (H3-TM)", async function () {
+      const { manager, sponsor, player1, player2, player3 } =
+        await loadFixture(deployWithActiveTournamentFixture);
+
+      const salt = ethers.id("mysalt");
+      const resultHash = ethers.keccak256(
+        ethers.solidityPacked(
+          ["string", "address", "address", "address", "bytes32"],
+          ["tourney-001", player1.address, player2.address, player3.address, salt]
+        )
+      );
+
+      await manager.connect(sponsor).commitResults("tourney-001", resultHash);
+
+      // Try to use completeTournament (direct path) after commit
+      await expect(
+        manager
+          .connect(sponsor)
+          .completeTournament(
+            "tourney-001",
+            player1.address,
+            player2.address,
+            player3.address
+          )
+      ).to.be.revertedWith("Must use reveal path");
+    });
   });
 
   // ================================================================
@@ -2266,17 +2715,29 @@ describe("TournamentManager", function () {
     });
 
     it("Should allow existing contributor to add more without hitting cap", async function () {
-      const { token, manager, other } =
-        await loadFixture(deployWithCreatorTournamentFixture);
+      const { token, manager, sponsor, other } =
+        await loadFixture(deployTournamentFixture);
+
+      const ts = await getTimestamps();
+      await manager.connect(sponsor).createCommunityTournament(
+        "community-cap",
+        "game-001",
+        ethers.parseEther("500"),
+        ENTRY_FEE,
+        10,
+        ts.registrationStart,
+        ts.registrationEnd,
+        ts.startTime
+      );
 
       await token.transfer(other.address, ethers.parseEther("2000"));
       await token.connect(other).approve(await manager.getAddress(), ethers.MaxUint256);
 
-      await manager.connect(other).addToPrizePool("tourney-001", ethers.parseEther("100"));
+      await manager.connect(other).addToPrizePool("community-cap", ethers.parseEther("100"));
       // Same contributor adds again, should not increase contributor count
-      await manager.connect(other).addToPrizePool("tourney-001", ethers.parseEther("100"));
+      await manager.connect(other).addToPrizePool("community-cap", ethers.parseEther("100"));
 
-      expect(await manager.contributions("tourney-001", other.address)).to.equal(
+      expect(await manager.contributions("community-cap", other.address)).to.equal(
         ethers.parseEther("200")
       );
     });

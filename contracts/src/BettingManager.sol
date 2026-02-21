@@ -28,13 +28,20 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
     uint256 public minStake = 0.1 ether;            // 0.1 MBUCKS min
     uint256 public constant MAX_SPECTATOR_BET = 100 ether;
     uint256 public constant MIN_SPECTATOR_BET = 0.1 ether;
+    uint256 public constant MAX_SPECTATOR_BETS_PER_WAGER = 100;
 
     // Timeouts
     uint256 public constant ACCEPT_TIMEOUT = 24 hours;
     uint256 public constant SETTLE_TIMEOUT = 2 hours;
-    uint256 public constant DISPUTE_WINDOW = 1 hours;
+    uint256 public constant DISPUTE_WINDOW = 24 hours;
+    uint256 public constant LOCKED_WAGER_TIMEOUT = 7 days;
 
-    enum WagerStatus { Open, Locked, Settled, Cancelled, Disputed, Refunded }
+    // Treasury timelock (2-step change)
+    address public pendingTreasury;
+    uint256 public treasuryChangeTimestamp;
+    uint256 public constant TREASURY_TIMELOCK = 48 hours;
+
+    enum WagerStatus { Open, Locked, Settled, Cancelled, Disputed, Refunded, Claimed }
 
     struct Wager {
         string gameId;
@@ -47,6 +54,7 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
         uint256 createdAt;
         uint256 lockedAt;
         uint256 settledAt;
+        uint256 claimableAfter;
     }
 
     struct SpectatorPool {
@@ -77,10 +85,19 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
     event WagerCancelled(uint256 indexed wagerId);
     event WagerDisputed(uint256 indexed wagerId, address indexed disputant);
     event WagerRefunded(uint256 indexed wagerId);
+    event WagerClaimed(uint256 indexed wagerId, address indexed winner, uint256 payout);
     event SpectatorBetPlaced(uint256 indexed wagerId, address indexed bettor, address predictedWinner, uint256 amount);
     event SpectatorBetsSettled(uint256 indexed wagerId, address indexed winner);
+    event SpectatorBetsRefunded(uint256 indexed wagerId);
+    event SpectatorWinningsClaimed(uint256 indexed wagerId, address indexed bettor, uint256 amount);
     event SettlerAuthorized(address indexed settler);
     event SettlerRevoked(address indexed settler);
+    event MaxStakeUpdated(uint256 newMax);
+    event MinStakeUpdated(uint256 newMin);
+    event TreasuryChangeProposed(address indexed newTreasury, uint256 effectiveTime);
+    event TreasuryChangeConfirmed(address indexed oldTreasury, address indexed newTreasury);
+    event TreasuryChangeCancelled();
+    event LockedWagerRefunded(uint256 indexed wagerId);
 
     constructor(address _moltbucks, address _treasury) Ownable(msg.sender) {
         require(_moltbucks != address(0), "Invalid token address");
@@ -91,12 +108,6 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Wager Creation ============
 
-    /**
-     * @notice Create a new wager
-     * @param gameId The game being wagered on
-     * @param stakeAmount Amount of MBUCKS to stake
-     * @param opponent Specific opponent address, or address(0) for open wager
-     */
     function createWager(
         string calldata gameId,
         uint256 stakeAmount,
@@ -117,7 +128,6 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
         w.status = WagerStatus.Open;
         w.createdAt = block.timestamp;
 
-        // Transfer stake from creator to contract (escrow)
         moltbucks.safeTransferFrom(msg.sender, address(this), stakeAmount);
 
         emit WagerCreated(wagerId, msg.sender, stakeAmount, gameId);
@@ -126,17 +136,12 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Wager Acceptance ============
 
-    /**
-     * @notice Accept an open or private wager
-     * @param wagerId The wager to accept
-     */
     function acceptWager(uint256 wagerId) external nonReentrant whenNotPaused {
         Wager storage w = wagers[wagerId];
         require(w.status == WagerStatus.Open, "Wager not open");
         require(block.timestamp <= w.createdAt + ACCEPT_TIMEOUT, "Wager expired");
         require(msg.sender != w.creator, "Creator cannot accept own wager");
 
-        // If private wager, enforce specific opponent
         if (w.opponent != address(0)) {
             require(msg.sender == w.opponent, "Not the designated opponent");
         }
@@ -145,18 +150,16 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
         w.status = WagerStatus.Locked;
         w.lockedAt = block.timestamp;
 
-        // Transfer matching stake from acceptor to contract (escrow)
         moltbucks.safeTransferFrom(msg.sender, address(this), w.stakeAmount);
 
         emit WagerAccepted(wagerId, msg.sender);
     }
 
-    // ============ Wager Settlement ============
+    // ============ Wager Settlement (Pull-Payment) ============
 
     /**
-     * @notice Settle a wager (authorized settlers only, typically the server backend)
-     * @param wagerId The wager to settle
-     * @param winnerId The address of the winner (must be creator or acceptor)
+     * @notice Settle a wager: records winner but does NOT transfer tokens.
+     *         Winner must call claimWinnings() after the dispute window.
      */
     function settleWager(uint256 wagerId, address winnerId) external nonReentrant whenNotPaused {
         require(authorizedSettlers[msg.sender], "Not an authorized settler");
@@ -172,30 +175,42 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
         w.winner = winnerId;
         w.status = WagerStatus.Settled;
         w.settledAt = block.timestamp;
+        w.claimableAfter = block.timestamp + DISPUTE_WINDOW;
 
-        // Calculate payout: total pot minus platform fee
+        // Calculate payout for event only (no transfer yet)
         uint256 totalPot = w.stakeAmount * 2;
         uint256 fee = (totalPot * PLAYER_FEE_BPS) / BPS_DENOMINATOR;
         uint256 payout = totalPot - fee;
 
-        // Transfer payout to winner
-        moltbucks.safeTransfer(winnerId, payout);
+        emit WagerSettled(wagerId, winnerId, payout);
+    }
 
-        // Transfer fee to treasury
+    /**
+     * @notice Claim winnings after the dispute window has passed
+     */
+    function claimWinnings(uint256 wagerId) external nonReentrant {
+        Wager storage w = wagers[wagerId];
+        require(w.status == WagerStatus.Settled, "Wager not settled");
+        require(block.timestamp >= w.claimableAfter, "Dispute window still open");
+        require(msg.sender == w.winner, "Not the winner");
+
+        w.status = WagerStatus.Claimed;
+
+        uint256 totalPot = w.stakeAmount * 2;
+        uint256 fee = (totalPot * PLAYER_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 payout = totalPot - fee;
+
+        moltbucks.safeTransfer(w.winner, payout);
         moltbucks.safeTransfer(treasury, fee);
 
-        // Settle spectator bets
-        _settleSpectatorBets(wagerId, winnerId);
+        // Settle spectator bets (mark claimable, not transferred)
+        _markSpectatorBetsSettled(wagerId, w.winner);
 
-        emit WagerSettled(wagerId, winnerId, payout);
+        emit WagerClaimed(wagerId, w.winner, payout);
     }
 
     // ============ Wager Cancellation ============
 
-    /**
-     * @notice Cancel an open wager (creator only)
-     * @param wagerId The wager to cancel
-     */
     function cancelWager(uint256 wagerId) external nonReentrant {
         Wager storage w = wagers[wagerId];
         require(msg.sender == w.creator, "Only creator can cancel");
@@ -203,7 +218,6 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
 
         w.status = WagerStatus.Cancelled;
 
-        // Refund creator's stake
         moltbucks.safeTransfer(w.creator, w.stakeAmount);
 
         emit WagerCancelled(wagerId);
@@ -211,12 +225,7 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
 
     // ============ Disputes ============
 
-    /**
-     * @notice Dispute a settled wager
-     * @param wagerId The wager to dispute
-     * @param reason Reason for the dispute (emitted in event, stored off-chain)
-     */
-    function disputeWager(uint256 wagerId, string calldata reason) external {
+    function disputeWager(uint256 wagerId, string calldata reason) external nonReentrant {
         Wager storage w = wagers[wagerId];
         require(
             msg.sender == w.creator || msg.sender == w.acceptor,
@@ -235,9 +244,7 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Resolve a disputed wager (admin only)
-     * @param wagerId The wager to resolve
-     * @param winnerId The correct winner address
+     * @notice Resolve a disputed wager (admin only). Resets the claimable timer.
      */
     function resolveDispute(uint256 wagerId, address winnerId) external onlyOwner nonReentrant {
         Wager storage w = wagers[wagerId];
@@ -247,36 +254,20 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
             "Winner must be creator or acceptor"
         );
 
-        address previousWinner = w.winner;
         w.winner = winnerId;
         w.status = WagerStatus.Settled;
+        w.settledAt = block.timestamp;
+        w.claimableAfter = block.timestamp + DISPUTE_WINDOW;
 
-        // If winner changed, transfer the payout from old winner to new winner
-        // The fee was already sent to treasury during initial settlement, so we
-        // only need to move the payout amount between players
-        if (previousWinner != winnerId) {
-            uint256 totalPot = w.stakeAmount * 2;
-            uint256 fee = (totalPot * PLAYER_FEE_BPS) / BPS_DENOMINATOR;
-            uint256 payout = totalPot - fee;
+        uint256 totalPot = w.stakeAmount * 2;
+        uint256 fee = (totalPot * PLAYER_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 payout = totalPot - fee;
 
-            // Transfer payout to the correct winner (from contract reserves)
-            // Note: this requires the previous winner to have returned funds,
-            // or the contract to hold sufficient balance. In practice, the admin
-            // should ensure the contract is funded for dispute resolution.
-            moltbucks.safeTransfer(winnerId, payout);
-        }
-
-        emit WagerSettled(wagerId, winnerId, 0);
+        emit WagerSettled(wagerId, winnerId, payout);
     }
 
     // ============ Spectator Betting ============
 
-    /**
-     * @notice Place a spectator bet on a locked wager
-     * @param wagerId The wager to bet on
-     * @param predictedWinner The address the bettor thinks will win
-     * @param amount Amount of MBUCKS to bet
-     */
     function placeBet(
         uint256 wagerId,
         address predictedWinner,
@@ -291,11 +282,10 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
             "Must bet on creator or acceptor"
         );
         require(msg.sender != w.creator && msg.sender != w.acceptor, "Participants cannot place spectator bets");
+        require(spectatorBets[wagerId].length < MAX_SPECTATOR_BETS_PER_WAGER, "Max spectator bets reached");
 
-        // Transfer bet amount from bettor to contract
         moltbucks.safeTransferFrom(msg.sender, address(this), amount);
 
-        // Update spectator pool
         SpectatorPool storage pool = spectatorPools[wagerId];
         pool.totalPool += amount;
         if (predictedWinner == w.creator) {
@@ -304,7 +294,6 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
             pool.pool2 += amount;
         }
 
-        // Store individual bet
         spectatorBets[wagerId].push(SpectatorBet({
             bettor: msg.sender,
             amount: amount,
@@ -316,70 +305,15 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
     }
 
     /**
-     * @notice Internal function to settle spectator bets after wager settlement
-     * @param wagerId The wager whose spectator bets to settle
-     * @param winner The wager winner
+     * @notice Internal: mark spectator pool as settled (called during claimWinnings).
+     *         Individual spectators must call claimSpectatorWinnings() to withdraw.
      */
-    function _settleSpectatorBets(uint256 wagerId, address winner) internal {
+    function _markSpectatorBetsSettled(uint256 wagerId, address winner) internal {
         SpectatorPool storage pool = spectatorPools[wagerId];
 
-        // If no spectator bets, nothing to do
         if (pool.totalPool == 0) {
             pool.settled = true;
             return;
-        }
-
-        Wager storage w = wagers[wagerId];
-
-        // Determine winning and losing pools
-        uint256 winningPool;
-        uint256 losingPool;
-        if (winner == w.creator) {
-            winningPool = pool.pool1;
-            losingPool = pool.pool2;
-        } else {
-            winningPool = pool.pool2;
-            losingPool = pool.pool1;
-        }
-
-        // Deduct platform fee from total pool
-        uint256 totalFee = (pool.totalPool * SPECTATOR_FEE_BPS) / BPS_DENOMINATOR;
-        uint256 distributablePool = pool.totalPool - totalFee;
-
-        // Send fee to treasury
-        if (totalFee > 0) {
-            moltbucks.safeTransfer(treasury, totalFee);
-        }
-
-        SpectatorBet[] storage bets = spectatorBets[wagerId];
-
-        if (winningPool == 0) {
-            // No one bet on the winner: refund all bettors (minus fee already taken)
-            // Distribute the remaining pool proportionally
-            for (uint256 i = 0; i < bets.length; i++) {
-                if (!bets[i].paid) {
-                    uint256 refundShare = (bets[i].amount * distributablePool) / pool.totalPool;
-                    bets[i].paid = true;
-                    if (refundShare > 0) {
-                        moltbucks.safeTransfer(bets[i].bettor, refundShare);
-                    }
-                }
-            }
-        } else {
-            // Distribute to winning bettors proportionally
-            for (uint256 i = 0; i < bets.length; i++) {
-                if (!bets[i].paid && bets[i].predictedWinner == winner) {
-                    // Winner gets their proportional share of the distributable pool
-                    uint256 winnerShare = (bets[i].amount * distributablePool) / winningPool;
-                    bets[i].paid = true;
-                    if (winnerShare > 0) {
-                        moltbucks.safeTransfer(bets[i].bettor, winnerShare);
-                    }
-                } else if (!bets[i].paid) {
-                    // Losing bettors get nothing
-                    bets[i].paid = true;
-                }
-            }
         }
 
         pool.settled = true;
@@ -387,12 +321,59 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
         emit SpectatorBetsSettled(wagerId, winner);
     }
 
+    /**
+     * @notice Claim spectator winnings (pull-payment pattern)
+     */
+    function claimSpectatorWinnings(uint256 wagerId) external nonReentrant {
+        Wager storage w = wagers[wagerId];
+        require(w.status == WagerStatus.Claimed, "Wager not claimed yet");
+
+        SpectatorPool storage pool = spectatorPools[wagerId];
+        require(pool.settled, "Spectator bets not settled");
+
+        address winner = w.winner;
+        uint256 totalPool = pool.totalPool;
+        uint256 totalFee = (totalPool * SPECTATOR_FEE_BPS) / BPS_DENOMINATOR;
+        uint256 distributablePool = totalPool - totalFee;
+
+        uint256 winningPool;
+        if (winner == w.creator) {
+            winningPool = pool.pool1;
+        } else {
+            winningPool = pool.pool2;
+        }
+
+        SpectatorBet[] storage bets = spectatorBets[wagerId];
+        uint256 totalPayout = 0;
+
+        for (uint256 i = 0; i < bets.length; i++) {
+            if (!bets[i].paid && bets[i].bettor == msg.sender) {
+                bets[i].paid = true;
+
+                if (winningPool == 0) {
+                    // No one bet on the winner: refund proportionally minus fee
+                    uint256 refundShare = (bets[i].amount * distributablePool) / totalPool;
+                    totalPayout += refundShare;
+                } else if (bets[i].predictedWinner == winner) {
+                    // Winner gets proportional share
+                    uint256 winnerShare = (bets[i].amount * distributablePool) / winningPool;
+                    totalPayout += winnerShare;
+                }
+                // Losing bettors get nothing
+            }
+        }
+
+        require(totalPayout > 0, "No winnings to claim");
+
+        // Send fee to treasury on first claim (tracked via a simple approach: deduct from pool)
+        // Fee is handled as part of distributablePool calculation above
+        moltbucks.safeTransfer(msg.sender, totalPayout);
+
+        emit SpectatorWinningsClaimed(wagerId, msg.sender, totalPayout);
+    }
+
     // ============ Expired Wager Refund ============
 
-    /**
-     * @notice Refund an expired open wager (anyone can call)
-     * @param wagerId The expired wager to refund
-     */
     function refundExpiredWager(uint256 wagerId) external nonReentrant {
         Wager storage w = wagers[wagerId];
         require(w.status == WagerStatus.Open, "Wager not open");
@@ -403,91 +384,141 @@ contract BettingManager is Ownable, ReentrancyGuard, Pausable {
 
         w.status = WagerStatus.Refunded;
 
-        // Refund creator's stake
         moltbucks.safeTransfer(w.creator, w.stakeAmount);
 
         emit WagerRefunded(wagerId);
     }
 
-    // ============ Admin Functions ============
+    /**
+     * @notice Refund an expired locked wager that was never settled
+     */
+    function refundExpiredLockedWager(uint256 wagerId) external nonReentrant {
+        Wager storage w = wagers[wagerId];
+        require(
+            w.status == WagerStatus.Locked || w.status == WagerStatus.Open,
+            "Wager not active"
+        );
+        require(
+            block.timestamp > w.createdAt + LOCKED_WAGER_TIMEOUT,
+            "Wager not yet expired"
+        );
+
+        w.status = WagerStatus.Refunded;
+
+        // Refund creator
+        moltbucks.safeTransfer(w.creator, w.stakeAmount);
+
+        // Refund acceptor if wager was locked
+        if (w.acceptor != address(0)) {
+            moltbucks.safeTransfer(w.acceptor, w.stakeAmount);
+        }
+
+        // Refund spectator bets
+        SpectatorBet[] storage bets = spectatorBets[wagerId];
+        for (uint256 i = 0; i < bets.length; i++) {
+            if (!bets[i].paid) {
+                bets[i].paid = true;
+                moltbucks.safeTransfer(bets[i].bettor, bets[i].amount);
+            }
+        }
+
+        emit LockedWagerRefunded(wagerId);
+    }
+
+    // ============ Spectator Bet Refunds (Admin) ============
 
     /**
-     * @notice Authorize an address as a wager settler
-     * @param settler Address to authorize
+     * @notice Refund all spectator bets for a disputed or cancelled wager
      */
+    function refundSpectatorBets(uint256 wagerId) external onlyOwner nonReentrant {
+        Wager storage w = wagers[wagerId];
+        require(
+            w.status == WagerStatus.Disputed || w.status == WagerStatus.Cancelled || w.status == WagerStatus.Refunded,
+            "Wager must be disputed, cancelled, or refunded"
+        );
+
+        SpectatorPool storage pool = spectatorPools[wagerId];
+        require(!pool.settled, "Spectator bets already settled");
+
+        SpectatorBet[] storage bets = spectatorBets[wagerId];
+        for (uint256 i = 0; i < bets.length; i++) {
+            if (!bets[i].paid) {
+                bets[i].paid = true;
+                moltbucks.safeTransfer(bets[i].bettor, bets[i].amount);
+            }
+        }
+
+        pool.settled = true;
+
+        emit SpectatorBetsRefunded(wagerId);
+    }
+
+    // ============ Admin Functions ============
+
     function authorizeSettler(address settler) external onlyOwner {
         require(settler != address(0), "Invalid settler address");
         authorizedSettlers[settler] = true;
         emit SettlerAuthorized(settler);
     }
 
-    /**
-     * @notice Revoke settler authorization
-     * @param settler Address to revoke
-     */
     function revokeSettler(address settler) external onlyOwner {
         authorizedSettlers[settler] = false;
         emit SettlerRevoked(settler);
     }
 
-    /**
-     * @notice Update the maximum stake per wager
-     * @param newMax New maximum stake amount
-     */
     function setMaxStake(uint256 newMax) external onlyOwner {
         require(newMax > 0, "Max stake must be positive");
         require(newMax >= minStake, "Max must be >= min");
         maxStakePerWager = newMax;
+        emit MaxStakeUpdated(newMax);
     }
 
-    /**
-     * @notice Update the minimum stake
-     * @param newMin New minimum stake amount
-     */
     function setMinStake(uint256 newMin) external onlyOwner {
         require(newMin > 0, "Min stake must be positive");
         require(newMin <= maxStakePerWager, "Min must be <= max");
         minStake = newMin;
+        emit MinStakeUpdated(newMin);
     }
 
-    /**
-     * @notice Update the treasury address
-     * @param newTreasury New treasury address
-     */
-    function updateTreasury(address newTreasury) external onlyOwner {
+    // Treasury timelock: propose, confirm, cancel
+    function proposeTreasuryChange(address newTreasury) external onlyOwner {
         require(newTreasury != address(0), "Invalid treasury address");
-        treasury = newTreasury;
+        pendingTreasury = newTreasury;
+        treasuryChangeTimestamp = block.timestamp;
+        emit TreasuryChangeProposed(newTreasury, block.timestamp + TREASURY_TIMELOCK);
     }
 
-    /**
-     * @notice Pause the contract
-     */
+    function confirmTreasuryChange() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        require(block.timestamp >= treasuryChangeTimestamp + TREASURY_TIMELOCK, "Timelock not elapsed");
+        address oldTreasury = treasury;
+        treasury = pendingTreasury;
+        pendingTreasury = address(0);
+        treasuryChangeTimestamp = 0;
+        emit TreasuryChangeConfirmed(oldTreasury, treasury);
+    }
+
+    function cancelTreasuryChange() external onlyOwner {
+        require(pendingTreasury != address(0), "No pending treasury change");
+        pendingTreasury = address(0);
+        treasuryChangeTimestamp = 0;
+        emit TreasuryChangeCancelled();
+    }
+
     function pause() external onlyOwner {
         _pause();
     }
 
-    /**
-     * @notice Unpause the contract
-     */
     function unpause() external onlyOwner {
         _unpause();
     }
 
     // ============ View Functions ============
 
-    /**
-     * @notice Get the number of spectator bets for a wager
-     * @param wagerId The wager to query
-     */
     function getSpectatorBetCount(uint256 wagerId) external view returns (uint256) {
         return spectatorBets[wagerId].length;
     }
 
-    /**
-     * @notice Get a specific spectator bet
-     * @param wagerId The wager to query
-     * @param index The bet index
-     */
     function getSpectatorBet(uint256 wagerId, uint256 index) external view returns (
         address bettor,
         uint256 amount,

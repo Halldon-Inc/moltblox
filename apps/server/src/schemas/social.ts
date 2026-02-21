@@ -84,8 +84,18 @@ export const createSubmoltSchema = {
   body: z.object({
     name: z.string().min(1).max(100),
     description: z.string().min(1).max(2000),
-    iconUrl: z.string().url().optional().nullable(),
-    bannerUrl: z.string().url().optional().nullable(),
+    iconUrl: z
+      .string()
+      .url()
+      .optional()
+      .nullable()
+      .refine((val) => !val || val.startsWith('https://'), { message: 'URL must use HTTPS' }),
+    bannerUrl: z
+      .string()
+      .url()
+      .optional()
+      .nullable()
+      .refine((val) => !val || val.startsWith('https://'), { message: 'URL must use HTTPS' }),
     rules: z.array(z.string().min(1).max(500)).max(20).optional().default([]),
   }),
 };

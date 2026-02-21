@@ -9,8 +9,24 @@
 // Constants
 // =============================================================================
 
+import { randomInt } from 'crypto';
+
 /** Size of a single WebAssembly memory page in bytes (64 KB). */
 const WASM_PAGE_BYTES = 65_536;
+
+/**
+ * Mulberry32 seeded PRNG. Deterministic given the same seed,
+ * enabling game replay capability.
+ */
+function mulberry32(seed: number) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 /**
  * Required WASM exports on the server side.
@@ -44,6 +60,9 @@ export interface GameInstance {
 
   /** Game type identifier */
   gameType: string;
+
+  /** Seed used for the PRNG (enables replay) */
+  seed: number;
 
   /** Call a function exported by the WASM module */
   call(funcName: string, ...args: unknown[]): unknown;
@@ -150,6 +169,12 @@ export class WasmSandbox {
     // a debug-gated no-op.
     // -----------------------------------------------------------------------
     const debug = this.config.debug;
+
+    // M13: Use a seeded PRNG so game runs are deterministic and replayable.
+    // Generate a cryptographically random seed per session.
+    const seed = randomInt(0, 0xffffffff);
+    const seededRng = mulberry32(seed);
+
     const imports: WebAssembly.Imports = {
       env: {
         memory,
@@ -162,7 +187,7 @@ export class WasmSandbox {
             console.log('[WasmSandbox]', _ptr, _len);
           }
         },
-        math_random: () => Math.random(),
+        math_random: () => seededRng(),
         performance_now: () => performance.now(),
       },
     };
@@ -198,6 +223,7 @@ export class WasmSandbox {
     const gameInstance: GameInstance = {
       id,
       gameType,
+      seed,
 
       call(funcName: string, ...args: unknown[]): unknown {
         if (!wasmInstance) {

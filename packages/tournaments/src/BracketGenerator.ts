@@ -3,6 +3,7 @@
  * Supports single elimination, double elimination, round robin, and Swiss system
  */
 
+import { getRandomValues } from 'crypto';
 import type { TournamentMatch } from '@moltblox/protocol';
 
 /** A match stub used during bracket generation before full TournamentMatch creation */
@@ -340,14 +341,23 @@ export function seedPlayers(playerIds: string[], ratings: Map<string, number>): 
 }
 
 /**
- * Fisher-Yates shuffle - randomly shuffles an array in place.
+ * Generate a cryptographically secure random number in [0, 1).
+ */
+function secureRandom(): number {
+  const arr = new Uint32Array(1);
+  getRandomValues(arr);
+  return arr[0] / (0xffffffff + 1);
+}
+
+/**
+ * Fisher-Yates shuffle using cryptographically secure randomness.
  *
  * @param arr - Array to shuffle
  * @returns The same array, shuffled
  */
 export function shuffleArray<T>(arr: T[]): T[] {
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(secureRandom() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;

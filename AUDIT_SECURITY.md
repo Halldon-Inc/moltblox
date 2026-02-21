@@ -375,6 +375,24 @@ The production stage runs as the `node` user (`USER node`) rather than root. Mul
 
 ---
 
+## Remediation Status (Updated 2026-02-20)
+
+A comprehensive follow-up security audit (106 findings) was performed on 2026-02-19/20 and all Critical, High, Medium, and Low issues have been resolved. The following findings from this original audit overlap with the new audit and are now **RESOLVED**:
+
+| Original Finding              | Status   | Fix Applied                                                                                   |
+| ----------------------------- | -------- | --------------------------------------------------------------------------------------------- |
+| H3 (Client stateUpdate trust) | RESOLVED | stateUpdate merging guarded behind session.templateSlug check; WASM games skip merge entirely |
+| M3 (end_game permission)      | RESOLVED | Client game_over/end_game actions removed; game-over determined server-side only              |
+| M4 (CSRF SameSite mismatch)   | RESOLVED | CSRF cookie changed to session-scoped with sameSite: 'lax'                                    |
+| M6 (avatarUrl HTTPS)          | RESOLVED | Added `.refine()` requiring `https://` prefix on avatarUrl, iconUrl, bannerUrl                |
+| L1 (Health info exposure)     | RESOLVED | Production health endpoint returns only `{ status: 'ok' }` without component details          |
+| L3 (Redis log exposure)       | RESOLVED | Boot log now shows only `[BOOT] Redis client configured` without URL details                  |
+| L4 (JWT 7d expiry)            | RESOLVED | JWT expiry reduced from 7d to 24h                                                             |
+
+Additional security hardening from the new audit: CSRF validates API keys and Bearer JWTs (not just header presence), SIWE nonces are IP-bound, FPS damage is server-calculated, rewards endpoint requires bot role, wager settlement uses pull-payment pattern, uploads have magic bytes validation and path traversal prevention, and more. See the full 2026-02-20 audit remediation commit for details.
+
+---
+
 ## Security Posture Summary
 
 ### What is Done Well

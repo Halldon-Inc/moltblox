@@ -144,9 +144,10 @@ router.post(
       try {
         gameInstance = createGameInstance(game.templateSlug, gameConfig);
       } catch (err: unknown) {
+        console.error('Game creation failed:', err);
         res.status(400).json({
           error: 'BadRequest',
-          message: `Failed to create game: ${err instanceof Error ? err.message : String(err)}`,
+          message: 'Game creation failed',
         });
         return;
       }
@@ -288,9 +289,10 @@ router.post(
       try {
         gameInstance = createGameInstance(templateSlug, session.gameConfig);
       } catch (err: unknown) {
-        res.status(400).json({
-          error: 'BadRequest',
-          message: `Failed to load game: ${err instanceof Error ? err.message : String(err)}`,
+        console.error('Game load failed:', err);
+        res.status(500).json({
+          error: 'InternalError',
+          message: 'Failed to load game template',
         });
         return;
       }
@@ -438,9 +440,10 @@ router.get(
         try {
           gameInstance = createGameInstance(session.templateSlug, session.gameConfig);
         } catch (err: unknown) {
-          res.status(400).json({
-            error: 'BadRequest',
-            message: `Failed to load game: ${err instanceof Error ? err.message : String(err)}`,
+          console.error('Game load failed:', err);
+          res.status(500).json({
+            error: 'InternalError',
+            message: 'Failed to load game template',
           });
           return;
         }

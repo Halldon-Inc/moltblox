@@ -22,6 +22,7 @@ interface McpSession {
   server: Server;
   transport: StreamableHTTPServerTransport;
   lastActivity: number;
+  userId: string;
 }
 
 const sessions = new Map<string, McpSession>();
@@ -91,12 +92,11 @@ router.get('/info', async (_req: Request, res: Response) => {
     status: 'ok',
     tools: toolCount,
     toolBreakdown,
-    ...(importError && { importError }),
     protocol: 'MCP (Model Context Protocol)',
     transport: 'StreamableHTTP (JSON response mode)',
     auth: 'Bearer JWT or X-API-Key header required for tool calls',
     usage: 'POST /mcp with JSON-RPC body to initialize a session. Include Authorization header.',
-    activeSessions: sessions.size,
+    ...(process.env.NODE_ENV !== 'production' && { activeSessions: sessions.size, importError }),
   });
 });
 
@@ -159,6 +159,13 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
 
     if (sessionId && sessions.has(sessionId)) {
       const session = sessions.get(sessionId)!;
+      if (session.userId !== req.user!.id) {
+        res.status(403).json({
+          error: 'Forbidden',
+          message: 'Session belongs to a different user',
+        });
+        return;
+      }
       session.lastActivity = Date.now();
       await session.transport.handleRequest(req, res, req.body);
       return;
@@ -176,7 +183,7 @@ router.post('/', requireAuth, async (req: Request, res: Response) => {
       enableJsonResponse: true,
       onsessioninitialized: (newId: string) => {
         console.log(`[MCP] Session initialized: ${newId}`);
-        sessions.set(newId, { server, transport, lastActivity: Date.now() });
+        sessions.set(newId, { server, transport, lastActivity: Date.now(), userId: req.user!.id });
       },
     });
 
@@ -215,6 +222,13 @@ router.get('/', requireAuth, async (req: Request, res: Response) => {
     }
 
     const session = sessions.get(sessionId)!;
+    if (session.userId !== req.user!.id) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Session belongs to a different user',
+      });
+      return;
+    }
     session.lastActivity = Date.now();
     await session.transport.handleRequest(req, res);
   } catch (err) {
@@ -242,6 +256,13 @@ router.delete('/', requireAuth, async (req: Request, res: Response) => {
     }
 
     const session = sessions.get(sessionId)!;
+    if (session.userId !== req.user!.id) {
+      res.status(403).json({
+        error: 'Forbidden',
+        message: 'Session belongs to a different user',
+      });
+      return;
+    }
     await session.transport.handleRequest(req, res);
     await session.server.close().catch(() => {});
     sessions.delete(sessionId);

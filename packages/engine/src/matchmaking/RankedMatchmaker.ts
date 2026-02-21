@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import {
   MatchmakingRequest,
   MatchmakingResult,
@@ -48,7 +49,6 @@ export class RankedMatchmaker {
   private queue: Map<string, QueueEntry> = new Map();
   private tickInterval: NodeJS.Timeout | null = null;
   private onMatchFound: MatchFoundCallback | null = null;
-  private matchIdCounter: number = 0;
 
   constructor() {
     this.startTicking();
@@ -217,8 +217,7 @@ export class RankedMatchmaker {
    * Generate unique match ID
    */
   private generateMatchId(): string {
-    this.matchIdCounter++;
-    return `match_${Date.now()}_${this.matchIdCounter}`;
+    return `match_${randomUUID()}`;
   }
 
   // ===========================================================================

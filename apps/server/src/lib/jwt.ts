@@ -18,7 +18,7 @@ export const JWT_SECRET =
     return 'moltblox-dev-secret-DO-NOT-USE-IN-PRODUCTION';
   })();
 
-const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+const JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
 
 /**
  * Verify a JWT token and return its payload.

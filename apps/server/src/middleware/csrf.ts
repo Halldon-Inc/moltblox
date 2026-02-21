@@ -5,16 +5,17 @@
  */
 import { Request, Response, NextFunction } from 'express';
 import { randomBytes, timingSafeEqual } from 'crypto';
+import { resolveApiKeyUser } from './auth.js';
+import { verifyToken } from '../lib/jwt.js';
 
 const CSRF_COOKIE = 'moltblox_csrf';
 const CSRF_HEADER = 'x-csrf-token';
 
-/** Shared CSRF cookie options (non-httpOnly so JS can read it) */
+/** Shared CSRF cookie options (non-httpOnly so JS can read it, session-scoped) */
 export const CSRF_COOKIE_OPTIONS = {
   httpOnly: false,
   secure: process.env.NODE_ENV !== 'development',
   sameSite: 'lax' as const,
-  maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
 };
 
@@ -31,9 +32,13 @@ export function csrfTokenSetter(req: Request, res: Response, next: NextFunction)
 
 /**
  * Validate CSRF token on state-changing requests (POST, PUT, PATCH, DELETE).
- * Skips validation for API key authenticated requests (bots).
+ * Skips validation for validated API key or verified Bearer JWT requests.
  */
-export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
+export async function csrfProtection(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   // Skip for safe methods
   if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
     return next();
@@ -44,15 +49,25 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     return next();
   }
 
-  // Skip for API key authenticated requests (bots/agents)
-  if (req.headers['x-api-key']) {
-    return next();
+  // H4: Only skip CSRF for API key requests if the key resolves to a real user
+  const apiKey = req.headers['x-api-key'] as string | undefined;
+  if (apiKey) {
+    const apiKeyUser = await resolveApiKeyUser(apiKey);
+    if (apiKeyUser) {
+      return next();
+    }
+    // Invalid API key: fall through to require CSRF token
   }
 
-  // Skip for Bearer token authenticated requests (API/bot clients don't use cookies)
+  // H5: Only skip CSRF for Bearer tokens if the JWT is actually valid
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    return next();
+    const token = authHeader.slice(7).trim();
+    const payload = verifyToken(token);
+    if (payload) {
+      return next();
+    }
+    // Invalid JWT: fall through to require CSRF token
   }
 
   const cookieToken = req.cookies?.[CSRF_COOKIE];

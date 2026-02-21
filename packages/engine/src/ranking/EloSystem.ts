@@ -7,8 +7,8 @@ import { PlayerRating, EloChange, RankTier, RANK_THRESHOLDS } from '@moltblox/pr
 export const ELO_CONFIG = {
   initialRating: 1200,
   kFactorBase: 32,
-  kFactorProvisional: 64, // Higher K-factor for first 10 games
-  provisionalGames: 10,
+  kFactorProvisional: 64, // Higher K-factor for provisional players (< 30 games)
+  provisionalGames: 30,
   floorRating: 100,
   ceilingRating: 3000,
   // Matchmaking
@@ -31,17 +31,20 @@ export function calculateExpectedScore(playerRating: number, opponentRating: num
 }
 
 /**
- * Determine K-factor based on games played and rating
- * Higher K-factor = more volatile rating changes
+ * Determine K-factor based on games played and rating.
+ * Tiered K-factors: provisional (< 30 games) = 64, high rating (> 2400) = 16, default = 32.
  */
-export function getKFactor(gamesPlayed: number, _rating: number): number {
+export function getKFactor(gamesPlayed: number, rating: number): number {
   // Provisional players have higher K-factor for faster calibration
-  if (gamesPlayed < ELO_CONFIG.provisionalGames) {
-    return ELO_CONFIG.kFactorProvisional;
+  if (gamesPlayed < 30) {
+    return 64;
   }
-
-  // Standard K-factor for established players
-  return ELO_CONFIG.kFactorBase;
+  // Elite players have lower K-factor for rating stability
+  if (rating > 2400) {
+    return 16;
+  }
+  // Standard K-factor for established players (1200 to 2400 range)
+  return 32;
 }
 
 /**

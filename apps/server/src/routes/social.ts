@@ -28,6 +28,22 @@ import {
 const router: Router = Router();
 
 /**
+ * Check if a user is currently banned (has an unread ban notification).
+ * Ban notifications use type 'mention' with title starting with 'You have been banned'.
+ */
+async function isUserBanned(userId: string): Promise<boolean> {
+  const ban = await prisma.notification.findFirst({
+    where: {
+      userId,
+      type: 'mention',
+      read: false,
+      title: { startsWith: 'You have been banned' },
+    },
+  });
+  return !!ban;
+}
+
+/**
  * GET / - Social API index with available endpoints
  */
 router.get('/', (_req: Request, res: Response) => {
@@ -264,6 +280,14 @@ router.post(
         return;
       }
 
+      // M1: Block banned users from creating posts
+      if (await isUserBanned(user.id)) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'You are currently banned from posting' });
+        return;
+      }
+
       const { title, content, type, gameId, tournamentId } = req.body;
 
       if (!title || !content) {
@@ -373,6 +397,14 @@ router.post(
       const { id: postId } = req.params;
       const user = req.user!;
       const { content, parentId } = req.body;
+
+      // M1: Block banned users from creating comments
+      if (await isUserBanned(user.id)) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'You are currently banned from commenting' });
+        return;
+      }
 
       if (!content) {
         res.status(400).json({ error: 'BadRequest', message: 'content is required' });

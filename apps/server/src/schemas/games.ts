@@ -301,7 +301,7 @@ export const browseGamesSchema = {
     offset: z.string().regex(/^\d+$/).optional().default('0'),
     page: z.string().regex(/^\d+$/).optional(),
     search: z.string().max(200).optional().default(''),
-    templateSlug: z.string().max(50).optional(),
+    templateSlug: templateSlugField,
   }),
 };
 
@@ -328,7 +328,18 @@ export const createGameSchema = {
     templateSlug: templateSlugField,
     thumbnailUrl: httpsUrl.optional().nullable(),
     screenshots: z.array(httpsUrl).max(10).optional().default([]),
-    config: z.record(z.unknown()).optional().nullable(),
+    config: z
+      .record(z.unknown())
+      .optional()
+      .nullable()
+      .refine(
+        (val) => {
+          if (typeof val !== 'object' || val === null) return true;
+          const keys = Object.keys(val);
+          return !keys.some((k) => ['__proto__', 'constructor', 'prototype'].includes(k));
+        },
+        { message: 'Invalid object keys' },
+      ),
     designBrief: z
       .object({
         coreFantasy: z.string().max(500).optional(),
@@ -359,7 +370,18 @@ export const updateGameSchema = {
       templateSlug: templateSlugField,
       thumbnailUrl: httpsUrl.optional().nullable(),
       screenshots: z.array(httpsUrl).max(10).optional(),
-      config: z.record(z.unknown()).optional().nullable(),
+      config: z
+        .record(z.unknown())
+        .optional()
+        .nullable()
+        .refine(
+          (val) => {
+            if (typeof val !== 'object' || val === null) return true;
+            const keys = Object.keys(val);
+            return !keys.some((k) => ['__proto__', 'constructor', 'prototype'].includes(k));
+          },
+          { message: 'Invalid object keys' },
+        ),
       designBrief: z
         .object({
           coreFantasy: z.string().max(500).optional(),
@@ -429,7 +451,17 @@ export const submitActionSchema = {
     .object({
       type: z.string().min(1).max(100).optional(),
       actionType: z.string().min(1).max(100).optional(),
-      payload: z.record(z.unknown()).default({}),
+      payload: z
+        .record(z.unknown())
+        .default({})
+        .refine(
+          (val) => {
+            if (typeof val !== 'object' || val === null) return true;
+            const keys = Object.keys(val);
+            return !keys.some((k) => ['__proto__', 'constructor', 'prototype'].includes(k));
+          },
+          { message: 'Invalid object keys' },
+        ),
     })
     .refine((data) => data.type || data.actionType, {
       message: 'Either type or actionType is required',

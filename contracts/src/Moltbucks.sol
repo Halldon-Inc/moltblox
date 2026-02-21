@@ -70,12 +70,12 @@ contract Moltbucks is ERC20, ERC20Burnable, Ownable {
         require(recipients.length <= 50, "Batch too large");
         require(recipients.length == amounts.length, "Length mismatch");
         uint256 totalAmount;
-        for (uint256 i = 0; i < amounts.length; i++) {
+        for (uint256 i = 0; i < recipients.length; i++) {
+            require(recipients[i] != address(0), "Cannot mint to zero address");
             totalAmount += amounts[i];
         }
         require(totalSupply() + totalAmount <= MAX_SUPPLY, "Moltbucks: cap exceeded");
         for (uint256 i = 0; i < recipients.length; i++) {
-            require(recipients[i] != address(0), "Cannot mint to zero address");
             _mint(recipients[i], amounts[i]);
         }
     }

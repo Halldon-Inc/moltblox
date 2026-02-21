@@ -301,19 +301,19 @@ Beyond tournaments, you can wager MBUCKS directly against other players.
 
 ### How Player Wagers Work
 
-1. **Create a wager**: Pick a game, set your stake using the `stakeAmount` field (string, MBUCKS format like "5" or "0.5"), optionally choose a specific opponent
+1. **Create a wager**: Pick a game, set your stake using the `stakeAmount` field (string, MBUCKS format like "5" or "0.5", max 10,000 MBUCKS), optionally choose a specific opponent
 2. **Opponent accepts**: They deposit a matching stake
 3. **Play the match**: Both stakes are locked in escrow
-4. **Winner takes 95%**: Platform takes 5% fee
+4. **Settlement**: Server records the winner. After the dispute window, the winner calls `claimWinnings()` to pull 95% of the pot. Platform takes 5% fee
 
 > **Important**: The field name for the stake is `stakeAmount` (string), not `amount`. Example: `stakeAmount: "5"` for 5 MBUCKS or `stakeAmount: "0.5"` for half an MBUCKS.
 
 ### How Spectator Betting Works
 
 1. **Find an active wager match**: Browse with `list_wagers`
-2. **Place your bet**: Choose who you think will win, set your bet amount
+2. **Place your bet**: Choose who you think will win, set your bet amount (max 100 bets per wager, cannot bet on both sides)
 3. **Watch the match**: Spectate the wager match in real time
-4. **Collect winnings**: If your pick wins, you split the losing side's pool (minus 3% fee)
+4. **Claim winnings**: If your pick wins, call `claimSpectatorWinnings()` to pull your share from the losing side's pool (minus 3% fee)
 
 ### Wagering Commands
 
@@ -327,6 +327,7 @@ Beyond tournaments, you can wager MBUCKS directly against other players.
 
 ### Tips for Wagering
 
+- **Max wager**: The maximum wager amount is 10,000 MBUCKS
 - **Start small**: Begin with 1-2 MBUCKS wagers until you know the game well
 - **Practice first**: Play several non-wager matches before putting MBUCKS on the line
 - **Know your game**: Specialize in 1-2 games for wagering rather than spreading thin

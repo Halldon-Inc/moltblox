@@ -18,6 +18,7 @@ export interface FPSPlayer {
   ws: WebSocket;
   x: number;
   y: number;
+  z: number;
   angle: number;
   health: number;
   alive: boolean;
@@ -78,6 +79,21 @@ const WEAPON_NAMES: Record<number, string> = {
   5: 'BFG 9000',
 };
 
+// C2: Server-authoritative weapon damage table.
+// baseDamage = full damage at distances <= falloffStart.
+// Linear falloff from falloffStart to maxRange; zero damage beyond maxRange.
+const WEAPON_DAMAGE_TABLE: Record<
+  number,
+  { baseDamage: number; maxRange: number; falloffStart: number }
+> = {
+  0: { baseDamage: 15, maxRange: 3, falloffStart: 1 }, // Fist (melee)
+  1: { baseDamage: 25, maxRange: 50, falloffStart: 20 }, // Pistol
+  2: { baseDamage: 80, maxRange: 15, falloffStart: 5 }, // Shotgun
+  3: { baseDamage: 35, maxRange: 100, falloffStart: 40 }, // Chaingun
+  4: { baseDamage: 100, maxRange: 200, falloffStart: 80 }, // Rocket Launcher
+  5: { baseDamage: 150, maxRange: 200, falloffStart: 100 }, // BFG 9000
+};
+
 /**
  * Singleton FPS session manager.
  */
@@ -105,6 +121,7 @@ export class FPSSessionManager {
       ws,
       x: spawn.x,
       y: spawn.y,
+      z: 0,
       angle: spawn.angle,
       health: 100,
       alive: true,
@@ -165,6 +182,7 @@ export class FPSSessionManager {
       ws,
       x: spawn.x,
       y: spawn.y,
+      z: 0,
       angle: spawn.angle,
       health: 100,
       alive: true,
@@ -232,11 +250,11 @@ export class FPSSessionManager {
     const player = match.players.get(playerId);
     if (!player || !player.alive) return;
 
-    // Update player position
+    // Update player position (health is server-authoritative, not accepted from client)
     if (typeof payload.x === 'number') player.x = payload.x;
     if (typeof payload.y === 'number') player.y = payload.y;
+    if (typeof payload.z === 'number') player.z = payload.z;
     if (typeof payload.angle === 'number') player.angle = payload.angle;
-    if (typeof payload.health === 'number') player.health = payload.health;
     if (typeof payload.weaponIndex === 'number') player.weaponIndex = payload.weaponIndex;
   }
 
@@ -272,15 +290,38 @@ export class FPSSessionManager {
 
     const attacker = match.players.get(playerId);
     const targetId = payload.targetId as string;
-    const damage = typeof payload.damage === 'number' ? payload.damage : 0;
     const target = match.players.get(targetId);
 
     if (!attacker || !target || !attacker.alive || !target.alive) return;
-    if (damage <= 0 || damage > 200) return; // Sanity check
+
+    // C2: Server-authoritative damage calculation using weapon table.
+    // Client-provided damage is ignored entirely.
+    const weaponStats = WEAPON_DAMAGE_TABLE[attacker.weaponIndex];
+    if (!weaponStats) return; // Unknown weapon, reject the hit
+
+    // Calculate distance between attacker and target positions
+    const dx = attacker.x - target.x;
+    const dy = attacker.y - target.y;
+    const dz = attacker.z - target.z;
+    const distance = Math.hypot(dx, dy, dz);
+
+    // Reject hits beyond the weapon's maximum effective range
+    if (distance > weaponStats.maxRange) return;
+
+    // Calculate damage with linear falloff between falloffStart and maxRange
+    let damage = weaponStats.baseDamage;
+    if (distance > weaponStats.falloffStart) {
+      const falloffRange = weaponStats.maxRange - weaponStats.falloffStart;
+      const falloffDistance = distance - weaponStats.falloffStart;
+      const falloffMultiplier = 1 - falloffDistance / falloffRange;
+      damage = Math.round(weaponStats.baseDamage * falloffMultiplier);
+    }
+
+    if (damage <= 0) return;
 
     target.health = Math.max(0, target.health - damage);
 
-    // Broadcast hit
+    // Broadcast hit with server-calculated damage
     this.broadcastToMatch(match, {
       type: 'fps_player_hit',
       payload: {
@@ -408,6 +449,7 @@ export class FPSSessionManager {
       const spawn = match.spawnPoints[i % match.spawnPoints.length];
       p.x = spawn.x;
       p.y = spawn.y;
+      p.z = 0;
       p.angle = spawn.angle;
       p.health = 100;
       p.alive = true;
@@ -471,6 +513,7 @@ export class FPSSessionManager {
     const spawn = match.spawnPoints[Math.floor(Math.random() * match.spawnPoints.length)];
     player.x = spawn.x;
     player.y = spawn.y;
+    player.z = 0;
     player.angle = spawn.angle;
     player.health = 100;
     player.alive = true;

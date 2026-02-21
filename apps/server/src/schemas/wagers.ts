@@ -31,6 +31,7 @@ export const settleWagerSchema = {
   }),
   body: z.object({
     winnerId: z.string().cuid(),
+    gameSessionId: z.string().uuid().optional(),
   }),
 };
 

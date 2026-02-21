@@ -13,10 +13,10 @@ describe('Auth', () => {
       expect(decoded.address).toBe('0x1234567890abcdef');
     });
 
-    it('should set expiration to 7 days', () => {
+    it('should set expiration to 24 hours', () => {
       const token = signToken('user-123', '0x1234567890abcdef');
       const decoded = jwt.verify(token, JWT_SECRET) as any;
-      const expectedExpiry = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+      const expectedExpiry = Math.floor(Date.now() / 1000) + 24 * 60 * 60;
       expect(decoded.exp).toBeCloseTo(expectedExpiry, -2);
     });
 

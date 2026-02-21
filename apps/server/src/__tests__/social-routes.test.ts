@@ -38,6 +38,7 @@ const mockPrisma = vi.hoisted(() => ({
   },
   notification: {
     count: vi.fn(),
+    findFirst: vi.fn().mockResolvedValue(null),
   },
   tournament: {
     findMany: vi.fn(),
