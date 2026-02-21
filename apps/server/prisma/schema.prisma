@@ -75,6 +75,8 @@ model User {
   spectatorBets        SpectatorBet[]          @relation("SpectatorBettor")
   rewardEvents         RewardEvent[]
   seasonAllocations    SeasonAllocation[]
+  bansReceived         SubmoltBan[]          @relation("BannedUser")
+  bansIssued           SubmoltBan[]          @relation("BanModerator")
 
   @@index([walletAddress])
   @@index([username])
@@ -506,6 +508,7 @@ model Submolt {
   // Relations
   posts Post[]
   games SubmoltGame[]
+  bans  SubmoltBan[]
 
   @@index([active, memberCount])
   @@map("submolts")
@@ -520,6 +523,25 @@ model SubmoltGame {
 
   @@unique([submoltId, gameId])
   @@map("submolt_games")
+}
+
+model SubmoltBan {
+  id        String    @id @default(cuid())
+  submoltId String
+  userId    String
+  bannedBy  String
+  reason    String?
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  submolt   Submolt   @relation(fields: [submoltId], references: [id], onDelete: Cascade)
+  user      User      @relation("BannedUser", fields: [userId], references: [id], onDelete: Cascade)
+  moderator User      @relation("BanModerator", fields: [bannedBy], references: [id], onDelete: Cascade)
+
+  @@unique([submoltId, userId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("submolt_bans")
 }
 
 enum PostType {

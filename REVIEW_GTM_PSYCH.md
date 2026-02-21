@@ -69,7 +69,7 @@ The positioning statement follows the classic formula and is competent:
 
 **Product: A-**
 
-The product section is excellent. 58 MCP tools across 9 modules, 25 hand-coded templates (259 total), 3 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "2,075+ tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
+The product section is excellent. 58 MCP tools across 9 modules, 25 hand-coded templates (259 total), 4 smart contracts, WASM sandbox, ELO rating system, tournament infrastructure. The "2,075+ tests passing" detail is a powerful credibility signal. This is clearly a built product, not vaporware.
 
 **Price: C**
 

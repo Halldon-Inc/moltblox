@@ -27,6 +27,8 @@ export interface FPSPlayer {
   deaths: number;
   ready: boolean;
   respawnTimer?: ReturnType<typeof setTimeout>;
+  lastUpdateTime: number;
+  deathTime: number;
 }
 
 export interface FPSMatch {
@@ -40,6 +42,9 @@ export interface FPSMatch {
   startTime: number;
   broadcastInterval?: ReturnType<typeof setInterval>;
   countdownTimer?: ReturnType<typeof setTimeout>;
+  matchTimeout?: ReturnType<typeof setTimeout>;
+  mapWidth: number;
+  mapHeight: number;
 }
 
 // Spawn points per level
@@ -68,6 +73,15 @@ const RESPAWN_DELAY = 3000; // 3 seconds
 const BROADCAST_INTERVAL = 50; // 20Hz
 const COUNTDOWN_SECONDS = 3;
 const READY_TIMEOUT = 10_000; // Auto-start 10s after 2+ players ready
+const MAX_SPEED = 8; // units/sec (generous for lag tolerance)
+const MAX_MATCH_DURATION = 10 * 60 * 1000; // 10 minutes
+
+// Map dimensions per level (derived from spawn point extents)
+const MAP_DIMENSIONS: Record<number, { width: number; height: number }> = {
+  0: { width: 16, height: 16 },
+  1: { width: 20, height: 20 },
+  2: { width: 20, height: 20 },
+};
 
 // ---- Weapon names for kill feed ----
 const WEAPON_NAMES: Record<number, string> = {
@@ -79,7 +93,7 @@ const WEAPON_NAMES: Record<number, string> = {
   5: 'BFG 9000',
 };
 
-// C2: Server-authoritative weapon damage table.
+// Server-authoritative weapon damage table.
 // baseDamage = full damage at distances <= falloffStart.
 // Linear falloff from falloffStart to maxRange; zero damage beyond maxRange.
 const WEAPON_DAMAGE_TABLE: Record<
@@ -129,8 +143,11 @@ export class FPSSessionManager {
       kills: 0,
       deaths: 0,
       ready: false,
+      lastUpdateTime: 0,
+      deathTime: 0,
     };
 
+    const dims = MAP_DIMENSIONS[levelIndex] || MAP_DIMENSIONS[0];
     const match: FPSMatch = {
       id: matchId,
       level: levelIndex,
@@ -140,6 +157,8 @@ export class FPSSessionManager {
       players: new Map([[playerId, player]]),
       spawnPoints,
       startTime: 0,
+      mapWidth: dims.width,
+      mapHeight: dims.height,
     };
 
     this.matches.set(matchId, match);
@@ -190,6 +209,8 @@ export class FPSSessionManager {
       kills: 0,
       deaths: 0,
       ready: false,
+      lastUpdateTime: 0,
+      deathTime: 0,
     };
 
     match.players.set(playerId, player);
@@ -250,10 +271,35 @@ export class FPSSessionManager {
     const player = match.players.get(playerId);
     if (!player || !player.alive) return;
 
-    // Update player position (health is server-authoritative, not accepted from client)
-    if (typeof payload.x === 'number') player.x = payload.x;
-    if (typeof payload.y === 'number') player.y = payload.y;
+    // Health is server-authoritative, not accepted from client
+    const now = Date.now();
+    const newX = typeof payload.x === 'number' ? payload.x : player.x;
+    const newY = typeof payload.y === 'number' ? payload.y : player.y;
+
+    // Map bounds check: clamp to valid area
+    const clampedX = Math.max(0, Math.min(newX, match.mapWidth));
+    const clampedY = Math.max(0, Math.min(newY, match.mapHeight));
+
+    // Speed validation: reject teleports
+    if (player.lastUpdateTime > 0) {
+      const dt = (now - player.lastUpdateTime) / 1000; // seconds
+      if (dt > 0) {
+        const dx = clampedX - player.x;
+        const dy = clampedY - player.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist / dt > MAX_SPEED) {
+          // Reject: keep old position, still update time
+          player.lastUpdateTime = now;
+          return;
+        }
+      }
+    }
+
+    player.x = clampedX;
+    player.y = clampedY;
     if (typeof payload.z === 'number') player.z = payload.z;
+    player.lastUpdateTime = now;
+
     if (typeof payload.angle === 'number') player.angle = payload.angle;
     if (typeof payload.weaponIndex === 'number') player.weaponIndex = payload.weaponIndex;
   }
@@ -294,7 +340,7 @@ export class FPSSessionManager {
 
     if (!attacker || !target || !attacker.alive || !target.alive) return;
 
-    // C2: Server-authoritative damage calculation using weapon table.
+    // Server-authoritative damage calculation using weapon table.
     // Client-provided damage is ignored entirely.
     const weaponStats = WEAPON_DAMAGE_TABLE[attacker.weaponIndex];
     if (!weaponStats) return; // Unknown weapon, reject the hit
@@ -302,7 +348,7 @@ export class FPSSessionManager {
     // Calculate distance between attacker and target positions
     const dx = attacker.x - target.x;
     const dy = attacker.y - target.y;
-    const dz = attacker.z - target.z;
+    const dz = (attacker.z ?? 0) - (target.z ?? 0);
     const distance = Math.hypot(dx, dy, dz);
 
     // Reject hits beyond the weapon's maximum effective range
@@ -335,6 +381,7 @@ export class FPSSessionManager {
     // Check for kill
     if (target.health <= 0) {
       target.alive = false;
+      target.deathTime = Date.now();
       target.deaths++;
       attacker.kills++;
 
@@ -369,6 +416,9 @@ export class FPSSessionManager {
 
     const player = match.players.get(playerId);
     if (!player || player.alive) return;
+
+    // Enforce minimum respawn delay to prevent bypass
+    if (Date.now() - player.deathTime < RESPAWN_DELAY) return;
 
     // Clear existing timer if any
     if (player.respawnTimer) {
@@ -472,6 +522,22 @@ export class FPSSessionManager {
       this.broadcastState(match);
     }, BROADCAST_INTERVAL);
 
+    // M1: Match timeout to prevent indefinite matches
+    match.matchTimeout = setTimeout(() => {
+      if (match.status !== 'playing') return;
+      // Determine winner by most kills
+      let bestPlayer: string | null = null;
+      let bestKills = -1;
+      for (const [id, p] of match.players) {
+        if (p.kills > bestKills) {
+          bestKills = p.kills;
+          bestPlayer = id;
+        }
+      }
+      console.log(`[FPS] Match ${match.id} timed out after ${MAX_MATCH_DURATION / 1000}s`);
+      this.endMatch(match, bestPlayer);
+    }, MAX_MATCH_DURATION);
+
     console.log(`[FPS] Match ${match.id} started with ${match.players.size} players`);
   }
 
@@ -533,6 +599,11 @@ export class FPSSessionManager {
   private endMatch(match: FPSMatch, winnerId: string | null): void {
     match.status = 'ended';
 
+    if (match.matchTimeout) {
+      clearTimeout(match.matchTimeout);
+      match.matchTimeout = undefined;
+    }
+
     if (match.broadcastInterval) {
       clearInterval(match.broadcastInterval);
       match.broadcastInterval = undefined;
@@ -567,6 +638,7 @@ export class FPSSessionManager {
   private cleanupMatch(match: FPSMatch): void {
     if (match.broadcastInterval) clearInterval(match.broadcastInterval);
     if (match.countdownTimer) clearTimeout(match.countdownTimer);
+    if (match.matchTimeout) clearTimeout(match.matchTimeout);
     for (const [id, p] of match.players) {
       if (p.respawnTimer) clearTimeout(p.respawnTimer);
       this.playerMatchMap.delete(id);

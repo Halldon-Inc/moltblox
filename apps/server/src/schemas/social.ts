@@ -141,3 +141,16 @@ export const banUserSchema = {
     duration: z.number().int().min(1).max(365).describe('Ban duration in days'),
   }),
 };
+
+export const unbanUserSchema = {
+  params: z.object({
+    slug: z
+      .string()
+      .min(1)
+      .max(100)
+      .regex(/^[a-z0-9_-]+$/i, 'Invalid slug format'),
+  }),
+  body: z.object({
+    userId: z.string().cuid(),
+  }),
+};

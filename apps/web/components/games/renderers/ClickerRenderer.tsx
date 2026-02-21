@@ -67,6 +67,7 @@ export default function ClickerRenderer({
   const animFrameRef = useRef<number>(0);
   const particlesRef = useRef<ClickParticle[]>([]);
   const lastTimeRef = useRef(0);
+  const rippleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const data = (state?.data as unknown as ClickerData) ?? {
     clicks: {},
@@ -103,7 +104,10 @@ export default function ClickerRenderer({
       animFrameRef.current = requestAnimationFrame(animate);
     };
     animFrameRef.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animFrameRef.current);
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      if (rippleTimerRef.current) clearTimeout(rippleTimerRef.current);
+    };
   }, []);
 
   // Detect new milestone events
@@ -134,7 +138,8 @@ export default function ClickerRenderer({
     );
     particlesRef.current = [...particlesRef.current, ...newParticles];
     setParticles([...particlesRef.current]);
-    setTimeout(() => setRipple(false), 400);
+    if (rippleTimerRef.current) clearTimeout(rippleTimerRef.current);
+    rippleTimerRef.current = setTimeout(() => setRipple(false), 400);
   }, [dispatch]);
 
   const handleMultiClick = useCallback(() => {
@@ -147,7 +152,8 @@ export default function ClickerRenderer({
     );
     particlesRef.current = [...particlesRef.current, ...newParticles];
     setParticles([...particlesRef.current]);
-    setTimeout(() => setRipple(false), 400);
+    if (rippleTimerRef.current) clearTimeout(rippleTimerRef.current);
+    rippleTimerRef.current = setTimeout(() => setRipple(false), 400);
   }, [dispatch]);
 
   return (

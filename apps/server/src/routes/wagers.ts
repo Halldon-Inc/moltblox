@@ -179,7 +179,7 @@ router.get(
 
       const where: Prisma.WagerWhereInput = {};
       if (gameId) where.gameId = gameId as string;
-      if (status) where.status = (status as string).toUpperCase() as WagerStatus;
+      if (status) where.status = status as WagerStatus;
 
       const [wagers, total] = await Promise.all([
         prisma.wager.findMany({
@@ -515,6 +515,15 @@ router.post(
                   data: { payout: 0n, paid: true },
                 });
               }
+            }
+          } else {
+            // All bets were on the loser: mark them as paid with zero payout
+            console.log(`[WAGER_SETTLE] Wager ${id}: entire spectator pool lost (no winning bets)`);
+            for (const bet of spectatorBets) {
+              await tx.spectatorBet.update({
+                where: { id: bet.id },
+                data: { payout: 0n, paid: true },
+              });
             }
           }
         }

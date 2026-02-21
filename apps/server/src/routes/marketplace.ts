@@ -40,10 +40,16 @@ const router: Router = Router();
  * GET /marketplace - Alias for /marketplace/items (307 temporary redirect)
  */
 router.get('/', (req: Request, res: Response) => {
-  const qs = Object.keys(req.query).length
-    ? '?' + new URLSearchParams(req.query as Record<string, string>).toString()
-    : '';
-  res.redirect(307, `${req.baseUrl}/items${qs}`);
+  if (Object.keys(req.query).length) {
+    const flatQuery: Record<string, string> = {};
+    for (const [key, val] of Object.entries(req.query)) {
+      flatQuery[key] = Array.isArray(val) ? (val[val.length - 1] as string) : (val as string);
+    }
+    const qs = '?' + new URLSearchParams(flatQuery).toString();
+    res.redirect(307, `${req.baseUrl}/items${qs}`);
+  } else {
+    res.redirect(307, `${req.baseUrl}/items`);
+  }
 });
 
 /**

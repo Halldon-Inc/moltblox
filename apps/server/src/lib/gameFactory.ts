@@ -287,7 +287,7 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   'wg-spelling-bee': WordGames.SpellingBeeGame,
   'wg-typing-race': WordGames.TypingRaceGame,
 
-  // Solitairey ports (13)
+  // Solitairey ports (14)
   'sol-klondike': Solitairey.KlondikeGame,
   'sol-spider': Solitairey.SpiderGame,
   'sol-freecell': Solitairey.FreeCellGame,
@@ -318,7 +318,7 @@ const TEMPLATE_REGISTRY: Record<string, GameConstructor> = {
   'cg-spades-classic': CardGames.SpadesClassicGame,
   'cg-canasta-classic': CardGames.CanastaClassicGame,
 
-  // Idle/incremental game ports (19)
+  // Idle/incremental game ports (22)
   'ig-cookie-clicker': IdleGames.CookieClickerGame,
   'ig-antimatter': IdleGames.AntimatterGame,
   'ig-miner': IdleGames.MinerGame,

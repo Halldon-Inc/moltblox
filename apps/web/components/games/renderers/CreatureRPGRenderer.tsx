@@ -2399,6 +2399,7 @@ export default function CreatureRPGRenderer({
             height={CANVAS_H}
             className="rounded-lg border border-white/10 bg-black"
             style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }}
+            aria-label="Creature RPG game canvas"
             onClick={() => {
               if (data.gamePhase === 'dialogue') handleAdvanceDialogue();
             }}

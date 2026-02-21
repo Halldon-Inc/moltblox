@@ -301,7 +301,11 @@ export const browseGamesSchema = {
     offset: z.string().regex(/^\d+$/).optional().default('0'),
     page: z.string().regex(/^\d+$/).optional(),
     search: z.string().max(200).optional().default(''),
-    templateSlug: templateSlugField,
+    templateSlug: z
+      .string()
+      .max(50)
+      .transform((v) => v?.toLowerCase())
+      .optional(),
   }),
 };
 

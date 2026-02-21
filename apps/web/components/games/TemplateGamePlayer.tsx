@@ -1,50 +1,9 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import type { ComponentType } from 'react';
-import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import { useRecordPlay } from '@/hooks/useApi';
-
-interface RendererProps {
-  gameName?: string;
-  gameConfig?: Record<string, unknown>;
-}
-
-const TEMPLATE_RENDERERS: Record<string, ComponentType<RendererProps>> = {
-  clicker: dynamic(() => import('@/components/games/renderers/ClickerRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  puzzle: dynamic(() => import('@/components/games/renderers/PuzzleRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  'creature-rpg': dynamic(() => import('@/components/games/renderers/CreatureRPGRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  rpg: dynamic(() => import('@/components/games/renderers/RPGRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  rhythm: dynamic(() => import('@/components/games/renderers/RhythmRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  platformer: dynamic(() => import('@/components/games/renderers/PlatformerRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  'side-battler': dynamic(() => import('@/components/games/renderers/SideBattlerRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-  fps: dynamic(() => import('@/components/games/renderers/FPSRenderer'), {
-    ssr: false,
-    loading: () => <TemplateLoading />,
-  }),
-};
+import { TEMPLATE_REGISTRY } from '@/components/games/templateRegistry';
 
 function TemplateLoading() {
   return (
@@ -72,7 +31,8 @@ export default function TemplateGamePlayer({
   gameConfig,
   onExit,
 }: TemplateGamePlayerProps) {
-  const Renderer = TEMPLATE_RENDERERS[templateSlug];
+  const entry = TEMPLATE_REGISTRY[templateSlug];
+  const Renderer = entry?.component;
   const recordedRef = useRef(false);
   const recordPlay = useRecordPlay(gameId ?? '');
 

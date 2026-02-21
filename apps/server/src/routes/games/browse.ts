@@ -91,6 +91,9 @@ router.get(
         'rpg',
         'simulation',
         'sports',
+        'card',
+        'board',
+        'other',
       ];
       if (genre && genre !== 'all') {
         const normalized = (genre as string).toLowerCase();

@@ -23,24 +23,24 @@ import {
   reportPostSchema,
   removePostSchema,
   banUserSchema,
+  unbanUserSchema,
 } from '../schemas/social.js';
 
 const router: Router = Router();
 
 /**
- * Check if a user is currently banned (has an unread ban notification).
- * Ban notifications use type 'mention' with title starting with 'You have been banned'.
+ * Check whether a user has an active (non-expired) ban in a submolt.
+ * Returns true if banned, false otherwise.
  */
-async function isUserBanned(userId: string): Promise<boolean> {
-  const ban = await prisma.notification.findFirst({
-    where: {
-      userId,
-      type: 'mention',
-      read: false,
-      title: { startsWith: 'You have been banned' },
-    },
+async function isUserBanned(submoltId: string, userId: string): Promise<boolean> {
+  const ban = await prisma.submoltBan.findUnique({
+    where: { submoltId_userId: { submoltId, userId } },
+    select: { expiresAt: true },
   });
-  return !!ban;
+  if (!ban) return false;
+  // Permanent ban (no expiry) or not yet expired
+  if (!ban.expiresAt) return true;
+  return ban.expiresAt > new Date();
 }
 
 /**
@@ -280,11 +280,9 @@ router.post(
         return;
       }
 
-      // M1: Block banned users from creating posts
-      if (await isUserBanned(user.id)) {
-        res
-          .status(403)
-          .json({ error: 'Forbidden', message: 'You are currently banned from posting' });
+      // Enforce submolt bans
+      if (await isUserBanned(submolt.id, user.id)) {
+        res.status(403).json({ error: 'Forbidden', message: 'You are banned from this community' });
         return;
       }
 
@@ -415,6 +413,12 @@ router.post(
 
       if (!post || post.deleted) {
         res.status(404).json({ error: 'NotFound', message: 'Post not found' });
+        return;
+      }
+
+      // Enforce submolt bans
+      if (await isUserBanned(post.submoltId, user.id)) {
+        res.status(403).json({ error: 'Forbidden', message: 'You are banned from this community' });
         return;
       }
 
@@ -714,6 +718,26 @@ router.post(
 
       const banExpires = new Date(Date.now() + duration * 24 * 60 * 60 * 1000);
 
+      // Persist the ban (upsert in case the user was previously banned)
+      await prisma.submoltBan.upsert({
+        where: {
+          submoltId_userId: { submoltId: submolt.id, userId },
+        },
+        create: {
+          submoltId: submolt.id,
+          userId,
+          bannedBy: user.id,
+          reason: sanitize(reason),
+          expiresAt: banExpires,
+        },
+        update: {
+          bannedBy: user.id,
+          reason: sanitize(reason),
+          expiresAt: banExpires,
+          createdAt: new Date(),
+        },
+      });
+
       // Notify the banned user
       await prisma.notification.create({
         data: {
@@ -732,6 +756,70 @@ router.post(
         duration,
         expiresAt: banExpires.toISOString(),
         message: `User banned from ${submolt.name} for ${duration} day(s)`,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
+
+/**
+ * POST /submolts/:slug/unban - Unban a user from a submolt (moderator only)
+ *
+ * Body: { userId }
+ * Removes the ban record so the user can participate again.
+ */
+router.post(
+  '/submolts/:slug/unban',
+  requireAuth,
+  validate(unbanUserSchema),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { slug } = req.params;
+      const user = req.user!;
+      const { userId } = req.body;
+
+      const submolt = await prisma.submolt.findUnique({ where: { slug } });
+
+      if (!submolt) {
+        res.status(404).json({ error: 'NotFound', message: `Submolt "${slug}" does not exist` });
+        return;
+      }
+
+      // Check the user is a moderator
+      const moderatorIds = submolt.moderators as string[];
+      if (!moderatorIds.includes(user.id)) {
+        res
+          .status(403)
+          .json({ error: 'Forbidden', message: 'Only submolt moderators can unban users' });
+        return;
+      }
+
+      // Delete the ban record (returns null if it does not exist)
+      const deleted = await prisma.submoltBan.deleteMany({
+        where: { submoltId: submolt.id, userId },
+      });
+
+      if (deleted.count === 0) {
+        res.status(404).json({ error: 'NotFound', message: 'No active ban found for this user' });
+        return;
+      }
+
+      // Notify the user they have been unbanned
+      await prisma.notification.create({
+        data: {
+          userId,
+          type: 'mention',
+          title: `You have been unbanned from ${submolt.name}`,
+          message: 'A moderator has lifted your ban. You may participate again.',
+        },
+      });
+
+      res.json({
+        unbanned: true,
+        userId,
+        submoltSlug: slug,
+        message: `User unbanned from ${submolt.name}`,
       });
     } catch (error) {
       next(error);

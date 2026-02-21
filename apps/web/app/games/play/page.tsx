@@ -85,7 +85,7 @@ const EXAMPLE_GAMES = [
     description: 'Classic DOOM-style FPS with raycasting, multiple weapons, and 3 campaign levels.',
     icon: Crosshair,
     color: 'from-red-600/20 to-rose-500/10',
-    players: '1',
+    players: '1-4',
   },
 ];
 

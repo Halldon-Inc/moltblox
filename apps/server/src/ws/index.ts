@@ -31,6 +31,7 @@ import { getSession, cleanupAllSessions } from './redisSessionStore.js';
 import redis from '../lib/redis.js';
 import { allowedOrigins } from '../lib/config.js';
 import { sanitize } from '../lib/sanitize.js';
+import prisma from '../lib/prisma.js';
 
 const HEARTBEAT_INTERVAL = 30_000; // 30 seconds
 const CLIENT_TIMEOUT = 60_000; // 60 seconds without pong
@@ -508,9 +509,21 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
       const level = typeof payload.level === 'number' ? payload.level : 0;
       const maxPlayers = typeof payload.maxPlayers === 'number' ? payload.maxPlayers : 4;
       const killsToWin = typeof payload.killsToWin === 'number' ? payload.killsToWin : 10;
+      // L1: Look up display name from DB; fall back to playerId
+      let playerName = client.playerId;
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: client.playerId },
+          select: { displayName: true, username: true },
+        });
+        if (user?.displayName) playerName = user.displayName;
+        else if (user?.username) playerName = user.username;
+      } catch {
+        // DB lookup failed; use playerId as fallback
+      }
       const matchId = fpsSessionManager.createMatch(
         client.playerId,
-        client.playerId,
+        playerName,
         client.ws,
         level,
         maxPlayers,
@@ -526,12 +539,19 @@ const messageHandlers: Record<string, MessageHandlerDef> = {
     async handler({ client, payload }) {
       if (!client.playerId) return;
       const matchId = payload.matchId as string;
-      const joined = fpsSessionManager.joinMatch(
-        client.playerId,
-        client.playerId,
-        client.ws,
-        matchId,
-      );
+      // L1: Look up display name from DB; fall back to playerId
+      let playerName = client.playerId;
+      try {
+        const user = await prisma.user.findUnique({
+          where: { id: client.playerId },
+          select: { displayName: true, username: true },
+        });
+        if (user?.displayName) playerName = user.displayName;
+        else if (user?.username) playerName = user.username;
+      } catch {
+        // DB lookup failed; use playerId as fallback
+      }
+      const joined = fpsSessionManager.joinMatch(client.playerId, playerName, client.ws, matchId);
       if (joined) {
         client.fpsMatchId = matchId;
       }

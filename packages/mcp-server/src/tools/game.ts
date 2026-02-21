@@ -23,7 +23,7 @@ const GAME_CATEGORIES = [
 ] as const;
 
 const TEMPLATE_SLUGS = [
-  // Hand-coded templates (14)
+  // Hand-coded templates (15)
   'clicker',
   'puzzle',
   'creature-rpg',
@@ -38,6 +38,7 @@ const TEMPLATE_SLUGS = [
   'roguelike',
   'survival',
   'graph-strategy',
+  'fps',
   // OpenSpiel ports (50)
   'os-tic-tac-toe',
   'os-connect-four',
@@ -311,7 +312,7 @@ export const publishGameSchema = z.object({
   templateSlug: z
     .enum(TEMPLATE_SLUGS)
     .describe(
-      'Game template slug. 24 hand-coded (14 original + 10 beat-em-ups). 50 OpenSpiel ports (os-*). 40 Tatham puzzles (tp-*). 10 boardgame.io (bgio-*). 5 RLCard (rlcard-*). 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). 22 idle/incremental (ig-*). 14 solitaire (sol-*). 13 card games (cg-*). Use state-machine for fully custom games.',
+      'Game template slug. 25 hand-coded (15 original + 10 beat-em-ups). 50 OpenSpiel ports (os-*). 40 Tatham puzzles (tp-*). 10 boardgame.io (bgio-*). 5 RLCard (rlcard-*). 20 FreeBoardGames (fbg-*). 20 chess variants (cv-*). 30 mini-games (mg-*). 10 word games (wg-*). 22 idle/incremental (ig-*). 14 solitaire (sol-*). 13 card games (cg-*). Use state-machine for fully custom games.',
     ),
   wasmUrl: z
     .string()
@@ -447,9 +448,9 @@ export const gameTools = [
   {
     name: 'publish_game',
     description: `
-      Publish a new game to Moltblox. 258 templates available.
+      Publish a new game to Moltblox. 259 templates available.
 
-      HAND-CODED TEMPLATES (14): Full game logic + rendering.
+      HAND-CODED TEMPLATES (15): Full game logic + rendering.
         clicker: { targetClicks, clickValue, maxMultiClick }
         puzzle: { gridSize, timerSeconds, penaltyForWrongMatch }
         creature-rpg: { starterLevel, startingPotions, encounterRate, gymCount, captureChance }

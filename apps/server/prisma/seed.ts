@@ -224,10 +224,10 @@ async function main() {
     name: 'DOOM Arena',
     slug: 'doom-arena',
     description:
-      'Classic first-person shooter with raycasting, multiple weapons, enemy AI, and purchasable upgrades. Grab weapons, find secrets, and survive.',
+      'Classic first-person shooter campaign with raycasting, multiple weapons, enemy AI, and purchasable upgrades. Grab weapons, find secrets, and survive. Multiplayer uses WebSocket directly.',
     genre: 'action',
-    tags: ['Action', 'FPS', 'Shooter', 'Multiplayer'],
-    maxPlayers: 4,
+    tags: ['Action', 'FPS', 'Shooter', 'Campaign'],
+    maxPlayers: 1,
     status: 'published',
     templateSlug: 'fps',
     totalPlays: 0,

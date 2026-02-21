@@ -958,6 +958,7 @@ export default function PlatformerRenderer({
             className="rounded-lg border border-white/10 bg-black"
             style={{ width: '100%', height: 'auto', imageRendering: 'pixelated' }}
             tabIndex={0}
+            aria-label="Platformer game canvas"
           />
         </div>
         <div className="flex gap-6 text-xs text-white/50">

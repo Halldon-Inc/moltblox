@@ -249,7 +249,12 @@ export default function RhythmRenderer({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const draw = () => {
+    let prevTimestamp = 0;
+
+    const draw = (timestamp: number) => {
+      const deltaMs = prevTimestamp === 0 ? 16 : Math.min(timestamp - prevTimestamp, 50);
+      prevTimestamp = timestamp;
+
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // Background: gradient instead of flat
@@ -406,7 +411,7 @@ export default function RhythmRenderer({
       const particles = hitParticlesRef.current;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
-        p.life -= 16; // approximate dt at 60fps
+        p.life -= deltaMs;
         if (p.life <= 0) {
           particles.splice(i, 1);
           continue;
