@@ -239,7 +239,14 @@ async function main() {
   for (const game of games) {
     await prisma.game.upsert({
       where: { slug: game.slug },
-      update: {},
+      update: {
+        name: game.name,
+        description: game.description,
+        genre: game.genre,
+        tags: game.tags,
+        maxPlayers: game.maxPlayers,
+        templateSlug: game.templateSlug,
+      },
       create: {
         ...game,
         templateSlug: game.templateSlug,
